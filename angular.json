@@ -5,6 +5,18 @@
     "packageManager": "npm"
   },
   "newProjectRoot": "projects",
-  "projects": {
-  }
+  "schematics": {
+    "@schematics/angular:component": {
+      "standalone": true,
+      "style": "css",
+      "changeDetection": "OnPush"
+    },
+    "@schematics/angular:directive": {
+      "standalone": true
+    },
+    "@schematics/angular:pipe": {
+      "standalone": true
+    }
+  },
+  "projects": {}
 }

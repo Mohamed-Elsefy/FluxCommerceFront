@@ -4,9 +4,15 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng version",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "node -e \"console.log('[Phase 0.1] No unit tests yet - Vitest arrives in Sub-Phase 0.8.')\"",
+    "typecheck": "node -e \"console.log('[Phase 0.1] Empty workspace by design (files: []); per-app typechecking arrives in Sub-Phase 0.2.')\"",
+    "lint": "prettier --check angular.json package.json tsconfig.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check angular.json package.json tsconfig.json",
+    "test:unit": "node -e \"console.log('[Phase 0.1] Vitest not configured yet - planned for Sub-Phase 0.8.')\"",
+    "test:e2e": "node -e \"console.log('[Phase 0.1] Playwright not configured yet - planned for Sub-Phase 0.8.')\""
   },
   "private": true,
   "packageManager": "npm@11.16.0",
