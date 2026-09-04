@@ -13,12 +13,15 @@
     "watch:storefront": "ng build storefront --watch --configuration development",
     "watch:admin": "ng build admin --watch --configuration development",
     "test": "node -e \"console.log('[Phase 0.1] No unit tests yet - Vitest arrives in Sub-Phase 0.8.')\"",
-    "typecheck": "tsc --noEmit -p apps/storefront/tsconfig.app.json && tsc --noEmit -p apps/admin/tsconfig.app.json",
+    "typecheck": "tsc --noEmit -p apps/storefront/tsconfig.app.json && tsc --noEmit -p apps/admin/tsconfig.app.json && npm run typecheck:libs",
     "typecheck:storefront": "tsc --noEmit -p apps/storefront/tsconfig.app.json",
     "typecheck:admin": "tsc --noEmit -p apps/admin/tsconfig.app.json",
-    "lint": "prettier --check angular.json package.json tsconfig.json apps/storefront/tsconfig.app.json apps/admin/tsconfig.app.json apps/storefront/src apps/admin/src",
+    "typecheck:libs": "tsc --noEmit -p libs/api/tsconfig.lib.json && tsc --noEmit -p libs/auth/tsconfig.lib.json && tsc --noEmit -p libs/ui/tsconfig.lib.json && tsc --noEmit -p libs/i18n/tsconfig.lib.json && tsc --noEmit -p libs/theming/tsconfig.lib.json && tsc --noEmit -p libs/models/tsconfig.lib.json && tsc --noEmit -p libs/utils/tsconfig.lib.json",
+    "lint": "npm run lint:format && npm run lint:boundaries",
+    "lint:format": "prettier --check angular.json package.json tsconfig.json eslint.config.mjs apps/storefront/tsconfig.app.json apps/admin/tsconfig.app.json apps/storefront/src apps/admin/src libs/api libs/auth libs/ui libs/i18n libs/theming libs/models libs/utils",
+    "lint:boundaries": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check angular.json package.json tsconfig.json apps/storefront/tsconfig.app.json apps/admin/tsconfig.app.json apps/storefront/src apps/admin/src",
+    "format:check": "prettier --check angular.json package.json tsconfig.json eslint.config.mjs apps/storefront/tsconfig.app.json apps/admin/tsconfig.app.json apps/storefront/src apps/admin/src libs/api libs/auth libs/ui libs/i18n libs/theming libs/models libs/utils",
     "test:unit": "node -e \"console.log('[Phase 0.1] Vitest not configured yet - planned for Sub-Phase 0.8.')\"",
     "test:e2e": "node -e \"console.log('[Phase 0.1] Playwright not configured yet - planned for Sub-Phase 0.8.')\""
   },
@@ -38,6 +41,8 @@
     "@angular/build": "^22.1.7",
     "@angular/cli": "^22.0.8",
     "@angular/compiler-cli": "^22.0.0",
+    "@typescript-eslint/parser": "^8.69.0",
+    "eslint": "^10.10.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2"
   }

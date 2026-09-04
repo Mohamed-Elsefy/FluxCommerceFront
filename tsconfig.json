@@ -15,7 +15,17 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@flux/api": ["./libs/api/src/public-api.ts"],
+      "@flux/auth": ["./libs/auth/src/public-api.ts"],
+      "@flux/ui": ["./libs/ui/src/public-api.ts"],
+      "@flux/i18n": ["./libs/i18n/src/public-api.ts"],
+      "@flux/theming": ["./libs/theming/src/public-api.ts"],
+      "@flux/models": ["./libs/models/src/public-api.ts"],
+      "@flux/utils": ["./libs/utils/src/public-api.ts"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
@@ -30,6 +40,27 @@
     },
     {
       "path": "./apps/admin/tsconfig.app.json"
+    },
+    {
+      "path": "./libs/api/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/auth/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/ui/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/i18n/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/theming/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/models/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/utils/tsconfig.lib.json"
     }
   ]
 }
