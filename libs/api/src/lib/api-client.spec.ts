@@ -1,7 +1,7 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ApiClient, buildQueryString } from './api-client';
+import { ApiClient } from './api-client';
 import { provideAppEnvironment } from './app-environment';
 import { provideApi } from './api-providers';
 import {
@@ -39,30 +39,6 @@ function setup(environment: AppEnvironment): {
   });
   return { client: TestBed.inject(ApiClient), http: TestBed.inject(HttpTestingController) };
 }
-
-describe('buildQueryString', () => {
-  it('serializes scalars, repeats arrays, and omits nullish values', () => {
-    expect(
-      buildQueryString({
-        searchTerm: 'tee',
-        pageNumber: 2,
-        pageSize: 20,
-        exact: true,
-        missing: undefined,
-        cleared: null,
-      }),
-    ).toBe('searchTerm=tee&pageNumber=2&pageSize=20&exact=true');
-  });
-
-  it('repeats array keys and drops empty arrays', () => {
-    expect(buildQueryString({ sku: ['A', 'B'], empty: [] })).toBe('sku=A&sku=B');
-    expect(buildQueryString({})).toBe('');
-  });
-
-  it('encodes keys and values', () => {
-    expect(buildQueryString({ q: 'a b&c' })).toBe('q=a%20b%26c');
-  });
-});
 
 describe('ApiClient', () => {
   let client: ApiClient;

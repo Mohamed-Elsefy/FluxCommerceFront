@@ -10,6 +10,8 @@ export * from './lib/auth-interceptor';
 export * from './lib/http-error-hook-interceptor';
 export * from './lib/error-normalizer';
 export * from './lib/api-client';
+export * from './lib/query';
+export * from './lib/request-lifecycle';
 export * from './lib/request-context';
 export * from './lib/api-response';
 export * from './lib/api-error';

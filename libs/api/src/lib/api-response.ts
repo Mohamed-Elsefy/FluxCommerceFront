@@ -26,6 +26,8 @@
  *   with the helpers below.
  */
 
+import type { PaginationRequest } from './query';
+
 /** Success envelope without data (`200 ApiResponse`, e.g. logout). */
 export interface ApiResponse {
   isSuccess: boolean;
@@ -57,11 +59,11 @@ export type PagedApiResponse<T> = ApiResponseWithData<PagedResult<T>>;
  * `GET /orders`). Both optional, 1-based: `pageNumber >= 1`,
  * `1 <= pageSize <= 100`, defaults `1/20`. Never send `pageSize=0` for "all" —
  * repeat with `pageSize=100` instead.
+ *
+ * Kept as an alias of the canonical 1.8 `PaginationRequest` (same shape);
+ * prefer `PaginationRequest` + `normalizePagination` in new code.
  */
-export interface PagingQuery {
-  pageNumber?: number;
-  pageSize?: number;
-}
+export type PagingQuery = PaginationRequest;
 
 /** `1`-based page count. `0` when `totalCount` is `0`. */
 export function totalPagesOf(page: PagedResult<unknown>): number {

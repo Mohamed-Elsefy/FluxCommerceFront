@@ -59,20 +59,9 @@ import { API_BASE_URL } from './api-base-url';
 import { buildApiUrl } from './api-config';
 import { buildEndpointPath } from './api-endpoints';
 import { ApiRequestContext, toHttpContext } from './request-context';
-
-/** Single scalar query value: strings, JSON numbers (incl. numeric wire enums), booleans. */
-export type QueryParamScalar = string | number | boolean;
-
-/**
- * One query parameter value. `null`/`undefined` omit the key; arrays repeat
- * it (`?sku=A&sku=B`); empty arrays contribute nothing.
- */
-export type QueryParamValue = QueryParamScalar | readonly QueryParamScalar[] | null | undefined;
-
-/** Query parameter map using wire (camelCase) names, e.g. `{ pageNumber: 2 }`. */
-export interface QueryParams {
-  [param: string]: QueryParamValue;
-}
+import { cancelOnAbort } from './request-lifecycle';
+import { buildQueryString } from './query';
+import type { QueryParams } from './query';
 
 /** Route-template values, keyed by `{placeholder}` name, e.g. `{ id: orderId }`. */
 export type PathParams = Record<string, string | number>;
@@ -84,31 +73,18 @@ export type PathParams = Record<string, string | number>;
 export interface ApiRequestOptions {
   /** Values for the route template's `{placeholders}`. */
   readonly pathParams?: PathParams;
-  /** Query string parameters (serialized by `buildQueryString`). */
+  /** Query string parameters (convert typed query objects via `toQueryParams`). */
   readonly params?: QueryParams;
   /** Extra headers merged onto the request. */
   readonly headers?: Record<string, string>;
   /** Request-scoped metadata (correlation/culture/idempotency). */
   readonly context?: ApiRequestContext;
-}
-
-/**
- * Deterministic query serializer shared by all verbs (and reusable by the
- * 1.8 pagination abstractions). Omission-first: `null`/`undefined`/empty
- * arrays never reach the wire, so backend defaults apply.
- */
-export function buildQueryString(params: QueryParams = {}): string {
-  const parts: string[] = [];
-  for (const [key, value] of Object.entries(params)) {
-    if (value === null || value === undefined) {
-      continue;
-    }
-    const values: readonly QueryParamScalar[] = Array.isArray(value) ? value : [value];
-    for (const item of values) {
-      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(item))}`);
-    }
-  }
-  return parts.join('&');
+  /**
+   * Lifecycle signal (e.g. `destroySignal(destroyRef)`). Aborting completes
+   * the call silently without sending (pre-aborted) or aborts it in flight;
+   * cancellations never surface as errors (Sub-Phase 1.7).
+   */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -124,7 +100,7 @@ export class ApiClient {
   /** Typed `GET`. `T` is the full body (e.g. `ApiResponseWithData<CartResponse>`). */
   get<T>(path: string, options: ApiRequestOptions = {}): Observable<T> {
     const { url, headers, context } = this.prepare(path, options);
-    return this.http.get<T>(url, { headers, context });
+    return this.http.get<T>(url, { headers, context }).pipe(cancelOnAbort(options.signal));
   }
 
   /**
@@ -133,25 +109,25 @@ export class ApiClient {
    */
   post<T>(path: string, body: unknown, options: ApiRequestOptions = {}): Observable<T> {
     const { url, headers, context } = this.prepare(path, options);
-    return this.http.post<T>(url, body, { headers, context });
+    return this.http.post<T>(url, body, { headers, context }).pipe(cancelOnAbort(options.signal));
   }
 
   /** Typed `PUT` with body. `T = void` for `204 No Content` updates. */
   put<T>(path: string, body: unknown, options: ApiRequestOptions = {}): Observable<T> {
     const { url, headers, context } = this.prepare(path, options);
-    return this.http.put<T>(url, body, { headers, context });
+    return this.http.put<T>(url, body, { headers, context }).pipe(cancelOnAbort(options.signal));
   }
 
   /** Typed `PATCH` with body. */
   patch<T>(path: string, body: unknown, options: ApiRequestOptions = {}): Observable<T> {
     const { url, headers, context } = this.prepare(path, options);
-    return this.http.patch<T>(url, body, { headers, context });
+    return this.http.patch<T>(url, body, { headers, context }).pipe(cancelOnAbort(options.signal));
   }
 
   /** Typed bodyless `DELETE` (no contract `DELETE` takes a body). */
   delete<T>(path: string, options: ApiRequestOptions = {}): Observable<T> {
     const { url, headers, context } = this.prepare(path, options);
-    return this.http.delete<T>(url, { headers, context });
+    return this.http.delete<T>(url, { headers, context }).pipe(cancelOnAbort(options.signal));
   }
 
   private prepare(
