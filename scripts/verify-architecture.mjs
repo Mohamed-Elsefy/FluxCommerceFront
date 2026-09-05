@@ -148,6 +148,21 @@ check(
   'libraries never import from applications',
   !specifiersOf(libSources).some(({ spec }) => fromLibs(spec)),
 );
+// Sub-Phase 1.3 boundary: Feature Data Access -> API Client -> HttpClient.
+// Only libs/api may touch raw HttpClient; applications consume @flux/api.
+// The exact '@angular/common/http' specifier is checked so specs may still
+// use '@angular/common/http/testing'.
+const isRawHttpClient = (spec) => spec === '@angular/common/http';
+check(
+  'applications never import HttpClient directly (use ApiClient)',
+  !specifiersOf(appSources).some(({ spec }) => isRawHttpClient(spec)),
+);
+check(
+  'only libs/api uses HttpClient (single transport owner)',
+  !specifiersOf(libSources.filter((path) => !path.startsWith('libs/api/'))).some(({ spec }) =>
+    isRawHttpClient(spec),
+  ),
+);
 const readCode = (path) => stripComments(readFileSync(join(root, path), 'utf8'));
 const secretPattern = /secret|password|passwd|credential|apikey|accesstoken/i;
 check(
