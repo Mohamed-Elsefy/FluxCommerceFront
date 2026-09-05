@@ -8,7 +8,7 @@ import {
   CORRELATION_ID_CONTEXT,
   CULTURE_CONTEXT,
   IDEMPOTENCY_KEY_CONTEXT,
-} from './request-context';
+} from '../runtime/request-context';
 import type { AppEnvironment } from './app-environment';
 
 /** Local stand-in payload — specs must not couple libs/api to @flux/models. */

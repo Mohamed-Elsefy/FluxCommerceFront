@@ -16,8 +16,8 @@
  * - Timestamps are `DateTimeOffset` (ISO-8601 strings).
  */
 
-import type { Guid, IsoDateString } from './shared-types';
-import type { InventoryReservationStatus } from './enums';
+import type { Guid, IsoDateString } from '../common/shared-types';
+import type { InventoryReservationStatus } from '../common/enums';
 
 /** `POST /inventory` body. */
 export interface CreateInventoryItemRequest {

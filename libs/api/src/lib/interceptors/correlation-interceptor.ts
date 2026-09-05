@@ -20,8 +20,8 @@
  */
 
 import { HttpInterceptorFn } from '@angular/common/http';
-import { CORRELATION_ID_CONTEXT } from './request-context';
-import { CORRELATION_ID_HEADER, newCorrelationId } from './correlation-ids';
+import { CORRELATION_ID_CONTEXT } from '../runtime/request-context';
+import { CORRELATION_ID_HEADER, newCorrelationId } from '../runtime/correlation-ids';
 
 /** Ensures `X-Correlation-ID` on every request (flow id wins, else generated). */
 export const correlationInterceptor: HttpInterceptorFn = (req, next) => {

@@ -57,11 +57,11 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api-base-url';
 import { buildApiUrl } from './api-config';
-import { buildEndpointPath } from './api-endpoints';
-import { ApiRequestContext, toHttpContext } from './request-context';
-import { cancelOnAbort } from './request-lifecycle';
-import { buildQueryString } from './query';
-import type { QueryParams } from './query';
+import { buildEndpointPath } from '../contracts/api-endpoints';
+import { ApiRequestContext, toHttpContext } from '../runtime/request-context';
+import { cancelOnAbort } from '../runtime/request-lifecycle';
+import { buildQueryString } from '../runtime/query';
+import type { QueryParams } from '../runtime/query';
 
 /** Route-template values, keyed by `{placeholder}` name, e.g. `{ id: orderId }`. */
 export type PathParams = Record<string, string | number>;

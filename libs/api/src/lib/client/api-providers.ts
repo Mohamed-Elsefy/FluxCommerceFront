@@ -37,10 +37,10 @@ import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { HttpInterceptorFn, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { APP_ENVIRONMENT, type AppEnvironment } from './app-environment';
 import { API_BASE_URL, resolveApiBaseUrl } from './api-base-url';
-import { correlationInterceptor } from './correlation-interceptor';
-import { requestConfigInterceptor } from './request-config-interceptor';
-import { authInterceptor } from './auth-interceptor';
-import { httpErrorHookInterceptor } from './http-error-hook-interceptor';
+import { correlationInterceptor } from '../interceptors/correlation-interceptor';
+import { requestConfigInterceptor } from '../interceptors/request-config-interceptor';
+import { authInterceptor } from '../interceptors/auth-interceptor';
+import { httpErrorHookInterceptor } from '../interceptors/http-error-hook-interceptor';
 
 /**
  * Canonical interceptor pipeline in execution order. Exported so the order

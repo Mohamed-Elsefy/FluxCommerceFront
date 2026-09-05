@@ -3,9 +3,9 @@ import { DestroyRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Observable, Subject, finalize, switchMap } from 'rxjs';
-import { ApiClient } from './api-client';
-import { provideAppEnvironment, type AppEnvironment } from './app-environment';
-import { provideApi } from './api-providers';
+import { ApiClient } from '../client/api-client';
+import { provideAppEnvironment, type AppEnvironment } from '../client/app-environment';
+import { provideApi } from '../client/api-providers';
 import { cancelOnAbort, destroySignal } from './request-lifecycle';
 
 /** Minimal owner double: records destroy callbacks, fires them on demand. */

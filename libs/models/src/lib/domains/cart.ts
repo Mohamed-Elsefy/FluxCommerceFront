@@ -17,7 +17,7 @@
  *   localStorage); authenticated = JWT user, no id in the route.
  */
 
-import type { Guid, IsoDateString } from './shared-types';
+import type { Guid, IsoDateString } from '../common/shared-types';
 
 /** `POST /cart/guest/{cartId}/items` + `POST /cart/items` body. */
 export interface AddCartItemRequest {

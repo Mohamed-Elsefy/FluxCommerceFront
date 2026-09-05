@@ -26,7 +26,7 @@
  */
 
 import { HttpContext, HttpContextToken } from '@angular/common/http';
-import type { SupportedCulture } from './api-headers';
+import type { SupportedCulture } from '../contracts/api-headers';
 
 /**
  * Per-request context a feature data-access service may attach to an

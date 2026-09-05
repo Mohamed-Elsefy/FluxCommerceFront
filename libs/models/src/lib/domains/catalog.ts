@@ -17,7 +17,7 @@
  *   the `Admin` role).
  */
 
-import type { Guid, IsoDateString } from './shared-types';
+import type { Guid, IsoDateString } from '../common/shared-types';
 import type {
   AttributeDataType,
   AttributeStatus,
@@ -27,7 +27,7 @@ import type {
   ProductStatus,
   ProductVisibility,
   VariantStatus,
-} from './enums';
+} from '../common/enums';
 
 /** Nullable SEO sub-object on product create/update. `keywords` is `string[] | null`. */
 export interface SeoRequest {

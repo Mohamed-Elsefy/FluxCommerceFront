@@ -26,9 +26,9 @@
 
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
-import { CORRELATION_ID_CONTEXT } from './request-context';
-import { CORRELATION_ID_HEADER, extractCorrelationId } from './correlation-ids';
-import { normalizeHttpError, normalizeUnknownError } from './error-normalizer';
+import { CORRELATION_ID_CONTEXT } from '../runtime/request-context';
+import { CORRELATION_ID_HEADER, extractCorrelationId } from '../runtime/correlation-ids';
+import { normalizeHttpError, normalizeUnknownError } from '../runtime/error-normalizer';
 
 /** Normalizes pipeline rejections into `ApiError`; features never see raw HTTP errors. */
 export const httpErrorHookInterceptor: HttpInterceptorFn = (req, next) =>

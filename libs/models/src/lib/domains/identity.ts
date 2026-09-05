@@ -14,8 +14,8 @@
  * - `UserStatus` is a NUMBER on the wire (see `./enums`); roles are strings.
  */
 
-import type { Guid, IsoDateString } from './shared-types';
-import type { UserRole, UserStatus } from './enums';
+import type { Guid, IsoDateString } from '../common/shared-types';
+import type { UserRole, UserStatus } from '../common/enums';
 
 /** `POST /auth/register` body (same 4 strings as `RegisterAdminRequest`). */
 export interface RegisterCustomerRequest {

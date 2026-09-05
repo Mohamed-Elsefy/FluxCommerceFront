@@ -18,7 +18,7 @@
  */
 
 import { HttpInterceptorFn } from '@angular/common/http';
-import { CULTURE_CONTEXT, IDEMPOTENCY_KEY_CONTEXT } from './request-context';
+import { CULTURE_CONTEXT, IDEMPOTENCY_KEY_CONTEXT } from '../runtime/request-context';
 
 /** Attaches caller-supplied configuration headers (`Accept-Language`, `Idempotency-Key`). */
 export const requestConfigInterceptor: HttpInterceptorFn = (req, next) => {

@@ -2,11 +2,11 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ApiClient } from './api-client';
-import { API_INTERCEPTORS, provideApi } from './api-providers';
-import { provideAppEnvironment, type AppEnvironment } from './app-environment';
+import { ApiClient } from '../client/api-client';
+import { API_INTERCEPTORS, provideApi } from '../client/api-providers';
+import { provideAppEnvironment, type AppEnvironment } from '../client/app-environment';
 import { ACCESS_TOKEN_PROVIDER } from './auth-token';
-import { ApiError, NETWORK_ERROR_CODE } from './error-normalizer';
+import { ApiError, NETWORK_ERROR_CODE } from '../runtime/error-normalizer';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 import { authInterceptor } from './auth-interceptor';

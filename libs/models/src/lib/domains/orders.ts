@@ -19,8 +19,8 @@
  * - `GET /orders/{id}` masks other-customer ids as `404` (IDOR protection).
  */
 
-import type { Guid, IsoDateString } from './shared-types';
-import type { OrderStatus } from './enums';
+import type { Guid, IsoDateString } from '../common/shared-types';
+import type { OrderStatus } from '../common/enums';
 
 /** Shipping/billing address — `line2` optional, everything else required. */
 export interface CheckoutAddressRequest {

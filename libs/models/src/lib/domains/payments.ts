@@ -21,8 +21,8 @@
  *   informational until the totals wiring lands.
  */
 
-import type { Guid, IsoDateString } from './shared-types';
-import type { PaymentStatus } from './enums';
+import type { Guid, IsoDateString } from '../common/shared-types';
+import type { PaymentStatus } from '../common/enums';
 
 /** `GET /api/payments/{paymentId}` payload (anonymous object server-side). */
 export interface PaymentResponse {

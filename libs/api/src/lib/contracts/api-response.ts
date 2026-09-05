@@ -26,7 +26,7 @@
  *   with the helpers below.
  */
 
-import type { PaginationRequest } from './query';
+import type { PaginationRequest } from '../runtime/query';
 
 /** Success envelope without data (`200 ApiResponse`, e.g. logout). */
 export interface ApiResponse {

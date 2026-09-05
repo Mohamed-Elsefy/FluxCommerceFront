@@ -12,7 +12,7 @@ import {
   type QueryParams,
   type SortQuery,
 } from './query';
-import type { PagedResult, PagingQuery } from './api-response';
+import type { PagedResult, PagingQuery } from '../contracts/api-response';
 
 describe('normalizePagination', () => {
   it('applies backend defaults when omitted', () => {
