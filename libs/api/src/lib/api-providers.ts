@@ -20,7 +20,7 @@
  * Interceptor execution order (outbound; responses/errors traverse reverse):
  *
  * ```text
- * 1. correlationInterceptor      — stamp X-Correlation-ID (outermost)
+ * 1. correlationInterceptor      — ensure X-Correlation-ID (flow id or generated)
  * 2. requestConfigInterceptor    — Accept-Language, Idempotency-Key
  * 3. authInterceptor             — Authorization Bearer hook (Phase 2 seam)
  * 4. httpErrorHookInterceptor    — transport-error hook (1.5 maps here)

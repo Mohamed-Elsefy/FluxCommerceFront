@@ -34,7 +34,11 @@ import type { SupportedCulture } from './api-headers';
  * request untouched (backend defaults apply).
  */
 export interface ApiRequestContext {
-  /** Traced flow identifier (`X-Correlation-ID`). Generated per flow when absent. */
+  /**
+   * Traced flow identifier (`X-Correlation-ID`). Wins when supplied so one id
+   * traces a whole flow; when absent the correlation interceptor generates a
+   * per-request UUID (ownership rules in `./correlation-ids`, Sub-Phase 1.6).
+   */
   readonly correlationId?: string;
   /** Desired response culture (`Accept-Language`). Defaults to backend `en`. */
   readonly culture?: SupportedCulture;

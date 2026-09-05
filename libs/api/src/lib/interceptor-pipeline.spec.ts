@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -7,6 +6,9 @@ import { ApiClient } from './api-client';
 import { API_INTERCEPTORS, provideApi } from './api-providers';
 import { provideAppEnvironment, type AppEnvironment } from './app-environment';
 import { ACCESS_TOKEN_PROVIDER } from './auth-token';
+import { ApiError, NETWORK_ERROR_CODE } from './error-normalizer';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 import { authInterceptor } from './auth-interceptor';
 import { correlationInterceptor } from './correlation-interceptor';
 import { httpErrorHookInterceptor } from './http-error-hook-interceptor';
@@ -57,16 +59,23 @@ describe('interceptor pipeline (anonymous)', () => {
     http.verify();
   });
 
-  it('propagates X-Correlation-ID from context and sends none when unset', () => {
+  it('propagates the flow id from context and generates one when unset', () => {
     client.get<void>('/catalog', { context: { correlationId: 'flow-1' } }).subscribe();
     const correlated = http.expectOne('https://localhost:7119/catalog');
     expect(correlated.request.headers.get('X-Correlation-ID')).toBe('flow-1');
     correlated.flush(null);
 
     client.get<void>('/catalog').subscribe();
-    const plain = http.expectOne('https://localhost:7119/catalog');
-    expect(plain.request.headers.has('X-Correlation-ID')).toBe(false);
-    plain.flush(null);
+    const generated = http.expectOne('https://localhost:7119/catalog');
+    const generatedId = generated.request.headers.get('X-Correlation-ID');
+    expect(generatedId).toMatch(UUID_PATTERN);
+    generated.flush(null);
+
+    client.get<void>('/catalog').subscribe();
+    const regenerated = http.expectOne('https://localhost:7119/catalog');
+    expect(regenerated.request.headers.get('X-Correlation-ID')).toMatch(UUID_PATTERN);
+    expect(regenerated.request.headers.get('X-Correlation-ID')).not.toBe(generatedId);
+    regenerated.flush(null);
   });
 
   it('attaches Accept-Language and Idempotency-Key only when supplied', () => {
@@ -92,7 +101,7 @@ describe('interceptor pipeline (anonymous)', () => {
     request.flush(null);
   });
 
-  it('passes transport errors through unmapped (1.5 owns normalization)', () => {
+  it('normalizes ProblemDetails into ApiError (code best-effort, detail verbatim)', () => {
     let received: unknown;
     client.get<void>('/orders/missing').subscribe({
       error: (error: unknown) => {
@@ -100,17 +109,67 @@ describe('interceptor pipeline (anonymous)', () => {
       },
     });
 
-    const body = { status: 404, detail: 'Not Found' };
-    http
-      .expectOne('https://localhost:7119/orders/missing')
-      .flush(body, { status: 404, statusText: 'Not Found' });
+    http.expectOne('https://localhost:7119/orders/missing').flush(
+      {
+        type: 'https://tools.ietf.org/html/rfc7231#section-6.5.4',
+        title: 'Not Found',
+        status: 404,
+        detail: 'Order not found.',
+        traceId: 'trace-1',
+        extensions: {},
+      },
+      { status: 404, statusText: 'Not Found' },
+    );
 
-    expect(received).toBeInstanceOf(HttpErrorResponse);
-    expect((received as HttpErrorResponse).status).toBe(404);
-    expect((received as HttpErrorResponse).error).toEqual(body);
+    expect(received).toBeInstanceOf(ApiError);
+    const normalized = received as ApiError;
+    expect(normalized.status).toBe(404);
+    expect(normalized.code).toBeUndefined();
+    expect(normalized.message).toBe('Order not found.');
+    expect(normalized.traceId).toBe('trace-1');
+    expect(normalized.correlationId).toMatch(UUID_PATTERN);
   });
 
-  it('passes network failures through untouched', () => {
+  it('attaches the sent correlation id to normalized errors', () => {
+    let received: unknown;
+    client.get<void>('/orders/missing', { context: { correlationId: 'flow-7' } }).subscribe({
+      error: (error: unknown) => {
+        received = error;
+      },
+    });
+
+    http
+      .expectOne('https://localhost:7119/orders/missing')
+      .flush(
+        { status: 409, detail: 'Conflict.' },
+        { status: 409, statusText: 'Conflict', headers: { 'X-Correlation-ID': 'echo-7' } },
+      );
+
+    expect(received).toBeInstanceOf(ApiError);
+    expect((received as ApiError).correlationId).toBe('flow-7');
+  });
+
+  it('traces generated ids end to end onto normalized errors', () => {
+    let received: unknown;
+    client.get<void>('/orders/missing').subscribe({
+      error: (error: unknown) => {
+        received = error;
+      },
+    });
+
+    const pending = http.expectOne('https://localhost:7119/orders/missing');
+    const sentId = pending.request.headers.get('X-Correlation-ID');
+    expect(sentId).toMatch(UUID_PATTERN);
+    pending.flush(
+      { status: 409, detail: 'Conflict.' },
+      { status: 409, statusText: 'Conflict', headers: { 'X-Correlation-ID': 'echo-9' } },
+    );
+
+    expect(received).toBeInstanceOf(ApiError);
+    expect((received as ApiError).correlationId).toBe(sentId);
+  });
+
+  it('normalizes network failures to the NetworkError code', () => {
     let received: unknown;
     client.get<void>('/catalog').subscribe({
       error: (error: unknown) => {
@@ -120,8 +179,9 @@ describe('interceptor pipeline (anonymous)', () => {
 
     http.expectOne('https://localhost:7119/catalog').error(new ProgressEvent('error'));
 
-    expect(received).toBeInstanceOf(HttpErrorResponse);
-    expect((received as HttpErrorResponse).status).toBe(0);
+    expect(received).toBeInstanceOf(ApiError);
+    expect((received as ApiError).status).toBe(0);
+    expect((received as ApiError).code).toBe(NETWORK_ERROR_CODE);
   });
 });
 
