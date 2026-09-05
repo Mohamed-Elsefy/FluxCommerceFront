@@ -644,6 +644,9 @@ Backend API contracts are prepared and consumed as part of the foundation/integr
 
 # 21. Phase 0 — Frontend Foundation + Testing
 
+Status: **Complete** (2026-09-05) — see
+`docs/completed/PHASE_0_COMPLETION_REPORT.md`.
+
 Establish the Angular workspace.
 
 Scope:
@@ -676,6 +679,10 @@ Shared library foundation
 +
 Testing infrastructure
 ```
+
+All Phase 0 acceptance criteria are satisfied (builds, SSR/CSR, boundaries,
+unit/E2E tests, architecture audit 25/25). The baseline is ready for
+**Phase 1 — Core Infrastructure**. No business features exist yet.
 
 ---
 

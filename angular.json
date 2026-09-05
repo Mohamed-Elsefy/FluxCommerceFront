@@ -62,7 +62,15 @@
                 "input": "apps/storefront/public"
               }
             ],
-            "styles": ["apps/storefront/src/styles.css"]
+            "styles": ["apps/storefront/src/styles.css"],
+            "server": "apps/storefront/src/main.server.ts",
+            "security": {
+              "allowedHosts": []
+            },
+            "outputMode": "server",
+            "ssr": {
+              "entry": "apps/storefront/src/server.ts"
+            }
           },
           "configurations": {
             "production": {
@@ -78,7 +86,13 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "apps/storefront/src/environments/environment.ts",
+                  "with": "apps/storefront/src/environments/environment.prod.ts"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -99,6 +113,13 @@
             }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "apps/storefront/tsconfig.spec.json",
+            "runnerConfig": true
+          }
         }
       }
     },
@@ -161,7 +182,13 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "apps/admin/src/environments/environment.ts",
+                  "with": "apps/admin/src/environments/environment.prod.ts"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -182,6 +209,13 @@
             }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "apps/admin/tsconfig.spec.json",
+            "runnerConfig": true
+          }
         }
       }
     }
