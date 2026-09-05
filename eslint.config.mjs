@@ -5,6 +5,12 @@
 //   barrel entry points (libs/<lib>/src/public-api.ts). Relative
 //   traversal into libs/ and deep @flux/<lib>/... imports are forbidden.
 // - Libraries must never import from applications (never the reverse).
+// - Feature code (apps/*/src/app/features/**) must never import raw
+//   HttpClient from '@angular/common/http'. Features consume HTTP exclusively
+//   through the typed ApiClient from @flux/api (libs/api is the single
+//   sanctioned HttpClient user). Sub-Phase 1.3 boundary:
+//   Feature Data Access -> API Client -> HttpClient.
+//   ('@angular/common/http/testing' stays allowed for specs.)
 // - No features exist yet (they arrive in Sub-Phase 0.5). The convention
 //   is fixed now: Feature A must not import Feature B internals; cross-
 //   feature needs go through a stable contract, a shared abstraction, or
@@ -38,6 +44,12 @@ const noAppFromLibs = {
   group: ['**apps/**', '**storefront**', '**admin**'],
   message:
     'Shared libraries must not import from applications. Dependency direction is apps -> libs, never the reverse.',
+};
+
+const noRawHttpClientInFeatures = {
+  group: ['@angular/common/http'],
+  message:
+    'Features must use the typed ApiClient from @flux/api instead of raw HttpClient. Boundary: Feature Data Access -> API Client -> HttpClient.',
 };
 
 export default [
@@ -75,6 +87,12 @@ export default [
     files: ['libs/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [noLibTraversal, barrelOnly, noAppFromLibs] }],
+    },
+  },
+  {
+    files: ['apps/*/src/app/features/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [noRawHttpClientInFeatures] }],
     },
   },
 ];
