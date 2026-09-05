@@ -688,6 +688,9 @@ unit/E2E tests, architecture audit 25/25). The baseline is ready for
 
 # 22. Phase 1 — Core Infrastructure
 
+Status: **Complete** (2026-09-05) — see
+`docs/completed/PHASE_1_COMPLETION_REPORT.md`.
+
 Build infrastructure used by all features.
 
 Scope:
@@ -710,6 +713,12 @@ Deliverable:
 ```text
 Stable frontend ↔ backend communication foundation
 ```
+
+All Phase 1 acceptance criteria are satisfied (typed API client,
+interceptors, error normalization, correlation, cancellation, pagination,
+resource state, async UI, integration slice, unit/HTTP/E2E tests,
+architecture audit 29/29). The baseline is ready for
+**Phase 2 — Identity & Authentication**. No business features exist yet.
 
 ---
 

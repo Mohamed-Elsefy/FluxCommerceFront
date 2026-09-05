@@ -39,8 +39,8 @@
  *   `@flux/models`); this module treats any `QueryParams`-shaped object as
  *   filter criteria — no parallel filter framework.
  *
- * Explicitly NOT here (later work): resource-state signals/stores (1.9),
- * loading/empty/error UI primitives (1.10).
+ * Explicitly NOT here: resource-state signals/stores (1.9, `./resource-state`),
+ * loading/empty/error UI primitives (1.10, `@flux/ui`).
  */
 
 import { HttpParams } from '@angular/common/http';
@@ -178,8 +178,8 @@ export function toQueryParams<T extends object>(query: T): QueryParams {
 }
 
 /**
- * Deterministic query serializer shared by all `ApiClient` verbs (and
- * reusable by future pagination abstractions). Omission-first:
+ * Deterministic query serializer shared by all `ApiClient` verbs and by
+ * pagination features. Omission-first:
  * `null`/`undefined`/empty arrays never reach the wire.
  */
 export function buildQueryString(params: QueryParams = {}): string {

@@ -126,6 +126,27 @@ describe('ApiClient', () => {
     http.expectOne('https://localhost:7119/catalog/products/p1/activate').flush(null);
     expect(completed).toBe(true);
   });
+
+  it('emits 201 Created bodies for resource creation calls', () => {
+    interface CreatedEnvelope {
+      isSuccess: boolean;
+      message?: string | null;
+      data?: string | null;
+    }
+    let received: CreatedEnvelope | undefined;
+    client
+      .post<CreatedEnvelope>('/catalog/products', { name: 'Tee' })
+      .subscribe((body) => (received = body));
+
+    http
+      .expectOne('https://localhost:7119/catalog/products')
+      .flush(
+        { isSuccess: true, message: 'Operation completed successfully.', data: 'product-1' },
+        { status: 201, statusText: 'Created' },
+      );
+
+    expect(received?.data).toBe('product-1');
+  });
 });
 
 describe('ApiClient production base URL', () => {

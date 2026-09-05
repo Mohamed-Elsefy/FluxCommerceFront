@@ -7,9 +7,9 @@
  *
  * This file is DATA, not behavior: route templates plus their HTTP method and
  * authentication requirement per endpoint. It performs no HTTP (no
- * `HttpClient`, no interceptors — those arrive in Sub-Phases 1.2/1.4) and
- * exists so Sub-Phase 1.3's typed API client can reference one canonical
- * route table instead of scattering string literals through features.
+ * `HttpClient`, no interceptors) and exists so the Sub-Phase 1.3 typed API
+ * client references one canonical route table instead of scattering string
+ * literals through features.
  *
  * Base URLs: `https://localhost:7119` / `http://localhost:5260` (centralized
  * in `libs/api` configuration in Sub-Phase 1.2 — never hard-coded here).
@@ -287,8 +287,8 @@ export const HEALTH_ENDPOINTS = {
 } as const satisfies Record<string, EndpointDefinition>;
 
 /**
- * Fills a route template's `{param}` placeholders. Pure path helper for the
- * future typed API client (Sub-Phase 1.3) — performs no HTTP.
+ * Fills a route template's `{param}` placeholders. Pure path helper used by
+ * the typed API client (Sub-Phase 1.3) — performs no HTTP.
  */
 export function buildEndpointPath(
   template: string,

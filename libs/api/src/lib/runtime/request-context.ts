@@ -5,9 +5,9 @@
  * ("Define shared request configuration/context conventions").
  *
  * This file defines the VOCABULARY for per-request context — not behavior.
- * It introduces no interceptors (Sub-Phase 1.4) and no API client (1.3); it
- * only fixes how a caller attaches request-scoped metadata so the later
- * interceptor pipeline and typed client share one convention:
+ * It introduces no interceptors and no API client of its own; it only fixes
+ * how a caller attaches request-scoped metadata so the interceptor pipeline
+ * (1.4) and typed client (1.3) share one convention:
  *
  * ```text
  * Feature data access builds ApiRequestContext

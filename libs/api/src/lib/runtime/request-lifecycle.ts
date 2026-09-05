@@ -29,12 +29,13 @@
  *   primitive, not re-invented here); this module guarantees the unsubscribed
  *   inner request is actually aborted and silently dropped.
  *
- * Explicitly NOT here (later work): query/pagination abstractions (1.8),
- * resource-state signals/stores (1.9).
+ * Explicitly NOT here: query/pagination abstractions (1.8, `./query`) and
+ * resource-state signals/stores (1.9, `./resource-state`) — sibling modules
+ * this layer composes with instead of duplicating.
  */
 
 import type { DestroyRef } from '@angular/core';
-import { EMPTY, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import type { MonoTypeOperatorFunction } from 'rxjs';
 
 /**

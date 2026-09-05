@@ -163,6 +163,99 @@ check(
     isRawHttpClient(spec),
   ),
 );
+// Sub-Phase 1.12: circular import detection. Spec files are excluded —
+// test-only seams must not fail production architecture checks.
+function resolveRelativeImport(fromPath, spec) {
+  const segments = fromPath.split('/');
+  segments.pop();
+  for (const part of spec.split('/')) {
+    if (part === '.') {
+      continue;
+    } else if (part === '..') {
+      segments.pop();
+    } else {
+      segments.push(part);
+    }
+  }
+  const base = segments.join('/');
+  for (const candidate of [`${base}.ts`, `${base}/index.ts`]) {
+    if (exists(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+function findCycle(nodes, edges) {
+  const WHITE = 0;
+  const GRAY = 1;
+  const BLACK = 2;
+  const color = new Map(nodes.map((node) => [node, WHITE]));
+  const stack = [];
+  const visit = (node) => {
+    color.set(node, GRAY);
+    stack.push(node);
+    for (const next of edges.get(node) ?? []) {
+      if (color.get(next) === GRAY) {
+        return [...stack.slice(stack.indexOf(next)), next];
+      }
+      if (color.get(next) === WHITE) {
+        const cycle = visit(next);
+        if (cycle) {
+          return cycle;
+        }
+      }
+    }
+    stack.pop();
+    color.set(node, BLACK);
+    return null;
+  };
+  for (const node of nodes) {
+    if (color.get(node) === WHITE) {
+      const cycle = visit(node);
+      if (cycle) {
+        return cycle;
+      }
+    }
+  }
+  return null;
+}
+const prodSources = allSources.filter((path) => !path.endsWith('.spec.ts'));
+const relativeEdges = new Map();
+for (const path of prodSources) {
+  const targets = new Set();
+  for (const spec of importSpecifiers(path)) {
+    if (spec.startsWith('.')) {
+      const resolved = resolveRelativeImport(path, spec);
+      if (resolved && resolved !== path) {
+        targets.add(resolved);
+      }
+    }
+  }
+  relativeEdges.set(path, [...targets]);
+}
+const relativeCycle = findCycle(prodSources, relativeEdges);
+check(
+  'no circular relative imports across apps/ and libs/',
+  relativeCycle === null,
+  relativeCycle ? relativeCycle.join(' -> ') : '0 cycle(s)',
+);
+const libNodes = expectedLibs;
+const libEdges = new Map(libNodes.map((lib) => [lib, []]));
+for (const path of libSources.filter((candidate) => !candidate.endsWith('.spec.ts'))) {
+  const from = path.split('/')[1];
+  for (const spec of importSpecifiers(path)) {
+    const match = /^@flux\/([^/]+)$/.exec(spec);
+    if (match && match[1] !== from && libEdges.has(match[1])) {
+      libEdges.get(from).push(match[1]);
+    }
+  }
+}
+const libCycle = findCycle(libNodes, libEdges);
+check(
+  'no circular library dependencies via @flux barrels',
+  libCycle === null,
+  libCycle ? libCycle.join(' -> ') : '0 cycle(s)',
+);
 const readCode = (path) => stripComments(readFileSync(join(root, path), 'utf8'));
 const secretPattern = /secret|password|passwd|credential|apikey|accesstoken/i;
 check(

@@ -83,6 +83,29 @@ describe('normalizeHttpError', () => {
     });
   });
 
+  it('normalizes 401 Unauthorized without inventing auth behavior', () => {
+    const error = normalizeHttpError(
+      httpError({
+        status: 401,
+        statusText: 'Unauthorized',
+        body: {
+          type: 'https://tools.ietf.org/html/rfc7235#section-3.1',
+          title: 'Unauthorized',
+          status: 401,
+          detail: 'Invalid credentials.',
+          traceId: 'trace-401',
+          extensions: {},
+        },
+      }),
+    );
+
+    expect(error.status).toBe(401);
+    expect(error.code).toBeUndefined();
+    expect(error.message).toBe('Invalid credentials.');
+    expect(error.validationErrors).toBeUndefined();
+    expect(error.traceId).toBe('trace-401');
+  });
+
   it('falls back to technical messages for non-problem bodies', () => {
     const stringBody = normalizeHttpError(httpError({ status: 502, body: '<html>proxy</html>' }));
     expect(stringBody.message).toBe('<html>proxy</html>');

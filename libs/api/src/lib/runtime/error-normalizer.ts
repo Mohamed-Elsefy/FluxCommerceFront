@@ -34,9 +34,10 @@
  * dotted backend codes; the localization layer (Phase 4 / `libs/i18n`) will
  * map codes — never messages — to user-facing copy.
  *
- * Explicitly NOT here (later work): correlation generation/ownership (1.6 —
- * this file only forwards ids that already exist); cancellation operators
- * and lifecycle handling (1.7 — cancellation is merely classified, never
+ * Explicitly NOT here: correlation generation/ownership (1.6,
+ * `./correlation-ids` — this file only forwards ids that already exist);
+ * cancellation operators and lifecycle handling (1.7,
+ * `./request-lifecycle` — cancellation is merely classified, never
  * managed); message translations (never hard-coded here).
  */
 
