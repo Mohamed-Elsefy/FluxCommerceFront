@@ -2,7 +2,7 @@
 
 > Enterprise Commerce & Order Management Platform — a production-oriented showcase of reliable, event-driven backend engineering with a Modular Monolith architecture.
 
-[![.NET](https://img.shields.io/badge/.NET-8-512BD4)](#)
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4)](#)
 [![Architecture](https://img.shields.io/badge/architecture-modular--monolith-blue)](#)
 [![Status](https://img.shields.io/badge/backend-phase%2012%20complete-success)](#)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)

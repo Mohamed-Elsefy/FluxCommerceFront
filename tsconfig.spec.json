@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"]
+  },
+  "include": [
+    "apps/*/src/**/*.spec.ts",
+    "libs/*/src/**/*.spec.ts",
+    "e2e/**/*.spec.ts",
+    "vitest.config.ts",
+    "vitest-base.config.ts",
+    "vitest.setup.ts",
+    "playwright.config.ts"
+  ]
+}
