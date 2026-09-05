@@ -3,8 +3,8 @@
  *
  * Owns generic API infrastructure: configuration shapes and common
  * request/response abstractions. Feature-specific endpoints stay inside
- * their owning feature. The HTTP client foundation itself arrives with
- * Phase 1 (Core Infrastructure).
+ * their owning feature. HttpClient provisioning lives in `./api-providers`
+ * (`provideApi`) and base URL resolution in `./api-base-url` (`API_BASE_URL`).
  */
 
 /** Base configuration required to reach the backend API. */
