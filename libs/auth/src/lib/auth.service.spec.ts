@@ -65,6 +65,16 @@ describe('AuthService initialization', () => {
     expect(service.status()).toBe('authenticated');
     expect(service.currentUser()).toEqual(USER);
   });
+
+  it('exposes initialized once restoration settles either way', () => {
+    const initializing = new AuthService();
+    expect(initializing.initialized()).toBe(false);
+
+    initializing.markInitializedAnonymous();
+    expect(initializing.initialized()).toBe(true);
+
+    expect(authenticatedService().initialized()).toBe(true);
+  });
 });
 
 describe('AuthService setAuthenticated', () => {

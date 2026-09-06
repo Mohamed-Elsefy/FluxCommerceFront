@@ -2,7 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideClientHydration } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { provideAppEnvironment, provideApi } from '@flux/api';
-import { provideAccessToken, provideAuthRecovery } from '@flux/auth';
+import { provideAccessToken, provideAuthRecovery, provideSessionRestore } from '@flux/auth';
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 
@@ -15,5 +15,6 @@ export const appConfig: ApplicationConfig = {
     provideApi(),
     provideAccessToken(),
     provideAuthRecovery(),
+    provideSessionRestore(),
   ],
 };

@@ -4,3 +4,4 @@ export * from './lib/token-storage';
 export * from './lib/access-token-provider';
 export * from './lib/token-refresh.service';
 export * from './lib/auth-recovery';
+export * from './lib/session-restore.service';

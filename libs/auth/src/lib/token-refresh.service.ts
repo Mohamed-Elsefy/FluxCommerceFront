@@ -32,10 +32,13 @@
  *   every joiner observes the same outcome. Late callers after termination
  *   start a fresh execution (rotation hazard beyond a burst is inherent to
  *   rotating tokens and is why 2.7 funnels concurrent 401s here).
- * - Success: the in-memory access token is replaced (no-op unless
- *   authenticated) and the stored snapshot keeps its user/timestamp with
- *   the new refresh token. Memory-only callers (no stored snapshot) fall
- *   back to the current user; a missing user is treated as failure.
+ * - Success: the rotated pair is published to memory and storage. When a
+ *   session is already authenticated, the access token is replaced;
+ *   otherwise the stored snapshot establishes the in-memory session (the
+ *   startup restore path, 2.8) — either way the stored snapshot keeps its
+ *   user/timestamp with the new refresh token. Memory-only callers (no
+ *   stored snapshot) fall back to the current user; a missing user is
+ *   treated as failure.
  * - Failure (invalid/expired/reused refresh token, network error, dataless
  *   envelope, or no stored token at all): storage and `AuthService` state
  *   are cleared and `false` is emitted — the service never throws, so the
@@ -55,8 +58,9 @@
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
  * - 2.7 — no 401 interception, no pipeline hook, no request cloning/retry.
- * - 2.8 — no startup restoration (this service never calls
- *   `setAuthenticated`; establishment stays restoration-owned).
+ * - 2.8 — no startup orchestration and no profile hydration here (this
+ *   service only opens the session; restoration sequencing lives in
+ *   `./session-restore.service`).
  * - 2.11 — no guards, no login redirects.
  */
 
@@ -128,11 +132,24 @@ export class TokenRefreshService {
           this.clearSessionState();
           return false;
         }
-        this.auth.replaceAccessToken(rotated.accessToken);
+        const authenticatedAtUtc = latest?.authenticatedAtUtc ?? new Date().toISOString();
+        if (this.auth.isAuthenticated()) {
+          this.auth.replaceAccessToken(rotated.accessToken);
+        } else {
+          // Establishment (startup restore path, 2.8): a stored snapshot
+          // proves prior authentication, so the rotated pair opens the
+          // in-memory session with it. Never fires without storage — the
+          // user lookup above guarantees a snapshot existed.
+          this.auth.setAuthenticated({
+            user,
+            accessToken: rotated.accessToken,
+            authenticatedAtUtc,
+          });
+        }
         this.tokenStorage.replaceSession({
           refreshToken: rotated.refreshToken,
           user,
-          authenticatedAtUtc: latest?.authenticatedAtUtc ?? new Date().toISOString(),
+          authenticatedAtUtc,
         });
         return true;
       }),

@@ -69,6 +69,14 @@ export class AuthService {
   /** True while startup restoration has not settled (guards must wait). */
   readonly isInitializing: Signal<boolean> = computed(() => this._status() === 'initializing');
 
+  /**
+   * True once startup restoration has settled (anonymous or authenticated).
+   * The documented guard-wait primitive for Sub-Phase 2.11: guards derive
+   * readiness from this (e.g. waiting for the first `true`) and must never
+   * treat `initializing` as anonymous.
+   */
+  readonly initialized: Signal<boolean> = computed(() => this._status() !== 'initializing');
+
   /** True only when a live session exists. */
   readonly isAuthenticated: Signal<boolean> = computed(() => this._status() === 'authenticated');
 

@@ -201,6 +201,30 @@ describe('TokenRefreshService', () => {
     expect(auth.isAnonymous()).toBe(true);
   });
 
+  it('establishes the session from storage when unauthenticated', () => {
+    storage.saveSession({
+      refreshToken: 'refresh-token-1',
+      user: USER,
+      authenticatedAtUtc: '2026-09-06T12:00:00.000Z',
+    });
+    expect(auth.isInitializing()).toBe(true);
+    let outcome: boolean | undefined;
+    refresher.refreshSession().subscribe((refreshed) => {
+      outcome = refreshed;
+    });
+
+    http.expectOne('https://localhost:7119/auth/refresh').flush({
+      isSuccess: true,
+      data: ROTATED_PAIR,
+    });
+
+    expect(outcome).toBe(true);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.currentUser()).toEqual(USER);
+    expect(auth.readAccessToken()).toBe('access-token-2');
+    expect(storage.loadSession()?.refreshToken).toBe('refresh-token-2');
+  });
+
   it('never resurrects a session torn down mid-flight', () => {
     seedSession(auth, storage);
     let outcome: boolean | undefined;

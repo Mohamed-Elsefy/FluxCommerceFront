@@ -43,13 +43,13 @@ import {
   IdentityApiService,
   type ApiResponseWithData,
 } from '@flux/api';
-import { AuthService, TokenStorageService, type CurrentUser } from '@flux/auth';
-import type {
-  LoginRequest,
-  LoginResponse,
-  RegisterCustomerRequest,
-  UserResponse,
-} from '@flux/models';
+import {
+  AuthService,
+  TokenStorageService,
+  mapUserResponseToCurrentUser,
+  type CurrentUser,
+} from '@flux/auth';
+import type { LoginRequest, LoginResponse, RegisterCustomerRequest } from '@flux/models';
 
 /**
  * Registration outcome: what to tell the user after `POST /auth/register`
@@ -83,21 +83,11 @@ export function mapLoginResponseToProvisionalUser(response: LoginResponse): Curr
 }
 
 /**
- * Maps a contract `UserResponse` onto the shared `CurrentUser` model.
- * `displayName` falls back to `"<firstName> <lastName>"` when the backend
- * sends null; roles are copied (never reinterpreted — authorization stays
- * backend-authoritative).
+ * Shared contract mapping, re-exported here so feature code keeps a single
+ * import site. The implementation lives in `@flux/auth` alongside the
+ * `CurrentUser` model it produces.
  */
-export function mapUserResponseToCurrentUser(response: UserResponse): CurrentUser {
-  const fallbackName = `${response.firstName} ${response.lastName}`.trim();
-  return {
-    id: response.id,
-    email: response.email,
-    displayName: response.displayName ?? (fallbackName.length > 0 ? fallbackName : null),
-    roles: [...response.roles],
-    isEmailVerified: response.isEmailVerified,
-  };
-}
+export { mapUserResponseToCurrentUser };
 
 /**
  * Feature-owned authentication orchestration. Stateless — UI state

@@ -12,14 +12,17 @@
  * the only writer. Feature code must consume the service's readonly signals
  * and must never replicate this state.
  *
- * Contract mapping (applied by later data-access, never here):
+ * Contract mapping (applied by shared data-access, consumed by features):
  * - `CurrentUser` mirrors the `UserResponse` fields the shell needs: `id`,
  *   `email`, display name (`displayName ?? "<firstName> <lastName>"`),
- *   `roles`, `isEmailVerified`.
+ *   `roles`, `isEmailVerified`. Use `mapUserResponseToCurrentUser` (below)
+ *   — the single mapping implementation — instead of re-mapping inline.
  * - `AuthSession` carries token METADATA and lifecycle flags only — never
  *   token values. Values stay in `AuthService` memory (never persisted,
  *   never logged); persistence arrives in Sub-Phase 2.3.
  */
+
+import type { UserResponse } from '@flux/models';
 
 /**
  * Lifecycle of the central authentication state.
@@ -69,4 +72,22 @@ export interface AuthSession {
   readonly hasAccessToken: boolean;
   /** ISO-8601 timestamp of when the session became authenticated. */
   readonly authenticatedAtUtc: string;
+}
+
+/**
+ * Maps a contract `UserResponse` onto the shared `CurrentUser` model.
+ * `displayName` falls back to `"<firstName> <lastName>"` when the backend
+ * sends null; roles are copied (never reinterpreted — authorization stays
+ * backend-authoritative). Single implementation shared by login (2.4),
+ * restoration (2.8), and any future `me` re-sync.
+ */
+export function mapUserResponseToCurrentUser(response: UserResponse): CurrentUser {
+  const fallbackName = `${response.firstName} ${response.lastName}`.trim();
+  return {
+    id: response.id,
+    email: response.email,
+    displayName: response.displayName ?? (fallbackName.length > 0 ? fallbackName : null),
+    roles: [...response.roles],
+    isEmailVerified: response.isEmailVerified,
+  };
 }
