@@ -18,6 +18,10 @@ export const routes: Routes = [
         path: '',
         loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage),
       },
+      {
+        path: '',
+        loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
+      },
     ],
   },
   {
