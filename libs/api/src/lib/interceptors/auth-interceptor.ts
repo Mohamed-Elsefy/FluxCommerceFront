@@ -15,7 +15,7 @@
  * - Performs no token acquisition, storage, refresh, retry, or redirect —
  *   all Phase 2 responsibilities.
  *
- * Runs THIRD in `API_INTERCEPTORS` (after context/correlation stamping, as
+ * Runs FOURTH in `API_INTERCEPTORS` (after context/correlation stamping, as
  * the last header mutation before transport).
  */
 

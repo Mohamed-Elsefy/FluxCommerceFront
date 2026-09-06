@@ -17,12 +17,16 @@
  *     ↓ ApiClient → HttpClient → ASP.NET Core API
  * ```
  *
- * Contract rules:
- * - Login calls `GET /auth/me` with an explicitly attached Bearer header
- *   because centralized token injection is Sub-Phase 2.5 (the Phase 1
- *   `ACCESS_TOKEN_PROVIDER` still returns `null`). The interceptor never
- *   clobbers explicit `Authorization` headers, so this is a safe, temporary,
- *   flow-local measure — 2.5 removes it.
+ * Contract rules (Sub-Phase 2.5: token injection is fully central):
+ * - Login establishes the in-memory session FIRST (provisional user mapped
+ *   from `LoginResponse`), so `GET /auth/me` travels through the centralized
+ *   interceptor pipeline like every other authenticated request — this file
+ *   attaches no headers. The provisional user is sound: the backend rejects
+ *   unverified logins, so a successful login implies a verified email;
+ *   `displayName` hydrates from `/auth/me`.
+ * - If profile hydration fails, the provisional session rolls back
+ *   (storage + state cleared) and the error propagates — a half-logged-in
+ *   state is never left behind.
  * - Registration never stores a session and never touches `AuthService`:
  *   the contract issues no tokens on register and new accounts are
  *   `Pending` until email verification, so auto-login would be contract
@@ -32,7 +36,7 @@
  */
 
 import { inject, Injectable } from '@angular/core';
-import { map, switchMap, type Observable } from 'rxjs';
+import { catchError, map, switchMap, throwError, type Observable } from 'rxjs';
 import {
   ApiError,
   UNKNOWN_ERROR_CODE,
@@ -40,7 +44,12 @@ import {
   type ApiResponseWithData,
 } from '@flux/api';
 import { AuthService, TokenStorageService, type CurrentUser } from '@flux/auth';
-import type { LoginRequest, RegisterCustomerRequest, UserResponse } from '@flux/models';
+import type {
+  LoginRequest,
+  LoginResponse,
+  RegisterCustomerRequest,
+  UserResponse,
+} from '@flux/models';
 
 /**
  * Registration outcome: what to tell the user after `POST /auth/register`
@@ -54,6 +63,23 @@ export interface RegistrationResult {
   readonly displayName: string | null;
   /** True only when the backend already considers the email verified. */
   readonly isEmailVerified: boolean;
+}
+
+/**
+ * Builds the provisional session user from a `LoginResponse` so the
+ * in-memory session (and therefore centralized Bearer injection) exists
+ * before `GET /auth/me` hydrates the full profile. Sound by contract: the
+ * backend rejects unverified logins, so a successful login implies a
+ * verified email; `displayName` stays null until hydration fills it in.
+ */
+export function mapLoginResponseToProvisionalUser(response: LoginResponse): CurrentUser {
+  return {
+    id: response.userId,
+    email: response.email,
+    displayName: null,
+    roles: [...response.roles],
+    isEmailVerified: true,
+  };
 }
 
 /**
@@ -84,32 +110,46 @@ export class AuthDataAccess {
   private readonly tokenStorage = inject(TokenStorageService);
 
   /**
-   * Full login workflow: token pair → persisted refresh session → current
-   * user → authenticated state. Emits the current user; errors as `ApiError`
-   * (`401` wrong credentials / unverified email / locked account surface as
-   * the backend's localized `message`).
+   * Full login workflow: token pair → provisional session → hydrated
+   * current user → authenticated state. Emits the hydrated user; errors as
+   * `ApiError` (`401` wrong credentials / unverified email / locked account
+   * surface as the backend's localized `message`). No headers are attached
+   * here — `GET /auth/me` is injected centrally (Sub-Phase 2.5).
    */
   login(credentials: LoginRequest): Observable<CurrentUser> {
     return this.identity.login(credentials).pipe(
-      switchMap((loginEnvelope) => {
+      map((loginEnvelope) => {
         const tokens = requireEnvelopeData(loginEnvelope);
-        return this.identity
-          .getCurrentUser({ headers: { Authorization: `Bearer ${tokens.accessToken}` } })
-          .pipe(map((meEnvelope) => ({ tokens, me: requireEnvelopeData(meEnvelope) })));
-      }),
-      map(({ tokens, me }) => {
-        const user = mapUserResponseToCurrentUser(me);
         const authenticatedAtUtc = new Date().toISOString();
+        const provisional = mapLoginResponseToProvisionalUser(tokens);
         this.tokenStorage.saveSession({
           refreshToken: tokens.refreshToken,
-          user,
+          user: provisional,
           authenticatedAtUtc,
         });
         this.auth.setAuthenticated({
-          user,
+          user: provisional,
           accessToken: tokens.accessToken,
           authenticatedAtUtc,
         });
+        return tokens;
+      }),
+      switchMap(() =>
+        this.identity.getCurrentUser().pipe(
+          map((meEnvelope) => mapUserResponseToCurrentUser(requireEnvelopeData(meEnvelope))),
+          catchError((error: unknown) => {
+            this.tokenStorage.clearSession();
+            this.auth.clearSession();
+            return throwError(() => error);
+          }),
+        ),
+      ),
+      map((user) => {
+        const stored = this.tokenStorage.loadSession();
+        if (stored !== null) {
+          this.tokenStorage.replaceSession({ ...stored, user });
+        }
+        this.auth.updateCurrentUser(user);
         return user;
       }),
     );

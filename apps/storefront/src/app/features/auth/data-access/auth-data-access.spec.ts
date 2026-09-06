@@ -1,12 +1,13 @@
 /**
- * Orchestration tests for Sub-Phase 2.4 — login and registration workflows.
+ * Orchestration tests for Sub-Phases 2.4/2.5 — login and registration workflows.
  *
  * `IdentityApiService` (the shared-lib HTTP boundary, already covered by
  * `libs/api` specs) is stubbed at its typed seam so these tests own the
- * feature logic: envelope unwrapping, session persistence, `AuthService`
- * transitions, and the no-auto-login registration rule. The stub records
- * the `GET /auth/me` options to prove the temporary explicit Bearer header
- * (removed in Sub-Phase 2.5) is attached.
+ * feature logic: provisional session establishment, central profile
+ * hydration (no headers attached here — Sub-Phase 2.5), rollback on
+ * hydration failure, and the no-auto-login registration rule. The stub
+ * records the `GET /auth/me` options to prove no token headers are managed
+ * by the feature.
  */
 
 import { TestBed } from '@angular/core/testing';
@@ -15,7 +16,11 @@ import { of, throwError } from 'rxjs';
 import { ApiError, IdentityApiService, type ApiRequestOptions } from '@flux/api';
 import { AuthService, TokenStorageService } from '@flux/auth';
 import type { LoginResponse, UserResponse } from '@flux/models';
-import { AuthDataAccess, mapUserResponseToCurrentUser } from './auth-data-access';
+import {
+  AuthDataAccess,
+  mapLoginResponseToProvisionalUser,
+  mapUserResponseToCurrentUser,
+} from './auth-data-access';
 
 const ME_FIXTURE: UserResponse = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -99,14 +104,31 @@ describe('AuthDataAccess login', () => {
     });
 
     expect(calls.loginBodies).toEqual([{ email: 'ada@flux.local', password: 'Valid123!' }]);
-    expect(calls.meOptions).toHaveLength(1);
-    expect(calls.meOptions[0]?.headers?.['Authorization']).toBe('Bearer access-token-1');
+    expect(calls.meOptions).toEqual([{}]);
     expect(userId).toBe(ME_FIXTURE.id);
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.currentUser()?.email).toBe('ada@flux.local');
+    expect(auth.currentUser()?.displayName).toBe('Ada Lovelace');
     expect(auth.readAccessToken()).toBe('access-token-1');
     expect(storage.loadSession()?.refreshToken).toBe('refresh-token-1');
-    expect(storage.loadSession()?.user.id).toBe(ME_FIXTURE.id);
+    expect(storage.loadSession()?.user.displayName).toBe('Ada Lovelace');
+  });
+
+  it('rolls the provisional session back when hydration fails', () => {
+    const rejection = new ApiError({ status: 401, message: 'Unauthorized.' });
+    const { dataAccess, auth, storage } = setup({ me: () => throwError(() => rejection) });
+    let observed: unknown;
+    dataAccess.login({ email: 'ada@flux.local', password: 'Valid123!' }).subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(auth.currentUser()).toBeNull();
+    expect(auth.readAccessToken()).toBeNull();
+    expect(storage.loadSession()).toBeNull();
   });
 
   it('leaves state untouched when credentials are rejected', () => {
@@ -185,6 +207,18 @@ describe('AuthDataAccess register', () => {
 
     expect(observed).toBe(rejection);
     expect(auth.isAuthenticated()).toBe(false);
+  });
+});
+
+describe('mapLoginResponseToProvisionalUser', () => {
+  it('derives a verified user with a pending display name', () => {
+    expect(mapLoginResponseToProvisionalUser(LOGIN_FIXTURE)).toEqual({
+      id: LOGIN_FIXTURE.userId,
+      email: LOGIN_FIXTURE.email,
+      displayName: null,
+      roles: ['Customer'],
+      isEmailVerified: true,
+    });
   });
 });
 

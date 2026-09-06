@@ -10,6 +10,7 @@ import { ApiError, NETWORK_ERROR_CODE } from '../runtime/error-normalizer';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 import { authInterceptor } from './auth-interceptor';
+import { authRecoveryInterceptor } from './auth-recovery';
 import { correlationInterceptor } from './correlation-interceptor';
 import { httpErrorHookInterceptor } from './http-error-hook-interceptor';
 import { requestConfigInterceptor } from './request-config-interceptor';
@@ -41,6 +42,7 @@ describe('API_INTERCEPTORS', () => {
     expect(API_INTERCEPTORS).toEqual([
       correlationInterceptor,
       requestConfigInterceptor,
+      authRecoveryInterceptor,
       authInterceptor,
       httpErrorHookInterceptor,
     ]);

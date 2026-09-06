@@ -16,6 +16,7 @@
  * initializing ──setAuthenticated──────────▶ authenticated   (restore path, 2.8)
  * anonymous ─────setAuthenticated──────────▶ authenticated   (login path, 2.4)
  * authenticated ─replaceAccessToken────────▶ authenticated   (rotation path, 2.6)
+ * authenticated ─updateCurrentUser─────────▶ authenticated   (profile hydration, 2.5)
  * authenticated ─clearSession──────────────▶ anonymous       (logout path, 2.9)
  * ```
  *
@@ -155,6 +156,23 @@ export class AuthService {
     const session = this._session();
     if (session !== null) {
       this._session.set({ ...session, hasAccessToken: true });
+    }
+  }
+
+  /**
+   * Replaces the current-user snapshot without disturbing token, session
+   * metadata (except the owning user id), or status: allowed only while
+   * `authenticated`. No-op otherwise. Supports post-login profile hydration
+   * (`GET /auth/me` in Sub-Phase 2.5) and future `me` re-syncs.
+   */
+  updateCurrentUser(user: CurrentUser): void {
+    if (this._status() !== 'authenticated') {
+      return;
+    }
+    this._currentUser.set(user);
+    const session = this._session();
+    if (session !== null) {
+      this._session.set({ ...session, userId: user.id });
     }
   }
 

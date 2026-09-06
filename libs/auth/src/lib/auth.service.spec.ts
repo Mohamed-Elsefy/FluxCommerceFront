@@ -134,6 +134,32 @@ describe('AuthService replaceAccessToken', () => {
   });
 });
 
+describe('AuthService updateCurrentUser', () => {
+  it('replaces the user snapshot while authenticated without touching token or status', () => {
+    const service = authenticatedService();
+    const hydrated: CurrentUser = { ...USER, displayName: 'Ada L.' };
+    service.updateCurrentUser(hydrated);
+
+    expect(service.status()).toBe('authenticated');
+    expect(service.currentUser()).toEqual(hydrated);
+    expect(service.session()?.userId).toBe(USER.id);
+    expect(service.readAccessToken()).toBe('access-1');
+    expect(service.roles()).toEqual(['Customer']);
+  });
+
+  it('ignores updates while anonymous or initializing', () => {
+    const anonymous = new AuthService();
+    anonymous.markInitializedAnonymous();
+    anonymous.updateCurrentUser(ADMIN);
+    expect(anonymous.currentUser()).toBeNull();
+
+    const initializing = new AuthService();
+    initializing.updateCurrentUser(ADMIN);
+    expect(initializing.currentUser()).toBeNull();
+    expect(initializing.status()).toBe('initializing');
+  });
+});
+
 describe('AuthService clearSession', () => {
   it('tears down an authenticated session to anonymous', () => {
     const service = authenticatedService();

@@ -7,6 +7,7 @@ export * from './lib/runtime/correlation-ids';
 export * from './lib/interceptors/correlation-interceptor';
 export * from './lib/interceptors/request-config-interceptor';
 export * from './lib/interceptors/auth-interceptor';
+export * from './lib/interceptors/auth-recovery';
 export * from './lib/interceptors/http-error-hook-interceptor';
 export * from './lib/runtime/error-normalizer';
 export * from './lib/client/api-client';
