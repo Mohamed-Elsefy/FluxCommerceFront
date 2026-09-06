@@ -18,3 +18,4 @@ export * from './lib/contracts/api-response';
 export * from './lib/contracts/api-error';
 export * from './lib/contracts/api-headers';
 export * from './lib/contracts/api-endpoints';
+export * from './lib/identity/identity-api.service';
