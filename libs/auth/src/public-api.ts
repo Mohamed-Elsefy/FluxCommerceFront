@@ -7,3 +7,4 @@ export * from './lib/auth-recovery';
 export * from './lib/session-restore.service';
 export * from './lib/auth.guard';
 export * from './lib/role.guard';
+export * from './lib/auth-nav';
