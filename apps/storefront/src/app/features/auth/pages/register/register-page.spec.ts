@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { AuthService } from '@flux/auth';
-import { AuthDataAccess, type RegistrationResult } from '../data-access/auth-data-access';
+import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
 import { RegisterPage } from './register-page';
 
 const RESULT: RegistrationResult = {

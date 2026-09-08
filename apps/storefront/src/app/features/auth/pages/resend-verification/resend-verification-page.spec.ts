@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import type { ResendVerificationResponse } from '@flux/models';
-import { AuthDataAccess } from '../data-access/auth-data-access';
+import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { ResendVerificationPage } from './resend-verification-page';
 
 const RECEIPT: ResendVerificationResponse = {

@@ -9,7 +9,7 @@ import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
-import { AuthDataAccess } from '../data-access/auth-data-access';
+import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { ForgotPasswordPage } from './forgot-password-page';
 
 describe('ForgotPasswordPage', () => {

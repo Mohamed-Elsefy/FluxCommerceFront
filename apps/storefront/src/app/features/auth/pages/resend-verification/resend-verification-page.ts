@@ -13,13 +13,13 @@ import { RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { isApiError } from '@flux/api';
 import type { ResendVerificationResponse } from '@flux/models';
-import { AuthDataAccess } from '../data-access/auth-data-access';
+import { AuthDataAccess } from '../../data-access/auth-data-access';
 import {
   applyServerValidationErrors,
   clearServerValidationErrors,
-} from '../data-access/auth-form-errors';
-import { authEmailValidators } from '../data-access/auth-validators';
-import { FieldErrors } from '../components/field-errors';
+} from '../../data-access/auth-form-errors';
+import { authEmailValidators } from '../../data-access/auth-validators';
+import { FieldErrors } from '../../components/field-errors';
 
 @Component({
   selector: 'app-resend-verification-page',

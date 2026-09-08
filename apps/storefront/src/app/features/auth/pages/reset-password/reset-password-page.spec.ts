@@ -10,7 +10,7 @@ import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
-import { AuthDataAccess } from '../data-access/auth-data-access';
+import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { ResetPasswordPage } from './reset-password-page';
 
 @Component({ template: '<router-outlet></router-outlet>', imports: [RouterOutlet] })

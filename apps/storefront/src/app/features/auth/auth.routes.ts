@@ -10,27 +10,31 @@ import { Routes } from '@angular/router';
 export const authRoutes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./pages/login-page').then((m) => m.LoginPage),
+    loadComponent: () => import('./pages/login/login-page').then((m) => m.LoginPage),
   },
   {
     path: 'register',
-    loadComponent: () => import('./pages/register-page').then((m) => m.RegisterPage),
+    loadComponent: () => import('./pages/register/register-page').then((m) => m.RegisterPage),
   },
   {
     path: 'verify-email',
-    loadComponent: () => import('./pages/verify-email-page').then((m) => m.VerifyEmailPage),
+    loadComponent: () => import('./pages/verify-email/verify-email-page').then((m) => m.VerifyEmailPage),
   },
   {
     path: 'resend-verification',
     loadComponent: () =>
-      import('./pages/resend-verification-page').then((m) => m.ResendVerificationPage),
+      import('./pages/resend-verification/resend-verification-page').then(
+        (m) => m.ResendVerificationPage,
+      ),
   },
   {
     path: 'forgot-password',
-    loadComponent: () => import('./pages/forgot-password-page').then((m) => m.ForgotPasswordPage),
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password-page').then((m) => m.ForgotPasswordPage),
   },
   {
     path: 'reset-password',
-    loadComponent: () => import('./pages/reset-password-page').then((m) => m.ResetPasswordPage),
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password-page').then((m) => m.ResetPasswordPage),
   },
 ];

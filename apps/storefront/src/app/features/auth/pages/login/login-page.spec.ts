@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { AuthService, type CurrentUser } from '@flux/auth';
-import { AuthDataAccess } from '../data-access/auth-data-access';
+import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { LoginPage } from './login-page';
 
 @Component({ template: '<router-outlet></router-outlet>', imports: [RouterOutlet] })

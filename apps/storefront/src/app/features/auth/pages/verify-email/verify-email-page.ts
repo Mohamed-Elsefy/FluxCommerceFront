@@ -11,7 +11,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
-import { AuthDataAccess, type RegistrationResult } from '../data-access/auth-data-access';
+import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
 import { isApiError } from '@flux/api';
 
 type VerifyEmailState =
