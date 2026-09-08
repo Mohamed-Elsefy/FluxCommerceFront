@@ -5,3 +5,5 @@ export * from './lib/access-token-provider';
 export * from './lib/token-refresh.service';
 export * from './lib/auth-recovery';
 export * from './lib/session-restore.service';
+export * from './lib/auth.guard';
+export * from './lib/role.guard';
