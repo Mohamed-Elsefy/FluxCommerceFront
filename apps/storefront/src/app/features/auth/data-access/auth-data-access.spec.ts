@@ -1,5 +1,6 @@
 /**
- * Orchestration tests for Sub-Phases 2.4/2.5 — login and registration workflows.
+ * Orchestration tests for Sub-Phases 2.4/2.5 — login and registration workflows —
+ * and Sub-Phase 2.10 — email verification and password recovery entry points.
  *
  * `IdentityApiService` (the shared-lib HTTP boundary, already covered by
  * `libs/api` specs) is stubbed at its typed seam so these tests own the
@@ -11,6 +12,7 @@
  */
 
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError, IdentityApiService, type ApiRequestOptions } from '@flux/api';
@@ -52,19 +54,35 @@ interface IdentityCalls {
   loginBodies: unknown[];
   meOptions: ApiRequestOptions[];
   registerBodies: unknown[];
+  verifyBodies: unknown[];
+  resendBodies: unknown[];
+  forgotBodies: unknown[];
+  resetBodies: unknown[];
 }
 
 function setup(flows: {
   login?: () => ReturnType<IdentityApiService['login']>;
   me?: () => ReturnType<IdentityApiService['getCurrentUser']>;
   register?: () => ReturnType<IdentityApiService['register']>;
+  verifyEmail?: () => ReturnType<IdentityApiService['verifyEmail']>;
+  resendVerification?: () => ReturnType<IdentityApiService['resendVerification']>;
+  forgotPassword?: () => ReturnType<IdentityApiService['forgotPassword']>;
+  resetPassword?: () => ReturnType<IdentityApiService['resetPassword']>;
 }): {
   dataAccess: AuthDataAccess;
   auth: AuthService;
   storage: TokenStorageService;
   calls: IdentityCalls;
 } {
-  const calls: IdentityCalls = { loginBodies: [], meOptions: [], registerBodies: [] };
+  const calls: IdentityCalls = {
+    loginBodies: [],
+    meOptions: [],
+    registerBodies: [],
+    verifyBodies: [],
+    resendBodies: [],
+    forgotBodies: [],
+    resetBodies: [],
+  };
   const identityStub: IdentityApiService = {
     login: ((body: unknown) => {
       calls.loginBodies.push(body);
@@ -81,10 +99,32 @@ function setup(flows: {
         of({ isSuccess: true, data: { ...ME_FIXTURE, isEmailVerified: false } })
       );
     }) as IdentityApiService['register'],
+    verifyEmail: ((body: unknown) => {
+      calls.verifyBodies.push(body);
+      return flows.verifyEmail?.() ?? of({ isSuccess: true, data: ME_FIXTURE });
+    }) as IdentityApiService['verifyEmail'],
+    resendVerification: ((body: unknown) => {
+      calls.resendBodies.push(body);
+      return (
+        flows.resendVerification?.() ??
+        of({ isSuccess: true, data: { emailSent: true, expiresAtUtc: '2026-09-07T12:00:00Z' } })
+      );
+    }) as IdentityApiService['resendVerification'],
+    forgotPassword: ((body: unknown) => {
+      calls.forgotBodies.push(body);
+      return flows.forgotPassword?.() ?? of({ isSuccess: true });
+    }) as IdentityApiService['forgotPassword'],
+    resetPassword: ((body: unknown) => {
+      calls.resetBodies.push(body);
+      return flows.resetPassword?.() ?? of({ isSuccess: true });
+    }) as IdentityApiService['resetPassword'],
   } as IdentityApiService;
 
   TestBed.configureTestingModule({
-    providers: [{ provide: IdentityApiService, useValue: identityStub }],
+    providers: [
+      { provide: IdentityApiService, useValue: identityStub },
+      { provide: Router, useValue: { navigateByUrl: () => Promise.resolve(true) } },
+    ],
   });
   window.localStorage.clear();
   return {
@@ -210,6 +250,15 @@ describe('AuthDataAccess register', () => {
   });
 });
 
+describe('mapUserResponseToCurrentUser', () => {
+  it('falls back to first/last name when displayName is null', () => {
+    expect(mapUserResponseToCurrentUser({ ...ME_FIXTURE, displayName: null }).displayName).toBe(
+      'Ada Lovelace',
+    );
+    expect(mapUserResponseToCurrentUser(ME_FIXTURE).displayName).toBe('Ada Lovelace');
+  });
+});
+
 describe('mapLoginResponseToProvisionalUser', () => {
   it('derives a verified user with a pending display name', () => {
     expect(mapLoginResponseToProvisionalUser(LOGIN_FIXTURE)).toEqual({
@@ -222,11 +271,80 @@ describe('mapLoginResponseToProvisionalUser', () => {
   });
 });
 
-describe('mapUserResponseToCurrentUser', () => {
-  it('falls back to first/last name when displayName is null', () => {
-    expect(mapUserResponseToCurrentUser({ ...ME_FIXTURE, displayName: null }).displayName).toBe(
-      'Ada Lovelace',
-    );
-    expect(mapUserResponseToCurrentUser(ME_FIXTURE).displayName).toBe('Ada Lovelace');
+describe('AuthDataAccess identity lifecycle (2.10)', () => {
+  it('verifies an email without establishing a session', () => {
+    const { dataAccess, auth, storage, calls } = setup({});
+    let email: string | undefined;
+    dataAccess.verifyEmail('verify-token-1').subscribe((result) => {
+      email = result.email;
+    });
+
+    expect(calls.verifyBodies).toEqual([{ token: 'verify-token-1' }]);
+    expect(email).toBe('ada@flux.local');
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(auth.currentUser()).toBeNull();
+    expect(storage.loadSession()).toBeNull();
+  });
+
+  it('surfaces expired verification tokens for the resend entry point', () => {
+    const rejection = new ApiError({ status: 401, message: 'Invalid verification token.' });
+    const { dataAccess, auth } = setup({ verifyEmail: () => throwError(() => rejection) });
+    let observed: unknown;
+    dataAccess.verifyEmail('stale-token').subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+    expect(auth.isAuthenticated()).toBe(false);
+  });
+
+  it('returns the resend receipt verbatim', () => {
+    const { dataAccess, calls } = setup({});
+    let sent: boolean | undefined;
+    dataAccess.resendVerification('ada@flux.local').subscribe((receipt) => {
+      sent = receipt.emailSent;
+    });
+
+    expect(calls.resendBodies).toEqual([{ email: 'ada@flux.local' }]);
+    expect(sent).toBe(true);
+  });
+
+  it('completes forgot-password without distinguishing accounts', () => {
+    const { dataAccess, calls } = setup({});
+    let completed = false;
+    dataAccess
+      .forgotPassword('unknown@flux.local')
+      .subscribe({ complete: () => (completed = true) });
+
+    expect(calls.forgotBodies).toEqual([{ email: 'unknown@flux.local' }]);
+    expect(completed).toBe(true);
+  });
+
+  it('completes reset-password without establishing a session', () => {
+    const { dataAccess, auth, storage, calls } = setup({});
+    let completed = false;
+    dataAccess
+      .resetPassword({ token: 'reset-token-1', newPassword: 'BrandNew123!' })
+      .subscribe({ complete: () => (completed = true) });
+
+    expect(calls.resetBodies).toEqual([{ token: 'reset-token-1', newPassword: 'BrandNew123!' }]);
+    expect(completed).toBe(true);
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(storage.loadSession()).toBeNull();
+  });
+
+  it('surfaces rejected reset tokens as ApiError', () => {
+    const rejection = new ApiError({ status: 401, message: 'Invalid reset token.' });
+    const { dataAccess } = setup({ resetPassword: () => throwError(() => rejection) });
+    let observed: unknown;
+    dataAccess.resetPassword({ token: 'stale-token', newPassword: 'BrandNew123!' }).subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
   });
 });

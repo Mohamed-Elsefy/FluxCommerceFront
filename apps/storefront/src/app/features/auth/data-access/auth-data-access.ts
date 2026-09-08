@@ -1,11 +1,16 @@
 /**
- * Feature data-access for the Sub-Phase 2.4 authentication vertical slice.
+ * Feature data-access for the Sub-Phase 2.4 authentication vertical slice
+ * and the Sub-Phase 2.10 identity lifecycle entry points.
  *
- * Owns the two authentication workflows and nothing else:
+ * Owns the authentication workflows and nothing else:
  *
  * ```text
- * login:    Login API → store session → load current user → authenticated
- * register: Register API → registration result (never auto-login)
+ * login:              Login API → store session → load current user → authenticated
+ * register:           Register API → registration result (never auto-login)
+ * verifyEmail:        Verify-email API → identity result (never auto-login)
+ * resendVerification: Resend-verification API → send result
+ * forgotPassword:     Forgot-password API → void (always success UI)
+ * resetPassword:      Reset-password API → void (then prompt login)
  * ```
  *
  * Layering (`ARCHITECTURE.md` §10):
@@ -49,7 +54,14 @@ import {
   mapUserResponseToCurrentUser,
   type CurrentUser,
 } from '@flux/auth';
-import type { LoginRequest, LoginResponse, RegisterCustomerRequest } from '@flux/models';
+import type {
+  LoginRequest,
+  LoginResponse,
+  RegisterCustomerRequest,
+  ResendVerificationResponse,
+  ResetPasswordRequest,
+  UserResponse,
+} from '@flux/models';
 
 /**
  * Registration outcome: what to tell the user after `POST /auth/register`
@@ -151,17 +163,66 @@ export class AuthDataAccess {
    * verification UI from the returned result.
    */
   register(input: RegisterCustomerRequest): Observable<RegistrationResult> {
-    return this.identity.register(input).pipe(
-      map((envelope) => {
-        const user = requireEnvelopeData(envelope);
-        return {
-          email: user.email,
-          displayName: (user.displayName ?? `${user.firstName} ${user.lastName}`.trim()) || null,
-          isEmailVerified: user.isEmailVerified,
-        } satisfies RegistrationResult;
-      }),
-    );
+    return this.identity
+      .register(input)
+      .pipe(map((envelope) => toIdentityResult(requireEnvelopeData(envelope))));
   }
+
+  /**
+   * Email verification workflow (`POST /auth/verify-email`, single-use 24h
+   * token from the email link). Returns the verified identity for display;
+   * stores nothing and authenticates nothing — the caller must prompt a
+   * login afterwards. Expired/unknown tokens surface as `ApiError`
+   * (`401`/`404`) for the resend entry point.
+   */
+  verifyEmail(token: string): Observable<RegistrationResult> {
+    return this.identity
+      .verifyEmail({ token })
+      .pipe(map((envelope) => toIdentityResult(requireEnvelopeData(envelope))));
+  }
+
+  /**
+   * Resend-verification workflow (`POST /auth/resend-verification`,
+   * unverified accounts only). Returns the backend send receipt verbatim —
+   * the caller decides between "check your inbox" and "already verified,
+   * sign in" copy from `emailSent`.
+   */
+  resendVerification(email: string): Observable<ResendVerificationResponse> {
+    return this.identity
+      .resendVerification({ email })
+      .pipe(map((envelope) => requireEnvelopeData(envelope)));
+  }
+
+  /**
+   * Forgot-password workflow (`POST /auth/forgot-password`). The backend
+   * always answers `200` to block account enumeration, so callers present
+   * the success UI unconditionally once the call itself succeeds.
+   */
+  forgotPassword(email: string): Observable<void> {
+    return this.identity.forgotPassword({ email }).pipe(map(() => undefined));
+  }
+
+  /**
+   * Reset-password workflow (`POST /auth/reset-password`, single-use 1h
+   * token). Establishes nothing — the caller must prompt a login
+   * afterwards. Unknown/expired tokens surface as `401 Identity.InvalidToken`.
+   */
+  resetPassword(input: ResetPasswordRequest): Observable<void> {
+    return this.identity.resetPassword(input).pipe(map(() => undefined));
+  }
+}
+
+/**
+ * Maps a verified/registered `UserResponse` onto display copy. Shared by
+ * registration and email verification — both hand the user an identity
+ * without a session.
+ */
+function toIdentityResult(user: UserResponse): RegistrationResult {
+  return {
+    email: user.email,
+    displayName: (user.displayName ?? `${user.firstName} ${user.lastName}`.trim()) || null,
+    isEmailVerified: user.isEmailVerified,
+  };
 }
 
 /** Unwraps a success envelope; a dataless `200` is a contract violation. */

@@ -1,0 +1,62 @@
+@if (receipt() !== null) {
+  <section aria-labelledby="resend-done-title" aria-live="polite">
+    <h1 id="resend-done-title">Verification email sent</h1>
+    @if (receipt()?.emailSent === true) {
+      <p>
+        If an unverified account exists for {{ sentTo() }}, a fresh link is on its way. Links expire
+        after 24 hours.
+      </p>
+    } @else {
+      <p>That email is already verified. You can sign in directly.</p>
+      <p>
+        <a routerLink="/login">Back to sign in</a>
+      </p>
+    }
+  </section>
+} @else {
+  <section aria-labelledby="resend-title">
+    <h1 id="resend-title">Resend verification email</h1>
+    <p>Enter your account email and we will send a fresh verification link.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div>
+        <label for="resend-email">Email</label>
+        <input
+          id="resend-email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          [attr.aria-invalid]="form.controls.email.invalid"
+          [attr.aria-describedby]="'resend-email-errors'"
+        />
+        <auth-field-errors
+          id="resend-email-errors"
+          [control]="form.controls.email"
+          label="Email"
+        ></auth-field-errors>
+      </div>
+
+      @if (formError() !== null) {
+        <flux-error-state
+          title="Could not send the email"
+          [message]="formError()"
+          [showRetry]="false"
+        ></flux-error-state>
+      }
+
+      @if (isSubmitting()) {
+        <flux-loading-indicator
+          label="Sending verification email"
+          size="sm"
+        ></flux-loading-indicator>
+      }
+
+      <button type="submit" [disabled]="isSubmitting()">Send verification email</button>
+    </form>
+
+    <p>
+      Already verified?
+      <a routerLink="/login">Sign in</a>
+    </p>
+  </section>
+}

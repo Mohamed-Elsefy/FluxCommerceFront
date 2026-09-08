@@ -11,6 +11,7 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID, type EnvironmentProviders, type Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import {
@@ -73,6 +74,7 @@ function configureModule(options: { platform?: string; initializer?: boolean } =
     provideApi(),
     provideAccessToken(),
     provideHttpClientTesting(),
+    { provide: Router, useValue: { navigateByUrl: () => Promise.resolve(true) } },
   ];
   if (options.initializer === true) {
     providers.push(provideSessionRestore());

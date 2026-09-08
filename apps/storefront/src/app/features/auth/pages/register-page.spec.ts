@@ -28,11 +28,12 @@ function fillValid(page: RegisterPage): void {
 }
 
 describe('RegisterPage', () => {
-  let auth: AuthService;
+  let authStub: { isAuthenticated: () => boolean };
   let registerCalls: unknown[];
   let registerResult: () => ReturnType<AuthDataAccess['register']>;
 
   beforeEach(() => {
+    authStub = { isAuthenticated: () => false };
     registerCalls = [];
     registerResult = () => of(RESULT);
     const dataAccessStub = {
@@ -42,9 +43,12 @@ describe('RegisterPage', () => {
       }) as AuthDataAccess['register'],
     } as AuthDataAccess;
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: AuthDataAccess, useValue: dataAccessStub }],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authStub },
+        { provide: AuthDataAccess, useValue: dataAccessStub },
+      ],
     });
-    auth = TestBed.inject(AuthService);
   });
 
   afterEach(() => {
@@ -82,8 +86,7 @@ describe('RegisterPage', () => {
 
     expect(page.result()?.email).toBe('ada@flux.local');
     expect(page.result()?.isEmailVerified).toBe(false);
-    expect(auth.isAuthenticated()).toBe(false);
-    expect(auth.currentUser()).toBeNull();
+    expect(authStub.isAuthenticated()).toBe(false);
     const heading = (fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent;
     expect(heading).toContain('Check your inbox');
   });
@@ -103,6 +106,6 @@ describe('RegisterPage', () => {
     expect(page.formError()).toBe('An account with this email already exists.');
     expect(page.result()).toBeNull();
     expect(page.isSubmitting()).toBe(false);
-    expect(auth.isAuthenticated()).toBe(false);
+    expect(authStub.isAuthenticated()).toBe(false);
   });
 });

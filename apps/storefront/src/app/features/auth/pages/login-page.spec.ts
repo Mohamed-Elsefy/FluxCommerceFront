@@ -50,11 +50,14 @@ async function navigate(url: string): Promise<{
 }
 
 describe('LoginPage', () => {
-  let auth: AuthService;
+  let authStub: { isAuthenticated: () => boolean };
+  let isAuthenticated: boolean;
   let loginCalls: unknown[];
   let loginResult: () => ReturnType<AuthDataAccess['login']>;
 
   beforeEach(() => {
+    isAuthenticated = false;
+    authStub = { isAuthenticated: () => isAuthenticated };
     loginCalls = [];
     loginResult = () => of(USER);
     const dataAccessStub = {
@@ -70,10 +73,10 @@ describe('LoginPage', () => {
           { path: 'orders', component: Blank },
           { path: '', component: Blank },
         ]),
+        { provide: AuthService, useValue: authStub },
         { provide: AuthDataAccess, useValue: dataAccessStub },
       ],
     });
-    auth = TestBed.inject(AuthService);
   });
 
   afterEach(() => {
@@ -88,7 +91,18 @@ describe('LoginPage', () => {
 
     expect(loginCalls).toHaveLength(0);
     expect(page.form.invalid).toBe(true);
-    expect(auth.isAuthenticated()).toBe(false);
+    expect(authStub.isAuthenticated()).toBe(false);
+  });
+
+  it('bounces already-authenticated visits to the return URL', async () => {
+    isAuthenticated = true;
+    const router = TestBed.inject(Router);
+    const fixture = TestBed.createComponent(Host);
+    await router.navigateByUrl('/login?returnUrl=/orders');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(TestBed.inject(Location).path()).toBe('/orders');
   });
 
   it('redirects to the return URL on success', async () => {
@@ -113,7 +127,7 @@ describe('LoginPage', () => {
 
     expect(page.formError()).toBe('Invalid email or password.');
     expect(page.isSubmitting()).toBe(false);
-    expect(auth.isAuthenticated()).toBe(false);
+    expect(authStub.isAuthenticated()).toBe(false);
     expect(TestBed.inject(Location).path()).toBe('/login');
   });
 

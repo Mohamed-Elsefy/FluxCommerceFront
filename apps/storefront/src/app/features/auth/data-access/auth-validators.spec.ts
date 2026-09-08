@@ -1,4 +1,4 @@
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
 import { describe, expect, it } from 'vitest';
 import {
   AUTH_EMAIL_MAX_LENGTH,
@@ -8,6 +8,7 @@ import {
   authEmailValidators,
   authNameValidators,
   loginPasswordValidators,
+  matchingPasswordsValidator,
   nonBlankValidator,
   passwordComplexityValidator,
   registerPasswordValidators,
@@ -73,5 +74,20 @@ describe('auth validators', () => {
 
   it('passwordComplexityValidator ignores empty values (required owns them)', () => {
     expect(passwordComplexityValidator()(new FormControl(''))).toBeNull();
+  });
+
+  it('matchingPasswordsValidator flags confirmation drift', () => {
+    const group = new FormGroup({
+      newPassword: new FormControl('Valid123!', { nonNullable: true }),
+      confirmPassword: new FormControl('Valid123!', { nonNullable: true }),
+    });
+    const validate = matchingPasswordsValidator('newPassword', 'confirmPassword');
+    expect(validate(group)).toBeNull();
+
+    group.controls.confirmPassword.setValue('Different123!');
+    expect(validate(group)).toEqual({ passwordMismatch: true });
+
+    group.controls.confirmPassword.setValue('');
+    expect(validate(group)).toBeNull();
   });
 });

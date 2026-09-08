@@ -26,7 +26,14 @@ describe('routes', () => {
     ).toBe('function');
 
     const paths = authRoutes.map((route) => route.path).sort();
-    expect(paths).toEqual(['login', 'register']);
+    expect(paths).toEqual([
+      'forgot-password',
+      'login',
+      'register',
+      'resend-verification',
+      'reset-password',
+      'verify-email',
+    ]);
     for (const route of authRoutes) {
       expect(typeof route.loadComponent).toBe('function');
     }

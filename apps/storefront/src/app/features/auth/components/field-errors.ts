@@ -41,7 +41,11 @@ export class FieldErrors {
   shouldShow(): boolean {
     const control = this.control;
     return (
-      control !== null && control.invalid && (control.touched || control.dirty) && !control.disabled
+      control !== null &&
+      control.invalid &&
+      (control.touched || control.dirty) &&
+      !control.disabled &&
+      this.messages().length > 0
     );
   }
 
@@ -70,6 +74,9 @@ export class FieldErrors {
       messages.push(
         `${this.label} needs upper- and lower-case letters, a digit, and a special character.`,
       );
+    }
+    if (errors['passwordMismatch'] !== undefined) {
+      messages.push('Passwords do not match.');
     }
     const server = errors[SERVER_ERROR_KEY];
     if (Array.isArray(server)) {

@@ -18,6 +18,7 @@
  * authenticated ─replaceAccessToken────────▶ authenticated   (rotation path, 2.6)
  * authenticated ─updateCurrentUser─────────▶ authenticated   (profile hydration, 2.5)
  * authenticated ─clearSession──────────────▶ anonymous       (logout path, 2.9)
+ * any settled ───logout()──────────────────▶ anonymous       (backend revoke + redirect, 2.9)
  * ```
  *
  * Initialization semantics: every instance starts `initializing` with no
@@ -26,18 +27,23 @@
  * Sub-Phase 2.8 — not here). Guards must wait for `isInitializing() === false`
  * before treating the state as anonymous.
  *
- * Token handling (in-memory ONLY — Sub-Phase 2.3 owns persistence):
+ * Token handling:
  * - The access-token value lives in a private signal. It is never persisted,
  *   never logged, and never exposed as a settable signal.
- * - `readAccessToken()` is the reserved synchronous reader for the Phase 1
- *   `ACCESS_TOKEN_PROVIDER` seam; Sub-Phase 2.5 performs that wiring, not
- *   this file — the interceptor pipeline is untouched here.
- * - No refresh, no retry, no HTTP of any kind: this service never imports
- *   `ApiClient`, `IdentityApiService`, or storage APIs.
+ * - `readAccessToken()` feeds the Phase 1 `ACCESS_TOKEN_PROVIDER` seam
+ *   (wired in Sub-Phase 2.5).
+ * - The single backend call this service ever makes is `POST /auth/logout`
+ *   inside `logout()` (Sub-Phase 2.9). Refresh, retry, and all other HTTP
+ *   stay in their owning services (`TokenRefreshService`, feature
+ *   data-access) — this service never imports `ApiClient` directly.
  */
 
-import { Injectable, computed, signal, type Signal } from '@angular/core';
+import { Injectable, computed, inject, signal, type Signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { catchError, map, of, type Observable } from 'rxjs';
+import { IdentityApiService } from '@flux/api';
 import type { AuthSession, AuthState, CurrentUser } from './auth-session';
+import { TokenStorageService } from './token-storage';
 
 /** Input for establishing an authenticated session (login in 2.4, restore in 2.8). */
 export interface AuthenticatedSessionInput {
@@ -52,12 +58,24 @@ export interface AuthenticatedSessionInput {
   readonly authenticatedAtUtc?: string;
 }
 
+/** Options for `AuthService.logout`. */
+export interface LogoutOptions {
+  /**
+   * Post-logout destination. Defaults to `/` (public home). Same-origin
+   * paths only — anything else falls back to `/` to block open redirects.
+   */
+  readonly redirectTo?: string;
+}
+
 /**
  * The single typed gateway to authentication state. Inject this — never
  * replicate auth signals — in guards, shells, and feature selectors.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly identity = inject(IdentityApiService);
+  private readonly tokenStorage = inject(TokenStorageService);
+  private readonly router = inject(Router);
   private readonly _status = signal<AuthState>('initializing');
   private readonly _currentUser = signal<CurrentUser | null>(null);
   private readonly _session = signal<AuthSession | null>(null);
@@ -188,7 +206,7 @@ export class AuthService {
    * Tears down the session: `authenticated → anonymous`, clearing user,
    * session metadata, and the in-memory token. Idempotent no-op when
    * already anonymous; never settles `initializing` (restoration in 2.8
-   * owns that decision). Backend logout/revocation is Sub-Phase 2.9.
+   * owns that decision). Backend revocation happens in `logout()`, below.
    */
   clearSession(): void {
     if (this._status() === 'initializing') {
@@ -198,5 +216,48 @@ export class AuthService {
     this._currentUser.set(null);
     this._session.set(null);
     this._status.set('anonymous');
+  }
+
+  /**
+   * Complete logout workflow for Sub-Phase 2.9 (plan §4.9):
+   * backend revocation → local cleanup → anonymous → redirect.
+   *
+   * - When a refresh token is stored, `POST /auth/logout` revokes it
+   *   server-side (idempotent by contract). Any backend failure — network
+   *   error, 5xx, or no stored token at all — is swallowed: local cleanup
+   *   ALWAYS runs, so a failed revoke can never orphan an authenticated
+   *   client state. Callers observe exactly one outcome: completion.
+   * - Cleanup is total: persisted snapshot (`TokenStorageService`), the
+   *   in-memory token, current user, session metadata, and every derived
+   *   signal (`roles`, `isAdmin`, `hasAccessToken`, ...). An in-flight
+   *   shared refresh (2.6) needs no reset — it re-reads storage on apply
+   *   and declines instead of resurrecting.
+   * - Completing navigates to `options.redirectTo` (default `/`). The
+   *   observable is cold: subscribe to execute.
+   * - Never settles `initializing` (same rule as `clearSession`): a logout
+   *   raced with startup restoration still steers restoration to anonymous
+   *   because storage is cleared first.
+   */
+  logout(options: LogoutOptions = {}): Observable<void> {
+    const refreshToken = this.tokenStorage.loadSession()?.refreshToken;
+    const revoke =
+      refreshToken === undefined
+        ? of(null)
+        : this.identity.logout({ refreshToken }).pipe(catchError(() => of(null)));
+    return revoke.pipe(
+      map(() => {
+        this.tokenStorage.clearSession();
+        this.clearSession();
+        void this.router.navigateByUrl(this.safeRedirect(options.redirectTo));
+      }),
+    );
+  }
+
+  /** Same-origin redirect guard (mirrors the 2.4 login return-URL rule). */
+  private safeRedirect(candidate: string | undefined): string {
+    if (candidate !== undefined && candidate.startsWith('/') && !candidate.startsWith('//')) {
+      return candidate;
+    }
+    return '/';
   }
 }

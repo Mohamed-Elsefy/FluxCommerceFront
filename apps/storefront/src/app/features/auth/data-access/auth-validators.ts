@@ -73,6 +73,22 @@ export function nonBlankValidator(): ValidatorFn {
 }
 
 /**
+ * Cross-field equality for password confirmation (reset/change UX — the
+ * backend `ResetPasswordRequest` itself carries no confirmation field, so
+ * this never travels over the wire; `ChangePasswordRequest.confirmPassword`
+ * is then guaranteed to match by construction).
+ */
+export function matchingPasswordsValidator(passwordKey: string, confirmKey: string): ValidatorFn {
+  return (group: AbstractControl): ValidationErrors | null => {
+    const password = group.get(passwordKey)?.value;
+    const confirm = group.get(confirmKey)?.value;
+    if (typeof password !== 'string' || typeof confirm !== 'string' || confirm.length === 0) {
+      return null;
+    }
+    return password === confirm ? null : { passwordMismatch: true };
+  };
+}
+/**
  * Backend `PasswordPolicy` complexity: at least one upper-case, one
  * lower-case, one digit, and one special character. Length is enforced by
  * `minLength`/`maxLength` alongside this validator.

@@ -1,0 +1,41 @@
+@switch (state().kind) {
+  @case ('verifying') {
+    <flux-loading-indicator label="Verifying your email"></flux-loading-indicator>
+  }
+  @case ('missing-token') {
+    <section aria-labelledby="verify-missing-title">
+      <h1 id="verify-missing-title">Verification link incomplete</h1>
+      <p>
+        This page needs the verification link from your email. Open it again, or request a new one.
+      </p>
+      <p>
+        <a routerLink="/resend-verification">Resend verification email</a>
+      </p>
+    </section>
+  }
+  @case ('verified') {
+    <section aria-labelledby="verify-done-title" aria-live="polite">
+      <h1 id="verify-done-title">Email verified</h1>
+      @if (verifiedResult(); as result) {
+        <p>Thanks — {{ result.email }} is confirmed. You can now sign in.</p>
+      }
+      <p>
+        <a routerLink="/login">Back to sign in</a>
+      </p>
+    </section>
+  }
+  @case ('failed') {
+    <section aria-labelledby="verify-failed-title">
+      <h1 id="verify-failed-title">Verification failed</h1>
+      <flux-error-state
+        title="Could not verify this link"
+        [message]="failureMessage()"
+        [showRetry]="false"
+      ></flux-error-state>
+      <p>Links expire after 24 hours. Request a fresh one and try again.</p>
+      <p>
+        <a routerLink="/resend-verification">Resend verification email</a>
+      </p>
+    </section>
+  }
+}

@@ -11,6 +11,7 @@
 
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ApiClient, provideApi, provideAppEnvironment } from '@flux/api';
 import { AuthService, TokenStorageService, type CurrentUser } from '@flux/auth';
@@ -51,6 +52,7 @@ function setup(): {
       }),
       provideApi(),
       provideHttpClientTesting(),
+      { provide: Router, useValue: { navigateByUrl: () => Promise.resolve(true) } },
     ],
   });
   window.localStorage.clear();
