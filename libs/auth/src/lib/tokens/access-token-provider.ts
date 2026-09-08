@@ -41,7 +41,7 @@
 
 import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { ACCESS_TOKEN_PROVIDER } from '@flux/api';
-import { AuthService } from './auth.service';
+import { AuthService } from '../state/auth.service';
 
 /**
  * Overrides the Phase 1 anonymous default (`() => null`) with a reader

@@ -36,7 +36,7 @@
 
 import { ChangeDetectionStrategy, Component, Input, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthService } from './auth.service';
+import { AuthService } from '../state/auth.service';
 
 @Component({
   selector: 'auth-nav',

@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { AuthService } from './auth.service';
 import type { CurrentUser } from './auth-session';
-import { TokenStorageService } from './token-storage';
+import { TokenStorageService } from '../session/token-storage';
 
 const USER: CurrentUser = {
   id: '11111111-1111-1111-1111-111111111111',

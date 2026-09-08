@@ -43,7 +43,7 @@ import { Router } from '@angular/router';
 import { catchError, map, of, type Observable } from 'rxjs';
 import { IdentityApiService } from '@flux/api';
 import type { AuthSession, AuthState, CurrentUser } from './auth-session';
-import { TokenStorageService } from './token-storage';
+import { TokenStorageService } from '../session/token-storage';
 
 /** Input for establishing an authenticated session (login in 2.4, restore in 2.8). */
 export interface AuthenticatedSessionInput {

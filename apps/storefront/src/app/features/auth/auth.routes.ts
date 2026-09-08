@@ -18,7 +18,8 @@ export const authRoutes: Routes = [
   },
   {
     path: 'verify-email',
-    loadComponent: () => import('./pages/verify-email/verify-email-page').then((m) => m.VerifyEmailPage),
+    loadComponent: () =>
+      import('./pages/verify-email/verify-email-page').then((m) => m.VerifyEmailPage),
   },
   {
     path: 'resend-verification',

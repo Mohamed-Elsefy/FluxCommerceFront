@@ -49,7 +49,7 @@ import {
   UrlTree,
 } from '@angular/router';
 import { filter, map, take, type Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { AuthService } from '../state/auth.service';
 
 /**
  * Allows authenticated navigation; redirects anonymous navigation to

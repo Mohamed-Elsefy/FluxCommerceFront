@@ -72,7 +72,7 @@
 
 import { Injectable, InjectionToken, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import type { CurrentUser } from './auth-session';
+import type { CurrentUser } from '../state/auth-session';
 
 /** Versioned key isolating the auth entry from every other local entry. */
 export const AUTH_SESSION_STORAGE_KEY = 'fluxcommerce.auth.session.v1';

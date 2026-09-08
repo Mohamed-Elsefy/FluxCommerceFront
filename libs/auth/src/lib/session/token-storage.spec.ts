@@ -15,7 +15,7 @@ import {
   TokenStorageService,
   type StoredSession,
 } from './token-storage';
-import type { CurrentUser } from './auth-session';
+import type { CurrentUser } from '../state/auth-session';
 
 const USER: CurrentUser = {
   id: '11111111-1111-1111-1111-111111111111',

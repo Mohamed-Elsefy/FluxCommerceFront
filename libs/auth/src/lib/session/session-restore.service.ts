@@ -59,9 +59,9 @@ import { APP_INITIALIZER, EnvironmentProviders, inject, Injectable } from '@angu
 import { makeEnvironmentProviders } from '@angular/core';
 import { catchError, map, of, switchMap, type Observable } from 'rxjs';
 import { IdentityApiService } from '@flux/api';
-import { AuthService } from './auth.service';
-import { mapUserResponseToCurrentUser } from './auth-session';
-import { TokenRefreshService } from './token-refresh.service';
+import { AuthService } from '../state/auth.service';
+import { mapUserResponseToCurrentUser } from '../state/auth-session';
+import { TokenRefreshService } from '../tokens/token-refresh.service';
 import { TokenStorageService } from './token-storage';
 
 /**

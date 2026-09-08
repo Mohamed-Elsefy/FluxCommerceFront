@@ -67,8 +67,8 @@
 import { inject, Injectable } from '@angular/core';
 import { catchError, finalize, map, of, shareReplay, type Observable } from 'rxjs';
 import { IDENTITY_ENDPOINTS, IdentityApiService } from '@flux/api';
-import { AuthService } from './auth.service';
-import { TokenStorageService } from './token-storage';
+import { AuthService } from '../state/auth.service';
+import { TokenStorageService } from '../session/token-storage';
 
 /**
  * Matches request URLs targeting the refresh endpoint (base URL agnostic)
