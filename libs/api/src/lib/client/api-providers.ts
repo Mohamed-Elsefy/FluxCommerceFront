@@ -22,11 +22,16 @@
  * ```text
  * 1. correlationInterceptor      — ensure X-Correlation-ID (flow id or generated)
  * 2. requestConfigInterceptor    — Accept-Language, Idempotency-Key
- * 3. authInterceptor             — Authorization Bearer hook (Phase 2 seam)
- * 4. httpErrorHookInterceptor    — transport-error hook (1.5 maps here)
+ * 3. authRecoveryInterceptor     — 401 recovery via seam (2.7; retries re-enter 4)
+ * 4. authInterceptor             — Authorization Bearer hook (Phase 2 seam)
+ * 5. httpErrorHookInterceptor    — transport-error hook (1.5 maps here)
  *              ↓
  *         HttpBackend
  * ```
+ *
+ * Recovery sits upstream of injection on purpose: a retried request flows
+ * back through `authInterceptor`, which attaches the freshly rotated token.
+ * Errors reach recovery already normalized to `ApiError` by slot 5.
  *
  * Explicitly out of scope here (later work): typed feature API clients
  * (1.3 — done, consumes this pipeline), error normalization (1.5), and any
@@ -39,6 +44,7 @@ import { APP_ENVIRONMENT, type AppEnvironment } from './app-environment';
 import { API_BASE_URL, resolveApiBaseUrl } from './api-base-url';
 import { correlationInterceptor } from '../interceptors/correlation-interceptor';
 import { requestConfigInterceptor } from '../interceptors/request-config-interceptor';
+import { authRecoveryInterceptor } from '../interceptors/auth-recovery';
 import { authInterceptor } from '../interceptors/auth-interceptor';
 import { httpErrorHookInterceptor } from '../interceptors/http-error-hook-interceptor';
 
@@ -50,6 +56,7 @@ import { httpErrorHookInterceptor } from '../interceptors/http-error-hook-interc
 export const API_INTERCEPTORS: readonly HttpInterceptorFn[] = [
   correlationInterceptor,
   requestConfigInterceptor,
+  authRecoveryInterceptor,
   authInterceptor,
   httpErrorHookInterceptor,
 ];

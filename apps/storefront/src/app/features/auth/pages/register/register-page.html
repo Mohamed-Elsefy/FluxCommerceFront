@@ -1,0 +1,114 @@
+@if (result() !== null) {
+  <section aria-labelledby="register-done-title" aria-live="polite">
+    <h1 id="register-done-title">Check your inbox</h1>
+    @if (result()?.isEmailVerified === true) {
+      <p>Your account for {{ result()?.email }} is ready. You can now sign in.</p>
+    } @else {
+      <p>
+        We created your account for {{ result()?.email }}. Verify your email within 24 hours using
+        the link we just sent, then sign in.
+      </p>
+      <p>
+        Didn't get the email?
+        <a routerLink="/resend-verification">Resend verification email</a>
+      </p>
+    }
+    <p>
+      <a routerLink="/login">Back to sign in</a>
+    </p>
+  </section>
+} @else {
+  <section aria-labelledby="register-title">
+    <h1 id="register-title">Create an account</h1>
+    <p>Shop faster with order history and saved details.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div>
+        <label for="register-email">Email</label>
+        <input
+          id="register-email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          [attr.aria-invalid]="form.controls.email.invalid"
+          [attr.aria-describedby]="'register-email-errors'"
+        />
+        <auth-field-errors
+          id="register-email-errors"
+          [control]="form.controls.email"
+          label="Email"
+        ></auth-field-errors>
+      </div>
+
+      <div>
+        <label for="register-password">Password</label>
+        <input
+          id="register-password"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          [attr.aria-invalid]="form.controls.password.invalid"
+          [attr.aria-describedby]="'register-password-errors'"
+        />
+        <auth-field-errors
+          id="register-password-errors"
+          [control]="form.controls.password"
+          label="Password"
+        ></auth-field-errors>
+      </div>
+
+      <div>
+        <label for="register-first-name">First name</label>
+        <input
+          id="register-first-name"
+          type="text"
+          formControlName="firstName"
+          autocomplete="given-name"
+          [attr.aria-invalid]="form.controls.firstName.invalid"
+          [attr.aria-describedby]="'register-first-name-errors'"
+        />
+        <auth-field-errors
+          id="register-first-name-errors"
+          [control]="form.controls.firstName"
+          label="First name"
+        ></auth-field-errors>
+      </div>
+
+      <div>
+        <label for="register-last-name">Last name</label>
+        <input
+          id="register-last-name"
+          type="text"
+          formControlName="lastName"
+          autocomplete="family-name"
+          [attr.aria-invalid]="form.controls.lastName.invalid"
+          [attr.aria-describedby]="'register-last-name-errors'"
+        />
+        <auth-field-errors
+          id="register-last-name-errors"
+          [control]="form.controls.lastName"
+          label="Last name"
+        ></auth-field-errors>
+      </div>
+
+      @if (formError() !== null) {
+        <flux-error-state
+          title="Registration failed"
+          [message]="formError()"
+          [showRetry]="false"
+        ></flux-error-state>
+      }
+
+      @if (isSubmitting()) {
+        <flux-loading-indicator label="Creating your account" size="sm"></flux-loading-indicator>
+      }
+
+      <button type="submit" [disabled]="isSubmitting()">Create account</button>
+    </form>
+
+    <p>
+      Already have an account?
+      <a routerLink="/login">Sign in</a>
+    </p>
+  </section>
+}

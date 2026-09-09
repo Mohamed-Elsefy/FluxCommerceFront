@@ -724,6 +724,9 @@ architecture audit 29/29). The baseline is ready for
 
 # 23. Phase 2 — Identity & Authentication
 
+Status: **Complete** (2026-09-09) — see
+`docs/completed/PHASE_2_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Login

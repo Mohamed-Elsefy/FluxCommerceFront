@@ -40,6 +40,11 @@ export default defineConfig({
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Safari'] },
     },
     {
+      name: 'storefront-auth-chromium',
+      testMatch: /storefront-auth\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'admin-chromium',
       testMatch: /admin\.spec\.ts/,
       use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
@@ -53,6 +58,11 @@ export default defineConfig({
       name: 'admin-webkit',
       testMatch: /admin\.spec\.ts/,
       use: { baseURL: adminBaseURL, ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'admin-auth-chromium',
+      testMatch: /admin-auth\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
     },
   ],
 });

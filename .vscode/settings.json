@@ -1,0 +1,7 @@
+{
+  // Force VS Code to use the workspace TypeScript (TS 6.0.2) instead of the
+  // bundled one, so `paths` (@flux/*), `moduleResolution: bundler` and
+  // `tsconfig.spec.json` includes resolve the same as `tsc` does in CLI.
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true
+}
