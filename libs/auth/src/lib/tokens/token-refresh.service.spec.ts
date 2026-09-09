@@ -132,6 +132,25 @@ describe('TokenRefreshService', () => {
     expect(auth.readAccessToken()).toBe('access-token-2');
   });
 
+  it('lets a departed joiner go silently while the shared refresh completes', () => {
+    seedSession(auth, storage);
+    const outcomes: boolean[] = [];
+    const departed = refresher.refreshSession().subscribe(() => {
+      throw new Error('departed joiner must not be notified');
+    });
+    refresher.refreshSession().subscribe((refreshed) => outcomes.push(refreshed));
+    departed.unsubscribe();
+
+    http.expectOne('https://localhost:7119/auth/refresh').flush({
+      isSuccess: true,
+      data: ROTATED_PAIR,
+    });
+
+    expect(outcomes).toEqual([true]);
+    expect(auth.readAccessToken()).toBe('access-token-2');
+    expect(storage.loadSession()?.refreshToken).toBe('refresh-token-2');
+  });
+
   it('starts a fresh execution after the previous one terminates', () => {
     seedSession(auth, storage);
     refresher.refreshSession().subscribe();

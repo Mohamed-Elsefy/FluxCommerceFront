@@ -193,6 +193,23 @@ Responsible for:
 - Authentication interceptor
 - Current user/session management
 
+As built in Phase 2 (see `docs/adr/001–004`), the library is organized
+by capability:
+
+```text
+libs/auth/src/lib/
+├── state/       # AuthSession/CurrentUser models, AuthService (sole writer)
+├── session/     # TokenStorageService (+TOKEN_STORAGE), SessionRestoreService
+├── tokens/      # ACCESS_TOKEN provider, TokenRefreshService, recovery provider
+├── guards/      # authGuard, roleGuard
+└── components/  # AuthNav shell widget
+```
+
+Applications compose it once at bootstrap (`provideAccessToken()`,
+`provideAuthRecovery()`, `provideSessionRestore()` next to
+`provideApi()`); the interceptor pipeline consumes it only through
+provider seams, so `libs/api` never imports auth state.
+
 ### `libs/ui`
 
 Contains reusable presentation components and design-system primitives.
@@ -446,6 +463,23 @@ Authentication responsibilities include:
 - 401 handling
 - Route protection
 - Role-based route protection
+
+As built in Phase 2:
+
+- State is a tri-state signal model (`initializing | anonymous |
+  authenticated`) with readonly selectors; `initialized` is the single
+  readiness signal guards and shells await — `initializing` is never
+  treated as anonymous.
+- Token injection and 401 recovery live in the interceptor pipeline
+  (recovery upstream of injection so retries re-enter Bearer attachment):
+  single-flight refresh, login/register/refresh URL exclusion, at most
+  one retry per request, original-error propagation on decline.
+- `authGuard` redirects anonymous navigation to `/login?returnUrl=`;
+  `roleGuard` reads `route.data['roles']` (OR semantics, strict claims,
+  fail-closed) and redirects denials to `/forbidden`.
+- Refresh tokens persist (versioned `localStorage` key, platform-guarded);
+  access tokens stay in memory; passwords are never persisted. SSR always
+  renders the anonymous/initializing shell and reconciles post-hydration.
 
 Authorization must never rely only on hiding UI elements.
 
