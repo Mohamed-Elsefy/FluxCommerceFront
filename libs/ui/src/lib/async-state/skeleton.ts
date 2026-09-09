@@ -9,6 +9,9 @@
  * SSR/hydration safe: deterministic bar count from `lines` (no random ids or
  * measurements); identical render on server and client.
  *
+ * Visual values come from `libs/theming` tokens (Sub-Phase 3.2); no raw
+ * palette, spacing, radius, or easing values are defined here.
+ *
  * Uses `@Input()` decorators (not signal I/O): `libs/*` specs run under the
  * raw Vitest runner, which lacks the Angular compiler transform that
  * registers signal inputs — decorator metadata stays runtime-readable.
@@ -28,12 +31,12 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
   styles: `
     .skeleton {
       display: grid;
-      gap: 0.5rem;
+      gap: var(--spacing-sm);
     }
     .bar {
       display: block;
-      block-size: 0.875rem;
-      border-radius: 0.25rem;
+      block-size: var(--font-size-sm);
+      border-radius: var(--radius-sm);
       background: currentColor;
       opacity: 0.12;
     }
@@ -41,7 +44,7 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
       inline-size: 60%;
     }
     .skeleton[data-animated='true'] .bar {
-      animation: flux-pulse 1.4s ease-in-out infinite;
+      animation: flux-pulse 1.4s var(--ease-in-out) infinite;
     }
     @keyframes flux-pulse {
       50% {

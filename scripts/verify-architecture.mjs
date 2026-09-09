@@ -163,6 +163,204 @@ check(
     isRawHttpClient(spec),
   ),
 );
+// Sub-Phase 3.1 — UI Architecture Foundation: libs/ui is business-agnostic
+// presentation only, libs/theming is visual infrastructure only. Neither
+// may depend on any @flux/* barrel (decoupled from each other and from
+// api/auth/i18n/models/utils), on business-feature/domain specifiers, on
+// application code, or on HttpClient. Apps compose libs; libs never reach
+// back. Naming: shared UI selectors carry the `flux-` prefix and barrels
+// re-export their modules.
+const uiSources = collectTs('libs/ui');
+const themingSources = collectTs('libs/theming');
+const presentationSources = [...uiSources, ...themingSources];
+const isFluxBarrel = (spec) => /^@flux\/.+/.test(spec);
+const businessPattern = /catalog|cart|checkout|orders?|inventory|inventor|payments?|stripe|auth/i;
+const isBusinessSpecifier = (spec) => businessPattern.test(spec) && !spec.startsWith('@angular/');
+check(
+  '3.1: libs/ui imports no @flux/* barrel (fully decoupled presentation)',
+  !specifiersOf(uiSources).some(({ spec }) => isFluxBarrel(spec)),
+);
+check(
+  '3.1: libs/theming imports no @flux/* barrel (visual infrastructure only)',
+  !specifiersOf(themingSources).some(({ spec }) => isFluxBarrel(spec)),
+);
+check(
+  '3.1: presentation infrastructure imports no business feature/domain modules',
+  !specifiersOf(presentationSources).some(({ spec }) => isBusinessSpecifier(spec)),
+);
+check(
+  '3.1: presentation infrastructure never imports HttpClient',
+  !specifiersOf(presentationSources).some(({ spec }) => isRawHttpClient(spec)),
+);
+const uiSelectors = [];
+for (const path of uiSources.filter((candidate) => !candidate.endsWith('.spec.ts'))) {
+  const source = stripComments(readFileSync(join(root, path), 'utf8'));
+  for (const match of source.matchAll(/selector\s*:\s*['"]([^'"]+)['"]/g)) {
+    uiSelectors.push({ path, selector: match[1] });
+  }
+}
+check(
+  '3.1: shared UI selectors use the flux- prefix (naming convention)',
+  uiSelectors.length > 0 && uiSelectors.every(({ selector }) => selector.startsWith('flux-')),
+  `${uiSelectors.length} selector(s)`,
+);
+// Sub-Phase 3.3 — Theme System: centralized `ThemeService` (signals) drives
+// `data-theme` on the root element; the `:root` Light base plus dark
+// overrides share token names, so components never branch on theme. Every
+// browser-only access is platform-guarded (SSR/hydration safe), and UI
+// components consume variables without importing the service.
+const tokensPath = 'libs/theming/src/lib/tokens.css';
+const tokensCss = exists(tokensPath) ? readFileSync(join(root, tokensPath), 'utf8') : '';
+const themeServicePath = 'libs/theming/src/lib/theme.service.ts';
+const themeServiceCode = exists(themeServicePath)
+  ? readFileSync(join(root, themeServicePath), 'utf8')
+  : '';
+check(
+  '3.3: ThemeService exists with a readonly theme signal and switching API',
+  exists(themeServicePath) &&
+    /class\s+ThemeService/.test(themeServiceCode) &&
+    /readonly\s+theme\s*:\s*Signal<Theme>/.test(themeServiceCode) &&
+    /setTheme\(/.test(themeServiceCode) &&
+    /toggleTheme\(/.test(themeServiceCode) &&
+    /provideTheming\(\)/.test(themeServiceCode),
+);
+check(
+  '3.3: theme state starts from validated persistence with a default fallback',
+  /readStored\(\)\s*\?\?\s*DEFAULT_THEME/.test(themeServiceCode) &&
+    /isTheme\(/.test(themeServiceCode),
+);
+check(
+  '3.3: browser-only APIs are platform-guarded (SSR/hydration safe)',
+  /isPlatformBrowser\(/.test(themeServiceCode) &&
+    /PLATFORM_ID/.test(themeServiceCode) &&
+    /setAttribute\(THEME_ATTRIBUTE/.test(themeServiceCode),
+);
+const darkBlock = tokensCss.includes('[data-theme=')
+  ? tokensCss.slice(tokensCss.indexOf('[data-theme='))
+  : '';
+check(
+  '3.3: Dark theme overrides reuse token names under data-theme',
+  /:root\[data-theme=['"]dark['"]\]/.test(tokensCss) &&
+    ['--color-surface', '--color-text', '--color-border'].every((token) =>
+      darkBlock.includes(token),
+    ),
+);
+check(
+  '3.3: UI components never depend on the theme service (variables only)',
+  !uiSources
+    .filter((path) => !path.endsWith('.spec.ts'))
+    .some((path) =>
+      /ThemeService|provideTheming/.test(stripComments(readFileSync(join(root, path), 'utf8'))),
+    ),
+);
+check(
+  '3.3: both apps compose provideTheming() at bootstrap',
+  ['storefront', 'admin'].every((app) =>
+    readFileSync(join(root, `apps/${app}/src/app/app.config.ts`), 'utf8').includes(
+      'provideTheming()',
+    ),
+  ),
+);
+// Sub-Phase 3.2 — Design Tokens & CSS Variables: `libs/theming` owns the
+// centralized `:root` token foundation (consumed globally by both apps via
+// their build `styles` arrays, before app styles). Tokens are values only:
+// no selectors, no rules, no physical-direction properties, no services.
+const requiredTokens = [
+  // Colors: brand, surfaces/text/border, status.
+  '--color-primary',
+  '--color-primary-contrast',
+  '--color-surface',
+  '--color-text',
+  '--color-text-muted',
+  '--color-border',
+  '--color-success',
+  '--color-warning',
+  '--color-danger',
+  '--color-info',
+  // Typography: families, sizes, weights, line heights.
+  '--font-family-sans',
+  '--font-size-sm',
+  '--font-size-md',
+  '--font-size-lg',
+  '--font-weight-medium',
+  '--line-height-base',
+  // Spacing.
+  '--spacing-sm',
+  '--spacing-lg',
+  '--spacing-2xl',
+  // Borders & radius.
+  '--border-width-thin',
+  '--radius-sm',
+  '--radius-md',
+  '--radius-full',
+  // Elevation.
+  '--shadow-sm',
+  '--shadow-md',
+  '--shadow-lg',
+  // Sizing & container constraints.
+  '--container-max-width',
+  '--container-padding-inline',
+  // Z-index scale.
+  '--z-index-modal',
+  // Motion: durations & easings.
+  '--duration-base',
+  '--ease-in-out',
+];
+check(
+  '3.2: centralized tokens.css exists and declares :root custom properties',
+  tokensCss.includes(':root'),
+);
+check(
+  '3.2: token set covers all required categories with consistent names',
+  requiredTokens.every((token) => tokensCss.includes(token)),
+  `${requiredTokens.length} token(s)`,
+);
+check(
+  '3.2: tokens are direction-agnostic (no physical-direction properties)',
+  !/margin-left|margin-right|padding-left|padding-right|border-left|border-right|inset-left|inset-right/.test(
+    tokensCss,
+  ),
+);
+check(
+  '3.2: both apps compose tokens.css globally, before their own styles',
+  ['storefront', 'admin'].every((app) => {
+    const styles = angular.projects[app]?.architect?.build?.options?.styles;
+    return (
+      Array.isArray(styles) &&
+      styles[0] === 'libs/theming/src/lib/tokens.css' &&
+      styles.some((entry) => entry === `apps/${app}/src/styles.css`)
+    );
+  }),
+);
+const asyncStateComponents = [
+  'libs/ui/src/lib/async-state/loading-indicator.ts',
+  'libs/ui/src/lib/async-state/skeleton.ts',
+  'libs/ui/src/lib/async-state/empty-state.ts',
+  'libs/ui/src/lib/async-state/error-state.ts',
+  'libs/ui/src/lib/async-state/retry-button.ts',
+];
+check(
+  '3.2: reusable components consume tokens instead of duplicating values',
+  asyncStateComponents.every(
+    (path) =>
+      exists(path) &&
+      /var\(--(spacing|radius|font-size|border-width|ease)-/.test(
+        stripComments(readFileSync(join(root, path), 'utf8')),
+      ),
+  ),
+  `${asyncStateComponents.length} component(s)`,
+);
+const uiProdBasenames = uiSources
+  .filter((path) => !path.endsWith('.spec.ts'))
+  .map((path) => path.split('/').pop());
+check(
+  '3.1: scope stop — no core UI primitives yet (Button/Input/Card arrive in 3.4)',
+  !uiProdBasenames.some((name) =>
+    /^(button|input|card|badge|icon|alert|divider|dialog|modal|table|toast|select|checkbox|radio|textarea)\.ts$/.test(
+      name,
+    ),
+  ),
+);
 // Sub-Phase 1.12: circular import detection. Spec files are excluded —
 // test-only seams must not fail production architecture checks.
 function resolveRelativeImport(fromPath, spec) {

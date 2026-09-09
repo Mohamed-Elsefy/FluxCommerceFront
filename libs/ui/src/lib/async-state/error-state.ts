@@ -10,6 +10,9 @@
  * SSR/hydration safe: static markup from inputs only (`role="alert"`
  * announces on hydration without client-only APIs).
  *
+ * Visual values come from `libs/theming` tokens (Sub-Phase 3.2); no raw
+ * spacing or typography values are defined here.
+ *
  * Uses `@Input()`/`@Output()` decorators (not signal I/O): `libs/*` specs
  * run under the raw Vitest runner, which lacks the Angular compiler
  * transform that registers signal inputs — decorator metadata stays
@@ -37,14 +40,14 @@ import { RetryButton } from './retry-button';
     .error {
       display: grid;
       justify-items: center;
-      gap: 0.5rem;
+      gap: var(--spacing-sm);
       text-align: center;
-      padding-block: 2rem;
-      padding-inline: 1rem;
+      padding-block: var(--spacing-2xl);
+      padding-inline: var(--spacing-lg);
     }
     .title {
       margin: 0;
-      font-size: 1.125rem;
+      font-size: var(--font-size-lg);
     }
     .message {
       margin: 0;

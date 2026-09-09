@@ -9,6 +9,9 @@
  *
  * SSR/hydration safe: static button from inputs only.
  *
+ * Visual values come from `libs/theming` tokens (Sub-Phase 3.2); no raw
+ * spacing or radius values are defined here.
+ *
  * Uses `@Input()`/`@Output()` decorators (not signal I/O): `libs/*` specs
  * run under the raw Vitest runner, which lacks the Angular compiler
  * transform that registers signal inputs — decorator metadata stays
@@ -33,22 +36,22 @@ import type { ComponentSize } from '../ui-primitives';
   `,
   styles: `
     .retry {
-      padding-block: 0.5rem;
-      padding-inline: 1rem;
-      border: 1px solid currentColor;
-      border-radius: 0.375rem;
+      padding-block: var(--spacing-sm);
+      padding-inline: var(--spacing-lg);
+      border: var(--border-width-thin) solid currentColor;
+      border-radius: var(--radius-md);
       background: transparent;
       color: inherit;
       font: inherit;
       cursor: pointer;
     }
     .retry[data-size='sm'] {
-      padding-block: 0.25rem;
-      padding-inline: 0.75rem;
+      padding-block: var(--spacing-xs);
+      padding-inline: var(--spacing-md);
     }
     .retry[data-size='lg'] {
-      padding-block: 0.75rem;
-      padding-inline: 1.5rem;
+      padding-block: var(--spacing-md);
+      padding-inline: var(--spacing-xl);
     }
     .retry:disabled {
       opacity: 0.5;

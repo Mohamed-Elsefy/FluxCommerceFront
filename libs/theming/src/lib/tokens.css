@@ -1,0 +1,133 @@
+/**
+ * FluxCommerce design tokens (Phase 3, Sub-Phase 3.2).
+ *
+ * Centralized visual foundation for the Storefront and Admin applications.
+ * Standard CSS custom properties on `:root` (the default/light base; Dark
+ * theme overrides arrive with Sub-Phase 3.3 and reuse these same names, so
+ * components never branch on theme).
+ *
+ * Conventions:
+ * - Names follow `--<category>-<name>` (`--color-primary`, `--spacing-sm`).
+ * - Values only: no selectors, no rules, no domain or business logic.
+ * - Direction-agnostic: components consume these values exclusively through
+ *   CSS logical properties (`margin-inline`, `padding-block`, `inset-inline`,
+ *   `text-align: start`), never physical-direction properties.
+ * - Minimal by design: every token below is consumed by current UI or is a
+ *   required scale anchor (z-index, motion). No speculative tokens.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Colors — brand */
+  --color-primary: #1d4ed8;
+  --color-primary-contrast: #ffffff;
+
+  /* Colors — surfaces, text, borders */
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-border: #e2e8f0;
+
+  /* Colors — status / semantic */
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #dc2626;
+  --color-info: #0284c7;
+
+  /* Typography — families */
+  --font-family-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Typography — sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+
+  /* Typography — weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Typography — line heights */
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.5rem;
+  --spacing-2xl: 2rem;
+  --spacing-3xl: 3rem;
+
+  /* Borders */
+  --border-width-thin: 1px;
+  --border-width-medium: 2px;
+
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  /* Elevation / shadows */
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.08);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.12);
+  --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.16);
+
+  /* Sizing & container constraints */
+  --container-max-width: 75rem;
+  --container-padding-inline: 1rem;
+
+  /* Z-index scale */
+  --z-index-sticky: 100;
+  --z-index-dropdown: 200;
+  --z-index-modal: 300;
+  --z-index-toast: 400;
+
+  /* Motion — durations */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+
+  /* Motion — easings */
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-linear: linear;
+}
+
+/**
+ * Dark theme (Sub-Phase 3.3). Same variable names, dark values — components
+ * consume variables and never branch on theme. Higher specificity than
+ * `:root` (`:root[data-theme='dark']`), so order-independent. Spacing,
+ * typography, radius, container, z-index, and motion tokens are
+ * theme-invariant and intentionally not redefined here.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Colors — surfaces, text, borders */
+  --color-surface: #0f172a;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-border: #334155;
+
+  /* Colors — status / semantic (lightened for dark surfaces) */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #38bdf6;
+
+  /* Elevation / shadows (deepened for dark surfaces) */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5);
+}

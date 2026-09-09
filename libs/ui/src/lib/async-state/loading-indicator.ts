@@ -9,6 +9,9 @@
  * SSR/hydration safe: pure markup + CSS (no browser APIs, no random ids);
  * identical render on server and client. RTL safe: logical properties only.
  *
+ * Visual values come from `libs/theming` tokens (Sub-Phase 3.2); no raw
+ * palette, spacing, or easing values are defined here.
+ *
  * Uses `@Input()` decorators (not signal I/O): `libs/*` specs run under the
  * raw Vitest runner, which lacks the Angular compiler transform that
  * registers signal inputs — decorator metadata stays runtime-readable.
@@ -29,7 +32,7 @@ import type { ComponentSize } from '../ui-primitives';
     .loading {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--spacing-sm);
     }
     .spinner {
       inline-size: 1.25rem;
@@ -37,7 +40,7 @@ import type { ComponentSize } from '../ui-primitives';
       border-radius: 50%;
       border: 2px solid currentColor;
       border-block-start-color: transparent;
-      animation: flux-spin 0.9s linear infinite;
+      animation: flux-spin 0.9s var(--ease-linear) infinite;
     }
     .loading[data-size='sm'] .spinner {
       inline-size: 1rem;
