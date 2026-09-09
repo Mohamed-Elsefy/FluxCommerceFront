@@ -348,3 +348,48 @@ describe('AuthDataAccess identity lifecycle (2.10)', () => {
     expect(observed).toBe(rejection);
   });
 });
+
+describe('AuthDataAccess secret hygiene (2.14 security)', () => {
+  it('never persists passwords or access tokens to browser storage', () => {
+    const { dataAccess, storage } = setup({});
+    dataAccess.login({ email: 'ada@flux.local', password: 'Valid123!' }).subscribe();
+
+    let dump = '';
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key !== null) {
+        dump += window.localStorage.getItem(key) ?? '';
+      }
+    }
+
+    expect(dump).not.toContain('Valid123!');
+    expect(dump).not.toContain('access-token-1');
+    expect(dump).toContain('refresh-token-1');
+    expect(storage.loadSession()?.refreshToken).toBe('refresh-token-1');
+  });
+
+  it('never surfaces credentials in rejection messages', () => {
+    const rejection = new ApiError({ status: 401, message: 'Invalid email or password.' });
+    const { dataAccess } = setup({ login: () => throwError(() => rejection) });
+    let observed: unknown;
+    dataAccess.login({ email: 'ada@flux.local', password: 'Wrong123!' }).subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect((observed as ApiError).message).not.toContain('Wrong123!');
+  });
+
+  it('leaves no secrets behind after rollback', () => {
+    const { dataAccess, storage } = setup({
+      me: () => throwError(() => new ApiError({ status: 401, message: 'Gone.' })),
+    });
+    dataAccess.login({ email: 'ada@flux.local', password: 'Valid123!' }).subscribe({
+      error: () => undefined,
+    });
+
+    expect(window.localStorage.length).toBe(0);
+    expect(storage.loadSession()).toBeNull();
+  });
+});

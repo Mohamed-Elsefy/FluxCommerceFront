@@ -8,7 +8,7 @@
 
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AUTH_SESSION_STORAGE_KEY,
   TOKEN_STORAGE,
@@ -101,6 +101,32 @@ describe('TokenStorageService on the browser platform', () => {
 
     expect(storage.loadSession()).toBeNull();
     expect(storedRaw()).toBeNull();
+  });
+
+  it('emits no console output on any lifecycle path (2.14 security)', () => {
+    const logged: unknown[][] = [];
+    const methods = ['log', 'warn', 'error', 'debug', 'info', 'trace'] as const;
+    const spies = methods.map((method) =>
+      vi.spyOn(console, method).mockImplementation((...args) => {
+        logged.push(args);
+      }),
+    );
+
+    try {
+      storage.saveSession(SESSION);
+      storage.loadSession();
+      window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, '{corrupt');
+      storage.loadSession();
+      storage.replaceSession({ ...SESSION, refreshToken: 'refresh-2' });
+      storage.clearSession();
+      storage.loadSession();
+    } finally {
+      for (const spy of spies) {
+        spy.mockRestore();
+      }
+    }
+
+    expect(logged).toEqual([]);
   });
 });
 
