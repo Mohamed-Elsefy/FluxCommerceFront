@@ -1,0 +1,10 @@
+<div
+  class="alert"
+  [attr.data-variant]="variant"
+  [attr.role]="variant === 'warning' || variant === 'danger' ? 'alert' : 'status'"
+>
+  @if (title !== null) {
+    <p class="title">{{ title }}</p>
+  }
+  <div class="body"><ng-content /></div>
+</div>

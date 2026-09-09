@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="retry"
+  [attr.data-size]="size"
+  [disabled]="disabled"
+  (click)="pressed.emit()"
+>
+  {{ label }}
+</button>

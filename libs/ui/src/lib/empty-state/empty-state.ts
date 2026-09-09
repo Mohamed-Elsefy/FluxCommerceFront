@@ -20,39 +20,8 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 @Component({
   selector: 'flux-empty-state',
-  template: `
-    <section class="empty">
-      @if (icon !== null) {
-        <span class="icon" aria-hidden="true">{{ icon }}</span>
-      }
-      <h2 class="title">{{ title }}</h2>
-      @if (message !== null) {
-        <p class="message">{{ message }}</p>
-      }
-    </section>
-  `,
-  styles: `
-    .empty {
-      display: grid;
-      justify-items: center;
-      gap: var(--spacing-sm);
-      text-align: center;
-      padding-block: var(--spacing-2xl);
-      padding-inline: var(--spacing-lg);
-    }
-    .icon {
-      font-size: 2rem;
-      line-height: 1;
-    }
-    .title {
-      margin: 0;
-      font-size: var(--font-size-lg);
-    }
-    .message {
-      margin: 0;
-      opacity: 0.75;
-    }
-  `,
+  templateUrl: './empty-state.html',
+  styleUrl: './empty-state.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmptyState {

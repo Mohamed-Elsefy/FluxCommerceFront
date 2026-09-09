@@ -26,7 +26,7 @@
  * and switching never throw.
  *
  * Composition: applications register `provideTheming()` once at bootstrap
- * (alongside `provideApi()`/`provideSessionRestore()`); the `APP_INITIALIZER`
+ * (alongside `provideApi()`/`provideSessionRestore()`); the app initializer
  * applies the startup theme without delaying bootstrap (synchronous, local).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
@@ -38,12 +38,11 @@
  */
 
 import {
-  APP_INITIALIZER,
   EnvironmentProviders,
   inject,
   Injectable,
-  makeEnvironmentProviders,
   PLATFORM_ID,
+  provideAppInitializer,
   signal,
   type Signal,
 } from '@angular/core';
@@ -126,15 +125,9 @@ export class ThemeService {
 
 /**
  * Registration: applies the startup theme at bootstrap without delaying it
- * (synchronous, local — no I/O to await).
+ * (synchronous, local — no I/O to await). Uses `provideAppInitializer`
+ * (`APP_INITIALIZER` has been deprecated since Angular v19).
  */
 export function provideTheming(): EnvironmentProviders {
-  return makeEnvironmentProviders([
-    {
-      provide: APP_INITIALIZER,
-      multi: true,
-      useFactory: (themes: ThemeService) => () => themes.initialize(),
-      deps: [ThemeService],
-    },
-  ]);
+  return provideAppInitializer(() => inject(ThemeService).initialize());
 }

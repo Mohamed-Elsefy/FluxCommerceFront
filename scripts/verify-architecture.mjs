@@ -333,32 +333,115 @@ check(
   }),
 );
 const asyncStateComponents = [
-  'libs/ui/src/lib/async-state/loading-indicator.ts',
-  'libs/ui/src/lib/async-state/skeleton.ts',
-  'libs/ui/src/lib/async-state/empty-state.ts',
-  'libs/ui/src/lib/async-state/error-state.ts',
-  'libs/ui/src/lib/async-state/retry-button.ts',
+  'libs/ui/src/lib/loading-indicator/loading-indicator.ts',
+  'libs/ui/src/lib/skeleton/skeleton.ts',
+  'libs/ui/src/lib/empty-state/empty-state.ts',
+  'libs/ui/src/lib/error-state/error-state.ts',
+  'libs/ui/src/lib/retry-button/retry-button.ts',
 ];
 check(
   '3.2: reusable components consume tokens instead of duplicating values',
-  asyncStateComponents.every(
-    (path) =>
+  asyncStateComponents.every((path) => {
+    const cssPath = path.replace(/\.ts$/, '.css');
+    return (
       exists(path) &&
+      exists(cssPath) &&
       /var\(--(spacing|radius|font-size|border-width|ease)-/.test(
-        stripComments(readFileSync(join(root, path), 'utf8')),
-      ),
-  ),
+        readFileSync(join(root, cssPath), 'utf8'),
+      )
+    );
+  }),
   `${asyncStateComponents.length} component(s)`,
 );
-const uiProdBasenames = uiSources
-  .filter((path) => !path.endsWith('.spec.ts'))
-  .map((path) => path.split('/').pop());
+// Sub-Phase 3.4 — Core UI Primitives: the focused business-agnostic set
+// (Button, Icon, Input, Badge, Card, Spinner, Alert, Divider). Each consumes
+// theming tokens, stays RTL-safe through logical properties, and ships with
+// component tests. Layout primitives (3.5), shells/navigation (3.6+), and the
+// optional controls (Checkbox/Radio/Select/Textarea) are out of scope.
+const primitiveFiles = [
+  'libs/ui/src/lib/button/button.ts',
+  'libs/ui/src/lib/icon/icon.ts',
+  'libs/ui/src/lib/input/input.ts',
+  'libs/ui/src/lib/badge/badge.ts',
+  'libs/ui/src/lib/card/card.ts',
+  'libs/ui/src/lib/spinner/spinner.ts',
+  'libs/ui/src/lib/alert/alert.ts',
+  'libs/ui/src/lib/divider/divider.ts',
+];
+const uiProdSources = uiSources.filter((path) => !path.endsWith('.spec.ts'));
+const uiProdBasenames = uiProdSources.map((path) => path.split('/').pop() ?? '');
+const readUi = (path) => readFileSync(join(root, path), 'utf8');
 check(
-  '3.1: scope stop — no core UI primitives yet (Button/Input/Card arrive in 3.4)',
+  '3.4: all eight primitives exist with flux- selectors',
+  primitiveFiles.every(
+    (path) =>
+      exists(path) &&
+      /selector\s*:\s*['"]flux-(button|icon|input|badge|card|spinner|alert|divider)['"]/.test(
+        readUi(path),
+      ),
+  ),
+  `${primitiveFiles.length} primitive(s)`,
+);
+check(
+  '3.4: primitives consume theming tokens (no hard-coded visual values)',
+  primitiveFiles.every((path) => {
+    const cssPath = path.replace(/\.ts$/, '.css');
+    return exists(cssPath) && /var\(--/.test(readFileSync(join(root, cssPath), 'utf8'));
+  }),
+);
+check(
+  '3.4: primitive styling is RTL-safe (logical properties only)',
+  !/margin-left|margin-right|padding-left|padding-right|border-left|border-right|text-align:\s*left|text-align:\s*right/.test(
+    uiProdSources
+      .map((path) => {
+        const cssPath = path.replace(/\.ts$/, '.css');
+        const inline = readUi(path);
+        return exists(cssPath) ? `${inline}\n${readFileSync(join(root, cssPath), 'utf8')}` : inline;
+      })
+      .map(stripComments)
+      .join('\n'),
+  ),
+);
+check(
+  'ui components keep markup and styles in sibling files (ts/html/css structure)',
+  [...primitiveFiles, ...asyncStateComponents].every((path) => {
+    const code = readUi(path);
+    const dir = path.slice(0, path.lastIndexOf('/'));
+    const base = path.split('/').pop()?.replace(/\.ts$/, '');
+    return (
+      code.includes(`templateUrl: './${base}.html'`) &&
+      code.includes(`styleUrl: './${base}.css'`) &&
+      exists(`${dir}/${base}.html`) &&
+      exists(`${dir}/${base}.css`) &&
+      !/^\s*template:\s*`/m.test(code) &&
+      !/^\s*styles:\s*`/m.test(code)
+    );
+  }),
+  `${primitiveFiles.length + asyncStateComponents.length} component(s)`,
+);
+check(
+  '3.4: barrel exports all eight primitives',
+  primitiveFiles.every((path) => {
+    const base = path.split('/').pop()?.replace(/\.ts$/, '');
+    return readUi('libs/ui/src/public-api.ts').includes(`./lib/${base}`);
+  }),
+);
+check(
+  '3.4: scope stop — no layout primitives yet (Container/Stack/Grid/Flex arrive in 3.5)',
+  !uiProdBasenames.some((name) => /^(container|stack|grid|flex|layout)/.test(name)),
+);
+check(
+  '3.4: scope stop — no shells/navigation yet (arrive in 3.6+)',
   !uiProdBasenames.some((name) =>
-    /^(button|input|card|badge|icon|alert|divider|dialog|modal|table|toast|select|checkbox|radio|textarea)\.ts$/.test(
+    /^(header|sidebar|footer|nav|navigation|shell|breadcrumb|page-header|mobile-menu|user-menu|theme-toggle)/.test(
       name,
     ),
+  ),
+);
+check(
+  '3.4: scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',
+  !uiProdBasenames.some((name) =>
+    /^(checkbox|radio|select|textarea|dialog|modal|table|toast|pagination)\.ts$/.test(name),
   ),
 );
 // Sub-Phase 1.12: circular import detection. Spec files are excluded —

@@ -36,50 +36,13 @@
 
 import { ChangeDetectionStrategy, Component, Input, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../state/auth.service';
+import { AuthService } from '../../state/auth.service';
 
 @Component({
   selector: 'auth-nav',
   imports: [RouterLink],
-  template: `
-    <nav class="auth-nav" aria-label="Account">
-      @if (auth.isInitializing()) {
-        <p class="auth-nav-status" aria-live="polite">Checking session…</p>
-      } @else if (auth.isAuthenticated()) {
-        @let user = auth.currentUser();
-        <span class="auth-nav-user">{{ user?.displayName ?? user?.email }}</span>
-        @if (accountRoute !== null) {
-          <a class="auth-nav-link" [routerLink]="accountRoute">Account</a>
-        }
-        <button
-          class="auth-nav-logout"
-          type="button"
-          [disabled]="isLoggingOut()"
-          (click)="logout()"
-        >
-          {{ isLoggingOut() ? 'Signing out…' : 'Logout' }}
-        </button>
-      } @else {
-        @if (loginRoute !== null) {
-          <a class="auth-nav-link" [routerLink]="loginRoute">Login</a>
-        }
-        @if (registerRoute !== null) {
-          <a class="auth-nav-link" [routerLink]="registerRoute">Register</a>
-        }
-      }
-    </nav>
-  `,
-  styles: `
-    .auth-nav {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .auth-nav-status,
-    .auth-nav-user {
-      margin: 0;
-    }
-  `,
+  templateUrl: './auth-nav.html',
+  styleUrl: './auth-nav.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthNav {

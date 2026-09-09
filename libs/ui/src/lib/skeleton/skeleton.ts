@@ -21,42 +21,8 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 @Component({
   selector: 'flux-skeleton',
-  template: `
-    <div class="skeleton" aria-hidden="true" [attr.data-animated]="animate">
-      @for (line of linesArray(); track line) {
-        <span class="bar"></span>
-      }
-    </div>
-  `,
-  styles: `
-    .skeleton {
-      display: grid;
-      gap: var(--spacing-sm);
-    }
-    .bar {
-      display: block;
-      block-size: var(--font-size-sm);
-      border-radius: var(--radius-sm);
-      background: currentColor;
-      opacity: 0.12;
-    }
-    .bar:last-child {
-      inline-size: 60%;
-    }
-    .skeleton[data-animated='true'] .bar {
-      animation: flux-pulse 1.4s var(--ease-in-out) infinite;
-    }
-    @keyframes flux-pulse {
-      50% {
-        opacity: 0.05;
-      }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .skeleton[data-animated='true'] .bar {
-        animation: none;
-      }
-    }
-  `,
+  templateUrl: './skeleton.html',
+  styleUrl: './skeleton.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Skeleton {

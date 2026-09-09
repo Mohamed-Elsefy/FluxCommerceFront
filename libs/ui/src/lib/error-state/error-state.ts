@@ -20,40 +20,13 @@
  */
 
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { RetryButton } from './retry-button';
+import { RetryButton } from '../retry-button/retry-button';
 
 @Component({
   selector: 'flux-error-state',
   imports: [RetryButton],
-  template: `
-    <div class="error" role="alert">
-      <h2 class="title">{{ title }}</h2>
-      @if (message !== null) {
-        <p class="message">{{ message }}</p>
-      }
-      @if (showRetry) {
-        <flux-retry-button [label]="retryLabel" (pressed)="retry.emit()" />
-      }
-    </div>
-  `,
-  styles: `
-    .error {
-      display: grid;
-      justify-items: center;
-      gap: var(--spacing-sm);
-      text-align: center;
-      padding-block: var(--spacing-2xl);
-      padding-inline: var(--spacing-lg);
-    }
-    .title {
-      margin: 0;
-      font-size: var(--font-size-lg);
-    }
-    .message {
-      margin: 0;
-      opacity: 0.75;
-    }
-  `,
+  templateUrl: './error-state.html',
+  styleUrl: './error-state.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ErrorState {

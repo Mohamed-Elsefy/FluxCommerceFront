@@ -105,7 +105,7 @@ describe('ThemeService on the browser platform', () => {
   });
 
   it('applies the startup theme from the bootstrap initializer without manual initialize', () => {
-    // Fresh module WITH the provider: TestBed executes APP_INITIALIZERs on
+    // Fresh module WITH the provider: TestBed executes app initializers on
     // instantiation, so the persisted choice must be seeded before injection.
     TestBed.resetTestingModule();
     configureModule({ initializer: true });

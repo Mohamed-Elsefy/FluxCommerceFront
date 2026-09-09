@@ -23,41 +23,8 @@ import type { ComponentSize } from '../ui-primitives';
 
 @Component({
   selector: 'flux-retry-button',
-  template: `
-    <button
-      type="button"
-      class="retry"
-      [attr.data-size]="size"
-      [disabled]="disabled"
-      (click)="pressed.emit()"
-    >
-      {{ label }}
-    </button>
-  `,
-  styles: `
-    .retry {
-      padding-block: var(--spacing-sm);
-      padding-inline: var(--spacing-lg);
-      border: var(--border-width-thin) solid currentColor;
-      border-radius: var(--radius-md);
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-    }
-    .retry[data-size='sm'] {
-      padding-block: var(--spacing-xs);
-      padding-inline: var(--spacing-md);
-    }
-    .retry[data-size='lg'] {
-      padding-block: var(--spacing-md);
-      padding-inline: var(--spacing-xl);
-    }
-    .retry:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  `,
+  templateUrl: './retry-button.html',
+  styleUrl: './retry-button.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RetryButton {

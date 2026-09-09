@@ -9,27 +9,12 @@
 
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { AbstractControl } from '@angular/forms';
-import { SERVER_ERROR_KEY } from '../data-access/auth-form-errors';
+import { SERVER_ERROR_KEY } from '../../data-access/auth-form-errors';
 
 @Component({
   selector: 'auth-field-errors',
-  template: `
-    @if (shouldShow()) {
-      <ul class="field-errors">
-        @for (message of messages(); track message) {
-          <li>{{ message }}</li>
-        }
-      </ul>
-    }
-  `,
-  styles: `
-    .field-errors {
-      margin: 0.25rem 0 0;
-      padding-inline-start: 1.25rem;
-      color: #b3261e;
-      font-size: 0.875rem;
-    }
-  `,
+  templateUrl: './field-errors.html',
+  styleUrl: './field-errors.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FieldErrors {

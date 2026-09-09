@@ -7,4 +7,4 @@ export * from './lib/tokens/auth-recovery';
 export * from './lib/session/session-restore.service';
 export * from './lib/guards/auth.guard';
 export * from './lib/guards/role.guard';
-export * from './lib/components/auth-nav';
+export * from './lib/components/auth-nav/auth-nav';

@@ -1,0 +1,13 @@
+<button
+  class="button"
+  [attr.type]="type"
+  [attr.data-variant]="variant"
+  [attr.data-size]="size"
+  [disabled]="disabled || loading"
+  [attr.aria-busy]="loading"
+>
+  @if (loading) {
+    <flux-spinner class="button-spinner" size="sm" [label]="null" />
+  }
+  <span class="button-label"><ng-content /></span>
+</button>
