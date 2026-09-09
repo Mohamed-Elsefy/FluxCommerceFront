@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from '@flux/auth';
-import { AppLayout } from './layout/app-layout';
+import { AppLayout } from './layout/app-layout/app-layout';
 
 /**
  * Admin root routes (standalone).

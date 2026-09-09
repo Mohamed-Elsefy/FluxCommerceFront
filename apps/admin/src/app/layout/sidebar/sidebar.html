@@ -1,0 +1,17 @@
+<nav class="sidebar" aria-label="Admin">
+  <p class="brand">FluxCommerce Admin</p>
+  <ul>
+    @for (item of items; track item.route) {
+      <li>
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+          ariaCurrentWhenActive="page"
+          (click)="navigated.emit()"
+          >{{ item.label }}</a
+        >
+      </li>
+    }
+  </ul>
+</nav>

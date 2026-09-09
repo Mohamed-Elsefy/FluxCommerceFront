@@ -1,0 +1,9 @@
+<a class="skip-link" href="#admin-main">Skip to main content</a>
+<admin-sidebar [items]="sidebarNav" [drawerOpen]="drawerOpen()" (navigated)="closeDrawer()" />
+<admin-header (menuToggle)="toggleDrawer()" />
+<main id="admin-main">
+  <router-outlet />
+</main>
+@if (drawerOpen()) {
+  <div class="overlay" (click)="closeDrawer()" aria-hidden="true"></div>
+}

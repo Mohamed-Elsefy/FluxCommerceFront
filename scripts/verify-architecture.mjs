@@ -562,12 +562,98 @@ check(
     storefrontLayoutCode,
   ),
 );
+// Sub-Phase 3.7 — Admin Application Shell: Sidebar (destinations, active
+// state, mobile drawer), Header (context, drawer toggle, AuthNav user
+// area), and the Main outlet composer. Drawer state is the only shell
+// state; route protection stays in `app.routes.ts` (Phase 2 guards); no
+// business modules.
+const adminShellFiles = [
+  'apps/admin/src/app/layout/sidebar/sidebar.ts',
+  'apps/admin/src/app/layout/header/header.ts',
+  'apps/admin/src/app/layout/app-layout/app-layout.ts',
+];
+const adminLayoutSources = collectTs('apps/admin/src/app/layout').filter(
+  (path) => !path.endsWith('.spec.ts'),
+);
+const adminLayoutCode = adminLayoutSources
+  .map((path) => stripComments(readFileSync(join(root, path), 'utf8')))
+  .join('\n');
+const adminLayoutTemplates = adminLayoutSources
+  .map((path) => path.replace(/\.ts$/, '.html'))
+  .filter((path) => exists(path))
+  .map((path) => readFileSync(join(root, path), 'utf8'))
+  .join('\n');
 check(
-  'scope stop — no Admin shell yet (sidebar/header arrive in 3.7)',
-  !collectTs('apps/admin/src/app/layout')
-    .filter((path) => !path.endsWith('.spec.ts'))
-    .map((path) => path.split('/').pop() ?? '')
-    .some((name) => /^(sidebar|admin-header|header|footer|navigation)/.test(name)),
+  '3.7: shell exists with sidebar, header, and outlet composer',
+  adminShellFiles.every(
+    (path) =>
+      exists(path) &&
+      /selector\s*:\s*['"](admin-sidebar|admin-header|app-layout)['"]/.test(
+        readFileSync(join(root, path), 'utf8'),
+      ),
+  ),
+  `${adminShellFiles.length} component(s)`,
+);
+check(
+  '3.7: shell files keep markup and styles in siblings (ts/html/css structure)',
+  adminShellFiles.every((path) => {
+    const code = readFileSync(join(root, path), 'utf8');
+    const dir = path.slice(0, path.lastIndexOf('/'));
+    const base = path.split('/').pop()?.replace(/\.ts$/, '');
+    return (
+      code.includes(`templateUrl: './${base}.html'`) &&
+      code.includes(`styleUrl: './${base}.css'`) &&
+      exists(`${dir}/${base}.html`) &&
+      exists(`${dir}/${base}.css`) &&
+      !/^\s*template:\s*`/m.test(code) &&
+      !/^\s*styles:\s*`/m.test(code)
+    );
+  }),
+);
+check(
+  '3.7: shell composes sidebar, header, outlet, and Phase 2 auth entry points',
+  readFileSync(join(root, 'apps/admin/src/app/layout/app-layout/app-layout.ts'), 'utf8').includes(
+    'RouterOutlet',
+  ) &&
+    readFileSync(join(root, 'apps/admin/src/app/layout/header/header.ts'), 'utf8').includes(
+      'AuthNav',
+    ) &&
+    /drawerOpen/.test(
+      readFileSync(join(root, 'apps/admin/src/app/layout/app-layout/app-layout.ts'), 'utf8'),
+    ),
+);
+check(
+  '3.7: auth state is reused, never replicated (no AuthService in layout)',
+  !/AuthService|TokenStorage|refreshToken/i.test(adminLayoutCode),
+);
+check(
+  '3.7: sidebar exposes active-route styling accessibly',
+  /routerLinkActive/.test(adminLayoutTemplates) &&
+    /ariaCurrentWhenActive/.test(adminLayoutTemplates),
+);
+check(
+  '3.7: shell styling is responsive and logical (media queries, no physical props)',
+  ['apps/admin/src/app/layout/app-layout/app-layout.css'].every((path) =>
+    /@media/.test(readFileSync(join(root, path), 'utf8')),
+  ) &&
+    !/margin-left|margin-right|padding-left|padding-right|border-left|border-right/.test(
+      adminLayoutSources
+        .map((path) => {
+          const cssPath = path.replace(/\.ts$/, '.css');
+          return exists(cssPath) ? readFileSync(join(root, cssPath), 'utf8') : '';
+        })
+        .join('\n'),
+    ),
+);
+check(
+  '3.7: shell touches no browser APIs (SSR/hydration safe)',
+  !/window\.|document\.|localStorage/.test(adminLayoutCode),
+);
+check(
+  '3.7: no business modules in the shell (no catalog/orders/inventory/users)',
+  !/\bcatalog\b|\bproducts?\b|\borders?\b|\binventory\b|\bpayments?\b|\bcustomers?\b|\busers\b/i.test(
+    adminLayoutCode,
+  ),
 );
 check(
   'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',

@@ -1,0 +1,14 @@
+<header class="admin-header">
+  <button
+    type="button"
+    class="menu-toggle"
+    (click)="menuToggle.emit()"
+    aria-label="Toggle navigation"
+  >
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+  </button>
+  <p class="context">FluxCommerce Admin</p>
+  <auth-nav [loginRoute]="null" [registerRoute]="null" accountRoute="/dashboard" />
+</header>
