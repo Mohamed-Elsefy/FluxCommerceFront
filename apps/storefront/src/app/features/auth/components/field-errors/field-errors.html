@@ -1,7 +1,7 @@
 @if (shouldShow()) {
-<ul class="field-errors">
-  @for (message of messages(); track message) {
-  <li>{{ message }}</li>
-  }
-</ul>
+  <ul class="field-errors">
+    @for (message of messages(); track message) {
+      <li>{{ message }}</li>
+    }
+  </ul>
 }

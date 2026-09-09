@@ -463,12 +463,111 @@ check(
   }),
 );
 check(
-  'scope stop — no shells/navigation yet (arrive in 3.6+)',
+  'scope stop — shared libs stay shell-free (shells live in apps, never libs/ui)',
   !uiProdBasenames.some((name) =>
     /^(header|sidebar|footer|nav|navigation|shell|breadcrumb|page-header|mobile-menu|user-menu|theme-toggle)/.test(
       name,
     ),
   ),
+);
+// Sub-Phase 3.6 — Storefront Application Shell: Header (brand, desktop nav,
+// mobile toggle, AuthNav entry points), Navigation (one component, both
+// placements, active-route styling), Footer, and the Main outlet composer.
+// Auth state is reused from Phase 2 (`AuthNav`/`AuthService` signals are
+// never replicated); no business features; Admin shell waits for 3.7.
+const storefrontShellFiles = [
+  'apps/storefront/src/app/layout/header/header.ts',
+  'apps/storefront/src/app/layout/navigation/navigation.ts',
+  'apps/storefront/src/app/layout/footer/footer.ts',
+  'apps/storefront/src/app/layout/app-layout/app-layout.ts',
+];
+const storefrontLayoutSources = collectTs('apps/storefront/src/app/layout').filter(
+  (path) => !path.endsWith('.spec.ts'),
+);
+const storefrontLayoutCode = storefrontLayoutSources
+  .map((path) => stripComments(readFileSync(join(root, path), 'utf8')))
+  .join('\n');
+const storefrontLayoutTemplates = storefrontLayoutSources
+  .map((path) => path.replace(/\.ts$/, '.html'))
+  .filter((path) => exists(path))
+  .map((path) => readFileSync(join(root, path), 'utf8'))
+  .join('\n');
+check(
+  '3.6: shell exists with header, navigation, outlet composer, and footer',
+  storefrontShellFiles.every(
+    (path) =>
+      exists(path) &&
+      /selector\s*:\s*['"](storefront-header|storefront-nav|storefront-footer|app-layout)['"]/.test(
+        readFileSync(join(root, path), 'utf8'),
+      ),
+  ),
+  `${storefrontShellFiles.length} component(s)`,
+);
+check(
+  '3.6: shell files keep markup and styles in siblings (ts/html/css structure)',
+  storefrontShellFiles.every((path) => {
+    const code = readFileSync(join(root, path), 'utf8');
+    const dir = path.slice(0, path.lastIndexOf('/'));
+    const base = path.split('/').pop()?.replace(/\.ts$/, '');
+    return (
+      code.includes(`templateUrl: './${base}.html'`) &&
+      code.includes(`styleUrl: './${base}.css'`) &&
+      exists(`${dir}/${base}.html`) &&
+      exists(`${dir}/${base}.css`) &&
+      !/^\s*template:\s*`/m.test(code) &&
+      !/^\s*styles:\s*`/m.test(code)
+    );
+  }),
+);
+check(
+  '3.6: header composes navigation and Phase 2 auth entry points',
+  readFileSync(join(root, 'apps/storefront/src/app/layout/header/header.ts'), 'utf8').includes(
+    'AuthNav',
+  ) &&
+    readFileSync(
+      join(root, 'apps/storefront/src/app/layout/app-layout/app-layout.ts'),
+      'utf8',
+    ).includes('RouterOutlet'),
+);
+check(
+  '3.6: auth state is reused, never replicated (no AuthService in layout)',
+  !/AuthService|TokenStorage|refreshToken/i.test(storefrontLayoutCode),
+);
+check(
+  '3.6: navigation exposes active-route styling accessibly',
+  /routerLinkActive/.test(storefrontLayoutTemplates) &&
+    /ariaCurrentWhenActive/.test(storefrontLayoutTemplates),
+);
+check(
+  '3.6: shell styling is responsive and logical (media queries, no physical props)',
+  ['apps/storefront/src/app/layout/header/header.css'].every((path) =>
+    /@media/.test(readFileSync(join(root, path), 'utf8')),
+  ) &&
+    !/margin-left|margin-right|padding-left|padding-right|border-left|border-right/.test(
+      storefrontLayoutSources
+        .map((path) => {
+          const cssPath = path.replace(/\.ts$/, '.css');
+          return exists(cssPath) ? readFileSync(join(root, cssPath), 'utf8') : '';
+        })
+        .join('\n'),
+    ),
+);
+check(
+  '3.6: shell touches no browser APIs (SSR/hydration safe)',
+  !/window\.|document\.|localStorage/.test(storefrontLayoutCode),
+);
+check(
+  '3.6: no business features in the shell (no catalog/cart/checkout/orders)',
+  !/\bcatalog\b|\bcart\b|\bcheckout\b|\borders?\b|\bpayments?\b|\binventory\b|\bproduct\b/i.test(
+    storefrontLayoutCode,
+  ),
+);
+check(
+  'scope stop — no Admin shell yet (sidebar/header arrive in 3.7)',
+  !collectTs('apps/admin/src/app/layout')
+    .filter((path) => !path.endsWith('.spec.ts'))
+    .map((path) => path.split('/').pop() ?? '')
+    .some((name) => /^(sidebar|admin-header|header|footer|navigation)/.test(name)),
 );
 check(
   'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { AppLayout } from './layout/app-layout';
+import { AppLayout } from './layout/app-layout/app-layout';
 
 /**
  * Storefront root routes (standalone).

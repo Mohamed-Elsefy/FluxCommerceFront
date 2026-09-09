@@ -1,0 +1,39 @@
+.nav ul {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav[data-orientation='vertical'] ul {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-xs);
+}
+
+.nav a {
+  display: block;
+  padding-block: var(--spacing-sm);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.nav a.active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav a:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

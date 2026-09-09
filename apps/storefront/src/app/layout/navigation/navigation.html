@@ -1,0 +1,15 @@
+<nav class="nav" [attr.data-orientation]="orientation" [attr.aria-label]="label">
+  <ul>
+    @for (item of items; track item.route) {
+      <li>
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+          ariaCurrentWhenActive="page"
+          >{{ item.label }}</a
+        >
+      </li>
+    }
+  </ul>
+</nav>
