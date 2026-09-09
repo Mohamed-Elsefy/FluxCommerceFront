@@ -343,6 +343,26 @@ ProductCard
 
 `ProductCard` should not call the Catalog API.
 
+### Component File Organization
+
+Every shipped component lives in its own folder with one concern per file:
+
+```text
+libs/ui/src/lib/alert/
+├── alert.ts        # decorator (templateUrl/styleUrl), class, public API
+├── alert.html      # markup only
+├── alert.css       # styles only
+└── alert.spec.ts   # colocated component tests
+```
+
+The same structure applies project-wide: `libs/ui` primitives, `libs/auth`
+widgets (e.g. `auth-nav/`), and application feature components (e.g.
+`field-errors/`). The `.ts` file holds the decorator, the component class,
+and its API documentation — never inline `template`/`styles` blocks.
+
+Test-host components defined inside `*.spec.ts` files keep inline templates;
+they are test-only scaffolding, not shipped components.
+
 ---
 
 ## 9. State Management

@@ -368,6 +368,12 @@ const primitiveFiles = [
   'libs/ui/src/lib/alert/alert.ts',
   'libs/ui/src/lib/divider/divider.ts',
 ];
+const layoutFiles = [
+  'libs/ui/src/lib/container/container.ts',
+  'libs/ui/src/lib/stack/stack.ts',
+  'libs/ui/src/lib/grid/grid.ts',
+  'libs/ui/src/lib/flex/flex.ts',
+];
 const uiProdSources = uiSources.filter((path) => !path.endsWith('.spec.ts'));
 const uiProdBasenames = uiProdSources.map((path) => path.split('/').pop() ?? '');
 const readUi = (path) => readFileSync(join(root, path), 'utf8');
@@ -404,7 +410,7 @@ check(
 );
 check(
   'ui components keep markup and styles in sibling files (ts/html/css structure)',
-  [...primitiveFiles, ...asyncStateComponents].every((path) => {
+  [...primitiveFiles, ...asyncStateComponents, ...layoutFiles].every((path) => {
     const code = readUi(path);
     const dir = path.slice(0, path.lastIndexOf('/'));
     const base = path.split('/').pop()?.replace(/\.ts$/, '');
@@ -417,7 +423,7 @@ check(
       !/^\s*styles:\s*`/m.test(code)
     );
   }),
-  `${primitiveFiles.length + asyncStateComponents.length} component(s)`,
+  `${primitiveFiles.length + asyncStateComponents.length + layoutFiles.length} component(s)`,
 );
 check(
   '3.4: barrel exports all eight primitives',
@@ -426,12 +432,38 @@ check(
     return readUi('libs/ui/src/public-api.ts').includes(`./lib/${base}`);
   }),
 );
+// Sub-Phase 3.5 — Layout Primitives: generic Container/Stack/Grid/Flex
+// composition (token gaps, logical properties, no business meaning).
+// Shells/navigation (3.6+) and optional controls stay out of scope.
 check(
-  '3.4: scope stop — no layout primitives yet (Container/Stack/Grid/Flex arrive in 3.5)',
-  !uiProdBasenames.some((name) => /^(container|stack|grid|flex|layout)/.test(name)),
+  '3.5: all four layout primitives exist with flux- selectors',
+  layoutFiles.every(
+    (path) =>
+      exists(path) && /selector\s*:\s*['"]flux-(container|stack|grid|flex)['"]/.test(readUi(path)),
+  ),
+  `${layoutFiles.length} primitive(s)`,
 );
 check(
-  '3.4: scope stop — no shells/navigation yet (arrive in 3.6+)',
+  '3.5: layout primitives consume spacing/container tokens and stay generic',
+  layoutFiles.every((path) => {
+    const cssPath = path.replace(/\.ts$/, '.css');
+    const code = readUi(path);
+    return (
+      exists(cssPath) &&
+      /var\(--(spacing|container)-/.test(readFileSync(join(root, cssPath), 'utf8')) &&
+      !/catalog|cart|checkout|order|product|payment/i.test(code)
+    );
+  }),
+);
+check(
+  '3.5: barrel exports all four layout primitives',
+  layoutFiles.every((path) => {
+    const base = path.split('/').pop()?.replace(/\.ts$/, '');
+    return readUi('libs/ui/src/public-api.ts').includes(`./lib/${base}/${base}`);
+  }),
+);
+check(
+  'scope stop — no shells/navigation yet (arrive in 3.6+)',
   !uiProdBasenames.some((name) =>
     /^(header|sidebar|footer|nav|navigation|shell|breadcrumb|page-header|mobile-menu|user-menu|theme-toggle)/.test(
       name,
@@ -439,7 +471,7 @@ check(
   ),
 );
 check(
-  '3.4: scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',
+  'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',
   !uiProdBasenames.some((name) =>
     /^(checkbox|radio|select|textarea|dialog|modal|table|toast|pagination)\.ts$/.test(name),
   ),
