@@ -21,7 +21,8 @@
  * throwing or blanking the output.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 4.3 — no culture service, signals, switching, persistence, or init.
+ * - 4.3 owns reactive state — this engine stays a pure function of its
+ *   inputs (culture passed explicitly, e.g. from `CultureService.culture()`).
  * - 4.4+ — no document `dir` application or HTTP propagation.
  */
 
