@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
+import { ThemeService } from '@flux/theming';
 import { StorefrontHeader } from './header';
 
 function setup(): { fixture: ComponentFixture<StorefrontHeader>; element: HTMLElement } {
@@ -51,5 +52,23 @@ describe('StorefrontHeader', () => {
     expect(updated).not.toBeNull();
     expect(updated?.querySelector('.nav')?.getAttribute('data-orientation')).toBe('vertical');
     expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('wires the shared theme toggle to the central theme state', () => {
+    const { fixture, element } = setup();
+    const themes = TestBed.inject(ThemeService);
+
+    expect(themes.theme()).toBe('light');
+    expect(
+      element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
+    ).toBe('Switch to dark theme');
+
+    (element.querySelector('flux-theme-toggle button.toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(themes.theme()).toBe('dark');
+    expect(
+      element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
+    ).toBe('Switch to light theme');
   });
 });

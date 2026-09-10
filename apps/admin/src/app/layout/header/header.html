@@ -10,5 +10,6 @@
     <span aria-hidden="true"></span>
   </button>
   <p class="context">FluxCommerce Admin</p>
+  <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
   <auth-nav [loginRoute]="null" [registerRoute]="null" accountRoute="/dashboard" />
 </header>

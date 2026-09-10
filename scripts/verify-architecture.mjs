@@ -465,7 +465,7 @@ check(
 check(
   'scope stop — shared libs stay shell-free (shells live in apps, never libs/ui)',
   !uiProdBasenames.some((name) =>
-    /^(header|sidebar|footer|nav|navigation|shell|breadcrumb|page-header|mobile-menu|user-menu|theme-toggle)/.test(
+    /^(header|sidebar|footer|nav|navigation|shell|breadcrumb|page-header|mobile-menu|user-menu)/.test(
       name,
     ),
   ),
@@ -775,6 +775,78 @@ check(
     .filter((path) => !path.endsWith('.spec.ts'))
     .map((path) => path.split('/').pop() ?? '')
     .some((name) => /(^|[-_.])(mobile|desktop|tablet|rtl|ltr)([-_.]|$)/i.test(name)),
+);
+// Sub-Phase 3.10 — Navigation & Shared Shell Components: only genuinely
+// reusable, business-agnostic, stable abstractions enter `libs/ui`.
+// ThemeToggle qualifies (both shells deferred it and compose it now, dumb
+// button wired by shells to `ThemeService`); Breadcrumb, PageHeader,
+// MobileMenu, and UserMenu have no consumers and stay unbuilt; app shells
+// stay app-owned; business widgets stay feature-owned.
+const themeTogglePath = 'libs/ui/src/lib/theme-toggle/theme-toggle.ts';
+const themeToggleCode = exists(themeTogglePath)
+  ? readFileSync(join(root, themeTogglePath), 'utf8')
+  : '';
+check(
+  '3.10: ThemeToggle is shared dumb chrome (no service, no @flux deps)',
+  exists(themeTogglePath) &&
+    /selector\s*:\s*['"]flux-theme-toggle['"]/.test(themeToggleCode) &&
+    /EventEmitter/.test(themeToggleCode) &&
+    !/ThemeService|provideTheming|@flux\/theming/.test(stripComments(themeToggleCode)),
+);
+check(
+  '3.10: barrel exports ThemeToggle',
+  readUi('libs/ui/src/public-api.ts').includes('./lib/theme-toggle/theme-toggle'),
+);
+check(
+  '3.10: both shells compose the toggle wired to ThemeService',
+  [
+    'apps/storefront/src/app/layout/header/header.ts',
+    'apps/admin/src/app/layout/header/header.ts',
+  ].every((path) => {
+    const component = readFileSync(join(root, path), 'utf8');
+    const template = readFileSync(join(root, path.replace(/\.ts$/, '.html')), 'utf8');
+    return (
+      component.includes('ThemeToggle') &&
+      component.includes('ThemeService') &&
+      template.includes('toggleTheme()')
+    );
+  }),
+);
+const approvedUiModules = new Set([
+  'ui-primitives',
+  'button',
+  'icon',
+  'input',
+  'badge',
+  'card',
+  'spinner',
+  'alert',
+  'divider',
+  'container',
+  'stack',
+  'grid',
+  'flex',
+  'loading-indicator',
+  'skeleton',
+  'empty-state',
+  'error-state',
+  'retry-button',
+  'theme-toggle',
+]);
+check(
+  '3.10: libs/ui holds only approved shared modules (ownership rule)',
+  uiProdBasenames
+    .filter((name) => name !== 'public-api.ts')
+    .every((name) => approvedUiModules.has(name.replace(/\.ts$/, ''))),
+  `${uiProdBasenames.length} module(s)`,
+);
+check(
+  '3.10: no business widgets in libs/ui (ProductCard/OrderSummary stay feature-owned)',
+  !uiProdBasenames.some((name) =>
+    /^(product|catalog|categor|cart|checkout|order|payment|inventory|customer|account|dashboard|admin)/.test(
+      name,
+    ),
+  ),
 );
 check(
   'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',

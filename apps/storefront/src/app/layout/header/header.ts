@@ -13,25 +13,28 @@
  * identical markup. Styling is token-driven with a CSS-only breakpoint:
  * the desktop nav shows from tablet widths up, the toggle below that.
  *
+ * Theme switching is composed here (Sub-Phase 3.10): the shared dumb
+ * `ThemeToggle` reflects `ThemeService` state and forwards activations to
+ * it — this shell owns no theme logic.
+ *
  * Integration notes (deliberately not built here):
  * - Cart entry docks here once the Phase 7 cart route exists; linking to a
  *   nonexistent route today would only produce 404s.
- * - Theme switching UI arrives with Sub-Phase 3.10 (`ThemeToggle`); the
- *   header already renders under the centralized theme via tokens.
  *
  * SSR/hydration safe: local toggle signal only, no browser APIs. RTL safe:
  * logical properties and direction-aware flex flow only.
  */
 
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthNav } from '@flux/auth';
-import { Container } from '@flux/ui';
+import { ThemeService } from '@flux/theming';
+import { Container, ThemeToggle } from '@flux/ui';
 import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
 
 @Component({
   selector: 'storefront-header',
-  imports: [RouterLink, StorefrontNav, AuthNav, Container],
+  imports: [RouterLink, StorefrontNav, AuthNav, Container, ThemeToggle],
   templateUrl: './header.html',
   styleUrl: './header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +42,9 @@ import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation'
 export class StorefrontHeader {
   /** Main destinations — only routes that exist (business entries arrive with their phases). */
   readonly mainNav: readonly StorefrontNavItem[] = [{ label: 'Home', route: '/' }];
+
+  /** Central theme state (read-only here; toggled through the shared control). */
+  protected readonly themes = inject(ThemeService);
 
   /** Mobile menu visibility (local UI state; closed on server and client). */
   readonly menuOpen = signal(false);

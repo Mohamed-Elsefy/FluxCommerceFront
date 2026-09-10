@@ -7,6 +7,7 @@ export * from './lib/card/card';
 export * from './lib/spinner/spinner';
 export * from './lib/alert/alert';
 export * from './lib/divider/divider';
+export * from './lib/theme-toggle/theme-toggle';
 export * from './lib/container/container';
 export * from './lib/stack/stack';
 export * from './lib/grid/grid';

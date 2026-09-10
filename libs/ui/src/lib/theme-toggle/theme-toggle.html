@@ -1,0 +1,8 @@
+<button
+  type="button"
+  class="toggle"
+  (click)="toggled.emit()"
+  [attr.aria-label]="mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+>
+  <flux-icon [glyph]="mode === 'dark' ? '☀' : '☾'" size="sm" />
+</button>

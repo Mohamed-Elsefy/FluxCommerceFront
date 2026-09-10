@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
+import { ThemeService } from '@flux/theming';
 import { AdminHeader } from './header';
 
 function setup(): { fixture: ComponentFixture<AdminHeader>; element: HTMLElement } {
@@ -43,5 +44,20 @@ describe('AdminHeader', () => {
     (element.querySelector('button.menu-toggle') as HTMLButtonElement).click();
 
     expect(emitted).toBe(1);
+  });
+
+  it('wires the shared theme toggle to the central theme state', () => {
+    const { fixture, element } = setup();
+    const themes = TestBed.inject(ThemeService);
+
+    expect(themes.theme()).toBe('light');
+
+    (element.querySelector('flux-theme-toggle button.toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(themes.theme()).toBe('dark');
+    expect(
+      element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
+    ).toBe('Switch to light theme');
   });
 });

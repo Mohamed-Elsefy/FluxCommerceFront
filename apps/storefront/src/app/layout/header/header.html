@@ -5,6 +5,7 @@
       <storefront-nav class="desktop-nav" [items]="mainNav" label="Main" />
       <div class="actions">
         <auth-nav />
+        <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
         <button
           type="button"
           class="menu-toggle"
