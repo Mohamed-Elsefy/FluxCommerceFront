@@ -1,11 +1,21 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
 import { ThemeService } from '@flux/theming';
 import { AdminHeader } from './header';
+
+@Component({
+  selector: 'admin-header-host',
+  imports: [AdminHeader],
+  template: `<admin-header [drawerOpen]="open" />`,
+})
+class HeaderHost {
+  open = false;
+}
 
 function setup(): { fixture: ComponentFixture<AdminHeader>; element: HTMLElement } {
   TestBed.configureTestingModule({
@@ -44,6 +54,32 @@ describe('AdminHeader', () => {
     (element.querySelector('button.menu-toggle') as HTMLButtonElement).click();
 
     expect(emitted).toBe(1);
+  });
+
+  it('reflects the drawer state for assistive technology', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideAppEnvironment({
+          name: 'development',
+          production: false,
+          appName: 'test',
+          apiBaseUrl: '/api',
+        }),
+        provideApi(),
+        provideAuthRecovery(),
+        provideHttpClientTesting(),
+      ],
+    });
+    window.localStorage.clear();
+    const fixture = TestBed.createComponent(HeaderHost);
+    fixture.componentInstance.open = true;
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const toggle = element.querySelector('button.menu-toggle');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle?.getAttribute('aria-controls')).toBe('admin-drawer');
   });
 
   it('wires the shared theme toggle to the central theme state', () => {

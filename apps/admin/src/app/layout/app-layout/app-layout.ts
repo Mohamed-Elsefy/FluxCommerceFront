@@ -23,7 +23,7 @@
  * direction; logical properties only.
  */
 
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, signal, viewChild } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AdminHeader } from '../header/header';
 import { AdminSidebar, type AdminNavItem } from '../sidebar/sidebar';
@@ -45,6 +45,8 @@ export class AppLayout {
   /** Mobile drawer visibility (local UI state; closed on server and client). */
   readonly drawerOpen = signal(false);
 
+  private readonly header = viewChild(AdminHeader);
+
   /** Opens or closes the mobile drawer (header toggle). */
   toggleDrawer(): void {
     this.drawerOpen.update((open) => !open);
@@ -53,5 +55,14 @@ export class AppLayout {
   /** Closes the mobile drawer (overlay or sidebar link activation). */
   closeDrawer(): void {
     this.drawerOpen.set(false);
+  }
+
+  /** Dismisses the mobile drawer from anywhere, returning focus to the toggle. */
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.drawerOpen()) {
+      this.closeDrawer();
+      this.header()?.focusToggle();
+    }
   }
 }

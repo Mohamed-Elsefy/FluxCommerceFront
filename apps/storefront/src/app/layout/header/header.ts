@@ -25,7 +25,15 @@
  * logical properties and direction-aware flex flow only.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthNav } from '@flux/auth';
 import { ThemeService } from '@flux/theming';
@@ -49,8 +57,24 @@ export class StorefrontHeader {
   /** Mobile menu visibility (local UI state; closed on server and client). */
   readonly menuOpen = signal(false);
 
+  private readonly menuToggle = viewChild<ElementRef<HTMLButtonElement>>('menuToggle');
+
   /** Toggles the mobile navigation panel. */
   toggleMenu(): void {
     this.menuOpen.update((open) => !open);
+  }
+
+  /** Closes the mobile panel, returning focus to the toggle (Escape path). */
+  closeMenu(): void {
+    this.menuOpen.set(false);
+    this.menuToggle()?.nativeElement.focus();
+  }
+
+  /** Dismisses the mobile panel from anywhere (browser-only event; inert on the server). */
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.menuOpen()) {
+      this.closeMenu();
+    }
   }
 }

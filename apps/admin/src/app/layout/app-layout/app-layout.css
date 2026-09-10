@@ -79,6 +79,9 @@ main {
     position: fixed;
     inset: 0;
     z-index: var(--z-index-dropdown);
+    border: 0;
+    padding: 0;
     background: rgb(0 0 0 / 0.4);
+    cursor: pointer;
   }
 }

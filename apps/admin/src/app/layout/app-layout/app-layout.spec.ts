@@ -58,4 +58,29 @@ describe('AppLayout', () => {
     expect(element.querySelector('admin-sidebar')?.getAttribute('data-drawer')).toBe('closed');
     expect(element.querySelector('.overlay')).toBeNull();
   });
+
+  it('dismisses the drawer on Escape and returns focus to the toggle', () => {
+    const { fixture, element } = setup();
+
+    (element.querySelector('admin-header .menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(element.querySelector('admin-sidebar')?.getAttribute('data-drawer')).toBe('open');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(element.querySelector('admin-sidebar')?.getAttribute('data-drawer')).toBe('closed');
+    expect(document.activeElement).toBe(element.querySelector('admin-header .menu-toggle'));
+  });
+
+  it('exposes the overlay as a labeled button', () => {
+    const { fixture, element } = setup();
+
+    (element.querySelector('admin-header .menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const overlay = element.querySelector('.overlay');
+    expect(overlay?.tagName.toLowerCase()).toBe('button');
+    expect(overlay?.getAttribute('aria-label')).toBe('Close navigation');
+  });
 });

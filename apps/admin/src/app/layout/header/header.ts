@@ -16,7 +16,16 @@
  * APIs. RTL safe: logical properties and direction-aware flex flow only.
  */
 
-import { ChangeDetectionStrategy, Component, EventEmitter, Output, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { AuthNav } from '@flux/auth';
 import { ThemeService } from '@flux/theming';
 import { ThemeToggle } from '@flux/ui';
@@ -32,6 +41,16 @@ export class AdminHeader {
   /** Central theme state (read-only here; toggled through the shared control). */
   protected readonly themes = inject(ThemeService);
 
+  /** Drawer visibility owned by the parent shell (mirrored for `aria-expanded`). */
+  @Input() drawerOpen = false;
+
   /** Emitted when the mobile drawer toggle is activated (parent shell owns the drawer). */
   @Output() readonly menuToggle = new EventEmitter<void>();
+
+  private readonly toggle = viewChild<ElementRef<HTMLButtonElement>>('toggle');
+
+  /** Returns keyboard focus to the drawer toggle (Escape path). */
+  focusToggle(): void {
+    this.toggle()?.nativeElement.focus();
+  }
 }

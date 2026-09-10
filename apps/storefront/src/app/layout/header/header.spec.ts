@@ -54,6 +54,20 @@ describe('StorefrontHeader', () => {
     expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-expanded')).toBe('true');
   });
 
+  it('dismisses the mobile panel on Escape and returns focus to the toggle', () => {
+    const { fixture, element } = setup();
+
+    (element.querySelector('button.menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(element.querySelector('#storefront-mobile-nav')).not.toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(element.querySelector('#storefront-mobile-nav')).toBeNull();
+    expect(document.activeElement).toBe(element.querySelector('button.menu-toggle'));
+  });
+
   it('wires the shared theme toggle to the central theme state', () => {
     const { fixture, element } = setup();
     const themes = TestBed.inject(ThemeService);

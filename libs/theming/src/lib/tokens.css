@@ -40,7 +40,7 @@
   --color-success: #15803d;
   --color-warning: #b45309;
   --color-danger: #dc2626;
-  --color-info: #0284c7;
+  --color-info: #0369a1;
 
   /* Typography — families */
   --font-family-sans:
@@ -126,6 +126,10 @@
  */
 :root[data-theme='dark'] {
   color-scheme: dark;
+
+  /* Colors — brand (lightened so primary-on-surface pairings stay legible) */
+  --color-primary: #60a5fa;
+  --color-primary-contrast: #0f172a;
 
   /* Colors — surfaces, text, borders */
   --color-surface: #0f172a;

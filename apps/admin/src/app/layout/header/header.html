@@ -1,8 +1,11 @@
 <header class="admin-header">
   <button
+    #toggle
     type="button"
     class="menu-toggle"
     (click)="menuToggle.emit()"
+    [attr.aria-expanded]="drawerOpen"
+    aria-controls="admin-drawer"
     aria-label="Toggle navigation"
   >
     <span aria-hidden="true"></span>

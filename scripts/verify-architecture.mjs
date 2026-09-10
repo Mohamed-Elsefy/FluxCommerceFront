@@ -848,6 +848,129 @@ check(
     ),
   ),
 );
+// Sub-Phase 3.11 — Accessibility & UX Hardening: native semantics with
+// visible `:focus-visible` states on every interactive stylesheet, no
+// clickable non-semantic elements, Escape dismissal with focus return for
+// overlays/drawers, honest ARIA only where HTML falls short, and WCAG AA
+// text contrast (4.5:1) computed from the token values in both themes.
+const focusVisibleStylesheets = [
+  'libs/ui/src/lib/button/button.css',
+  'libs/ui/src/lib/retry-button/retry-button.css',
+  'libs/ui/src/lib/input/input.css',
+  'libs/ui/src/lib/theme-toggle/theme-toggle.css',
+  'libs/auth/src/lib/components/auth-nav/auth-nav.css',
+  'apps/storefront/src/app/layout/navigation/navigation.css',
+  'apps/storefront/src/app/layout/header/header.css',
+  'apps/storefront/src/app/layout/app-layout/app-layout.css',
+  'apps/admin/src/app/layout/sidebar/sidebar.css',
+  'apps/admin/src/app/layout/header/header.css',
+  'apps/admin/src/app/layout/app-layout/app-layout.css',
+];
+check(
+  '3.11: every interactive stylesheet exposes a visible focus state',
+  focusVisibleStylesheets.every((path) =>
+    /:focus-visible/.test(readFileSync(join(root, path), 'utf8')),
+  ),
+  `${focusVisibleStylesheets.length} stylesheet(s)`,
+);
+function collectHtml(dir, out = []) {
+  for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+    const relative = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      collectHtml(relative, out);
+    } else if (entry.name.endsWith('.html')) {
+      out.push(relative);
+    }
+  }
+  return out;
+}
+const workspaceTemplates = [
+  ...collectHtml('apps/storefront/src'),
+  ...collectHtml('apps/admin/src'),
+  ...expectedLibs.flatMap((lib) => collectHtml(`libs/${lib}`)),
+];
+check(
+  '3.11: no clickable non-semantic elements (native buttons/links/inputs only)',
+  !workspaceTemplates.some((path) =>
+    /<(div|span)[^>]*\(click\)=/.test(readFileSync(join(root, path), 'utf8')),
+  ),
+  `${workspaceTemplates.length} template(s)`,
+);
+check(
+  '3.11: overlays and drawers dismiss on Escape',
+  /keydown\.escape/.test(
+    readFileSync(join(root, 'apps/storefront/src/app/layout/header/header.ts'), 'utf8'),
+  ) &&
+    /keydown\.escape/.test(
+      readFileSync(join(root, 'apps/admin/src/app/layout/app-layout/app-layout.ts'), 'utf8'),
+    ),
+);
+check(
+  '3.11: drawer and menu toggles expose expanded state',
+  /aria-expanded/.test(
+    readFileSync(join(root, 'apps/storefront/src/app/layout/header/header.html'), 'utf8'),
+  ) &&
+    /aria-expanded/.test(
+      readFileSync(join(root, 'apps/admin/src/app/layout/header/header.html'), 'utf8'),
+    ),
+);
+function tokenValue(block, name) {
+  const match = block.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`));
+  return match ? match[1] : null;
+}
+function relativeLuminance(hex) {
+  const channels = [0, 2, 4].map((index) => {
+    const value = parseInt(hex.slice(index + 1, index + 3), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+function contrastRatio(foreground, background) {
+  const lighter = Math.max(relativeLuminance(foreground), relativeLuminance(background));
+  const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+const lightThemeBlock = tokensCss.slice(0, tokensCss.indexOf('[data-theme='));
+const darkThemeBlock = tokensCss.slice(tokensCss.indexOf('[data-theme='));
+const contrastPairs = [
+  ['text', 'surface'],
+  ['text-muted', 'surface'],
+  ['primary-contrast', 'primary'],
+  ['success', 'surface'],
+  ['warning', 'surface'],
+  ['danger', 'surface'],
+  ['info', 'surface'],
+  ['primary', 'surface'],
+];
+const lowContrast = [];
+for (const [blockName, block] of [
+  ['light', lightThemeBlock],
+  ['dark', darkThemeBlock],
+]) {
+  for (const [foreground, background] of contrastPairs) {
+    const foregroundValue = tokenValue(block, `--color-${foreground}`);
+    const backgroundValue = tokenValue(block, `--color-${background}`);
+    if (foregroundValue === null || backgroundValue === null) {
+      lowContrast.push(`${blockName}: --color-${foreground} unresolved`);
+    } else if (contrastRatio(foregroundValue, backgroundValue) < 4.5) {
+      lowContrast.push(`${blockName}: --color-${foreground} on --color-${background} below 4.5:1`);
+    }
+  }
+}
+check(
+  '3.11: text contrast meets WCAG AA (4.5:1) in Light and Dark themes',
+  lowContrast.length === 0,
+  lowContrast.length === 0 ? `${contrastPairs.length * 2} pair(s)` : lowContrast.join('; '),
+);
+check(
+  '3.11: loading and disabled states are exposed to assistive technology',
+  /aria-busy/.test(readFileSync(join(root, 'libs/ui/src/lib/button/button.html'), 'utf8')) &&
+    /aria-invalid/.test(readFileSync(join(root, 'libs/ui/src/lib/input/input.html'), 'utf8')) &&
+    /\[disabled\]/.test(readFileSync(join(root, 'libs/ui/src/lib/input/input.html'), 'utf8')) &&
+    /\[disabled\]/.test(
+      readFileSync(join(root, 'libs/ui/src/lib/retry-button/retry-button.html'), 'utf8'),
+    ),
+);
 check(
   'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',
   !uiProdBasenames.some((name) =>

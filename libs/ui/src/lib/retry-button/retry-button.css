@@ -23,3 +23,8 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.retry:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

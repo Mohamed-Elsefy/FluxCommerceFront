@@ -8,3 +8,10 @@
 .auth-nav-user {
   margin: 0;
 }
+
+.auth-nav a:focus-visible,
+.auth-nav button:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
