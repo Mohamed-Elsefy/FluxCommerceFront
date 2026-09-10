@@ -6,7 +6,9 @@ import { ApiClient } from '../client/api-client';
 import { API_INTERCEPTORS, provideApi } from '../client/api-providers';
 import { provideAppEnvironment, type AppEnvironment } from '../client/app-environment';
 import { ACCESS_TOKEN_PROVIDER } from './auth-token';
+import { ACTIVE_CULTURE_PROVIDER } from './culture-token';
 import { ApiError, NETWORK_ERROR_CODE } from '../runtime/error-normalizer';
+import type { SupportedCulture } from '../contracts/api-headers';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 import { authInterceptor } from './auth-interceptor';
@@ -210,6 +212,73 @@ describe('interceptor pipeline (token provider installed)', () => {
     client.get<void>('/auth/me', { headers: { Authorization: 'Bearer explicit' } }).subscribe();
     const request = http.expectOne('https://localhost:7119/auth/me');
     expect(request.request.headers.get('Authorization')).toBe('Bearer explicit');
+    request.flush(null);
+  });
+});
+
+describe('interceptor pipeline (culture provider installed)', () => {
+  let client: ApiClient;
+  let http: HttpTestingController;
+  let ambient: SupportedCulture | null;
+
+  beforeEach(() => {
+    ambient = 'en';
+    ({ client, http } = setup([{ provide: ACTIVE_CULTURE_PROVIDER, useValue: () => ambient }]));
+  });
+
+  afterEach(() => {
+    http.verify();
+  });
+
+  it('injects the ambient culture into every request without per-request context', () => {
+    ambient = 'ar';
+
+    client.get<void>('/catalog').subscribe();
+    const request = http.expectOne('https://localhost:7119/catalog');
+    expect(request.request.headers.get('Accept-Language')).toBe('ar');
+    request.flush(null);
+  });
+
+  it('prefers explicit per-request culture over the ambient culture', () => {
+    ambient = 'ar';
+
+    client.get<void>('/catalog', { context: { culture: 'fr' } }).subscribe();
+    const request = http.expectOne('https://localhost:7119/catalog');
+    expect(request.request.headers.get('Accept-Language')).toBe('fr');
+    request.flush(null);
+  });
+
+  it('never clobbers an explicitly set Accept-Language header', () => {
+    ambient = 'ar';
+
+    client.get<void>('/catalog', { headers: { 'Accept-Language': 'de' } }).subscribe();
+    const request = http.expectOne('https://localhost:7119/catalog');
+    expect(request.request.headers.get('Accept-Language')).toBe('de');
+    request.flush(null);
+  });
+
+  it('applies runtime culture switches to subsequent requests without restarts', () => {
+    ambient = 'en';
+
+    client.get<void>('/catalog').subscribe();
+    const first = http.expectOne('https://localhost:7119/catalog');
+    expect(first.request.headers.get('Accept-Language')).toBe('en');
+    first.flush(null);
+
+    ambient = 'ar';
+
+    client.get<void>('/catalog').subscribe();
+    const second = http.expectOne('https://localhost:7119/catalog');
+    expect(second.request.headers.get('Accept-Language')).toBe('ar');
+    second.flush(null);
+  });
+
+  it('sends no Accept-Language header when the provider resolves to null', () => {
+    ambient = null;
+
+    client.get<void>('/catalog').subscribe();
+    const request = http.expectOne('https://localhost:7119/catalog');
+    expect(request.request.headers.has('Accept-Language')).toBe(false);
     request.flush(null);
   });
 });

@@ -40,7 +40,7 @@ export interface ApiRequestContext {
    * per-request UUID (ownership rules in `./correlation-ids`, Sub-Phase 1.6).
    */
   readonly correlationId?: string;
-  /** Desired response culture (`Accept-Language`). Defaults to backend `en`. */
+  /** Desired response culture (`Accept-Language`). Explicit per-request override. */
   readonly culture?: SupportedCulture;
   /**
    * Checkout idempotency key (`Idempotency-Key`, 1..128 chars).
