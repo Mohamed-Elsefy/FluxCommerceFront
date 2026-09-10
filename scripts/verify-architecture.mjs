@@ -655,6 +655,127 @@ check(
     adminLayoutCode,
   ),
 );
+// Sub-Phase 3.8 — Responsive Foundation: the canonical breakpoint scale
+// lives in `libs/theming` (`--breakpoint-sm/md/lg/xl`); every viewport
+// media query repeats those exact values (complements such as 63.99rem
+// allowed — `var()` is invalid in `@media` conditions). Display type and
+// container padding scale fluidly (`clamp()`), layout children can shrink
+// below content size, and responsiveness stays in single components — no
+// Mobile/Desktop duplicates.
+const breakpointTokens = {
+  '--breakpoint-sm': '30rem',
+  '--breakpoint-md': '48rem',
+  '--breakpoint-lg': '64rem',
+  '--breakpoint-xl': '80rem',
+};
+check(
+  '3.8: canonical breakpoints are centralized as theming tokens',
+  Object.entries(breakpointTokens).every(([token, value]) =>
+    tokensCss.includes(`${token}: ${value}`),
+  ),
+  `${Object.keys(breakpointTokens).length} token(s)`,
+);
+function collectCss(dir, out = []) {
+  for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+    const relative = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      collectCss(relative, out);
+    } else if (entry.name.endsWith('.css')) {
+      out.push(relative);
+    }
+  }
+  return out;
+}
+const workspaceCss = [...collectCss('apps/storefront/src'), ...collectCss('apps/admin/src')];
+const canonicalWidths = [30, 48, 64, 80];
+const offScale = [];
+for (const path of workspaceCss) {
+  const css = readFileSync(join(root, path), 'utf8');
+  for (const match of css.matchAll(/\(\s*(?:min|max)-width\s*:\s*([\d.]+)\s*(rem|px|em)\s*\)/g)) {
+    const value = Number(match[1]);
+    const unit = match[2];
+    const onScale =
+      unit === 'rem' && canonicalWidths.some((width) => Math.abs(value - width) <= 0.011);
+    if (!onScale) {
+      offScale.push(`${path}: ${match[0]}`);
+    }
+  }
+}
+check(
+  '3.8: every viewport media query uses canonical breakpoint values',
+  offScale.length === 0,
+  offScale.length === 0 ? '0 violation(s)' : offScale.join('; '),
+);
+check(
+  '3.8: display type and container padding scale fluidly (no breakpoint overrides)',
+  /--font-size-lg:\s*clamp\(/.test(tokensCss) &&
+    /--font-size-xl:\s*clamp\(/.test(tokensCss) &&
+    /--font-size-2xl:\s*clamp\(/.test(tokensCss) &&
+    /--container-padding-inline:\s*clamp\(/.test(tokensCss),
+);
+check(
+  '3.8: layout children can shrink below content size (overflow-safe)',
+  ['libs/ui/src/lib/stack/stack.css', 'libs/ui/src/lib/flex/flex.css'].every((path) =>
+    /min-inline-size:\s*0/.test(readFileSync(join(root, path), 'utf8')),
+  ) &&
+    /min-inline-size:\s*0/.test(readFileSync(join(root, 'libs/ui/src/lib/grid/grid.css'), 'utf8')),
+);
+check(
+  '3.8: single-component responsive patterns (no Mobile/Desktop duplicates)',
+  ![...appSources, ...libSources]
+    .filter((path) => !path.endsWith('.spec.ts'))
+    .map((path) => path.split('/').pop() ?? '')
+    .some((name) => /(^|[-_.])(mobile|desktop|tablet)([-_.]|$)/i.test(name)),
+);
+// Sub-Phase 3.9 — RTL Foundation: direction response flows exclusively
+// through CSS logical properties. No physical-direction properties, no
+// forced text direction, no direction branching in code, and no
+// per-direction selectors or component duplicates. Direction switching
+// itself (document `dir`, translations, localized formatting) arrives with
+// Phase 4 (`libs/i18n`); presentation is already symmetric.
+const rtlPhysicalProp =
+  /margin-left|margin-right|padding-left|padding-right|border-left|border-right|border-top-left-radius|border-top-right-radius|border-bottom-left-radius|border-bottom-right-radius|float\s*:\s*(left|right)|text-align\s*:\s*(left|right)|translateX\s*\(|\[dir\s*=|:dir\s*\(|scaleX\s*\(/;
+const rtlStandaloneProp = /[{;]\s*(left|right)\s*:/;
+const rtlDirectionValue = /([-\w]*direction)\s*:\s*(ltr|rtl)/g;
+function forcesTextDirection(css) {
+  for (const match of css.matchAll(rtlDirectionValue)) {
+    if (match[1] === 'direction') {
+      return true;
+    }
+  }
+  return false;
+}
+const workspaceCssAll = [
+  ...collectCss('apps/storefront/src'),
+  ...collectCss('apps/admin/src'),
+  ...expectedLibs.flatMap((lib) => collectCss(`libs/${lib}`)),
+];
+const workspaceCssText = workspaceCssAll
+  .map((path) => readFileSync(join(root, path), 'utf8'))
+  .join('\n');
+check(
+  '3.9: no physical-direction properties workspace-wide',
+  !rtlPhysicalProp.test(workspaceCssText) && !rtlStandaloneProp.test(workspaceCssText),
+  `${workspaceCssAll.length} stylesheet(s)`,
+);
+check(
+  '3.9: components never force text direction (Phase 4 owns `dir`)',
+  !forcesTextDirection(workspaceCssText),
+);
+check(
+  '3.9: no direction branching in code (no dir reads, no RTL flags)',
+  ![...appSources, ...libSources]
+    .filter((path) => !path.endsWith('.spec.ts'))
+    .map((path) => stripComments(readFileSync(join(root, path), 'utf8')))
+    .some((code) => /document\.dir|isRTL|isRtl|\.dir\s*===?/.test(code)),
+);
+check(
+  '3.9: no device- or direction-duplicated components',
+  ![...appSources, ...libSources]
+    .filter((path) => !path.endsWith('.spec.ts'))
+    .map((path) => path.split('/').pop() ?? '')
+    .some((name) => /(^|[-_.])(mobile|desktop|tablet|rtl|ltr)([-_.]|$)/i.test(name)),
+);
 check(
   'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',
   !uiProdBasenames.some((name) =>

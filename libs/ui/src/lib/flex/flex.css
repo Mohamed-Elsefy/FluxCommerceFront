@@ -3,6 +3,11 @@
   flex-direction: row;
 }
 
+/* Children may shrink below content size so narrow viewports never blow out. */
+.flex > * {
+  min-inline-size: 0;
+}
+
 .flex[data-direction='column'] {
   flex-direction: column;
 }

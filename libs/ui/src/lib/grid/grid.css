@@ -2,6 +2,11 @@
   display: grid;
 }
 
+/* Children may shrink below content size so narrow viewports never blow out. */
+.grid > * {
+  min-inline-size: 0;
+}
+
 .grid[data-gap='xs'] {
   gap: var(--spacing-xs);
 }

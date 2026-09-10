@@ -13,7 +13,14 @@
  *   CSS logical properties (`margin-inline`, `padding-block`, `inset-inline`,
  *   `text-align: start`), never physical-direction properties.
  * - Minimal by design: every token below is consumed by current UI or is a
- *   required scale anchor (z-index, motion). No speculative tokens.
+ *   required scale anchor (z-index, motion, breakpoints). No speculative tokens.
+ * - Responsive scale (Sub-Phase 3.8): display type sizes and the container
+ *   padding are fluid `clamp()` ramps between the sm and xl breakpoints, so
+ *   they scale with the viewport without breakpoint-specific overrides.
+ *   Micro-type (xs/sm/md) and the spacing scale stay fixed for stability.
+ * - Breakpoints are canonical viewport values for `@media` conditions
+ *   (`var()` is invalid there, so queries repeat these literals exactly —
+ *   no ad-hoc viewport numbers elsewhere).
  */
 
 :root {
@@ -40,13 +47,13 @@
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Typography — sizes */
+  /* Typography — sizes (display sizes are fluid between sm and xl viewports) */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
+  --font-size-lg: clamp(1rem, 0.958rem + 0.013vw, 1.125rem);
+  --font-size-xl: clamp(1.125rem, 1.083rem + 0.013vw, 1.25rem);
+  --font-size-2xl: clamp(1.25rem, 1.167rem + 0.026vw, 1.5rem);
 
   /* Typography — weights */
   --font-weight-regular: 400;
@@ -83,9 +90,15 @@
   --shadow-md: 0 4px 12px rgb(15 23 42 / 0.12);
   --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.16);
 
-  /* Sizing & container constraints */
+  /* Sizing & container constraints (padding is fluid between sm and xl viewports) */
   --container-max-width: 75rem;
-  --container-padding-inline: 1rem;
+  --container-padding-inline: clamp(1rem, 0.667rem + 0.104vw, 2rem);
+
+  /* Breakpoints — canonical viewport scale (Mobile / Tablet / Desktop) */
+  --breakpoint-sm: 30rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
 
   /* Z-index scale */
   --z-index-sticky: 100;

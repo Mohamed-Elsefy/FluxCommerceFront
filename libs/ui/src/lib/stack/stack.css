@@ -3,6 +3,11 @@
   flex-direction: column;
 }
 
+/* Children may shrink below content size so narrow viewports never blow out. */
+.stack > * {
+  min-inline-size: 0;
+}
+
 .stack[data-direction='horizontal'] {
   flex-direction: row;
 }
