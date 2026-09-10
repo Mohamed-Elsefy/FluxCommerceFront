@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AppLayout } from './layout/app-layout';
+import { AppLayout } from './layout/app-layout/app-layout';
 import { routes } from './app.routes';
 import { authRoutes } from './features/auth/auth.routes';
 

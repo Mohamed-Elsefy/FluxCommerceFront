@@ -1,0 +1,21 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--spacing-xs);
+  padding-inline: var(--spacing-xs);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.toggle:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

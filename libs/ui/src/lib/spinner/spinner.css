@@ -1,0 +1,28 @@
+.spinner {
+  display: inline-block;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  border-radius: 50%;
+  border: var(--border-width-medium) solid currentColor;
+  border-block-start-color: transparent;
+  animation: flux-spin 0.9s var(--ease-linear) infinite;
+}
+.spinner[data-size='sm'] {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+.spinner[data-size='lg'] {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+}
+@keyframes flux-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-block-start-color: currentColor;
+  }
+}

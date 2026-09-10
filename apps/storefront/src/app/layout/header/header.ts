@@ -1,0 +1,80 @@
+/**
+ * Storefront header for Sub-Phase 3.6 — Storefront Application Shell.
+ *
+ * Composition only: brand wordmark, desktop `StorefrontNav`, mobile menu
+ * toggle with a vertical `StorefrontNav` panel, and the Phase 2 `AuthNav`
+ * for Anonymous/Authenticated entry points. No auth logic lives here —
+ * `AuthService` signals stay inside `AuthNav`; this shell never replicates
+ * them.
+ *
+ * The mobile panel is the same `StorefrontNav` component in vertical
+ * orientation (one component, responsive placement — no device duplicates).
+ * Closed by default on server and client alike, so SSR and hydration render
+ * identical markup. Styling is token-driven with a CSS-only breakpoint:
+ * the desktop nav shows from tablet widths up, the toggle below that.
+ *
+ * Theme switching is composed here (Sub-Phase 3.10): the shared dumb
+ * `ThemeToggle` reflects `ThemeService` state and forwards activations to
+ * it — this shell owns no theme logic.
+ *
+ * Integration notes (deliberately not built here):
+ * - Cart entry docks here once the Phase 7 cart route exists; linking to a
+ *   nonexistent route today would only produce 404s.
+ *
+ * SSR/hydration safe: local toggle signal only, no browser APIs. RTL safe:
+ * logical properties and direction-aware flex flow only.
+ */
+
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AuthNav } from '@flux/auth';
+import { ThemeService } from '@flux/theming';
+import { Container, ThemeToggle } from '@flux/ui';
+import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
+
+@Component({
+  selector: 'storefront-header',
+  imports: [RouterLink, StorefrontNav, AuthNav, Container, ThemeToggle],
+  templateUrl: './header.html',
+  styleUrl: './header.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class StorefrontHeader {
+  /** Main destinations — only routes that exist (business entries arrive with their phases). */
+  readonly mainNav: readonly StorefrontNavItem[] = [{ label: 'Home', route: '/' }];
+
+  /** Central theme state (read-only here; toggled through the shared control). */
+  protected readonly themes = inject(ThemeService);
+
+  /** Mobile menu visibility (local UI state; closed on server and client). */
+  readonly menuOpen = signal(false);
+
+  private readonly menuToggle = viewChild<ElementRef<HTMLButtonElement>>('menuToggle');
+
+  /** Toggles the mobile navigation panel. */
+  toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
+  }
+
+  /** Closes the mobile panel, returning focus to the toggle (Escape path). */
+  closeMenu(): void {
+    this.menuOpen.set(false);
+    this.menuToggle()?.nativeElement.focus();
+  }
+
+  /** Dismisses the mobile panel from anywhere (browser-only event; inert on the server). */
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.menuOpen()) {
+      this.closeMenu();
+    }
+  }
+}

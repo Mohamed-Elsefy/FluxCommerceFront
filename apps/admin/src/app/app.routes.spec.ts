@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { authGuard, roleGuard } from '@flux/auth';
-import { AppLayout } from './layout/app-layout';
+import { AppLayout } from './layout/app-layout/app-layout';
 import { routes } from './app.routes';
 
 describe('routes', () => {

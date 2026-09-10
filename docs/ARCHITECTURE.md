@@ -212,27 +212,22 @@ provider seams, so `libs/api` never imports auth state.
 
 ### `libs/ui`
 
-Contains reusable presentation components and design-system primitives.
-
-Examples:
+Contains reusable presentation components and design-system primitives,
+as built in Phase 3 (Sub-Phases 3.4/3.5/3.10):
 
 ```text
-Button
-Input
-Select
-Modal
-Dialog
-Card
-Table
-Pagination
-Spinner
-Skeleton
-Alert
-Toast
-Empty State
+Presentation  Button  Icon  Input  Badge  Card  Spinner  Alert  Divider  ThemeToggle
+Layout        Container  Stack  Grid  Flex
+Async states  LoadingIndicator  Skeleton  EmptyState  RetryButton  ErrorState
 ```
 
-Components in this library must remain business-agnostic.
+Every component lives in its own folder (`<name>.ts` / `.html` / `.css` /
+`.spec.ts`); templates and styles are never inline. Components consume
+theming tokens exclusively, import no `@flux/*` barrel, never touch
+business features, HTTP, or the theme service, and hold no business-named
+modules (closed set, enforced by ESLint boundaries and
+`scripts/verify-architecture.mjs`). Components in this library must remain
+business-agnostic.
 
 ### `libs/i18n`
 
@@ -250,14 +245,22 @@ Supported backend/frontend culture identifiers must remain consistent.
 
 ### `libs/theming`
 
-Responsible for:
+Owns the visual foundation, as built in Phase 3 (Sub-Phases 3.2/3.3):
 
-- Design tokens
-- CSS variables
-- Theme definitions
-- Theme switching
-- Light/dark mode
-- Theme persistence
+- `tokens.css` — centralized `:root` custom properties (colors,
+  typography, spacing, borders, radius, shadows, containers, z-index,
+  motion, breakpoints); Dark overrides under `:root[data-theme='dark']`
+  reuse the same names.
+- `reset.css` — global border-box sizing and body-margin reset, wired
+  before tokens in both apps.
+- `ThemeService` — Light/Dark signal state, `data-theme` application,
+  guarded `localStorage` persistence, `provideTheming()` bootstrap
+  initializer (see `docs/adr/007-theme-service.md`).
+- `theme.ts` — `Theme`, `isTheme`, `DEFAULT_THEME`, `THEME_ATTRIBUTE`,
+  `THEME_STORAGE_KEY`.
+
+Components consume variables; they never inject the service. Direction
+switching arrives with Phase 4.
 
 ### `libs/models`
 
@@ -342,6 +345,26 @@ ProductCard
 ```
 
 `ProductCard` should not call the Catalog API.
+
+### Component File Organization
+
+Every shipped component lives in its own folder with one concern per file:
+
+```text
+libs/ui/src/lib/alert/
+├── alert.ts        # decorator (templateUrl/styleUrl), class, public API
+├── alert.html      # markup only
+├── alert.css       # styles only
+└── alert.spec.ts   # colocated component tests
+```
+
+The same structure applies project-wide: `libs/ui` primitives, `libs/auth`
+widgets (e.g. `auth-nav/`), and application feature components (e.g.
+`field-errors/`). The `.ts` file holds the decorator, the component class,
+and its API documentation — never inline `template`/`styles` blocks.
+
+Test-host components defined inside `*.spec.ts` files keep inline templates;
+they are test-only scaffolding, not shipped components.
 
 ---
 
@@ -619,13 +642,19 @@ unless there is a specific reason.
 
 Direction is controlled centrally rather than independently by features.
 
+As built in Phase 3 (Sub-Phase 3.9, `docs/adr/008-rtl-first.md`): the
+workspace is fully logical-property-only (audit-enforced across apps and
+libs), components render identically under LTR/RTL (direction-invariance
+suite), and no code branches on direction. Document `dir` switching,
+translations, and localized formatting arrive with Phase 4.
+
 ---
 
 ## 16. Theming
 
 The application uses CSS custom properties and design tokens.
 
-Themes should be switched through a centralized mechanism such as:
+Themes switch through the centralized `ThemeService`, which applies:
 
 ```html
 <html data-theme="light">
@@ -645,7 +674,12 @@ Example conceptual tokens:
 
 Components consume tokens rather than hard-coded theme values.
 
-The initial theme system should support:
+Switching persists to guarded `localStorage` and stays SSR-safe (server
+renders the default shell; see `docs/adr/007-theme-service.md`). Both
+themes meet WCAG AA text contrast (audit-enforced against the token
+values).
+
+The theme system supports:
 
 ```text
 Light
@@ -669,6 +703,13 @@ Desktop
 Responsive behavior belongs primarily to the UI/design system and feature components, not to separate application implementations.
 
 Use responsive CSS and layout primitives instead of duplicating components for different screen sizes.
+
+As built in Phase 3 (Sub-Phase 3.8): canonical breakpoints live in
+`libs/theming` (`--breakpoint-sm/md/lg/xl`: 30/48/64/80rem) and media
+queries repeat those values exactly (audit-enforced); display type and
+container padding scale fluidly (`clamp()`); layout children can shrink
+below content size. Zero horizontal overflow at 375/768/1280px is covered
+by E2E.
 
 ---
 

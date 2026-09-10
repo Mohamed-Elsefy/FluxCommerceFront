@@ -18,7 +18,7 @@ import {
   clearServerValidationErrors,
 } from '../../data-access/auth-form-errors';
 import { authEmailValidators } from '../../data-access/auth-validators';
-import { FieldErrors } from '../../components/field-errors';
+import { FieldErrors } from '../../components/field-errors/field-errors';
 
 @Component({
   selector: 'app-forgot-password-page',

@@ -1,0 +1,18 @@
+.error {
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-sm);
+  text-align: center;
+  padding-block: var(--spacing-2xl);
+  padding-inline: var(--spacing-lg);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.message {
+  margin: 0;
+  opacity: 0.75;
+}

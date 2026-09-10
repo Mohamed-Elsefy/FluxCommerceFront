@@ -1,0 +1,15 @@
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  line-height: 1;
+}
+
+.icon[data-size='sm'] {
+  font-size: var(--font-size-md);
+}
+
+.icon[data-size='lg'] {
+  font-size: var(--font-size-2xl);
+}

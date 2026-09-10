@@ -1,0 +1,83 @@
+:host {
+  display: inline-block;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  inline-size: 100%;
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+
+.button[data-size='sm'] {
+  padding-block: var(--spacing-xs);
+  padding-inline: var(--spacing-md);
+}
+
+.button[data-size='lg'] {
+  padding-block: var(--spacing-md);
+  padding-inline: var(--spacing-xl);
+}
+
+.button[data-variant='primary'] {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.button[data-variant='secondary'] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.button[data-variant='ghost'] {
+  color: var(--color-primary);
+}
+
+.button[data-variant='primary']:hover {
+  filter: brightness(0.92);
+}
+
+.button[data-variant='secondary']:hover,
+.button[data-variant='ghost']:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.button[data-variant='primary']:active {
+  filter: brightness(0.84);
+}
+
+.button:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.button-spinner {
+  display: inline-flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

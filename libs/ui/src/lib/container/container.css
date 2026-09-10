@@ -1,0 +1,22 @@
+.container {
+  inline-size: 100%;
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
+}
+
+.container[data-size='sm'] {
+  max-inline-size: 40rem;
+}
+
+.container[data-size='md'] {
+  max-inline-size: 48rem;
+}
+
+.container[data-size='lg'] {
+  max-inline-size: 64rem;
+}
+
+.container[data-size='full'] {
+  max-inline-size: none;
+}

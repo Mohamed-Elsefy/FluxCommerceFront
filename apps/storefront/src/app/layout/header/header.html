@@ -1,0 +1,35 @@
+<header class="header">
+  <flux-container>
+    <div class="bar">
+      <a class="brand" routerLink="/" aria-label="FluxCommerce home">FluxCommerce</a>
+      <storefront-nav class="desktop-nav" [items]="mainNav" label="Main" />
+      <div class="actions">
+        <auth-nav />
+        <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
+        <button
+          #menuToggle
+          type="button"
+          class="menu-toggle"
+          (click)="toggleMenu()"
+          [attr.aria-expanded]="menuOpen()"
+          aria-controls="storefront-mobile-nav"
+          aria-label="Toggle navigation"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </flux-container>
+  @if (menuOpen()) {
+    <flux-container class="mobile-panel">
+      <storefront-nav
+        id="storefront-mobile-nav"
+        [items]="mainNav"
+        label="Main"
+        orientation="vertical"
+      />
+    </flux-container>
+  }
+</header>

@@ -1,0 +1,21 @@
+<nav class="auth-nav" aria-label="Account">
+  @if (auth.isInitializing()) {
+    <p class="auth-nav-status" aria-live="polite">Checking session…</p>
+  } @else if (auth.isAuthenticated()) {
+    @let user = auth.currentUser();
+    <span class="auth-nav-user">{{ user?.displayName ?? user?.email }}</span>
+    @if (accountRoute !== null) {
+      <a class="auth-nav-link" [routerLink]="accountRoute">Account</a>
+    }
+    <button class="auth-nav-logout" type="button" [disabled]="isLoggingOut()" (click)="logout()">
+      {{ isLoggingOut() ? 'Signing out…' : 'Logout' }}
+    </button>
+  } @else {
+    @if (loginRoute !== null) {
+      <a class="auth-nav-link" [routerLink]="loginRoute">Login</a>
+    }
+    @if (registerRoute !== null) {
+      <a class="auth-nav-link" [routerLink]="registerRoute">Register</a>
+    }
+  }
+</nav>

@@ -23,7 +23,7 @@ import {
   authNameValidators,
   registerPasswordValidators,
 } from '../../data-access/auth-validators';
-import { FieldErrors } from '../../components/field-errors';
+import { FieldErrors } from '../../components/field-errors/field-errors';
 
 @Component({
   selector: 'app-register-page',

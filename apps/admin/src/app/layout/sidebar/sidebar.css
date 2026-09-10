@@ -1,0 +1,51 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  block-size: 100%;
+  padding-block: var(--spacing-md);
+  padding-inline: var(--spacing-md);
+  background: var(--color-surface);
+}
+
+.brand {
+  margin: 0;
+  padding-inline: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.sidebar ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar a {
+  display: block;
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sidebar a:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.sidebar a.active {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sidebar a:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

@@ -1,0 +1,18 @@
+<header class="admin-header">
+  <button
+    #toggle
+    type="button"
+    class="menu-toggle"
+    (click)="menuToggle.emit()"
+    [attr.aria-expanded]="drawerOpen"
+    aria-controls="admin-drawer"
+    aria-label="Toggle navigation"
+  >
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+  </button>
+  <p class="context">FluxCommerce Admin</p>
+  <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
+  <auth-nav [loginRoute]="null" [registerRoute]="null" accountRoute="/dashboard" />
+</header>
