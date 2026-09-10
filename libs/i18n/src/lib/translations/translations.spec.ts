@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CULTURE, SUPPORTED_CULTURES, type Culture } from './culture';
+import { DEFAULT_CULTURE, SUPPORTED_CULTURES, type Culture } from '../culture/culture';
 import {
   AR_TRANSLATIONS,
   DE_TRANSLATIONS,

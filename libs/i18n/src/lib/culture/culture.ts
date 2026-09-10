@@ -19,10 +19,10 @@
  *
  * Pure TypeScript with no Angular, DOM, or storage access: safe for SSR and
  * usable during server initialization. Translation resources, lookup, and
- * interpolation live in `./translation-model`, `./translation-dictionaries`,
- * and `./translations` (Sub-Phase 4.2); reactive state, switching,
- * persistence, and initialization live in `./culture.service` (Sub-Phase
- * 4.3). Explicitly out of scope (later sub-phases, must not appear here):
+ * interpolation live in `../translations/` (Sub-Phase 4.2); reactive state,
+ * switching, persistence, and initialization live in `./culture.service`
+ * (Sub-Phase 4.3). Explicitly out of scope (later sub-phases, must not
+ * appear here):
  * - 4.4+ — no document `dir` application or HTTP propagation.
  */
 

@@ -791,6 +791,9 @@ The UI foundation is ready for **Phase 4 — Localization & Culture Management**
 
 # 25. Phase 4 — Localization
 
+Status: **Complete** (2026-09-10) — see
+`docs/completed/PHASE_4_COMPLETION_REPORT.md`.
+
 Scope:
 
 - `en`
@@ -811,6 +814,13 @@ Deliverable:
 ```text
 Fully localized and RTL-aware application foundation
 ```
+
+All Phase 4 acceptance criteria are satisfied (centralized cultures,
+translations with fallback, culture state and switching, direction
+integration, backend culture propagation, culture-aware formatting,
+localized validation and API errors, SSR/E2E validation, architecture
+audit 97/97). The baseline is ready for **Phase 5 — Catalog & Product
+Discovery**. No business features exist yet.
 
 ---
 

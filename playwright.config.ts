@@ -64,5 +64,15 @@ export default defineConfig({
       testMatch: /admin-auth\.spec\.ts/,
       use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'culture-storefront-chromium',
+      testMatch: /culture\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'culture-admin-chromium',
+      testMatch: /culture\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
   ],
 });

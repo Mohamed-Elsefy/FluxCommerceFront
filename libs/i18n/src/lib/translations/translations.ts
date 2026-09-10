@@ -26,7 +26,7 @@
  * - 4.4+ — no document `dir` application or HTTP propagation.
  */
 
-import { DEFAULT_CULTURE, resolveCulture, type Culture } from './culture';
+import { DEFAULT_CULTURE, resolveCulture, type Culture } from '../culture/culture';
 import { TRANSLATION_RESOURCES } from './translation-dictionaries';
 import type {
   TranslationDictionary,

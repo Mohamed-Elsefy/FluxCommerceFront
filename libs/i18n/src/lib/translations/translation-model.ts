@@ -23,7 +23,7 @@
  * Pure types only: no runtime code, no Angular, DOM, or storage access.
  */
 
-import type { Culture } from './culture';
+import type { Culture } from '../culture/culture';
 
 /**
  * Nested translation dictionary. Interior nodes are plain objects; leaves
