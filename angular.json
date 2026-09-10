@@ -62,7 +62,11 @@
                 "input": "apps/storefront/public"
               }
             ],
-            "styles": ["libs/theming/src/lib/tokens.css", "apps/storefront/src/styles.css"],
+            "styles": [
+              "libs/theming/src/lib/reset.css",
+              "libs/theming/src/lib/tokens.css",
+              "apps/storefront/src/styles.css"
+            ],
             "server": "apps/storefront/src/main.server.ts",
             "security": {
               "allowedHosts": []
@@ -166,7 +170,11 @@
                 "input": "apps/admin/public"
               }
             ],
-            "styles": ["libs/theming/src/lib/tokens.css", "apps/admin/src/styles.css"]
+            "styles": [
+              "libs/theming/src/lib/reset.css",
+              "libs/theming/src/lib/tokens.css",
+              "apps/admin/src/styles.css"
+            ]
           },
           "configurations": {
             "production": {

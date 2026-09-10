@@ -327,8 +327,9 @@ check(
     const styles = angular.projects[app]?.architect?.build?.options?.styles;
     return (
       Array.isArray(styles) &&
-      styles[0] === 'libs/theming/src/lib/tokens.css' &&
-      styles.some((entry) => entry === `apps/${app}/src/styles.css`)
+      styles.includes('libs/theming/src/lib/tokens.css') &&
+      styles.indexOf('libs/theming/src/lib/tokens.css') <
+        styles.indexOf(`apps/${app}/src/styles.css`)
     );
   }),
 );
@@ -970,6 +971,74 @@ check(
     /\[disabled\]/.test(
       readFileSync(join(root, 'libs/ui/src/lib/retry-button/retry-button.html'), 'utf8'),
     ),
+);
+// Sub-Phase 3.12 — Testing & Architectural Verification: presentation
+// libraries expose a closed import surface (Angular + relative only, so UI
+// can never reach business features through any specifier shape), the Dark
+// theme overrides every Light color token, the Theme x Direction x Viewport
+// matrix is covered by unit + E2E suites, the global reset precedes tokens
+// in both apps, and Dialog stays unbuilt (deferred by the 3.4 scope).
+const presentationProdSources = [...uiSources, ...themingSources].filter(
+  (path) => !path.endsWith('.spec.ts'),
+);
+const foreignImports = presentationProdSources.flatMap((path) =>
+  importSpecifiers(path)
+    .filter((spec) => !spec.startsWith('.') && !spec.startsWith('@angular/'))
+    .map((spec) => `${path}: ${spec}`),
+);
+check(
+  '3.12: libs/ui and libs/theming import only Angular and relative modules',
+  foreignImports.length === 0,
+  foreignImports.length === 0 ? '0 violation(s)' : foreignImports.join('; '),
+);
+function colorTokens(block) {
+  const found = new Set();
+  for (const match of block.matchAll(/(--color-[\w-]+)\s*:/g)) {
+    found.add(match[1]);
+  }
+  return found;
+}
+const lightColors = colorTokens(lightThemeBlock);
+const missingInDark = [...lightColors].filter((token) => !colorTokens(darkThemeBlock).has(token));
+check(
+  '3.12: Dark theme overrides every Light color token',
+  missingInDark.length === 0,
+  missingInDark.length === 0
+    ? `${lightColors.size} token(s)`
+    : `missing: ${missingInDark.join(', ')}`,
+);
+const matrixSpec = readFileSync(join(root, 'e2e/storefront.spec.ts'), 'utf8');
+check(
+  '3.12: E2E covers theme switching, viewports, and RTL rendering',
+  /data-theme/.test(matrixSpec) &&
+    /setViewportSize/.test(matrixSpec) &&
+    /['"]rtl['"]/.test(matrixSpec) &&
+    /375/.test(matrixSpec) &&
+    /768/.test(matrixSpec) &&
+    /1280/.test(matrixSpec),
+);
+check(
+  '3.12: unit suite covers direction-invariant rendering',
+  exists('libs/ui/src/lib/direction-invariance.spec.ts'),
+);
+check(
+  '3.12: global reset (box-sizing, body margin) wired first in both apps',
+  exists('libs/theming/src/lib/reset.css') &&
+    /box-sizing:\s*border-box/.test(
+      readFileSync(join(root, 'libs/theming/src/lib/reset.css'), 'utf8'),
+    ) &&
+    ['storefront', 'admin'].every(
+      (app) =>
+        angular.projects[app]?.architect?.build?.options?.styles?.[0] ===
+        'libs/theming/src/lib/reset.css',
+    ),
+);
+check(
+  '3.12: no Dialog implementation exists yet (deferred by the 3.4 scope)',
+  ![...appSources, ...libSources]
+    .filter((path) => !path.endsWith('.spec.ts'))
+    .map((path) => path.split('/').pop() ?? '')
+    .some((name) => /^(dialog|modal)/.test(name)),
 );
 check(
   'scope stop — no optional controls (Checkbox/Radio/Select/Textarea unjustified)',

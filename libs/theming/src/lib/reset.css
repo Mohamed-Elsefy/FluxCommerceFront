@@ -1,0 +1,19 @@
+/**
+ * FluxCommerce global reset (Sub-Phase 3.12 verification finding).
+ *
+ * Two rules the entire layout system assumes: border-box sizing (so
+ * `inline-size: 100%` plus token padding never exceeds its container) and a
+ * margin-free body (so full-bleed chrome reaches the viewport edges).
+ * Wired first in both application `styles` arrays, before `tokens.css`.
+ * Nothing else belongs here — component spacing stays in components.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
