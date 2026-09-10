@@ -231,17 +231,38 @@ business-agnostic.
 
 ### `libs/i18n`
 
-Responsible for:
+Owns the localization and culture platform, as built in Phase 4
+(Sub-Phases 4.1–4.8; see `docs/adr/009-localization-infrastructure.md`),
+organized by capability under `libs/i18n/src/lib/`:
 
-- Supported cultures
-- Translation configuration
-- Language selection
-- Culture persistence
-- Translation loading
-- RTL/LTR direction
-- Localization-related utilities
+- `culture/` — `culture.ts` (`Culture`, `CultureMetadata`, the single
+  `SUPPORTED_CULTURE_METADATA` registry (`en`/`fr`/`de`/`es`/`ar`,
+  `ar` → `rtl`), `DEFAULT_CULTURE` (`en`), validation
+  (`isSupportedCulture`/`parseCulture`/`resolveCulture`) and direction
+  resolution — all pure and SSR-safe); `culture.service.ts`
+  (`CultureService`: `culture`/`supportedCultures`/`initialized`/
+  `direction` signals, persisted → browser → default precedence,
+  guarded `localStorage` persistence, `setCulture` runtime switching,
+  single-writer root `dir` application, `provideCulture()` bootstrap
+  initializer — see `docs/adr/010-culture-direction-coupling.md`,
+  `docs/adr/011-ssr-hydration-safety.md`); `culture-propagation.ts`
+  (`provideCulturePropagation()` binds the Phase 1
+  `ACTIVE_CULTURE_PROVIDER` seam to `CultureService`).
+- `translations/` — `translation-model.ts` (nested-dictionary model,
+  `namespace.group.key` convention), `translation-dictionaries.ts`
+  (bundled base resources for all five cultures),
+  `translations.ts` (synchronous loading, nested lookup,
+  `{param}` interpolation, deterministic fallback target → `en` →
+  key path).
+- `formatting/` — `formatDate`/`formatNumber`/`formatCurrency` over
+  `Intl` (`ar` renders Arabic-Indic digits via `ar-u-nu-arab`).
+- `errors/` — `validation-errors.ts` (Angular `ValidationErrors` →
+  `common.validation.*`); `error-localization.ts` (stable-code/status
+  → `errors.*` with generic fallback).
 
 Supported backend/frontend culture identifiers must remain consistent.
+Feature libraries own feature-specific translation content; `libs/i18n`
+never imports feature code, HTTP, or business domains.
 
 ### `libs/theming`
 
@@ -260,7 +281,8 @@ Owns the visual foundation, as built in Phase 3 (Sub-Phases 3.2/3.3):
   `THEME_STORAGE_KEY`.
 
 Components consume variables; they never inject the service. Direction
-switching arrives with Phase 4.
+switching is owned by Phase 4 (`CultureService` applies root `dir` from
+the active culture; see `docs/adr/010-culture-direction-coupling.md`).
 
 ### `libs/models`
 
@@ -645,8 +667,12 @@ Direction is controlled centrally rather than independently by features.
 As built in Phase 3 (Sub-Phase 3.9, `docs/adr/008-rtl-first.md`): the
 workspace is fully logical-property-only (audit-enforced across apps and
 libs), components render identically under LTR/RTL (direction-invariance
-suite), and no code branches on direction. Document `dir` switching,
-translations, and localized formatting arrive with Phase 4.
+suite), and no code branches on direction. As built in Phase 4
+(Sub-Phases 4.1–4.4): cultures, translations, and formatting live in
+`libs/i18n`, and `CultureService` is the single writer of document `dir`
+(`ar` → `rtl`, else `ltr`; see
+`docs/adr/009-localization-infrastructure.md` and
+`docs/adr/010-culture-direction-coupling.md`).
 
 ---
 

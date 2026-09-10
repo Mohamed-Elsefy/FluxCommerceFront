@@ -21,7 +21,8 @@
  *
  * ```text
  * 1. correlationInterceptor      — ensure X-Correlation-ID (flow id or generated)
- * 2. requestConfigInterceptor    — Accept-Language, Idempotency-Key
+ * 2. requestConfigInterceptor    — Accept-Language (explicit context, else ambient
+ *                                  culture via ACTIVE_CULTURE_PROVIDER), Idempotency-Key
  * 3. authRecoveryInterceptor     — 401 recovery via seam (2.7; retries re-enter 4)
  * 4. authInterceptor             — Authorization Bearer hook (Phase 2 seam)
  * 5. httpErrorHookInterceptor    — transport-error hook (1.5 maps here)
