@@ -28,4 +28,28 @@
       </p>
     }
   }
+
+  @if (activeCategoryId() !== null) {
+    <section aria-labelledby="products-title">
+      <h2 id="products-title">{{ listingCopy().title }}</h2>
+      @if (productList().isLoading) {
+        <flux-loading-indicator [label]="listingCopy().loading"></flux-loading-indicator>
+      } @else if (productList().isError) {
+        <flux-error-state
+          [title]="listingCopy().errorTitle"
+          [message]="listingErrorMessage()"
+          [retryLabel]="listingCopy().retry"
+          (retry)="reloadProducts()"
+        ></flux-error-state>
+      } @else if (productList().isEmpty) {
+        <flux-empty-state
+          [title]="listingCopy().emptyTitle"
+          [message]="listingCopy().emptyMessage"
+        ></flux-empty-state>
+      } @else if (productList().isSuccess) {
+        <p>{{ resultCount() }}</p>
+        <catalog-product-grid [products]="productList().data?.items ?? []"></catalog-product-grid>
+      }
+    </section>
+  }
 </section>

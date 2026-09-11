@@ -23,6 +23,7 @@ import {
   translate,
   type Culture,
   type TranslationDictionary,
+  type TranslationParams,
   type TranslationResources,
 } from '@flux/i18n';
 
@@ -35,6 +36,12 @@ export const CATALOG_TRANSLATION_KEYS = {
   categoriesEmptyMessage: 'catalog.categories.emptyMessage',
   categoriesErrorTitle: 'catalog.categories.errorTitle',
   categoriesClearSelection: 'catalog.categories.clearSelection',
+  listingTitle: 'catalog.listing.title',
+  listingLoading: 'catalog.listing.loading',
+  listingEmptyTitle: 'catalog.listing.emptyTitle',
+  listingEmptyMessage: 'catalog.listing.emptyMessage',
+  listingErrorTitle: 'catalog.listing.errorTitle',
+  listingResultCount: 'catalog.listing.resultCount',
 } as const;
 
 /** English (`en`) catalog vocabulary. Also the deterministic fallback source. */
@@ -48,6 +55,14 @@ const EN_CATALOG: TranslationDictionary = {
       emptyMessage: 'Check back soon — new categories are on the way.',
       errorTitle: 'Categories unavailable',
       clearSelection: 'Show all categories',
+    },
+    listing: {
+      title: 'Products',
+      loading: 'Loading products…',
+      emptyTitle: 'No products found',
+      emptyMessage: 'Try another category — new products arrive often.',
+      errorTitle: 'Products unavailable',
+      resultCount: '{count} products',
     },
   },
 };
@@ -64,6 +79,14 @@ const FR_CATALOG: TranslationDictionary = {
       errorTitle: 'Catégories indisponibles',
       clearSelection: 'Afficher toutes les catégories',
     },
+    listing: {
+      title: 'Produits',
+      loading: 'Chargement des produits…',
+      emptyTitle: 'Aucun produit trouvé',
+      emptyMessage: 'Essayez une autre catégorie — de nouveaux produits arrivent souvent.',
+      errorTitle: 'Produits indisponibles',
+      resultCount: '{count} produits',
+    },
   },
 };
 
@@ -78,6 +101,14 @@ const DE_CATALOG: TranslationDictionary = {
       emptyMessage: 'Schauen Sie bald wieder vorbei — neue Kategorien sind unterwegs.',
       errorTitle: 'Kategorien nicht verfügbar',
       clearSelection: 'Alle Kategorien anzeigen',
+    },
+    listing: {
+      title: 'Produkte',
+      loading: 'Produkte werden geladen…',
+      emptyTitle: 'Keine Produkte gefunden',
+      emptyMessage: 'Versuchen Sie eine andere Kategorie — neue Produkte treffen häufig ein.',
+      errorTitle: 'Produkte nicht verfügbar',
+      resultCount: '{count} Produkte',
     },
   },
 };
@@ -94,6 +125,14 @@ const ES_CATALOG: TranslationDictionary = {
       errorTitle: 'Categorías no disponibles',
       clearSelection: 'Mostrar todas las categorías',
     },
+    listing: {
+      title: 'Productos',
+      loading: 'Cargando los productos…',
+      emptyTitle: 'No se encontraron productos',
+      emptyMessage: 'Pruebe con otra categoría: llegan productos nuevos con frecuencia.',
+      errorTitle: 'Productos no disponibles',
+      resultCount: '{count} productos',
+    },
   },
 };
 
@@ -109,6 +148,14 @@ const AR_CATALOG: TranslationDictionary = {
       errorTitle: 'الفئات غير متاحة',
       clearSelection: 'عرض كل الفئات',
     },
+    listing: {
+      title: 'المنتجات',
+      loading: 'جارٍ تحميل المنتجات…',
+      emptyTitle: 'لم يتم العثور على منتجات',
+      emptyMessage: 'جرّب فئة أخرى — تصل منتجات جديدة باستمرار.',
+      errorTitle: 'المنتجات غير متاحة',
+      resultCount: '{count} منتجات',
+    },
   },
 };
 
@@ -123,8 +170,13 @@ export const CATALOG_TRANSLATION_RESOURCES: TranslationResources = {
 
 /**
  * Resolves a catalog key to its localized string with deterministic
- * fallback: target culture → `en` → the key path itself. Never throws.
+ * fallback: target culture → `en` → the key path itself. `params` fills
+ * `{placeholder}` slots (e.g. `{count}`). Never throws.
  */
-export function translateCatalogKey(culture: Culture, key: string): string {
-  return translate(CATALOG_TRANSLATION_RESOURCES, culture, key);
+export function translateCatalogKey(
+  culture: Culture,
+  key: string,
+  params: TranslationParams = {},
+): string {
+  return translate(CATALOG_TRANSLATION_RESOURCES, culture, key, params);
 }

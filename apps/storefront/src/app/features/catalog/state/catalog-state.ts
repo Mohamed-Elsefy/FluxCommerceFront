@@ -151,6 +151,14 @@ export class CatalogState {
     this.productStore.reset();
     this.categoryStore.reset();
   }
+
+  /**
+   * Clears only the product-list slot back to `idle` (e.g. when the
+   * selection driving the listing is removed while discovery state stays).
+   */
+  clearProducts(): void {
+    this.productsStore.reset();
+  }
 }
 
 function toApiOptions(options: CatalogLoadOptions): ApiRequestOptions {

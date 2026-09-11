@@ -1,0 +1,12 @@
+.product-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.product-grid > li {
+  min-inline-size: 0;
+}

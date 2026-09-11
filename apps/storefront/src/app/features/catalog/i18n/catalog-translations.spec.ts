@@ -1,5 +1,5 @@
 /**
- * Unit tests for the Sub-Phase 5.2 catalog translation bundle.
+ * Unit tests for the catalog translation bundle (Sub-Phases 5.2–5.3).
  *
  * Covers key parity across all five cultures (every key resolves to a
  * non-empty, non-fallback string), deterministic `en` fallback for unknown
@@ -33,6 +33,14 @@ describe('catalog translation parity', () => {
     }
   });
 
+  it('interpolates params into slot templates', () => {
+    expect(
+      translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.listingResultCount, { count: 3 }),
+    ).toBe('3 products');
+    expect(
+      translateCatalogKey('fr', CATALOG_TRANSLATION_KEYS.listingResultCount, { count: 3 }),
+    ).toBe('3 produits');
+  });
   it('localizes copy (non-English cultures differ from English)', () => {
     for (const culture of ['fr', 'de', 'es', 'ar'] as const) {
       expect(translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesTitle)).not.toBe(

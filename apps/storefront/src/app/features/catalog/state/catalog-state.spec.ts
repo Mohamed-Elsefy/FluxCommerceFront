@@ -181,6 +181,17 @@ describe('CatalogState single-resource slots', () => {
     expect(state.category().data?.slug).toBe('apparel');
   });
 
+  it('clears only the product-list slot back to idle', () => {
+    const { state } = setup({});
+    state.loadProducts({});
+    state.loadCategories({});
+    state.clearProducts();
+
+    expect(state.products().status).toBe('idle');
+    expect(state.products().data).toBeNull();
+    expect(state.categories().status).toBe('success');
+  });
+
   it('resets every slot back to idle', () => {
     const { state } = setup({});
     state.loadProducts({});

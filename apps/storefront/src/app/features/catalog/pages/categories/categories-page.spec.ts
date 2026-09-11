@@ -1,12 +1,14 @@
 /**
- * Page tests for the Sub-Phase 5.2 `CategoriesPage`.
+ * Page tests for the `CategoriesPage` (Sub-Phases 5.2–5.3: discovery +
+ * listing).
  *
  * `CatalogState` is stubbed at its typed seam (its orchestration is
  * covered by `catalog-state.spec.ts`) so these tests own the page logic:
- * discovery load on init, loading/empty/error/success rendering, localized
- * copy per active culture, `categoryId` query-parameter selection with
- * graceful unknown ids, clear-selection navigation, and retry. The router
- * stays real to prove link-target behavior.
+ * discovery load on init, listing load/clear driven by the `categoryId`
+ * query parameter, loading/empty/error/success rendering for both slots,
+ * localized copy per active culture, graceful unknown ids,
+ * clear-selection navigation, and both retries. The router stays real to
+ * prove link-target behavior.
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -26,7 +28,7 @@ import {
 import { CultureService } from '@flux/i18n';
 import type { CategoryResponse } from '@flux/models';
 import { CatalogState } from '../../state/catalog-state';
-import type { CategoryList } from '../../models/catalog.models';
+import type { CategoryList, ProductList, ProductListItem } from '../../models/catalog.models';
 import { CategoriesPage, CATEGORY_NAV_PAGE_SIZE } from './categories-page';
 
 const CATEGORIES: readonly CategoryResponse[] = [
@@ -58,8 +60,32 @@ function categoryList(): CategoryList {
   return { items: [...CATEGORIES], totalCount: 2, pageNumber: 1, pageSize: 100 };
 }
 
+function productItem(id: string, name: string): ProductListItem {
+  return {
+    id,
+    name,
+    slug: name.toLowerCase(),
+    description: null,
+    categoryId: '22222222-2222-2222-2222-222222222222',
+    primaryImage: null,
+  };
+}
+
+function productList(): ProductList {
+  return {
+    items: [
+      productItem('11111111-1111-1111-1111-111111111111', 'Tee'),
+      productItem('55555555-5555-5555-5555-555555555555', 'Hoodie'),
+    ],
+    totalCount: 2,
+    pageNumber: 1,
+    pageSize: 20,
+  };
+}
+
 function setup(options: {
   snapshot?: ResourceState<CategoryList>;
+  productsSnapshot?: ResourceState<ProductList>;
   categoryId?: string | null;
   culture?: 'en' | 'fr';
   platform?: 'browser' | 'server';
@@ -67,13 +93,24 @@ function setup(options: {
   fixture: ComponentFixture<CategoriesPage>;
   element: HTMLElement;
   loadCalls: unknown[];
+  loadProductsCalls: unknown[];
+  clearProductsCalls: number;
 } {
   const loadCalls: unknown[] = [];
+  const loadProductsCalls: unknown[] = [];
+  let clearProductsCalls = 0;
   const stateStub = {
     categories: signal(options.snapshot ?? idleResource<CategoryList>()),
+    products: signal(options.productsSnapshot ?? idleResource<ProductList>()),
     loadCategories: ((query: unknown) => {
       loadCalls.push(query);
     }) as CatalogState['loadCategories'],
+    loadProducts: ((query: unknown) => {
+      loadProductsCalls.push(query);
+    }) as CatalogState['loadProducts'],
+    clearProducts: (() => {
+      clearProductsCalls += 1;
+    }) as CatalogState['clearProducts'],
   } as unknown as CatalogState;
   const routeStub = {
     queryParamMap: of(
@@ -97,7 +134,13 @@ function setup(options: {
   TestBed.inject(CultureService).setCulture(options.culture ?? 'en');
   const fixture = TestBed.createComponent(CategoriesPage);
   fixture.detectChanges();
-  return { fixture, element: fixture.nativeElement as HTMLElement, loadCalls };
+  return {
+    fixture,
+    element: fixture.nativeElement as HTMLElement,
+    loadCalls,
+    loadProductsCalls,
+    clearProductsCalls,
+  };
 }
 
 function categoryLinks(element: HTMLElement): HTMLAnchorElement[] {
@@ -224,5 +267,114 @@ describe('CategoriesPage empty and error', () => {
     fixture.detectChanges();
 
     expect(loadCalls).toHaveLength(2);
+  });
+});
+
+describe('CategoriesPage product listing', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  const categoryId = '22222222-2222-2222-2222-222222222222';
+
+  it('loads the listing for the selected category on init', () => {
+    const { loadProductsCalls, clearProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+    });
+
+    expect(loadProductsCalls).toEqual([{ categoryId }]);
+    expect(clearProductsCalls).toBe(0);
+  });
+
+  it('clears the listing with no selection instead of loading', () => {
+    const { element, loadProductsCalls, clearProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+    });
+
+    expect(loadProductsCalls).toEqual([]);
+    expect(clearProductsCalls).toBe(1);
+    expect(element.querySelector('catalog-product-grid')).toBeNull();
+    expect(element.querySelector('#products-title')).toBeNull();
+  });
+
+  it('renders the grid with a localized result count on success', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      categoryId,
+    });
+    const cards = [...element.querySelectorAll('catalog-product-card')];
+
+    expect(element.querySelector('#products-title')?.textContent).toBe('Products');
+    expect(
+      element.querySelector('section[aria-labelledby="products-title"] > p')?.textContent,
+    ).toBe('2 products');
+    expect(cards).toHaveLength(2);
+    expect(cards.map((card) => card.querySelector('h3')?.textContent)).toEqual(['Tee', 'Hoodie']);
+  });
+
+  it('renders the localized listing loading state', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: loadingResource<ProductList>(),
+      categoryId,
+    });
+
+    expect(element.querySelector('catalog-product-grid')).toBeNull();
+    expect(element.querySelector('#products-title')).not.toBeNull();
+  });
+
+  it('renders the localized listing empty state', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: emptyResource<ProductList>(productList()),
+      categoryId,
+    });
+    const empty = element.querySelector(
+      'section[aria-labelledby="products-title"] flux-empty-state',
+    );
+
+    expect(empty?.querySelector('.title')?.textContent).toBe('No products found');
+    expect(empty?.querySelector('.message')?.textContent).toBe(
+      'Try another category — new products arrive often.',
+    );
+    expect(element.querySelector('catalog-product-grid')).toBeNull();
+  });
+
+  it('renders the localized listing error state with retry', () => {
+    const { fixture, element, loadProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: errorResource<ProductList>(
+        new ApiError({ status: 500, message: 'Server error.' }),
+      ),
+      categoryId,
+    });
+    const error = element.querySelector(
+      'section[aria-labelledby="products-title"] flux-error-state',
+    );
+
+    expect(error?.querySelector('.title')?.textContent).toBe('Products unavailable');
+    expect(error?.querySelector('.message')?.textContent).toBe('An unexpected error occurred.');
+
+    (error?.querySelector('button.retry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(loadProductsCalls).toEqual([{ categoryId }, { categoryId }]);
+  });
+
+  it('renders French listing copy for the active culture', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      categoryId,
+      culture: 'fr',
+    });
+
+    expect(element.querySelector('#products-title')?.textContent).toBe('Produits');
   });
 });
