@@ -22,8 +22,10 @@
  * Explicitly out of scope (later sub-phases, must not appear here):
  * - 5.2 — no pages, no category discovery UI.
  * - 5.3 — no product cards or grids.
- * - 5.4 — no coherent query-state store (only the query shape + defaults).
  * - Phase 6 — no variants, SKUs, quantities, or add-to-cart.
+ *
+ * The coherent query state of 5.4 lives in `state/catalog-query-state`
+ * and builds on the `CatalogQuery` shape and helpers below.
  */
 
 import { normalizePagination, toQueryParams, type PagedResult, type QueryParams } from '@flux/api';

@@ -31,10 +31,12 @@
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
  * - 5.2 — no pages, no category discovery orchestration.
- * - 5.4 — no coherent query-state store (callers pass the query per load).
  * - 5.5 — no debouncing or stale-request guards beyond `AbortSignal`
  *   forwarding through `ApiRequestOptions.signal`.
  * - Phase 6 — no variant selection, quantities, or add-to-cart.
+ *
+ * Query transitions (5.4) live in `catalog-query-state` — this service
+ * executes backend queries and owns the resource slots, never the query.
  */
 
 import { inject, Injectable } from '@angular/core';

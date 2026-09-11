@@ -42,6 +42,8 @@ export const CATALOG_TRANSLATION_KEYS = {
   listingEmptyMessage: 'catalog.listing.emptyMessage',
   listingErrorTitle: 'catalog.listing.errorTitle',
   listingResultCount: 'catalog.listing.resultCount',
+  searchLabel: 'catalog.search.label',
+  searchPlaceholder: 'catalog.search.placeholder',
 } as const;
 
 /** English (`en`) catalog vocabulary. Also the deterministic fallback source. */
@@ -63,6 +65,10 @@ const EN_CATALOG: TranslationDictionary = {
       emptyMessage: 'Try another category — new products arrive often.',
       errorTitle: 'Products unavailable',
       resultCount: '{count} products',
+    },
+    search: {
+      label: 'Search products',
+      placeholder: 'Search by keyword…',
     },
   },
 };
@@ -87,6 +93,10 @@ const FR_CATALOG: TranslationDictionary = {
       errorTitle: 'Produits indisponibles',
       resultCount: '{count} produits',
     },
+    search: {
+      label: 'Rechercher des produits',
+      placeholder: 'Rechercher par mot-clé…',
+    },
   },
 };
 
@@ -109,6 +119,10 @@ const DE_CATALOG: TranslationDictionary = {
       emptyMessage: 'Versuchen Sie eine andere Kategorie — neue Produkte treffen häufig ein.',
       errorTitle: 'Produkte nicht verfügbar',
       resultCount: '{count} Produkte',
+    },
+    search: {
+      label: 'Produkte suchen',
+      placeholder: 'Nach Stichwort suchen…',
     },
   },
 };
@@ -133,6 +147,10 @@ const ES_CATALOG: TranslationDictionary = {
       errorTitle: 'Productos no disponibles',
       resultCount: '{count} productos',
     },
+    search: {
+      label: 'Buscar productos',
+      placeholder: 'Buscar por palabra clave…',
+    },
   },
 };
 
@@ -155,6 +173,10 @@ const AR_CATALOG: TranslationDictionary = {
       emptyMessage: 'جرّب فئة أخرى — تصل منتجات جديدة باستمرار.',
       errorTitle: 'المنتجات غير متاحة',
       resultCount: '{count} منتجات',
+    },
+    search: {
+      label: 'البحث في المنتجات',
+      placeholder: 'البحث بكلمة مفتاحية…',
     },
   },
 };

@@ -13,9 +13,9 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, signal } from '@angular/core';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { of } from 'rxjs';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BehaviorSubject, of } from 'rxjs';
 import {
   ApiError,
   emptyResource,
@@ -27,9 +27,10 @@ import {
 } from '@flux/api';
 import { CultureService } from '@flux/i18n';
 import type { CategoryResponse } from '@flux/models';
+import { CatalogApiService } from '../../data-access/catalog-api.service';
 import { CatalogState } from '../../state/catalog-state';
 import type { CategoryList, ProductList, ProductListItem } from '../../models/catalog.models';
-import { CategoriesPage, CATEGORY_NAV_PAGE_SIZE } from './categories-page';
+import { CategoriesPage, CATEGORY_NAV_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from './categories-page';
 
 const CATEGORIES: readonly CategoryResponse[] = [
   {
@@ -87,6 +88,7 @@ function setup(options: {
   snapshot?: ResourceState<CategoryList>;
   productsSnapshot?: ResourceState<ProductList>;
   categoryId?: string | null;
+  routeQuery?: Record<string, string>;
   culture?: 'en' | 'fr';
   platform?: 'browser' | 'server';
 }): {
@@ -116,6 +118,7 @@ function setup(options: {
     queryParamMap: of(
       convertToParamMap({
         ...(options.categoryId === undefined ? {} : { categoryId: options.categoryId }),
+        ...(options.routeQuery ?? {}),
       }),
     ),
   } as unknown as ActivatedRoute;
@@ -287,7 +290,7 @@ describe('CategoriesPage product listing', () => {
       categoryId,
     });
 
-    expect(loadProductsCalls).toEqual([{ categoryId }]);
+    expect(loadProductsCalls).toEqual([{ categoryId, pageNumber: 1, pageSize: 20 }]);
     expect(clearProductsCalls).toBe(0);
   });
 
@@ -364,7 +367,10 @@ describe('CategoriesPage product listing', () => {
     (error?.querySelector('button.retry') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(loadProductsCalls).toEqual([{ categoryId }, { categoryId }]);
+    expect(loadProductsCalls).toEqual([
+      { categoryId, pageNumber: 1, pageSize: 20 },
+      { categoryId, pageNumber: 1, pageSize: 20 },
+    ]);
   });
 
   it('renders French listing copy for the active culture', () => {
@@ -376,5 +382,254 @@ describe('CategoriesPage product listing', () => {
     });
 
     expect(element.querySelector('#products-title')?.textContent).toBe('Produits');
+  });
+
+  it('preserves paging and search/sort route state in listing requests', () => {
+    const { loadProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: {
+        searchTerm: 'tee',
+        sortBy: 'Name',
+        sortDirection: 'Descending',
+        pageNumber: '3',
+      },
+    });
+
+    expect(loadProductsCalls).toEqual([
+      {
+        searchTerm: 'tee',
+        categoryId,
+        sortBy: 0,
+        sortDirection: 1,
+        pageNumber: 3,
+        pageSize: 20,
+      },
+    ]);
+  });
+
+  it('ignores garbage route values and loads with field defaults', () => {
+    const { loadProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { pageNumber: 'zero', sortBy: 'Price' },
+    });
+
+    expect(loadProductsCalls).toEqual([{ categoryId, pageNumber: 1, pageSize: 20 }]);
+  });
+});
+
+describe('CategoriesPage listing effect stability (regression)', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  /**
+   * Regression test with the REAL `CatalogState` (the unit stub above
+   * records calls without touching signals, so it cannot exhibit effect
+   * dependency loops). Settled product results must not reschedule the
+   * listing effect — otherwise every response refires a request forever.
+   */
+  it('fetches the listing exactly once per selection with live state', () => {
+    const searchCalls: unknown[] = [];
+    const apiStub = {
+      searchCatalog: ((query: unknown) => {
+        searchCalls.push(query);
+        return of({ isSuccess: true, data: productList() });
+      }) as CatalogApiService['searchCatalog'],
+      listCategories: (() =>
+        of({ isSuccess: true, data: categoryList() })) as CatalogApiService['listCategories'],
+    } as unknown as CatalogApiService;
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: CatalogApiService, useValue: apiStub },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParamMap: of(
+              convertToParamMap({ categoryId: '22222222-2222-2222-2222-222222222222' }),
+            ),
+          },
+        },
+        CatalogState,
+      ],
+    });
+    window.localStorage.clear();
+    TestBed.inject(CultureService).setCulture('en');
+    const fixture = TestBed.createComponent(CategoriesPage);
+    fixture.detectChanges();
+
+    // Flush any scheduled effect re-runs: a dependency loop would refire
+    // the listing effect (and its HTTP request) on every flush.
+    fixture.detectChanges();
+    fixture.detectChanges();
+    fixture.detectChanges();
+
+    expect(searchCalls).toHaveLength(1);
+    expect(TestBed.inject(CatalogState).products().status).toBe('success');
+    expect(TestBed.inject(CatalogState).products().data?.items).toHaveLength(2);
+  });
+});
+
+describe('CategoriesPage search (5.5)', () => {
+  const categoryId = '22222222-2222-2222-2222-222222222222';
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  // Real timers: the runner is zoneless (`zone-testing` is unavailable, so
+  // no `fakeAsync`); RxJS `debounceTime` runs on plain `setTimeout`.
+  function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  it('renders the localized search field bound to the committed query', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { searchTerm: 'tee' },
+    });
+    const field = element.querySelector('catalog-search-input');
+
+    expect(field?.querySelector('.search-label')?.textContent).toBe('Search products');
+    expect(field?.querySelector('input')?.getAttribute('placeholder')).toBe('Search by keyword…');
+    // Controlled input echoes the committed (URL) text, not raw keystrokes.
+    expect((field?.querySelector('input') as HTMLInputElement | null)?.value).toBe('tee');
+  });
+
+  it('debounces keystrokes into a single query commit', async () => {
+    const { fixture } = setup({ snapshot: successResource(categoryList()), categoryId });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const page = fixture.componentInstance;
+
+    page.onSearchChange('t');
+    await sleep(100);
+    page.onSearchChange('te');
+    await sleep(100);
+    page.onSearchChange('tee');
+    await sleep(SEARCH_DEBOUNCE_MS + 100);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: { searchTerm: 'tee', categoryId, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('ignores repeated identical commits', async () => {
+    const { fixture } = setup({ snapshot: successResource(categoryList()), categoryId });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const page = fixture.componentInstance;
+
+    page.onSearchChange('tee');
+    await sleep(SEARCH_DEBOUNCE_MS + 100);
+    page.onSearchChange('tee');
+    await sleep(SEARCH_DEBOUNCE_MS + 100);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets to the first page while preserving the category on search', async () => {
+    const { fixture } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { pageNumber: '3' },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    fixture.componentInstance.onSearchChange('tee');
+    await sleep(SEARCH_DEBOUNCE_MS + 100);
+
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: { searchTerm: 'tee', categoryId, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('drops the search key on clear, restoring the normal listing', async () => {
+    const { fixture } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { searchTerm: 'tee' },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const page = fixture.componentInstance;
+
+    page.onSearchChange('te');
+    await sleep(SEARCH_DEBOUNCE_MS + 100);
+    page.onSearchChange('');
+    await sleep(SEARCH_DEBOUNCE_MS + 100);
+
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(navigate).toHaveBeenLastCalledWith(['/catalog'], {
+      queryParams: { categoryId, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('loads the listing for search text without a category', () => {
+    const { element, loadProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      routeQuery: { searchTerm: 'tee' },
+    });
+
+    expect(loadProductsCalls).toEqual([{ searchTerm: 'tee', pageNumber: 1, pageSize: 20 }]);
+    expect(element.querySelector('catalog-product-grid')).not.toBeNull();
+  });
+
+  it('aborts the superseded listing request on query change', () => {
+    const params = new BehaviorSubject(
+      convertToParamMap({ categoryId: '22222222-2222-2222-2222-222222222222' }),
+    );
+    const seen: { query: unknown; signal?: AbortSignal }[] = [];
+    const stateStub = {
+      categories: signal(successResource(categoryList())),
+      products: signal(idleResource<ProductList>()),
+      loadCategories: (() => undefined) as unknown as CatalogState['loadCategories'],
+      loadProducts: ((query: unknown, options: { signal?: AbortSignal } = {}) => {
+        seen.push({ query, signal: options.signal });
+      }) as CatalogState['loadProducts'],
+      clearProducts: (() => undefined) as unknown as CatalogState['clearProducts'],
+    } as unknown as CatalogState;
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: CatalogState, useValue: stateStub },
+        { provide: ActivatedRoute, useValue: { queryParamMap: params.asObservable() } },
+      ],
+    });
+    window.localStorage.clear();
+    TestBed.inject(CultureService).setCulture('en');
+    const fixture = TestBed.createComponent(CategoriesPage);
+    fixture.detectChanges();
+
+    params.next(
+      convertToParamMap({
+        categoryId: '22222222-2222-2222-2222-222222222222',
+        searchTerm: 'tee',
+      }),
+    );
+    fixture.detectChanges();
+    fixture.detectChanges();
+
+    expect(seen).toHaveLength(2);
+    expect(seen[0]?.signal?.aborted).toBe(true);
+    expect(seen[1]?.signal?.aborted).toBe(false);
+    expect(seen[1]?.query).toMatchObject({ searchTerm: 'tee' });
   });
 });
