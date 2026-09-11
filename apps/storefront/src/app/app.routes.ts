@@ -22,6 +22,11 @@ export const routes: Routes = [
         path: '',
         loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
       },
+      {
+        path: 'catalog',
+        loadChildren: () =>
+          import('./features/catalog/catalog.routes').then((m) => m.catalogRoutes),
+      },
     ],
   },
   {

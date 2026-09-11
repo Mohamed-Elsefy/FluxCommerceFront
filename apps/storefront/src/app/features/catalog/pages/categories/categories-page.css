@@ -1,0 +1,21 @@
+.categories-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding-block: var(--spacing-lg);
+  padding-inline: var(--container-padding-inline);
+  margin-inline: auto;
+  max-inline-size: var(--container-max-width);
+}
+
+.categories-page h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text);
+}
+
+.categories-page > p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+}

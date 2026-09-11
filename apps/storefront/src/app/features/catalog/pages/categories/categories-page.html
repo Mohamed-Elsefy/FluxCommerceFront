@@ -1,0 +1,31 @@
+<section class="categories-page" aria-labelledby="categories-title">
+  <h1 id="categories-title">{{ copy().title }}</h1>
+  <p>{{ copy().subtitle }}</p>
+
+  @if (categories().isLoading) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (categories().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="reload()"
+    ></flux-error-state>
+  } @else if (categories().isEmpty) {
+    <flux-empty-state
+      [title]="copy().emptyTitle"
+      [message]="copy().emptyMessage"
+    ></flux-empty-state>
+  } @else if (categories().isSuccess) {
+    <catalog-category-nav
+      [categories]="categories().data?.items ?? []"
+      [activeCategoryId]="activeCategoryId()"
+      [label]="copy().title"
+    ></catalog-category-nav>
+    @if (activeCategoryId() !== null) {
+      <p>
+        <a routerLink="/catalog">{{ copy().clearSelection }}</a>
+      </p>
+    }
+  }
+</section>
