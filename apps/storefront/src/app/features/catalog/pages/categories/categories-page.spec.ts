@@ -633,3 +633,184 @@ describe('CategoriesPage search (5.5)', () => {
     expect(seen[1]?.query).toMatchObject({ searchTerm: 'tee' });
   });
 });
+
+describe('CategoriesPage filtering and sorting (5.6)', () => {
+  const categoryId = '22222222-2222-2222-2222-222222222222';
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function selects(element: HTMLElement): HTMLSelectElement[] {
+    return [...element.querySelectorAll('catalog-filter-select select')].map(
+      (select) => select as HTMLSelectElement,
+    );
+  }
+
+  function choose(element: HTMLElement, index: number, value: string): void {
+    const boxes = selects(element);
+    const box = boxes[index];
+    if (box === undefined) {
+      throw new Error(`Filter select ${index} did not render`);
+    }
+    box.value = value;
+    box.dispatchEvent(new Event('change'));
+  }
+
+  it('renders backend-faithful filter and sort controls with reset options', () => {
+    const { element } = setup({ snapshot: successResource(categoryList()), categoryId });
+    const boxes = selects(element);
+
+    expect(boxes).toHaveLength(3);
+    expect([...boxes[0]?.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+      'All',
+      'Draft',
+      'Active',
+      'Inactive',
+      'Archived',
+    ]);
+    expect([...boxes[1]?.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+      'All',
+      'Visible',
+      'Hidden',
+    ]);
+    expect([...boxes[2]?.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+      'Default',
+      'Name (A–Z)',
+      'Name (Z–A)',
+      'Newest first',
+      'Oldest first',
+    ]);
+  });
+
+  it('offers no price or availability controls (not in the contract)', () => {
+    const { element } = setup({ snapshot: successResource(categoryList()), categoryId });
+    const labels = [...element.querySelectorAll('.catalog-filters')].map(
+      (node) => node.textContent ?? '',
+    );
+
+    expect(element.querySelectorAll('catalog-filter-select')).toHaveLength(3);
+    for (const text of labels) {
+      expect(text.toLowerCase()).not.toContain('price');
+    }
+  });
+
+  it('commits a status filter with page reset, preserving the category', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { pageNumber: '3' },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    choose(element, 0, '1');
+
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: { categoryId, status: 1, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('commits a visibility filter with page reset', () => {
+    const { element } = setup({ snapshot: successResource(categoryList()), categoryId });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    choose(element, 1, '1');
+
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: { categoryId, visibility: 1, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('commits a sort selection with page reset', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { pageNumber: '2' },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    choose(element, 2, '1:1');
+
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: {
+        categoryId,
+        sortBy: 1,
+        sortDirection: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      },
+      replaceUrl: true,
+    });
+  });
+
+  it('treats unknown select tokens as cleared dimensions', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { status: '1' },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    choose(element, 0, 'bogus');
+
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: { categoryId, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('hides clear-all by default and resets filters/sort through it', () => {
+    const plain = setup({ snapshot: successResource(categoryList()), categoryId });
+    expect(plain.element.querySelector('button.filters-clear')).toBeNull();
+
+    TestBed.resetTestingModule();
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { searchTerm: 'tee', status: '1', sortBy: 'Name', sortDirection: 'Ascending' },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const clear = element.querySelector('button.filters-clear') as HTMLButtonElement | null;
+
+    expect(clear?.textContent?.trim()).toBe('Clear all filters');
+    clear?.click();
+
+    // Filters and sort drop; search and category keep their affordances.
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: { searchTerm: 'tee', categoryId, pageNumber: 1, pageSize: 20 },
+      replaceUrl: true,
+    });
+  });
+
+  it('loads the listing for a filter-only deep link', () => {
+    const { element, loadProductsCalls } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      routeQuery: { status: '1' },
+    });
+
+    expect(loadProductsCalls).toEqual([{ status: 1, pageNumber: 1, pageSize: 20 }]);
+    expect(element.querySelector('catalog-product-grid')).not.toBeNull();
+  });
+
+  it('reflects committed filters and sort in French controls', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      culture: 'fr',
+      routeQuery: { status: '1', sortBy: '0', sortDirection: '1' },
+    });
+    const boxes = selects(element);
+
+    expect(boxes[0]?.value).toBe('1');
+    expect(boxes[2]?.value).toBe('0:1');
+    expect([...boxes[2]?.querySelectorAll('option')].map((option) => option.textContent)).toContain(
+      'Plus récents',
+    );
+  });
+});

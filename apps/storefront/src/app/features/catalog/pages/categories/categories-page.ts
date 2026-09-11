@@ -1,5 +1,6 @@
 /**
- * Catalog page for Sub-Phases 5.2–5.5 — Discovery + Listing + Query + Search.
+ * Catalog page for Sub-Phases 5.2–5.6 — Discovery + Listing + Query +
+ * Search + Filtering & Sorting.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `CatalogState` (provided by the parent `catalogRoutes` entry — never a
@@ -19,8 +20,8 @@
  *
  * The page builds no query strings and owns no paging clamps: route
  * parsing, page resets, and wire translation live in `catalog-query-state`
- * (unit-covered), so 5.5–5.7 inputs reuse the same transitions without
- * duplicating logic.
+ * (unit-covered) — search, filters, sort, and (in 5.7) pagination all
+ * commit through the same transitions without duplicating logic.
  *
  * Route/query contract (stable for Sub-Phases 5.4–5.7):
  * - This page owns `/catalog` (discovery + listing).
@@ -29,9 +30,16 @@
  *   and clears the listing slot. Unknown `categoryId` values select
  *   nothing in the nav — the backend still answers the listing request
  *   (empty page or validation error), so the listing states stay honest.
+ * - Filter/sort controls commit through the 5.4 transitions
+ *   (`setQueryFilters`/`setQuerySort` — page reset included) into the same
+ *   URL schema, so deep links round-trip every dimension.
  * - Listing loads the first backend page only (`GET /catalog` defaults
- *   `1/20`); search (5.5), filters/sort (5.6), and pagination (5.7) refine
- *   the same query without changing URLs.
+ *   `1/20`); pagination (5.7) refines the same query without new URLs.
+ *
+ * Contract fidelity (5.6 rule — only backend-exposed options): status and
+ * visibility are the backend's filter fields; name/creation-date are its
+ * sort fields. Price-like filters/sorts and availability signals do not
+ * exist in the catalog contract and are not offered.
  *
  * Copy is localized per the active `CultureService.culture()`: feature
  * copy through the catalog bundle, retry through `common.actions.retry`,
@@ -44,7 +52,6 @@
  * (TransferState, request dedupe) arrives in Sub-Phase 5.10.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 5.6 — no filter/sort selector components.
  * - 5.7 — no pagination controls.
  * - Phase 6 — no variants, quantities, or add-to-cart.
  */
@@ -64,16 +71,29 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, map, Subject } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
+import {
+  CatalogProductSortBy,
+  CatalogProductSortDirection,
+  ProductStatus,
+  ProductVisibility,
+} from '@flux/models';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { CatalogState } from '../../state/catalog-state';
 import { CategoryNav } from '../../components/category-nav/category-nav';
+import { FilterSelect, type FilterOption } from '../../components/filter-select/filter-select';
 import { ProductGrid } from '../../components/product-grid/product-grid';
 import { SearchInput } from '../../components/search-input/search-input';
 import {
+  decodeSortSelection,
   defaultCatalogQueryState,
+  encodeSortSelection,
   hasListingQuery,
+  parseProductStatus,
+  parseProductVisibility,
   queryStateFromRouteParams,
+  setQueryFilters,
   setQuerySearch,
+  setQuerySort,
   toBackendQuery,
   toRouteQueryParams,
   type CatalogQueryState,
@@ -109,6 +129,7 @@ export const SEARCH_DEBOUNCE_MS = 300;
     CategoryNav,
     ProductGrid,
     SearchInput,
+    FilterSelect,
     LoadingIndicator,
     EmptyState,
     ErrorState,
@@ -206,11 +227,59 @@ export class CategoriesPage implements OnInit {
    * out of the browser history.
    */
   private applySearch(search: string): void {
-    const next = setQuerySearch(this.queryState(), search);
+    this.commitQuery(setQuerySearch(this.queryState(), search));
+  }
+
+  /**
+   * Commits a transitioned query to the route: full-state serialization
+   * (cleared fields drop their keys) with `replaceUrl`, so control
+   * interactions never spam the browser history. The listing effect then
+   * loads the committed state — one funnel for search, filters, and sort.
+   */
+  private commitQuery(next: CatalogQueryState): void {
     void this.router.navigate(['/catalog'], {
       queryParams: toRouteQueryParams(next),
       replaceUrl: true,
     });
+  }
+
+  /**
+   * Commits a status selection (`''` clears via the shared parser) with
+   * page reset; category/search/sort survive untouched.
+   */
+  onStatusChange(value: string): void {
+    this.commitQuery(setQueryFilters(this.queryState(), { status: parseProductStatus(value) }));
+  }
+
+  /**
+   * Commits a visibility selection (`''` clears via the shared parser)
+   * with page reset; category/search/sort survive untouched.
+   */
+  onVisibilityChange(value: string): void {
+    this.commitQuery(
+      setQueryFilters(this.queryState(), { visibility: parseProductVisibility(value) }),
+    );
+  }
+
+  /**
+   * Commits a sort selection (decoded through the shared codec, page
+   * reset); category/search/filters survive untouched.
+   */
+  onSortChange(value: string): void {
+    this.commitQuery(setQuerySort(this.queryState(), decodeSortSelection(value)));
+  }
+
+  /**
+   * Resets status, visibility, and sort to defaults (page reset included)
+   * while preserving search and category — each keeps its dedicated
+   * affordance (input text, clear-selection link).
+   */
+  clearFilters(): void {
+    this.commitQuery(
+      setQuerySort(setQueryFilters(this.queryState(), { status: null, visibility: null }), {
+        by: null,
+      }),
+    );
   }
 
   /** Localized discovery copy for the active culture. */
@@ -251,6 +320,114 @@ export class CategoriesPage implements OnInit {
       label: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.searchLabel),
       placeholder: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.searchPlaceholder),
     };
+  });
+
+  /**
+   * Localized filter/sort copy for the active culture. Option labels cover
+   * exactly the backend-supported values — price-like or availability
+   * options do not exist in the contract and are not offered.
+   */
+  protected readonly filtersCopy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      statusLabel: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersStatusLabel),
+      visibilityLabel: translateCatalogKey(
+        culture,
+        CATALOG_TRANSLATION_KEYS.filtersVisibilityLabel,
+      ),
+      sortLabel: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersSortLabel),
+      all: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersAll),
+      clearAll: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersClearAll),
+      statusDraft: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersStatusDraft),
+      statusActive: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersStatusActive),
+      statusInactive: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersStatusInactive),
+      statusArchived: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersStatusArchived),
+      visibilityVisible: translateCatalogKey(
+        culture,
+        CATALOG_TRANSLATION_KEYS.filtersVisibilityVisible,
+      ),
+      visibilityHidden: translateCatalogKey(
+        culture,
+        CATALOG_TRANSLATION_KEYS.filtersVisibilityHidden,
+      ),
+      sortDefault: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersSortDefault),
+      sortNameAsc: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersSortNameAsc),
+      sortNameDesc: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersSortNameDesc),
+      sortNewest: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersSortNewest),
+      sortOldest: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.filtersSortOldest),
+    };
+  });
+
+  /** Status options: "all" plus every backend `ProductStatus` (by wire value). */
+  protected readonly statusOptions = computed((): readonly FilterOption[] => [
+    { value: '', label: this.filtersCopy().all },
+    { value: String(ProductStatus.Draft), label: this.filtersCopy().statusDraft },
+    { value: String(ProductStatus.Active), label: this.filtersCopy().statusActive },
+    { value: String(ProductStatus.Inactive), label: this.filtersCopy().statusInactive },
+    { value: String(ProductStatus.Archived), label: this.filtersCopy().statusArchived },
+  ]);
+
+  /** Visibility options: "all" plus every backend `ProductVisibility`. */
+  protected readonly visibilityOptions = computed((): readonly FilterOption[] => [
+    { value: '', label: this.filtersCopy().all },
+    { value: String(ProductVisibility.Visible), label: this.filtersCopy().visibilityVisible },
+    { value: String(ProductVisibility.Hidden), label: this.filtersCopy().visibilityHidden },
+  ]);
+
+  /** Sort options: default plus every backend `sortBy × direction` combination. */
+  protected readonly sortOptions = computed((): readonly FilterOption[] => [
+    { value: '', label: this.filtersCopy().sortDefault },
+    {
+      value: encodeSortSelection({
+        by: CatalogProductSortBy.Name,
+        direction: CatalogProductSortDirection.Ascending,
+      }),
+      label: this.filtersCopy().sortNameAsc,
+    },
+    {
+      value: encodeSortSelection({
+        by: CatalogProductSortBy.Name,
+        direction: CatalogProductSortDirection.Descending,
+      }),
+      label: this.filtersCopy().sortNameDesc,
+    },
+    {
+      value: encodeSortSelection({
+        by: CatalogProductSortBy.CreatedAtUtc,
+        direction: CatalogProductSortDirection.Descending,
+      }),
+      label: this.filtersCopy().sortNewest,
+    },
+    {
+      value: encodeSortSelection({
+        by: CatalogProductSortBy.CreatedAtUtc,
+        direction: CatalogProductSortDirection.Ascending,
+      }),
+      label: this.filtersCopy().sortOldest,
+    },
+  ]);
+
+  /** Current status token (`''` when unfiltered). */
+  protected readonly statusValue = computed(() => {
+    const status = this.queryState().filters.status;
+    return status === null ? '' : String(status);
+  });
+
+  /** Current visibility token (`''` when unfiltered). */
+  protected readonly visibilityValue = computed(() => {
+    const visibility = this.queryState().filters.visibility;
+    return visibility === null ? '' : String(visibility);
+  });
+
+  /** Current sort token (`''` for default order). */
+  protected readonly sortValue = computed(() => encodeSortSelection(this.queryState().sort));
+
+  /** Whether any filter/sort dimension is active (clear-all visibility). */
+  protected readonly hasActiveFilters = computed(() => {
+    const query = this.queryState();
+    return (
+      query.filters.status !== null || query.filters.visibility !== null || query.sort.by !== null
+    );
   });
 
   /** Localized result count for the current page (`{count}` interpolated). */

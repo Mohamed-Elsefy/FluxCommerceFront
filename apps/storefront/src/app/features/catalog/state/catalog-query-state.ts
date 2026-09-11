@@ -115,12 +115,18 @@ export function defaultCatalogQueryState(): CatalogQueryState {
 }
 
 /**
- * Whether a query selects a listing at all: a category, a search text, or
- * both. The page renders the listing section (and loads it) only then;
- * pure discovery otherwise. Pure.
+ * Whether a query selects a listing at all: a category, a search text, an
+ * active filter, or an explicit sort. The page renders the listing section
+ * (and loads it) only then; pure discovery otherwise. Pure.
  */
 export function hasListingQuery(state: CatalogQueryState): boolean {
-  return state.category !== null || state.search !== '';
+  return (
+    state.category !== null ||
+    state.search !== '' ||
+    state.filters.status !== null ||
+    state.filters.visibility !== null ||
+    state.sort.by !== null
+  );
 }
 
 /**
@@ -186,6 +192,34 @@ export function setQuerySort(state: CatalogQueryState, patch: CatalogSortPatch):
       direction: patch.direction !== undefined ? patch.direction : state.sort.direction,
     },
     page: DEFAULT_CATALOG_PAGE_NUMBER,
+  };
+}
+
+/**
+ * Encodes a sort combination as an opaque select token (`''` = default
+ * order). Single encode site for the 5.6 sort selector — the page never
+ * builds sort tokens itself.
+ */
+export function encodeSortSelection(sort: CatalogSort): string {
+  return sort.by === null ? '' : `${sort.by}:${sort.direction}`;
+}
+
+/**
+ * Decodes a sort select token back into a patch for `setQuerySort`.
+ * Unknown or partial tokens clear sorting (never a backend 400); an
+ * unparseable direction falls back to ascending. Pure.
+ */
+export function decodeSortSelection(value: string): CatalogSortPatch {
+  const separator = value.indexOf(':');
+  const by = parseCatalogSortBy(separator === -1 ? null : value.slice(0, separator));
+  if (by === null) {
+    return { by: null };
+  }
+  return {
+    by,
+    direction:
+      parseCatalogSortDirection(separator === -1 ? null : value.slice(separator + 1)) ??
+      CatalogProductSortDirection.Ascending,
   };
 }
 
@@ -304,7 +338,7 @@ function parseRouteEnum<T extends number>(
 }
 
 /** `?status=` — numeric wire values with reverse lookup, or names. */
-function parseProductStatus(raw: string | null): ProductStatus | null {
+export function parseProductStatus(raw: string | null): ProductStatus | null {
   return parseRouteEnum<ProductStatus>(
     raw,
     {
@@ -318,7 +352,7 @@ function parseProductStatus(raw: string | null): ProductStatus | null {
 }
 
 /** `?visibility=` — numeric wire values with reverse lookup, or names. */
-function parseProductVisibility(raw: string | null): ProductVisibility | null {
+export function parseProductVisibility(raw: string | null): ProductVisibility | null {
   return parseRouteEnum<ProductVisibility>(
     raw,
     { visible: ProductVisibility.Visible, hidden: ProductVisibility.Hidden },

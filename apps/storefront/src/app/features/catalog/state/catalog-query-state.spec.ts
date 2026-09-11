@@ -15,7 +15,9 @@ import {
   ProductVisibility,
 } from '@flux/models';
 import {
+  decodeSortSelection,
   defaultCatalogQueryState,
+  encodeSortSelection,
   hasListingQuery,
   queryStateFromRouteParams,
   setQueryCategory,
@@ -196,6 +198,56 @@ describe('hasListingQuery', () => {
         setQuerySearch(setQueryCategory(defaultCatalogQueryState(), CATEGORY), 'tee'),
       ),
     ).toBe(true);
+  });
+
+  it('selects a listing for active filters or explicit sorting', () => {
+    expect(
+      hasListingQuery(
+        setQueryFilters(defaultCatalogQueryState(), { status: ProductStatus.Active }),
+      ),
+    ).toBe(true);
+    expect(
+      hasListingQuery(
+        setQueryFilters(defaultCatalogQueryState(), { visibility: ProductVisibility.Hidden }),
+      ),
+    ).toBe(true);
+    expect(
+      hasListingQuery(setQuerySort(defaultCatalogQueryState(), { by: CatalogProductSortBy.Name })),
+    ).toBe(true);
+  });
+});
+
+describe('sort selection codec', () => {
+  it('encodes fieldless sorts as the default token', () => {
+    expect(encodeSortSelection(defaultCatalogQueryState().sort)).toBe('');
+  });
+
+  it('round-trips every backend sort combination', () => {
+    const combinations: [CatalogProductSortBy, CatalogProductSortDirection][] = [
+      [CatalogProductSortBy.Name, CatalogProductSortDirection.Ascending],
+      [CatalogProductSortBy.Name, CatalogProductSortDirection.Descending],
+      [CatalogProductSortBy.CreatedAtUtc, CatalogProductSortDirection.Ascending],
+      [CatalogProductSortBy.CreatedAtUtc, CatalogProductSortDirection.Descending],
+    ];
+    for (const [by, direction] of combinations) {
+      expect(decodeSortSelection(encodeSortSelection({ by, direction }))).toEqual({
+        by,
+        direction,
+      });
+    }
+  });
+
+  it('clears sorting on unknown or partial tokens', () => {
+    expect(decodeSortSelection('')).toEqual({ by: null });
+    expect(decodeSortSelection('Price:0')).toEqual({ by: null });
+    expect(decodeSortSelection('garbage')).toEqual({ by: null });
+  });
+
+  it('falls back to ascending on unparseable directions', () => {
+    expect(decodeSortSelection('0:Sideways')).toEqual({
+      by: CatalogProductSortBy.Name,
+      direction: CatalogProductSortDirection.Ascending,
+    });
   });
 });
 
