@@ -1,15 +1,17 @@
 /**
- * State tests for the Sub-Phase 6.1–6.5 `ProductDetailsState`.
+ * State tests for the Sub-Phase 6.1–6.6 `ProductDetailsState`.
  *
  * `ProductDetailsApiService` (the feature HTTP boundary, covered by
  * `product-details-api.service.spec.ts`) is stubbed at its typed seam so
  * these tests own the feature logic: idle → loading → success | empty |
  * error transitions for the product, specifications, images, and variants
  * slots; variant selection (valid acceptance, invalid rejection, no
- * default, clearing, orderability guard); data retention across reloads;
- * dataless-envelope violations; blank-id rejection; cancellation
- * passthrough; reset of every slot; and feature-local scoping (no root
- * singleton — every injection site gets an independent instance).
+ * default, clearing, orderability guard); purchase quantity (valid start,
+ * increment/decrement, minimum floor, invalid rejection, reset);
+ * data retention across reloads; dataless-envelope violations; blank-id
+ * rejection; cancellation passthrough; reset of every slot; and
+ * feature-local scoping (no root singleton — every injection site gets an
+ * independent instance).
  */
 
 import { TestBed } from '@angular/core/testing';
@@ -320,6 +322,7 @@ describe('ProductDetailsState specifications', () => {
     state.loadProductImages(PRODUCT_ID);
     state.loadProductVariants(PRODUCT_ID);
     state.selectVariant(ACTIVE_VARIANT_ID);
+    state.setQuantity(4);
     state.reset();
 
     expect(state.product().status).toBe('idle');
@@ -331,6 +334,7 @@ describe('ProductDetailsState specifications', () => {
     expect(state.variants().data).toBeNull();
     expect(state.selectedVariantId()).toBeNull();
     expect(state.selectedVariant()).toBeNull();
+    expect(state.quantity()).toBe(1);
   });
 });
 
@@ -553,6 +557,61 @@ describe('ProductDetailsState orderability guard', () => {
     state.reset();
 
     expect(state.selectedVariantSelectable()).toBe(false);
+  });
+});
+
+describe('ProductDetailsState quantity', () => {
+  it('starts at the valid initial quantity', () => {
+    const { state } = setup({});
+
+    expect(state.quantity()).toBe(1);
+  });
+
+  it('increments by one per call', () => {
+    const { state } = setup({});
+    state.incrementQuantity();
+    state.incrementQuantity();
+
+    expect(state.quantity()).toBe(3);
+  });
+
+  it('decrements by one per call floored at the minimum', () => {
+    const { state } = setup({});
+    state.setQuantity(3);
+    state.decrementQuantity();
+
+    expect(state.quantity()).toBe(2);
+
+    state.decrementQuantity();
+    state.decrementQuantity();
+    state.decrementQuantity();
+
+    expect(state.quantity()).toBe(1);
+  });
+
+  it('accepts valid quantities and ignores invalid ones', () => {
+    const { state } = setup({});
+    state.setQuantity(5);
+    expect(state.quantity()).toBe(5);
+
+    state.setQuantity(0);
+    state.setQuantity(-2);
+    state.setQuantity(2.5);
+    state.setQuantity(Number.NaN);
+
+    expect(state.quantity()).toBe(5);
+  });
+
+  it('resets the quantity without touching the loaded slots', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.setQuantity(4);
+    state.resetQuantity();
+
+    expect(state.quantity()).toBe(1);
+    expect(state.selectedVariantId()).toBe(ACTIVE_VARIANT_ID);
+    expect(state.variants().status).toBe('success');
   });
 });
 

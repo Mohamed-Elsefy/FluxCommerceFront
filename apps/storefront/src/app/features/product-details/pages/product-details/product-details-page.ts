@@ -1,6 +1,7 @@
 /**
- * Product Details page for Sub-Phases 6.1–6.5 — Foundation + Page &
- * Information + Image Gallery + Variant Selection + SKU Binding.
+ * Product Details page for Sub-Phases 6.1–6.6 — Foundation + Page &
+ * Information + Image Gallery + Variant Selection + SKU Binding + Quantity
+ * Selection.
  *
  * Smart page (route-level composition): reads the `:id` route parameter,
  * validates it through the pure `parseProductIdParam` helper, and drives
@@ -52,14 +53,17 @@
  * (§6.5 — the only customer-visible commercial field the contract
  * provides; price and availability exist in no readable contract and are
  * not fabricated): no selection → prompt, stale-unselectable selection →
- * unavailable notice, never stale SKU.
+ * unavailable notice, never stale SKU. The quantity section (§6.6) rides
+ * the same variants gate and echoes feature-local quantity (minimum 1, no
+ * contract maximum); a new route product resets it while error retry
+ * preserves it.
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
- * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.6–6.7 — no quantity or add-to-cart.
+ * Explicitly out of scope (later work, must not appear here):
+ * - 6.7 — no add-to-cart.
  */
 
 import {
@@ -78,6 +82,7 @@ import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { ProductGallery } from '../../components/product-gallery/product-gallery';
+import { QuantitySelector } from '../../components/quantity-selector/quantity-selector';
 import { VariantCommercial } from '../../components/variant-commercial/variant-commercial';
 import { VariantSelector } from '../../components/variant-selector/variant-selector';
 import { ProductDetailsState } from '../../state/product-details-state';
@@ -101,6 +106,7 @@ import {
     ProductGallery,
     VariantSelector,
     VariantCommercial,
+    QuantitySelector,
   ],
   templateUrl: './product-details-page.html',
   styleUrl: './product-details-page.css',
@@ -132,6 +138,9 @@ export class ProductDetailsPage {
 
   /** Selected variant object — the commercial section's source of truth. */
   readonly selectedVariant = this.state.selectedVariant;
+
+  /** Purchase quantity — the quantity section's source of truth. */
+  readonly quantity = this.state.quantity;
 
   /**
    * Validated product id from the `:id` route parameter (`null` when
@@ -217,6 +226,22 @@ export class ProductDetailsPage {
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.commercialUnavailable,
       ),
+      quantityTitle: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.quantityTitle,
+      ),
+      quantityDecrease: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.quantityDecrease,
+      ),
+      quantityIncrease: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.quantityIncrease,
+      ),
+      quantityInvalid: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.quantityInvalid,
+      ),
       retry: translateKey(culture, 'common.actions.retry'),
     };
   });
@@ -243,9 +268,10 @@ export class ProductDetailsPage {
     // effect — an infinite fetch loop. The effect depends on the route id
     // alone.
     //
-    // A new route product never inherits the previous selection
-    // (`clearVariantSelection` on this id-driven path only — error retry
-    // goes through `reload()` and preserves the customer's choice).
+    // A new route product never inherits the previous selection or
+    // quantity (`clearVariantSelection` + `resetQuantity` on this id-driven
+    // path only — error retry goes through `reload()` and preserves the
+    // customer's choices).
     //
     // Stale safety: every run owns an `AbortController` torn down before
     // the next run (and on destroy via effect cleanup), so older pending
@@ -264,6 +290,7 @@ export class ProductDetailsPage {
           this.state.reset();
         } else {
           this.state.clearVariantSelection();
+          this.state.resetQuantity();
           this.startDetailsLoad(id);
         }
       });
@@ -282,6 +309,11 @@ export class ProductDetailsPage {
   /** Forwards a selector choice to feature state (validated there — invalid ids are ignored). */
   onVariantSelect(id: string): void {
     this.state.selectVariant(id);
+  }
+
+  /** Forwards a quantity change to feature state (validated there — invalid values are ignored). */
+  onQuantityChange(value: number): void {
+    this.state.setQuantity(value);
   }
 
   /** Cancels the in-flight details requests, if any (idempotent). */

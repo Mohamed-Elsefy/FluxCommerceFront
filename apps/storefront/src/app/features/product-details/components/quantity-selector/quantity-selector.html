@@ -1,0 +1,38 @@
+<section class="quantity-selector" [attr.aria-label]="label">
+  <h2 class="quantity-selector-title">{{ label }}</h2>
+  <div class="quantity-selector-controls">
+    <button
+      type="button"
+      class="quantity-selector-button"
+      (click)="decrease()"
+      [disabled]="quantity <= minQuantity"
+      [attr.aria-label]="decreaseLabel"
+    >
+      <span aria-hidden="true">−</span>
+    </button>
+    <input
+      class="quantity-selector-input"
+      type="text"
+      inputmode="numeric"
+      [value]="quantity"
+      [attr.aria-label]="label"
+      [attr.aria-invalid]="showInvalid()"
+      [attr.aria-describedby]="showInvalid() ? 'quantity-input-error' : null"
+      (input)="onInput($event)"
+      (blur)="onBlur($event)"
+    />
+    <button
+      type="button"
+      class="quantity-selector-button"
+      (click)="increase()"
+      [attr.aria-label]="increaseLabel"
+    >
+      <span aria-hidden="true">+</span>
+    </button>
+  </div>
+  @if (showInvalid()) {
+    <p id="quantity-input-error" class="quantity-selector-error" role="alert">
+      {{ invalidMessage }}
+    </p>
+  }
+</section>

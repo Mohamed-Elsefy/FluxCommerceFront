@@ -1,6 +1,7 @@
 /**
- * Storefront Product Details feature translations for Sub-Phases 6.2–6.5
- * — Page & Information + Image Gallery + Variant Selection + SKU Binding.
+ * Storefront Product Details feature translations for Sub-Phases 6.2–6.6
+ * — Page & Information + Image Gallery + Variant Selection + SKU Binding +
+ * Quantity Selection.
  *
  * Feature-owned, business-specific copy (`productDetails` namespace) in all
  * five supported cultures (`en`/`fr`/`de`/`es`/`ar`). Per the Phase 4
@@ -51,6 +52,10 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   commercialSkuLabel: 'productDetails.commercial.skuLabel',
   commercialSelectPrompt: 'productDetails.commercial.selectPrompt',
   commercialUnavailable: 'productDetails.commercial.unavailable',
+  quantityTitle: 'productDetails.quantity.title',
+  quantityDecrease: 'productDetails.quantity.decrease',
+  quantityIncrease: 'productDetails.quantity.increase',
+  quantityInvalid: 'productDetails.quantity.invalid',
 } as const;
 
 /** English (`en`) product-details vocabulary. Also the deterministic fallback source. */
@@ -93,6 +98,12 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
       skuLabel: 'SKU',
       selectPrompt: 'Select a variant to see its details.',
       unavailable: 'This variant is no longer available.',
+    },
+    quantity: {
+      title: 'Quantity',
+      decrease: 'Decrease quantity',
+      increase: 'Increase quantity',
+      invalid: 'Enter a whole number of 1 or more.',
     },
   },
 };
@@ -138,6 +149,12 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
       selectPrompt: 'Sélectionnez une variante pour voir ses détails.',
       unavailable: 'Cette variante n’est plus disponible.',
     },
+    quantity: {
+      title: 'Quantité',
+      decrease: 'Diminuer la quantité',
+      increase: 'Augmenter la quantité',
+      invalid: 'Saisissez un nombre entier de 1 ou plus.',
+    },
   },
 };
 
@@ -181,6 +198,12 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
       skuLabel: 'SKU',
       selectPrompt: 'Wählen Sie eine Variante, um ihre Details zu sehen.',
       unavailable: 'Diese Variante ist nicht mehr verfügbar.',
+    },
+    quantity: {
+      title: 'Menge',
+      decrease: 'Menge verringern',
+      increase: 'Menge erhöhen',
+      invalid: 'Geben Sie eine ganze Zahl von 1 oder mehr ein.',
     },
   },
 };
@@ -226,6 +249,12 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
       selectPrompt: 'Seleccione una variante para ver sus detalles.',
       unavailable: 'Esta variante ya no está disponible.',
     },
+    quantity: {
+      title: 'Cantidad',
+      decrease: 'Disminuir la cantidad',
+      increase: 'Aumentar la cantidad',
+      invalid: 'Introduzca un número entero de 1 o más.',
+    },
   },
 };
 
@@ -269,6 +298,12 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
       skuLabel: 'SKU',
       selectPrompt: 'اختر متغيرًا لرؤية تفاصيله.',
       unavailable: 'هذا المتغير لم يعد متاحًا.',
+    },
+    quantity: {
+      title: 'الكمية',
+      decrease: 'إنقاص الكمية',
+      increase: 'زيادة الكمية',
+      invalid: 'أدخل عددًا صحيحًا لا يقل عن 1.',
     },
   },
 };

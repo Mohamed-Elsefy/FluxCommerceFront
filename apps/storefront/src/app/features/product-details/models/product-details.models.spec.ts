@@ -12,10 +12,14 @@ import { ApiError } from '@flux/api';
 import { VariantStatus } from '@flux/models';
 import type { ProductVariant } from './product-details.models';
 import {
+  INITIAL_QUANTITY,
+  MIN_QUANTITY,
   PRODUCT_DETAILS_ID_PARAM,
   isNotFoundError,
   isSelectableVariant,
+  isValidQuantity,
   parseProductIdParam,
+  parseQuantityInput,
   resolveVariantSelection,
 } from './product-details.models';
 
@@ -137,5 +141,50 @@ describe('resolveVariantSelection', () => {
     expect(resolveVariantSelection(null, ACTIVE_VARIANT.id)).toBeNull();
     expect(resolveVariantSelection(undefined, ACTIVE_VARIANT.id)).toBeNull();
     expect(resolveVariantSelection([], ACTIVE_VARIANT.id)).toBeNull();
+  });
+});
+
+describe('quantity bounds', () => {
+  it('starts at the valid initial quantity of 1', () => {
+    expect(MIN_QUANTITY).toBe(1);
+    expect(INITIAL_QUANTITY).toBe(1);
+    expect(isValidQuantity(INITIAL_QUANTITY)).toBe(true);
+  });
+});
+
+describe('isValidQuantity', () => {
+  it('accepts integers at or above the minimum', () => {
+    expect(isValidQuantity(1)).toBe(true);
+    expect(isValidQuantity(25)).toBe(true);
+  });
+
+  it('rejects zero, negatives, decimals, and non-finite values', () => {
+    expect(isValidQuantity(0)).toBe(false);
+    expect(isValidQuantity(-3)).toBe(false);
+    expect(isValidQuantity(2.5)).toBe(false);
+    expect(isValidQuantity(Number.NaN)).toBe(false);
+    expect(isValidQuantity(Number.POSITIVE_INFINITY)).toBe(false);
+  });
+});
+
+describe('parseQuantityInput', () => {
+  it('parses digits-only text into quantities', () => {
+    expect(parseQuantityInput('1')).toBe(1);
+    expect(parseQuantityInput('  12  ')).toBe(12);
+    expect(parseQuantityInput('007')).toBe(7);
+  });
+
+  it('rejects empty, signed, decimal, and non-numeric text without throwing', () => {
+    expect(parseQuantityInput(null)).toBeNull();
+    expect(parseQuantityInput(undefined)).toBeNull();
+    expect(parseQuantityInput('')).toBeNull();
+    expect(parseQuantityInput('   ')).toBeNull();
+    expect(parseQuantityInput('0')).toBeNull();
+    expect(parseQuantityInput('-2')).toBeNull();
+    expect(parseQuantityInput('+2')).toBeNull();
+    expect(parseQuantityInput('2.5')).toBeNull();
+    expect(parseQuantityInput('2e2')).toBeNull();
+    expect(parseQuantityInput('two')).toBeNull();
+    expect(parseQuantityInput('3 pieces')).toBeNull();
   });
 });

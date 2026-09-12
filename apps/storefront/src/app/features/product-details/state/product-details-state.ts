@@ -1,10 +1,11 @@
 /**
- * Feature-owned Product Details state for Sub-Phases 6.1–6.5 — Foundation
- * + Page & Information + Image Gallery + Variant Selection + SKU Binding.
+ * Feature-owned Product Details state for Sub-Phases 6.1–6.6 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection + SKU Binding +
+ * Quantity Selection.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.5 (product +
- * specifications + images + variants resource slots, the selected variant,
- * and its orderability guard — no UI).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.6 (product +
+ * specifications + images + variants resource slots, the selected variant
+ * and its orderability guard, plus purchase quantity — no UI).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -33,8 +34,8 @@
  *   server rendering only exercises the initial `idle` snapshots (the page
  *   fetches in the browser; SSR transfer arrives in Sub-Phase 6.9).
  *
- * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.6–6.7 / Phase 7 — no quantity, cart integration, or cart state.
+ * Explicitly out of scope (later work, must not appear here):
+ * - 6.7 / Phase 7 — no add-to-cart, cart integration, or cart state.
  */
 
 import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
@@ -51,7 +52,10 @@ import {
 } from '@flux/api';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
 import {
+  INITIAL_QUANTITY,
+  MIN_QUANTITY,
   isSelectableVariant,
+  isValidQuantity,
   resolveVariantSelection,
   type ProductDetails,
   type ProductImage,
@@ -85,6 +89,13 @@ export class ProductDetailsState {
 
   /** Selected variant id (`null` = no explicit selection). Feature-local. */
   private readonly selectedVariantIdStore = signal<string | null>(null);
+
+  /**
+   * Purchase quantity (§6.6 state ownership — `ProductDetailsState.quantity`,
+   * never cart/global state). Always holds a valid value (starts at
+   * `INITIAL_QUANTITY`; every writer validates through `isValidQuantity`).
+   */
+  private readonly quantityStore = signal<number>(INITIAL_QUANTITY);
 
   /** Currently selected product (`GET /catalog/products/{id}`). */
   readonly product: Signal<ResourceState<ProductDetails>> = this.productStore.state;
@@ -155,6 +166,12 @@ export class ProductDetailsState {
   });
 
   /**
+   * Purchase quantity. Readonly — the single source Sub-Phase 6.7 builds
+   * upon. Never cart state, never global.
+   */
+  readonly quantity: Signal<number> = this.quantityStore.asReadonly();
+
+  /**
    * Loads a single product by id into the `product` slot. A dataless
    * envelope resolves to `error` (contract violation); aborts leave state
    * untouched. Blank ids are rejected without fetching (the page validates
@@ -171,13 +188,14 @@ export class ProductDetailsState {
     return loadResourceState(this.productStore, request, { signal: options.signal });
   }
 
-  /** Resets every slot and the variant selection to `idle`/`null`. */
+  /** Resets every slot, the variant selection, and the quantity to their initials. */
   reset(): void {
     this.productStore.reset();
     this.specificationsStore.reset();
     this.imagesStore.reset();
     this.variantsStore.reset();
     this.selectedVariantIdStore.set(null);
+    this.quantityStore.set(INITIAL_QUANTITY);
   }
 
   /**
@@ -250,6 +268,36 @@ export class ProductDetailsState {
   /** Clears the variant selection (e.g. when the route product changes). */
   clearVariantSelection(): void {
     this.selectedVariantIdStore.set(null);
+  }
+
+  /**
+   * Sets the purchase quantity. Only valid quantities (integer ≥
+   * `MIN_QUANTITY`) are accepted — anything else is ignored and the last
+   * valid value is preserved, so invalid quantities can never be submitted
+   * (§6.6 acceptance). No maximum clamp: the contract defines none.
+   */
+  setQuantity(value: number): void {
+    if (isValidQuantity(value)) {
+      this.quantityStore.set(value);
+    }
+  }
+
+  /** Increments the purchase quantity by one (always valid from a valid base). */
+  incrementQuantity(): void {
+    this.quantityStore.update((current) => current + 1);
+  }
+
+  /**
+   * Decrements the purchase quantity by one, floored at `MIN_QUANTITY` —
+   * the quantity can never drop below 1 (§6.6 acceptance).
+   */
+  decrementQuantity(): void {
+    this.quantityStore.update((current) => Math.max(MIN_QUANTITY, current - 1));
+  }
+
+  /** Resets the purchase quantity to `INITIAL_QUANTITY` (e.g. on product change). */
+  resetQuantity(): void {
+    this.quantityStore.set(INITIAL_QUANTITY);
   }
 }
 

@@ -1,9 +1,9 @@
 /**
- * Storefront Product Details feature models for Sub-Phases 6.1–6.5 —
+ * Storefront Product Details feature models for Sub-Phases 6.1–6.6 —
  * Foundation + Page & Information + Image Gallery + Variant Selection + SKU
- * Binding.
+ * Binding + Quantity Selection.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.5.
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.6.
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.3/2.6/2.7
  * (`GET /catalog/products/{id:guid}` → `200 ApiResponse<ProductResponse>`;
@@ -31,6 +31,12 @@
  * storefront displays SKU bound to the selection and no price or
  * availability content whatsoever (see also `ARCHITECTURE.md` §21).
  *
+ * Quantity note (§6.6): the contract bounds cart quantities to
+ * `[Range(1, int.MaxValue)]` with backend `QuantityLimitExceeded`
+ * rejection at cart time — i.e. minimum 1 is the only storefront
+ * boundary, and there is no contract-defined maximum to clamp. Quantity
+ * is feature-local `ProductDetailsState` (never cart/global state).
+ *
  * Contract fidelity note (§6.2 rule — display only backend-provided fields):
  * no read contract exposes pricing or availability (`VariantResponse`
  * carries no price/currency fields), and SKU lives on variants whose
@@ -44,8 +50,8 @@
  *   pure helpers (route-parameter parsing/validation, not-found detection).
  *   Envelope mapping and fetching live in `state/` and `data-access/`.
  *
- * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.6–6.7 — no quantity or add-to-cart.
+ * Explicitly out of scope (later work, must not appear here):
+ * - 6.7 — no add-to-cart.
  * - Phase 7 — no cart state or cart API usage.
  */
 
@@ -150,4 +156,44 @@ export function resolveVariantSelection(
   }
   const match = variants?.find((variant) => variant.id === requestedId) ?? null;
   return match !== null && isSelectableVariant(match) ? match.id : null;
+}
+
+/**
+ * Minimum purchasable quantity. Mirrors the contract's cart quantity floor
+ * (`[Range(1, int.MaxValue)]` on every cart item request —
+ * `API_CONTRACT.md` §3): the storefront clamps nothing above this because
+ * the contract defines no maximum (over-limit quantities are a backend
+ * `QuantityLimitExceeded` rejection at cart/checkout time, owned by
+ * Phases 6.7/7).
+ */
+export const MIN_QUANTITY = 1;
+
+/** Starting quantity: always a valid value (§6.6 acceptance). */
+export const INITIAL_QUANTITY = 1;
+
+/**
+ * Whether `value` is a submittable quantity: an integer of at least
+ * `MIN_QUANTITY`. Rejects negatives, zero, decimals, `NaN`, and
+ * non-finite values. Pure — throws nothing.
+ */
+export function isValidQuantity(value: number): boolean {
+  return Number.isInteger(value) && value >= MIN_QUANTITY;
+}
+
+/**
+ * Parses raw textbox text into a quantity: digits-only (after trimming)
+ * mapping to a valid quantity, otherwise `null`. Rejects empty text,
+ * signs, decimals, and any non-digit characters — so invalid keystrokes
+ * never reach feature state. Pure — throws nothing.
+ */
+export function parseQuantityInput(text: string | null | undefined): number | null {
+  if (text === null || text === undefined) {
+    return null;
+  }
+  const candidate = text.trim();
+  if (!/^[0-9]+$/.test(candidate)) {
+    return null;
+  }
+  const parsed = Number.parseInt(candidate, 10);
+  return isValidQuantity(parsed) ? parsed : null;
 }

@@ -53,6 +53,14 @@
         [selectPrompt]="copy().commercialSelectPrompt"
         [unavailableMessage]="copy().commercialUnavailable"
       ></product-details-variant-commercial>
+      <product-details-quantity-selector
+        [quantity]="quantity()"
+        [label]="copy().quantityTitle"
+        [decreaseLabel]="copy().quantityDecrease"
+        [increaseLabel]="copy().quantityIncrease"
+        [invalidMessage]="copy().quantityInvalid"
+        (quantityChange)="onQuantityChange($event)"
+      ></product-details-quantity-selector>
     }
     @if (specifications().isSuccess) {
       <section class="product-details-specs" aria-labelledby="product-details-specs-title">

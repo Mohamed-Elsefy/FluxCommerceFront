@@ -101,6 +101,7 @@ function setup(options: {
   variantsSnapshot?: ResourceState<ProductVariant[]>;
   selectedVariantId?: string | null;
   selectedVariant?: ProductVariant | null;
+  quantity?: number;
   productId?: string | null;
   culture?: 'en' | 'fr';
   platform?: 'browser' | 'server';
@@ -112,7 +113,9 @@ function setup(options: {
   loadImagesCalls: unknown[];
   loadVariantsCalls: unknown[];
   selectCalls: unknown[];
+  quantityCalls: unknown[];
   clearSelectionCalls: number;
+  resetQuantityCalls: number;
   resetCalls: number;
   setSelectedVariant: (variant: ProductVariant | null) => void;
 } {
@@ -121,8 +124,10 @@ function setup(options: {
   const loadImagesCalls: unknown[] = [];
   const loadVariantsCalls: unknown[] = [];
   const selectCalls: unknown[] = [];
+  const quantityCalls: unknown[] = [];
   const selectedVariant = signal<ProductVariant | null>(options.selectedVariant ?? null);
   let clearSelectionCalls = 0;
+  let resetQuantityCalls = 0;
   let resetCalls = 0;
   const stateStub = {
     product: signal(options.snapshot ?? idleResource<ProductDetails>()),
@@ -133,6 +138,7 @@ function setup(options: {
     variants: signal(options.variantsSnapshot ?? idleResource<ProductVariant[]>()),
     selectedVariantId: signal(options.selectedVariantId ?? null),
     selectedVariant,
+    quantity: signal(options.quantity ?? 1),
     loadProduct: ((id: unknown) => {
       loadCalls.push(id);
     }) as ProductDetailsState['loadProduct'],
@@ -148,9 +154,15 @@ function setup(options: {
     selectVariant: ((id: unknown) => {
       selectCalls.push(id);
     }) as ProductDetailsState['selectVariant'],
+    setQuantity: ((value: unknown) => {
+      quantityCalls.push(value);
+    }) as ProductDetailsState['setQuantity'],
     clearVariantSelection: (() => {
       clearSelectionCalls += 1;
     }) as ProductDetailsState['clearVariantSelection'],
+    resetQuantity: (() => {
+      resetQuantityCalls += 1;
+    }) as ProductDetailsState['resetQuantity'],
     reset: (() => {
       resetCalls += 1;
     }) as ProductDetailsState['reset'],
@@ -187,7 +199,9 @@ function setup(options: {
     loadImagesCalls,
     loadVariantsCalls,
     selectCalls,
+    quantityCalls,
     clearSelectionCalls,
+    resetQuantityCalls,
     resetCalls,
     setSelectedVariant: (variant: ProductVariant | null) => selectedVariant.set(variant),
   };
@@ -205,6 +219,7 @@ describe('ProductDetailsPage route parameter', () => {
       loadImagesCalls,
       loadVariantsCalls,
       clearSelectionCalls,
+      resetQuantityCalls,
     } = setup({
       productId: PRODUCT_ID,
     });
@@ -214,6 +229,7 @@ describe('ProductDetailsPage route parameter', () => {
     expect(loadImagesCalls).toEqual([PRODUCT_ID]);
     expect(loadVariantsCalls).toEqual([PRODUCT_ID]);
     expect(clearSelectionCalls).toBe(1);
+    expect(resetQuantityCalls).toBe(1);
   });
 
   it('never fetches and renders the invalid state for a missing id', () => {
@@ -611,5 +627,51 @@ describe('ProductDetailsPage commercial section', () => {
 
     expect(element.querySelector('h1')?.textContent).toBe('Tee');
     expect(element.querySelector('product-details-variant-commercial')).toBeNull();
+  });
+});
+
+describe('ProductDetailsPage quantity section', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function quantitySetup(variantsSnapshot: ResourceState<ProductVariant[]>, quantity = 1) {
+    return setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      variantsSnapshot,
+      quantity,
+    });
+  }
+
+  it('renders the quantity selector echoing feature-local quantity', () => {
+    const { element } = quantitySetup(successResource(VARIANTS), 2);
+
+    const selector = element.querySelector('product-details-quantity-selector');
+    expect(selector).not.toBeNull();
+    expect(selector?.querySelector('.quantity-selector-title')?.textContent).toBe('Quantity');
+    expect(
+      (selector?.querySelector('.quantity-selector-input') as HTMLInputElement | null)?.value,
+    ).toBe('2');
+  });
+
+  it('forwards quantity changes to feature state', () => {
+    const { element, fixture, quantityCalls } = quantitySetup(successResource(VARIANTS), 1);
+
+    const buttons = [
+      ...element.querySelectorAll('product-details-quantity-selector .quantity-selector-button'),
+    ];
+    buttons[1]?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(quantityCalls).toEqual([2]);
+  });
+
+  it('hides the quantity section with the selector when variants carry none', () => {
+    const { element } = quantitySetup(emptyResource<ProductVariant[]>([]));
+
+    expect(element.querySelector('h1')?.textContent).toBe('Tee');
+    expect(element.querySelector('product-details-quantity-selector')).toBeNull();
   });
 });
