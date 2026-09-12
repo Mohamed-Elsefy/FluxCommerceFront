@@ -1,10 +1,10 @@
 /**
- * Feature-owned Product Details state for Sub-Phases 6.1–6.4 — Foundation
- * + Page & Information + Image Gallery + Variant Selection.
+ * Feature-owned Product Details state for Sub-Phases 6.1–6.5 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection + SKU Binding.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.4 (product +
- * specifications + images + variants resource slots plus the selected
- * variant, no UI).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.5 (product +
+ * specifications + images + variants resource slots, the selected variant,
+ * and its orderability guard — no UI).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -34,7 +34,6 @@
  *   fetches in the browser; SSR transfer arrives in Sub-Phase 6.9).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.5 — no SKU/pricing/availability derivation.
  * - 6.6–6.7 / Phase 7 — no quantity, cart integration, or cart state.
  */
 
@@ -52,6 +51,7 @@ import {
 } from '@flux/api';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
 import {
+  isSelectableVariant,
   resolveVariantSelection,
   type ProductDetails,
   type ProductImage,
@@ -139,6 +139,20 @@ export class ProductDetailsState {
       this.variantsStore.data()?.find((variant) => variant.id === this.selectedVariantIdStore()) ??
       null,
   );
+
+  /**
+   * Orderability guard for the selected variant (`§6.5` acceptance —
+   * invalid/unavailable selections can never reach ordering): `true` only
+   * while a loaded variant is both selected and still selectable. Derived
+   * from `selectedVariant`, so a status flip on refetch disables ordering
+   * without any stale intermediate. No quantity/cart UI exists in this
+   * sub-phase — Sub-Phases 6.6–6.7 consume this signal to disable their
+   * controls.
+   */
+  readonly selectedVariantSelectable: Signal<boolean> = computed(() => {
+    const selected = this.selectedVariant();
+    return selected !== null && isSelectableVariant(selected);
+  });
 
   /**
    * Loads a single product by id into the `product` slot. A dataless

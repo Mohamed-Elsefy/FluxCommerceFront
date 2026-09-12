@@ -1,0 +1,41 @@
+/* Selected-variant commercial section (Sub-Phase 6.5 — SKU binding).
+  Single intrinsically responsive component — no device duplicates, no
+  viewport media queries. Logical properties only (RTL-safe); visual values
+  come from theming tokens. */
+
+.variant-commercial-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.variant-commercial-prompt,
+.variant-commercial-unavailable {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.variant-commercial-list {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.variant-commercial-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--spacing-sm);
+  padding-block: var(--spacing-sm);
+  border-block-start: var(--border-width-thin) solid var(--color-border);
+}
+
+.variant-commercial-row dt {
+  font-weight: var(--font-weight-medium);
+}
+
+.variant-commercial-row dd {
+  margin: 0;
+}

@@ -1,6 +1,6 @@
 /**
- * Product Details page for Sub-Phases 6.1–6.4 — Foundation + Page &
- * Information + Image Gallery + Variant Selection.
+ * Product Details page for Sub-Phases 6.1–6.5 — Foundation + Page &
+ * Information + Image Gallery + Variant Selection + SKU Binding.
  *
  * Smart page (route-level composition): reads the `:id` route parameter,
  * validates it through the pure `parseProductIdParam` helper, and drives
@@ -48,14 +48,17 @@
  * loading, or failed variants slot hides it (the product still shows);
  * selection starts empty (the contract defines no default) and the page
  * clears it whenever the route product changes, while error retry
- * preserves it.
+ * preserves it. The commercial section binds the selected variant's SKU
+ * (§6.5 — the only customer-visible commercial field the contract
+ * provides; price and availability exist in no readable contract and are
+ * not fabricated): no selection → prompt, stale-unselectable selection →
+ * unavailable notice, never stale SKU.
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.5 — no SKU/pricing/availability presentation.
  * - 6.6–6.7 — no quantity or add-to-cart.
  */
 
@@ -75,6 +78,7 @@ import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { ProductGallery } from '../../components/product-gallery/product-gallery';
+import { VariantCommercial } from '../../components/variant-commercial/variant-commercial';
 import { VariantSelector } from '../../components/variant-selector/variant-selector';
 import { ProductDetailsState } from '../../state/product-details-state';
 import {
@@ -89,7 +93,15 @@ import {
 
 @Component({
   selector: 'app-product-details-page',
-  imports: [RouterLink, LoadingIndicator, EmptyState, ErrorState, ProductGallery, VariantSelector],
+  imports: [
+    RouterLink,
+    LoadingIndicator,
+    EmptyState,
+    ErrorState,
+    ProductGallery,
+    VariantSelector,
+    VariantCommercial,
+  ],
   templateUrl: './product-details-page.html',
   styleUrl: './product-details-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -117,6 +129,9 @@ export class ProductDetailsPage {
 
   /** Selected variant id (`null` = no explicit selection). */
   readonly selectedVariantId = this.state.selectedVariantId;
+
+  /** Selected variant object — the commercial section's source of truth. */
+  readonly selectedVariant = this.state.selectedVariant;
 
   /**
    * Validated product id from the `:id` route parameter (`null` when
@@ -185,6 +200,22 @@ export class ProductDetailsPage {
       selectorUnavailable: translateProductDetailsKey(
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.selectorUnavailable,
+      ),
+      commercialTitle: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.commercialTitle,
+      ),
+      commercialSkuLabel: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.commercialSkuLabel,
+      ),
+      commercialSelectPrompt: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.commercialSelectPrompt,
+      ),
+      commercialUnavailable: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.commercialUnavailable,
       ),
       retry: translateKey(culture, 'common.actions.retry'),
     };

@@ -1,15 +1,15 @@
 /**
- * State tests for the Sub-Phase 6.1–6.4 `ProductDetailsState`.
+ * State tests for the Sub-Phase 6.1–6.5 `ProductDetailsState`.
  *
  * `ProductDetailsApiService` (the feature HTTP boundary, covered by
  * `product-details-api.service.spec.ts`) is stubbed at its typed seam so
  * these tests own the feature logic: idle → loading → success | empty |
  * error transitions for the product, specifications, images, and variants
  * slots; variant selection (valid acceptance, invalid rejection, no
- * default, clearing); data retention across reloads; dataless-envelope
- * violations; blank-id rejection; cancellation passthrough; reset of every
- * slot; and feature-local scoping (no root singleton — every injection site
- * gets an independent instance).
+ * default, clearing, orderability guard); data retention across reloads;
+ * dataless-envelope violations; blank-id rejection; cancellation
+ * passthrough; reset of every slot; and feature-local scoping (no root
+ * singleton — every injection site gets an independent instance).
  */
 
 import { TestBed } from '@angular/core/testing';
@@ -514,6 +514,45 @@ describe('ProductDetailsState variant selection', () => {
     expect(state.selectedVariantId()).toBeNull();
     expect(state.selectedVariant()).toBeNull();
     expect(state.variants().status).toBe('success');
+  });
+});
+
+describe('ProductDetailsState orderability guard', () => {
+  it('is false before any selection', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+
+    expect(state.selectedVariantSelectable()).toBe(false);
+  });
+
+  it('is true while a selectable variant is selected', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+
+    expect(state.selectedVariantSelectable()).toBe(true);
+  });
+
+  it('turns false when the selection leaves the fresh list', () => {
+    let items = VARIANTS;
+    const { state } = setup({ listProductVariants: () => of(variantsEnvelope(items)) });
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    expect(state.selectedVariantSelectable()).toBe(true);
+
+    items = [];
+    state.loadProductVariants(PRODUCT_ID);
+
+    expect(state.selectedVariantSelectable()).toBe(false);
+  });
+
+  it('is false after reset', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.reset();
+
+    expect(state.selectedVariantSelectable()).toBe(false);
   });
 });
 

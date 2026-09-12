@@ -1,6 +1,6 @@
 /**
- * Storefront Product Details feature translations for Sub-Phases 6.2–6.4
- * — Page & Information + Image Gallery + Variant Selection.
+ * Storefront Product Details feature translations for Sub-Phases 6.2–6.5
+ * — Page & Information + Image Gallery + Variant Selection + SKU Binding.
  *
  * Feature-owned, business-specific copy (`productDetails` namespace) in all
  * five supported cultures (`en`/`fr`/`de`/`es`/`ar`). Per the Phase 4
@@ -47,6 +47,10 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   galleryImageFallback: 'productDetails.gallery.imageFallback',
   selectorTitle: 'productDetails.selector.title',
   selectorUnavailable: 'productDetails.selector.unavailable',
+  commercialTitle: 'productDetails.commercial.title',
+  commercialSkuLabel: 'productDetails.commercial.skuLabel',
+  commercialSelectPrompt: 'productDetails.commercial.selectPrompt',
+  commercialUnavailable: 'productDetails.commercial.unavailable',
 } as const;
 
 /** English (`en`) product-details vocabulary. Also the deterministic fallback source. */
@@ -83,6 +87,12 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
     selector: {
       title: 'Variant',
       unavailable: 'Unavailable',
+    },
+    commercial: {
+      title: 'Variant details',
+      skuLabel: 'SKU',
+      selectPrompt: 'Select a variant to see its details.',
+      unavailable: 'This variant is no longer available.',
     },
   },
 };
@@ -122,6 +132,12 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
       title: 'Variante',
       unavailable: 'Indisponible',
     },
+    commercial: {
+      title: 'Détails de la variante',
+      skuLabel: 'SKU',
+      selectPrompt: 'Sélectionnez une variante pour voir ses détails.',
+      unavailable: 'Cette variante n’est plus disponible.',
+    },
   },
 };
 
@@ -159,6 +175,12 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
     selector: {
       title: 'Variante',
       unavailable: 'Nicht verfügbar',
+    },
+    commercial: {
+      title: 'Variantendetails',
+      skuLabel: 'SKU',
+      selectPrompt: 'Wählen Sie eine Variante, um ihre Details zu sehen.',
+      unavailable: 'Diese Variante ist nicht mehr verfügbar.',
     },
   },
 };
@@ -198,6 +220,12 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
       title: 'Variante',
       unavailable: 'No disponible',
     },
+    commercial: {
+      title: 'Detalles de la variante',
+      skuLabel: 'SKU',
+      selectPrompt: 'Seleccione una variante para ver sus detalles.',
+      unavailable: 'Esta variante ya no está disponible.',
+    },
   },
 };
 
@@ -235,6 +263,12 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
     selector: {
       title: 'المتغير',
       unavailable: 'غير متاح',
+    },
+    commercial: {
+      title: 'تفاصيل المتغير',
+      skuLabel: 'SKU',
+      selectPrompt: 'اختر متغيرًا لرؤية تفاصيله.',
+      unavailable: 'هذا المتغير لم يعد متاحًا.',
     },
   },
 };

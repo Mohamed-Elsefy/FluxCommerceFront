@@ -1,8 +1,9 @@
 /**
- * Storefront Product Details feature models for Sub-Phases 6.1–6.4 —
- * Foundation + Page & Information + Image Gallery + Variant Selection.
+ * Storefront Product Details feature models for Sub-Phases 6.1–6.5 —
+ * Foundation + Page & Information + Image Gallery + Variant Selection + SKU
+ * Binding.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.4.
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.5.
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.3/2.6/2.7
  * (`GET /catalog/products/{id:guid}` → `200 ApiResponse<ProductResponse>`;
@@ -20,8 +21,15 @@
  * `sku`, `name`, `status`, deletion flags) with NO Color/Size/Style
  * dimensions and NO price/currency fields — so the selector offers the
  * backend names, selectability follows `status` + deletion flags only, and
- * nothing dimensional or commercial is fabricated. SKU/price/availability
- * presentation arrives in Sub-Phase 6.5.
+ * nothing dimensional or commercial is fabricated.
+ *
+ * Commercial note (§6.5 — strictly contract-driven): the ONLY
+ * customer-visible commercial field in any readable contract is
+ * `VariantResponse.sku`. Price exists solely on the admin-only
+ * create-variant *request* (and checkout reprices authoritatively
+ * server-side); stock reads are `Admin`-only inventory endpoints — so the
+ * storefront displays SKU bound to the selection and no price or
+ * availability content whatsoever (see also `ARCHITECTURE.md` §21).
  *
  * Contract fidelity note (§6.2 rule — display only backend-provided fields):
  * no read contract exposes pricing or availability (`VariantResponse`
@@ -37,7 +45,6 @@
  *   Envelope mapping and fetching live in `state/` and `data-access/`.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.5 — no SKU/pricing/availability presentation.
  * - 6.6–6.7 — no quantity or add-to-cart.
  * - Phase 7 — no cart state or cart API usage.
  */

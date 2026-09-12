@@ -1,6 +1,6 @@
 /**
- * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.4 — Foundation
- * + Page & Information + Image Gallery + Variant Selection).
+ * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.5 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection + SKU Binding).
  *
  * `ProductDetailsState` is stubbed at its typed seam (its orchestration is
  * covered by `product-details-state.spec.ts`) so these tests own the page
@@ -10,8 +10,9 @@
  * rendering, error retry over all slots, specification rendering (wire
  * order, empty-hidden), gallery integration (rendering, empty fallback,
  * failure hiding), selector integration (rendering, selection forwarding,
- * clearing on product change), and the browser-only fetch rule (the server
- * prerenders the idle shell).
+ * clearing on product change), commercial integration (SKU binding,
+ * no-selection prompt, unavailable handling), and the browser-only fetch
+ * rule (the server prerenders the idle shell).
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -99,6 +100,7 @@ function setup(options: {
   imagesSnapshot?: ResourceState<ProductImage[]>;
   variantsSnapshot?: ResourceState<ProductVariant[]>;
   selectedVariantId?: string | null;
+  selectedVariant?: ProductVariant | null;
   productId?: string | null;
   culture?: 'en' | 'fr';
   platform?: 'browser' | 'server';
@@ -112,12 +114,14 @@ function setup(options: {
   selectCalls: unknown[];
   clearSelectionCalls: number;
   resetCalls: number;
+  setSelectedVariant: (variant: ProductVariant | null) => void;
 } {
   const loadCalls: unknown[] = [];
   const loadSpecificationsCalls: unknown[] = [];
   const loadImagesCalls: unknown[] = [];
   const loadVariantsCalls: unknown[] = [];
   const selectCalls: unknown[] = [];
+  const selectedVariant = signal<ProductVariant | null>(options.selectedVariant ?? null);
   let clearSelectionCalls = 0;
   let resetCalls = 0;
   const stateStub = {
@@ -128,6 +132,7 @@ function setup(options: {
     images: signal(options.imagesSnapshot ?? idleResource<ProductImage[]>()),
     variants: signal(options.variantsSnapshot ?? idleResource<ProductVariant[]>()),
     selectedVariantId: signal(options.selectedVariantId ?? null),
+    selectedVariant,
     loadProduct: ((id: unknown) => {
       loadCalls.push(id);
     }) as ProductDetailsState['loadProduct'],
@@ -184,6 +189,7 @@ function setup(options: {
     selectCalls,
     clearSelectionCalls,
     resetCalls,
+    setSelectedVariant: (variant: ProductVariant | null) => selectedVariant.set(variant),
   };
 }
 
@@ -540,5 +546,70 @@ describe('ProductDetailsPage variant selector', () => {
       expect(element.querySelector('product-details-variant-selector')).toBeNull();
       expect(element.querySelector('flux-error-state')).toBeNull();
     }
+  });
+});
+
+describe('ProductDetailsPage commercial section', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function commercialSetup(
+    variantsSnapshot: ResourceState<ProductVariant[]>,
+    selectedVariant: ProductVariant | null = null,
+  ) {
+    return setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      variantsSnapshot,
+      selectedVariant,
+    });
+  }
+
+  it('binds the selected variant SKU once variants succeed', () => {
+    const { element } = commercialSetup(successResource(VARIANTS), VARIANTS[0] ?? null);
+
+    const commercial = element.querySelector('product-details-variant-commercial');
+    expect(commercial).not.toBeNull();
+    expect(commercial?.querySelector('.variant-commercial-title')?.textContent).toBe(
+      'Variant details',
+    );
+    expect(commercial?.querySelector('.variant-commercial-row dt')?.textContent).toBe('SKU');
+    expect(commercial?.querySelector('.variant-commercial-row dd')?.textContent).toBe('TEE-RED-M');
+  });
+
+  it('updates the SKU instantly on selection switches with no stale data', () => {
+    const { element, fixture, setSelectedVariant } = commercialSetup(
+      successResource(VARIANTS),
+      VARIANTS[0] ?? null,
+    );
+    expect(element.querySelector('.variant-commercial-row dd')?.textContent).toBe('TEE-RED-M');
+
+    const blue = VARIANTS[1];
+    expect(blue).toBeDefined();
+    setSelectedVariant({ ...blue!, status: VariantStatus.Active });
+    fixture.detectChanges();
+
+    const rows = [...element.querySelectorAll('.variant-commercial-row')];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.querySelector('dd')?.textContent).toBe('TEE-BLUE-M');
+    expect(element.textContent).not.toContain('TEE-RED-M');
+  });
+
+  it('prompts for a selection when nothing is selected', () => {
+    const { element } = commercialSetup(successResource(VARIANTS), null);
+
+    expect(element.querySelector('.variant-commercial-prompt')?.textContent).toBe(
+      'Select a variant to see its details.',
+    );
+    expect(element.querySelector('.variant-commercial-list')).toBeNull();
+  });
+
+  it('hides the commercial section with the selector when variants carry none', () => {
+    const { element } = commercialSetup(emptyResource<ProductVariant[]>([]));
+
+    expect(element.querySelector('h1')?.textContent).toBe('Tee');
+    expect(element.querySelector('product-details-variant-commercial')).toBeNull();
   });
 });

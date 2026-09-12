@@ -46,6 +46,13 @@
         [unavailableLabel]="copy().selectorUnavailable"
         (selectionChange)="onVariantSelect($event)"
       ></product-details-variant-selector>
+      <product-details-variant-commercial
+        [variant]="selectedVariant()"
+        [title]="copy().commercialTitle"
+        [skuLabel]="copy().commercialSkuLabel"
+        [selectPrompt]="copy().commercialSelectPrompt"
+        [unavailableMessage]="copy().commercialUnavailable"
+      ></product-details-variant-commercial>
     }
     @if (specifications().isSuccess) {
       <section class="product-details-specs" aria-labelledby="product-details-specs-title">

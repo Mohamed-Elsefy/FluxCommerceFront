@@ -1,9 +1,10 @@
 /**
- * Product Details data-access service for Sub-Phases 6.1–6.4 — Foundation
- * + Page & Information + Image Gallery + Variant Selection.
+ * Product Details data-access service for Sub-Phases 6.1–6.5 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection + SKU Binding.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.4 (product +
- * specifications + images + variants reads).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.5 (product +
+ * specifications + images + variants reads — the SKU surface of §6.5 rides
+ * on the already-loaded `VariantResponse`, so no new endpoint is needed).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.3/2.6/2.7
  * (all four `GET` endpoints are `[AllowAnonymous]`).
@@ -29,8 +30,8 @@
  *   and `Authorization` stays owned by the interceptor pipeline.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.5 — no SKU/pricing/availability reads beyond the variant list itself.
- * - 6.7 — no cart API usage.
+ * - 6.6–6.7 — no quantity, cart API usage, or price/stock reads (none
+ *   exist for the storefront — see the commercial note in `../models`).
  * - Phase 7 — no cart state or cart management.
  */
 
