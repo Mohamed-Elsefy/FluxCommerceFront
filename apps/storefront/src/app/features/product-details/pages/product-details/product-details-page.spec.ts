@@ -1,23 +1,28 @@
 /**
- * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.5 — Foundation
- * + Page & Information + Image Gallery + Variant Selection + SKU Binding).
+ * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.9 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection + SKU Binding +
+ * Quantity Selection + Add to Cart Integration + SSR & SEO).
  *
  * `ProductDetailsState` is stubbed at its typed seam (its orchestration is
  * covered by `product-details-state.spec.ts`) so these tests own the page
  * logic: product + specifications + images + variants loads driven by the
- * `:id` route parameter, graceful missing/malformed ids (no fetch,
- * invalid state, slot reset), loading / success / error / not-found
- * rendering, error retry over all slots, specification rendering (wire
- * order, empty-hidden), gallery integration (rendering, empty fallback,
- * failure hiding), selector integration (rendering, selection forwarding,
- * clearing on product change), commercial integration (SKU binding,
- * no-selection prompt, unavailable handling), and the browser-only fetch
- * rule (the server prerenders the idle shell).
+ * `:id` route parameter on both platforms (server fetch feeds SSR +
+ * transfer; the server never renders browser-only shells), graceful
+ * missing/malformed ids (no fetch, invalid state, slot reset), loading /
+ * success / error / not-found rendering, error retry over all slots,
+ * specification rendering (wire order, empty-hidden), gallery integration
+ * (rendering, empty fallback, failure hiding), selector integration
+ * (rendering, selection forwarding, clearing on product change),
+ * commercial integration (SKU binding, no-selection prompt, unavailable
+ * handling), quantity integration (rendering, forwarding),
+ * submission-feedback lifecycle resets, and dynamic SSR-safe metadata
+ * (title, description, OpenGraph per resource state, incl. 404).
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { of } from 'rxjs';
 import {
@@ -103,7 +108,7 @@ function setup(options: {
   selectedVariant?: ProductVariant | null;
   quantity?: number;
   productId?: string | null;
-  culture?: 'en' | 'fr';
+  culture?: 'en' | 'fr' | 'ar';
   platform?: 'browser' | 'server';
 }): {
   fixture: ComponentFixture<ProductDetailsPage>;
@@ -116,6 +121,7 @@ function setup(options: {
   quantityCalls: unknown[];
   clearSelectionCalls: number;
   resetQuantityCalls: number;
+  resetAddToCartCalls: unknown[];
   resetCalls: number;
   setSelectedVariant: (variant: ProductVariant | null) => void;
 } {
@@ -128,6 +134,7 @@ function setup(options: {
   const selectedVariant = signal<ProductVariant | null>(options.selectedVariant ?? null);
   let clearSelectionCalls = 0;
   let resetQuantityCalls = 0;
+  const resetAddToCartCalls: unknown[] = [];
   let resetCalls = 0;
   const stateStub = {
     product: signal(options.snapshot ?? idleResource<ProductDetails>()),
@@ -163,6 +170,9 @@ function setup(options: {
     resetQuantity: (() => {
       resetQuantityCalls += 1;
     }) as ProductDetailsState['resetQuantity'],
+    resetAddToCartStatus: (() => {
+      resetAddToCartCalls.push(true);
+    }) as ProductDetailsState['resetAddToCartStatus'],
     reset: (() => {
       resetCalls += 1;
     }) as ProductDetailsState['reset'],
@@ -202,6 +212,7 @@ function setup(options: {
     quantityCalls,
     clearSelectionCalls,
     resetQuantityCalls,
+    resetAddToCartCalls,
     resetCalls,
     setSelectedVariant: (variant: ProductVariant | null) => selectedVariant.set(variant),
   };
@@ -220,6 +231,7 @@ describe('ProductDetailsPage route parameter', () => {
       loadVariantsCalls,
       clearSelectionCalls,
       resetQuantityCalls,
+      resetAddToCartCalls,
     } = setup({
       productId: PRODUCT_ID,
     });
@@ -230,6 +242,7 @@ describe('ProductDetailsPage route parameter', () => {
     expect(loadVariantsCalls).toEqual([PRODUCT_ID]);
     expect(clearSelectionCalls).toBe(1);
     expect(resetQuantityCalls).toBe(1);
+    expect(resetAddToCartCalls).toHaveLength(1);
   });
 
   it('never fetches and renders the invalid state for a missing id', () => {
@@ -260,11 +273,10 @@ describe('ProductDetailsPage route parameter', () => {
     expect(element.querySelector('flux-empty-state')).not.toBeNull();
   });
 
-  it('skips loading on the server (prerenders the idle shell)', () => {
+  it('fetches on the server for SSR (idle shell until settle, no browser APIs)', () => {
     const { element, loadCalls } = setup({ productId: PRODUCT_ID, platform: 'server' });
 
-    expect(loadCalls).toEqual([]);
-    expect(element.querySelector('flux-loading-indicator')).toBeNull();
+    expect(loadCalls).toEqual([PRODUCT_ID]);
     expect(element.querySelector('h1')?.textContent).toBe('Product details');
   });
 });
@@ -339,6 +351,36 @@ describe('ProductDetailsPage resource states', () => {
     expect(element.querySelector('flux-loading-indicator')?.textContent).toContain(
       'Chargement du produit…',
     );
+  });
+
+  it('renders Arabic copy for the RTL culture without direction branching', () => {
+    const { element } = setup({ productId: null, culture: 'ar' });
+
+    expect(element.querySelector('h1')?.textContent).toBe('تفاصيل المنتج');
+    expect(element.querySelector('flux-empty-state .title')?.textContent).toBe(
+      'رابط المنتج غير صالح',
+    );
+    expect(element.querySelector('flux-empty-state .message')?.textContent).toBe(
+      'رابط المنتج هذا مفقود أو غير صالح.',
+    );
+  });
+
+  it('keeps every labelled section reference resolvable (landmark integrity)', () => {
+    const { element } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+    });
+
+    for (const labelled of [...element.querySelectorAll('[aria-labelledby]')]) {
+      const target = labelled.getAttribute('aria-labelledby');
+      expect(target).not.toBeNull();
+      expect(
+        element.querySelector(`#${target}`),
+        `aria-labelledby target missing: ${target}`,
+      ).not.toBeNull();
+    }
+    expect(element.querySelector('h1')?.textContent).toBe('Tee');
   });
 });
 
@@ -548,6 +590,18 @@ describe('ProductDetailsPage variant selector', () => {
     expect(selectCalls).toEqual(['aaaaaaaa-1111-4111-8111-111111111111']);
   });
 
+  it('clears stale submission feedback on selector choices', () => {
+    const { element, fixture, resetAddToCartCalls } = successSetup(successResource(VARIANTS));
+    expect(resetAddToCartCalls).toHaveLength(1);
+
+    [
+      ...element.querySelectorAll('product-details-variant-selector .variant-selector-option'),
+    ][0]?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(resetAddToCartCalls).toHaveLength(2);
+  });
+
   it('hides the selector when variants are loading, empty, or failed', () => {
     const pending: ResourceState<ProductVariant[]>[] = [
       loadingResource<ProductVariant[]>(),
@@ -668,10 +722,114 @@ describe('ProductDetailsPage quantity section', () => {
     expect(quantityCalls).toEqual([2]);
   });
 
+  it('clears stale submission feedback on quantity changes', () => {
+    const { element, fixture, resetAddToCartCalls } = quantitySetup(successResource(VARIANTS), 1);
+    expect(resetAddToCartCalls).toHaveLength(1);
+
+    const buttons = [
+      ...element.querySelectorAll('product-details-quantity-selector .quantity-selector-button'),
+    ];
+    buttons[1]?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(resetAddToCartCalls).toHaveLength(2);
+  });
+
   it('hides the quantity section with the selector when variants carry none', () => {
     const { element } = quantitySetup(emptyResource<ProductVariant[]>([]));
 
     expect(element.querySelector('h1')?.textContent).toBe('Tee');
     expect(element.querySelector('product-details-quantity-selector')).toBeNull();
+  });
+});
+
+describe('ProductDetailsPage metadata (6.9 SSR & SEO)', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function metaOf(fixture: ComponentFixture<ProductDetailsPage>): {
+    title: string;
+    description: string | null;
+    ogTitle: string | null;
+    ogDescription: string | null;
+    ogType: string | null;
+  } {
+    const meta = TestBed.inject(Meta);
+    return {
+      title: TestBed.inject(Title).getTitle(),
+      description: meta.getTag("name='description'")?.getAttribute('content') ?? null,
+      ogTitle: meta.getTag("property='og:title'")?.getAttribute('content') ?? null,
+      ogDescription: meta.getTag("property='og:description'")?.getAttribute('content') ?? null,
+      ogType: meta.getTag("property='og:type'")?.getAttribute('content') ?? null,
+    };
+  }
+
+  function metadataSetup(options: {
+    snapshot?: ResourceState<ProductDetails>;
+    productId?: string | null;
+    platform?: 'browser' | 'server';
+  }) {
+    return setup({
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      ...options,
+    });
+  }
+
+  it('sets product title, description, and OpenGraph tags on success', () => {
+    const { fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+    });
+
+    expect(metaOf(fixture)).toEqual({
+      title: 'Tee | FluxCommerce',
+      description: 'A comfortable cotton tee.',
+      ogTitle: 'Tee | FluxCommerce',
+      ogDescription: 'A comfortable cotton tee.',
+      ogType: 'website',
+    });
+  });
+
+  it('falls back to the localized description when the backend provides none', () => {
+    const { fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: successResource({ ...PRODUCT, description: null }),
+    });
+
+    expect(metaOf(fixture).description).toBe('No description available.');
+  });
+
+  it('sets not-found metadata without throwing on a 404', () => {
+    const { element, fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: errorResource(new ApiError({ status: 404, message: 'Not found.' })),
+    });
+
+    expect(element.querySelector('flux-empty-state')).not.toBeNull();
+    expect(metaOf(fixture).title).toBe('Product not found | FluxCommerce');
+    expect(metaOf(fixture).description).toBe(
+      'This product does not exist or is no longer available.',
+    );
+  });
+
+  it('sets error metadata without throwing on generic failures', () => {
+    const { fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: errorResource(new ApiError({ status: 500, message: 'Server error.' })),
+    });
+
+    expect(metaOf(fixture).title).toBe('Could not load the product | FluxCommerce');
+  });
+
+  it('applies shell metadata on the server without browser APIs', () => {
+    const { element, fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      platform: 'server',
+    });
+
+    expect(element.querySelector('h1')?.textContent).toBe('Product details');
+    expect(metaOf(fixture).title).toBe('Product details | FluxCommerce');
+    expect(metaOf(fixture).ogType).toBe('website');
   });
 });

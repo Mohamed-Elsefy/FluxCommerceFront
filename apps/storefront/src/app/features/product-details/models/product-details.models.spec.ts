@@ -15,12 +15,15 @@ import {
   INITIAL_QUANTITY,
   MIN_QUANTITY,
   PRODUCT_DETAILS_ID_PARAM,
+  buildAddToCartItem,
   isNotFoundError,
   isSelectableVariant,
+  isValidAddToCartPricing,
   isValidQuantity,
   parseProductIdParam,
   parseQuantityInput,
   resolveVariantSelection,
+  toAddToCartStatus,
 } from './product-details.models';
 
 const VALID_ID = '11111111-1111-1111-1111-111111111111';
@@ -186,5 +189,52 @@ describe('parseQuantityInput', () => {
     expect(parseQuantityInput('2e2')).toBeNull();
     expect(parseQuantityInput('two')).toBeNull();
     expect(parseQuantityInput('3 pieces')).toBeNull();
+  });
+});
+
+describe('toAddToCartStatus', () => {
+  it('projects the resource lifecycle onto the button lifecycle', () => {
+    expect(toAddToCartStatus('idle')).toBe('idle');
+    expect(toAddToCartStatus('loading')).toBe('adding');
+    expect(toAddToCartStatus('success')).toBe('added');
+    expect(toAddToCartStatus('error')).toBe('error');
+    expect(toAddToCartStatus('empty')).toBe('idle');
+  });
+});
+
+describe('buildAddToCartItem', () => {
+  it('builds the purchasable item from a selectable variant and valid quantity', () => {
+    expect(buildAddToCartItem(ACTIVE_VARIANT, 2)).toEqual({
+      variantId: ACTIVE_VARIANT.id,
+      quantity: 2,
+    });
+  });
+
+  it('returns null for missing, unselectable, or invalid inputs without throwing', () => {
+    expect(buildAddToCartItem(null, 2)).toBeNull();
+    expect(buildAddToCartItem(undefined, 2)).toBeNull();
+    expect(buildAddToCartItem(INACTIVE_VARIANT, 2)).toBeNull();
+    expect(buildAddToCartItem(DELETED_VARIANT, 2)).toBeNull();
+    expect(buildAddToCartItem(ACTIVE_VARIANT, 0)).toBeNull();
+    expect(buildAddToCartItem(ACTIVE_VARIANT, -1)).toBeNull();
+    expect(buildAddToCartItem(ACTIVE_VARIANT, 1.5)).toBeNull();
+  });
+});
+
+describe('isValidAddToCartPricing', () => {
+  it('accepts structurally valid price snapshots', () => {
+    expect(isValidAddToCartPricing({ unitPriceAmount: 29.99, currency: 'USD' })).toBe(true);
+    expect(isValidAddToCartPricing({ unitPriceAmount: 0.01, currency: 'EUR' })).toBe(true);
+  });
+
+  it('rejects missing, out-of-range, and malformed snapshots without throwing', () => {
+    expect(isValidAddToCartPricing(null)).toBe(false);
+    expect(isValidAddToCartPricing(undefined)).toBe(false);
+    expect(isValidAddToCartPricing({ unitPriceAmount: 0, currency: 'USD' })).toBe(false);
+    expect(isValidAddToCartPricing({ unitPriceAmount: -5, currency: 'USD' })).toBe(false);
+    expect(isValidAddToCartPricing({ unitPriceAmount: Number.NaN, currency: 'USD' })).toBe(false);
+    expect(isValidAddToCartPricing({ unitPriceAmount: 29.99, currency: '' })).toBe(false);
+    expect(isValidAddToCartPricing({ unitPriceAmount: 29.99, currency: 'US' })).toBe(false);
+    expect(isValidAddToCartPricing({ unitPriceAmount: 29.99, currency: 'usd' })).toBe(false);
   });
 });

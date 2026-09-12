@@ -1,7 +1,8 @@
 /**
- * Storefront Product Details feature translations for Sub-Phases 6.2–6.6
+ * Storefront Product Details feature translations for Sub-Phases 6.2–6.8
  * — Page & Information + Image Gallery + Variant Selection + SKU Binding +
- * Quantity Selection.
+ * Quantity Selection + Add to Cart Integration + Localization/RTL/
+ * Responsive/A11y.
  *
  * Feature-owned, business-specific copy (`productDetails` namespace) in all
  * five supported cultures (`en`/`fr`/`de`/`es`/`ar`). Per the Phase 4
@@ -56,6 +57,9 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   quantityDecrease: 'productDetails.quantity.decrease',
   quantityIncrease: 'productDetails.quantity.increase',
   quantityInvalid: 'productDetails.quantity.invalid',
+  addToCartAdd: 'productDetails.addToCart.add',
+  addToCartAdding: 'productDetails.addToCart.adding',
+  addToCartAdded: 'productDetails.addToCart.added',
 } as const;
 
 /** English (`en`) product-details vocabulary. Also the deterministic fallback source. */
@@ -104,6 +108,11 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
       decrease: 'Decrease quantity',
       increase: 'Increase quantity',
       invalid: 'Enter a whole number of 1 or more.',
+    },
+    addToCart: {
+      add: 'Add to cart',
+      adding: 'Adding…',
+      added: 'Added to cart.',
     },
   },
 };
@@ -155,6 +164,11 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
       increase: 'Augmenter la quantité',
       invalid: 'Saisissez un nombre entier de 1 ou plus.',
     },
+    addToCart: {
+      add: 'Ajouter au panier',
+      adding: 'Ajout en cours…',
+      added: 'Ajouté au panier.',
+    },
   },
 };
 
@@ -204,6 +218,11 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
       decrease: 'Menge verringern',
       increase: 'Menge erhöhen',
       invalid: 'Geben Sie eine ganze Zahl von 1 oder mehr ein.',
+    },
+    addToCart: {
+      add: 'In den Warenkorb',
+      adding: 'Wird hinzugefügt…',
+      added: 'Zum Warenkorb hinzugefügt.',
     },
   },
 };
@@ -255,6 +274,11 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
       increase: 'Aumentar la cantidad',
       invalid: 'Introduzca un número entero de 1 o más.',
     },
+    addToCart: {
+      add: 'Añadir al carrito',
+      adding: 'Añadiendo…',
+      added: 'Añadido al carrito.',
+    },
   },
 };
 
@@ -304,6 +328,11 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
       decrease: 'إنقاص الكمية',
       increase: 'زيادة الكمية',
       invalid: 'أدخل عددًا صحيحًا لا يقل عن 1.',
+    },
+    addToCart: {
+      add: 'أضف إلى السلة',
+      adding: 'جارٍ الإضافة…',
+      added: 'تمت الإضافة إلى السلة.',
     },
   },
 };

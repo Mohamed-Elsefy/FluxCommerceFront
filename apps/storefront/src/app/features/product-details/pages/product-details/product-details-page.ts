@@ -1,7 +1,7 @@
 /**
- * Product Details page for Sub-Phases 6.1–6.6 — Foundation + Page &
+ * Product Details page for Sub-Phases 6.1–6.9 — Foundation + Page &
  * Information + Image Gallery + Variant Selection + SKU Binding + Quantity
- * Selection.
+ * Selection + Add to Cart Integration + SSR & SEO.
  *
  * Smart page (route-level composition): reads the `:id` route parameter,
  * validates it through the pure `parseProductIdParam` helper, and drives
@@ -25,9 +25,22 @@
  * - A missing, blank, or malformed id renders the invalid-id state and
  *   never fetches (no doomed request); all state slots stay `idle`.
  * - A well-formed id loads the product, specifications, images, and
- *   variants in the browser after hydration; the server keeps the idle
- *   prerendering has no backend at build time, so server-side fetching
- *   would hang the render — SSR transfer arrives in Sub-Phase 6.9).
+ *   variants on BOTH server and client: the route is `RenderMode.Server`
+ *   (never prerendered), so the server fetches live at request time and
+ *   settled payloads transfer to the browser once per id via
+ *   `TransferState` — hydration never refetches transferred data.
+ *
+ * SSR/SEO (§6.9 — same convention as the catalog listing, Phase 5.10):
+ * - `Title`/`Meta` apply in `ngOnInit` (server + client) and refresh in an
+ *   effect on product/culture changes: document title, standard
+ *   description, and OpenGraph tags follow the loaded product (name +
+ *   description), with localized fallbacks per resource state (not-found,
+ *   error, invalid-id, loading shell). `Title`/`Meta` are SSR-safe Angular
+ *   services — on the server they render into the SSR `<head>`.
+ * - A server-side `404` settles into the error slot like any other
+ *   failure: the not-found UX (and its title) renders without throwing,
+ *   and the transfer layer never stores failures, so the client retries
+ *   live after a server error.
  *
  * Information contract (§6.2 rule — only backend-provided fields):
  * - Name + description from `ProductResponse`; specifications (`name` /
@@ -56,14 +69,21 @@
  * unavailable notice, never stale SKU. The quantity section (§6.6) rides
  * the same variants gate and echoes feature-local quantity (minimum 1, no
  * contract maximum); a new route product resets it while error retry
- * preserves it.
+ * preserves it. The add-to-cart submission machine (§6.7 — status, guards,
+ * endpoint façades, button component) is fully implemented and tested,
+ * but the button is deliberately NOT mounted yet: submission needs a
+ * contract price source that does not exist (see the integration note in
+ * `../models`), and mounting a control that can never succeed would
+ * mislead customers. The page already runs the machine's lifecycle
+ * (resets below), so mounting later is a template-only change beside the
+ * quantity section — see the mount snippet on `AddToCart`.
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 6.7 — no add-to-cart.
+ * - Phase 7 — no cart pages, cart state, guest persistence, or merge.
  */
 
 import {
@@ -72,12 +92,12 @@ import {
   computed,
   effect,
   inject,
-  PLATFORM_ID,
+  OnInit,
   untracked,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
@@ -112,11 +132,12 @@ import {
   styleUrl: './product-details-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductDetailsPage {
+export class ProductDetailsPage implements OnInit {
   private readonly state = inject(ProductDetailsState);
   private readonly route = inject(ActivatedRoute);
   private readonly cultures = inject(CultureService);
-  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly title = inject(Title);
+  private readonly meta = inject(Meta);
 
   /** Tears down the in-flight details requests, if any (idempotent). */
   private detailsTeardown: (() => void) | undefined;
@@ -257,9 +278,11 @@ export class ProductDetailsPage {
   );
 
   constructor() {
-    // Browser only: drives all details loads from the route id (initial
-    // value included, param changes followed). Runs after the first render;
-    // the server keeps the idle shell (see above).
+    // Drives all details loads from the route id on BOTH server and
+    // client (initial value included, param changes followed). The server
+    // pass settles live requests at request time (`RenderMode.Server` —
+    // never prerendered) and stores them for `TransferState`; the browser
+    // reuses transferred payloads instead of refetching.
     //
     // The state calls run `untracked` on purpose: each `load*` reads its
     // slot (`loadResourceState` retains current data across reloads) and
@@ -268,9 +291,10 @@ export class ProductDetailsPage {
     // effect — an infinite fetch loop. The effect depends on the route id
     // alone.
     //
-    // A new route product never inherits the previous selection or
-    // quantity (`clearVariantSelection` + `resetQuantity` on this id-driven
-    // path only — error retry goes through `reload()` and preserves the
+    // A new route product never inherits the previous selection,
+    // quantity, or submission feedback (`clearVariantSelection` +
+    // `resetQuantity` + `resetAddToCartStatus` on this id-driven path
+    // only — error retry goes through `reload()` and preserves the
     // customer's choices).
     //
     // Stale safety: every run owns an `AbortController` torn down before
@@ -280,9 +304,6 @@ export class ProductDetailsPage {
     // The same tracked teardown covers retries, so a retried request
     // supersedes (rather than races) any in-flight one.
     effect((onCleanup) => {
-      if (!this.isBrowser) {
-        return;
-      }
       const id = this.productId();
       untracked(() => {
         if (id === null) {
@@ -291,11 +312,62 @@ export class ProductDetailsPage {
         } else {
           this.state.clearVariantSelection();
           this.state.resetQuantity();
+          this.state.resetAddToCartStatus();
           this.startDetailsLoad(id);
         }
       });
       onCleanup(() => this.cancelDetailsLoad());
     });
+
+    // Dynamic metadata (§6.9): tracks the product, its resource state,
+    // and the culture; `Title`/`Meta` write the document only (no signals
+    // touched inside, so no dependency besides the tracked reads above).
+    // Runs wherever effects run (server included) — `ngOnInit` covers the
+    // first SSR pass.
+    effect(() => {
+      this.applyMetadata();
+    });
+  }
+
+  ngOnInit(): void {
+    // Runs on server and client alike: metadata applies during SSR (an
+    // SSR-safe write into the server `<head>`), while data loads flow
+    // through the effect above on both platforms.
+    this.applyMetadata();
+  }
+
+  /**
+   * Applies dynamic page metadata for the current resource state (§6.9):
+   * document title, standard description, and OpenGraph tags. Success
+   * uses the real product name + description (localized fallback when the
+   * backend provides none); not-found, error, invalid-id, and loading
+   * states each map to their localized UX copy. `Title`/`Meta` are
+   * SSR-safe Angular services.
+   */
+  private applyMetadata(): void {
+    const copy = this.copy();
+    const snapshot = this.product();
+    let pageLabel = copy.title;
+    let description = copy.title;
+    if (snapshot.isSuccess && snapshot.data !== null) {
+      pageLabel = snapshot.data.name;
+      description = snapshot.data.description ?? copy.noDescription;
+    } else if (this.isNotFound()) {
+      pageLabel = copy.notFoundTitle;
+      description = copy.notFoundMessage;
+    } else if (this.product().isError) {
+      pageLabel = copy.errorTitle;
+      description = this.errorMessage();
+    } else if (this.productId() === null) {
+      pageLabel = copy.title;
+      description = copy.invalidIdMessage;
+    }
+    const title = `${pageLabel} | FluxCommerce`;
+    this.title.setTitle(title);
+    this.meta.updateTag({ name: 'description', content: description });
+    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:description', content: description });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
   }
 
   /** (Re)loads every details slot for the current route id; error retry re-enters here. */
@@ -309,11 +381,13 @@ export class ProductDetailsPage {
   /** Forwards a selector choice to feature state (validated there — invalid ids are ignored). */
   onVariantSelect(id: string): void {
     this.state.selectVariant(id);
+    this.state.resetAddToCartStatus();
   }
 
   /** Forwards a quantity change to feature state (validated there — invalid values are ignored). */
   onQuantityChange(value: number): void {
     this.state.setQuantity(value);
+    this.state.resetAddToCartStatus();
   }
 
   /** Cancels the in-flight details requests, if any (idempotent). */

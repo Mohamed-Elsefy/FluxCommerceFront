@@ -1,6 +1,7 @@
-/* Product Details page (Sub-Phase 6.2 — Page & Information). Single
-  responsive component — no device duplicates. Logical properties only
-  (RTL-safe); visual values come from theming tokens. */
+/* Product Details page (Sub-Phases 6.2–6.8 — Page & Information through
+  Localization/RTL/Responsive/A11y). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
 
 .product-details-page {
   max-inline-size: var(--container-max-width);
@@ -48,4 +49,9 @@
 
 .product-details-back {
   margin-block-start: var(--spacing-sm);
+}
+
+.product-details-back a:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
 }

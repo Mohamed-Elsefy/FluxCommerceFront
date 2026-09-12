@@ -1,5 +1,5 @@
 /**
- * State tests for the Sub-Phase 6.1–6.6 `ProductDetailsState`.
+ * State tests for the Sub-Phase 6.1–6.9 `ProductDetailsState`.
  *
  * `ProductDetailsApiService` (the feature HTTP boundary, covered by
  * `product-details-api.service.spec.ts`) is stubbed at its typed seam so
@@ -7,19 +7,24 @@
  * error transitions for the product, specifications, images, and variants
  * slots; variant selection (valid acceptance, invalid rejection, no
  * default, clearing, orderability guard); purchase quantity (valid start,
- * increment/decrement, minimum floor, invalid rejection, reset);
- * data retention across reloads; dataless-envelope violations; blank-id
- * rejection; cancellation passthrough; reset of every slot; and
- * feature-local scoping (no root singleton — every injection site gets an
- * independent instance).
+ * increment/decrement, minimum floor, invalid rejection, reset); add-to-cart
+ * submission (guard rejection, duplicate lock, success/error transitions,
+ * reset); SSR transfer-state hydration (server stores, client reuses once,
+ * misses refetch, failures never stored); data retention across reloads;
+ * dataless-envelope violations; blank-id rejection; cancellation
+ * passthrough; reset of every slot; and feature-local scoping (no root
+ * singleton — every injection site gets an independent instance).
  */
 
 import { TestBed } from '@angular/core/testing';
+import { PLATFORM_ID, TransferState } from '@angular/core';
 import { describe, expect, it } from 'vitest';
-import { of, throwError } from 'rxjs';
-import { ApiError } from '@flux/api';
+import { Observable, of, throwError } from 'rxjs';
+import { ApiError, type ApiResponseWithData } from '@flux/api';
 import { VariantStatus } from '@flux/models';
 import type {
+  AddCartItemRequest,
+  CartResponse,
   ProductImageResponse,
   ProductResponse,
   ProductSpecificationResponse,
@@ -128,6 +133,7 @@ function setup(flows: {
   listSpecifications?: () => ReturnType<ProductDetailsApiService['listSpecifications']>;
   listProductImages?: () => ReturnType<ProductDetailsApiService['listProductImages']>;
   listProductVariants?: () => ReturnType<ProductDetailsApiService['listProductVariants']>;
+  addAuthenticatedCartItem?: () => ReturnType<ProductDetailsApiService['addAuthenticatedCartItem']>;
 }): {
   state: ProductDetailsState;
   seenSignals: (AbortSignal | undefined)[];
@@ -135,12 +141,14 @@ function setup(flows: {
   specificationIds: unknown[];
   imageIds: unknown[];
   variantIds: unknown[];
+  cartBodies: unknown[];
 } {
   const seenSignals: (AbortSignal | undefined)[] = [];
   const ids: unknown[] = [];
   const specificationIds: unknown[] = [];
   const imageIds: unknown[] = [];
   const variantIds: unknown[] = [];
+  const cartBodies: unknown[] = [];
   const apiStub = {
     getProduct: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
       ids.push(id);
@@ -162,6 +170,11 @@ function setup(flows: {
       seenSignals.push(options.signal);
       return flows.listProductVariants?.() ?? of(variantsEnvelope());
     }) as ProductDetailsApiService['listProductVariants'],
+    addAuthenticatedCartItem: (body: unknown, options: { signal?: AbortSignal } = {}) => {
+      cartBodies.push(body);
+      seenSignals.push(options.signal);
+      return flows.addAuthenticatedCartItem?.() ?? of({ isSuccess: true, data: CART_RESULT });
+    },
   } as ProductDetailsApiService;
 
   TestBed.configureTestingModule({
@@ -174,8 +187,22 @@ function setup(flows: {
     specificationIds,
     imageIds,
     variantIds,
+    cartBodies,
   };
 }
+
+const CART_RESULT: CartResponse = {
+  cartId: '99999999-9999-4999-8999-999999999999',
+  userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  version: 2,
+  createdAtUtc: '2026-09-04T10:00:00Z',
+  updatedAtUtc: '2026-09-04T10:05:00Z',
+  items: [],
+  isGuest: false,
+  isAuthenticated: true,
+};
+
+const PRICING = { unitPriceAmount: 29.99, currency: 'USD' };
 
 describe('ProductDetailsState product', () => {
   it('starts idle and resolves to success with envelope data', () => {
@@ -335,6 +362,8 @@ describe('ProductDetailsState specifications', () => {
     expect(state.selectedVariantId()).toBeNull();
     expect(state.selectedVariant()).toBeNull();
     expect(state.quantity()).toBe(1);
+    expect(state.addToCartStatus()).toBe('idle');
+    expect(state.addToCartError()).toBeNull();
   });
 });
 
@@ -615,6 +644,97 @@ describe('ProductDetailsState quantity', () => {
   });
 });
 
+describe('ProductDetailsState add-to-cart submission', () => {
+  function submittable(): { state: ProductDetailsState; cartBodies: unknown[] } {
+    const harness = setup({});
+    harness.state.loadProductVariants(PRODUCT_ID);
+    harness.state.selectVariant(ACTIVE_VARIANT_ID);
+    harness.state.setQuantity(2);
+    return harness;
+  }
+
+  it('starts idle without an error', () => {
+    const { state } = setup({});
+
+    expect(state.addToCartStatus()).toBe('idle');
+    expect(state.addToCartError()).toBeNull();
+  });
+
+  it('submits the purchasable item, quantity, and pricing through the cart boundary', () => {
+    const { state, cartBodies } = submittable();
+    state.submitAddToCart(PRICING);
+
+    expect(cartBodies).toEqual([
+      {
+        variantId: ACTIVE_VARIANT_ID,
+        quantity: 2,
+        unitPriceAmount: 29.99,
+        currency: 'USD',
+      } satisfies AddCartItemRequest,
+    ]);
+    expect(state.addToCartStatus()).toBe('added');
+    expect(state.addToCartError()).toBeNull();
+  });
+
+  it('ignores submissions without a selectable variant or valid quantity', () => {
+    const fresh = setup({});
+    fresh.state.loadProductVariants(PRODUCT_ID);
+    fresh.state.submitAddToCart(PRICING);
+    expect(fresh.state.addToCartStatus()).toBe('idle');
+    expect(fresh.cartBodies).toHaveLength(0);
+
+    TestBed.resetTestingModule();
+    const { state, cartBodies } = submittable();
+    state.setQuantity(1);
+    state.submitAddToCart({ unitPriceAmount: 0, currency: 'USD' });
+    state.submitAddToCart({ unitPriceAmount: 29.99, currency: 'usd' });
+    expect(cartBodies).toHaveLength(0);
+    expect(state.addToCartStatus()).toBe('idle');
+  });
+
+  it('locks duplicate submissions while a request is in flight', () => {
+    const { state, cartBodies } = setup({
+      addAuthenticatedCartItem: () => new Observable<ApiResponseWithData<CartResponse>>(() => {}),
+    });
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.submitAddToCart(PRICING);
+    state.submitAddToCart(PRICING);
+    state.submitAddToCart(PRICING);
+
+    expect(cartBodies).toHaveLength(1);
+    expect(state.addToCartStatus()).toBe('adding');
+  });
+
+  it('resolves failures to error with a normalized ApiError', () => {
+    const rejection = new ApiError({ status: 409, message: 'Conflict.' });
+    const { state, cartBodies } = setup({
+      addAuthenticatedCartItem: () => throwError(() => rejection),
+    });
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.submitAddToCart(PRICING);
+
+    expect(cartBodies).toHaveLength(1);
+    expect(state.addToCartStatus()).toBe('error');
+    expect(state.addToCartError()).toBe(rejection);
+  });
+
+  it('resets stale feedback without touching the loaded slots', () => {
+    const { state } = submittable();
+    state.submitAddToCart(PRICING);
+    expect(state.addToCartStatus()).toBe('added');
+
+    state.resetAddToCartStatus();
+
+    expect(state.addToCartStatus()).toBe('idle');
+    expect(state.addToCartError()).toBeNull();
+    expect(state.selectedVariantId()).toBe(ACTIVE_VARIANT_ID);
+    expect(state.quantity()).toBe(2);
+    expect(state.variants().status).toBe('success');
+  });
+});
+
 describe('ProductDetailsState locality (no global state)', () => {
   it('is feature-scoped: independent instances per injection site', () => {
     const first = setup({});
@@ -629,5 +749,157 @@ describe('ProductDetailsState locality (no global state)', () => {
   it('is not a root singleton (no providedIn root)', () => {
     const metadata = (ProductDetailsState as unknown as { ɵprov?: { providedIn?: unknown } }).ɵprov;
     expect(metadata?.providedIn).not.toBe('root');
+  });
+});
+
+describe('ProductDetailsState transfer state (6.9 hydration)', () => {
+  interface TransferHarness {
+    state: ProductDetailsState;
+    transfer: TransferState;
+    apiCalls: string[];
+  }
+
+  /**
+   * Builds an isolated state on the given platform. Sharing one
+   * `TransferState` instance across a server/client pair simulates the
+   * serialized HTML transfer (payloads are JSON-safe by contract).
+   */
+  function setupTransfer(options: {
+    platform?: 'browser' | 'server';
+    transfer?: TransferState;
+    getProduct?: () => ReturnType<ProductDetailsApiService['getProduct']>;
+    listSpecifications?: () => ReturnType<ProductDetailsApiService['listSpecifications']>;
+    listProductImages?: () => ReturnType<ProductDetailsApiService['listProductImages']>;
+    listProductVariants?: () => ReturnType<ProductDetailsApiService['listProductVariants']>;
+  }): TransferHarness {
+    const apiCalls: string[] = [];
+    const apiStub = {
+      getProduct: ((id: string) => {
+        apiCalls.push(`product:${id}`);
+        return options.getProduct?.() ?? of(productEnvelope());
+      }) as ProductDetailsApiService['getProduct'],
+      listSpecifications: ((id: string) => {
+        apiCalls.push(`specifications:${id}`);
+        return options.listSpecifications?.() ?? of(specificationsEnvelope());
+      }) as ProductDetailsApiService['listSpecifications'],
+      listProductImages: ((id: string) => {
+        apiCalls.push(`images:${id}`);
+        return options.listProductImages?.() ?? of(imagesEnvelope());
+      }) as ProductDetailsApiService['listProductImages'],
+      listProductVariants: ((id: string) => {
+        apiCalls.push(`variants:${id}`);
+        return options.listProductVariants?.() ?? of(variantsEnvelope());
+      }) as ProductDetailsApiService['listProductVariants'],
+    } as ProductDetailsApiService;
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ProductDetailsApiService, useValue: apiStub },
+        ...(options.transfer === undefined
+          ? []
+          : [{ provide: TransferState, useValue: options.transfer }]),
+        ...(options.platform === undefined || options.platform === 'browser'
+          ? []
+          : [{ provide: PLATFORM_ID, useValue: 'server' }]),
+        ProductDetailsState,
+      ],
+    });
+    return {
+      state: TestBed.inject(ProductDetailsState),
+      transfer: TestBed.inject(TransferState),
+      apiCalls,
+    };
+  }
+
+  function loadAll(state: ProductDetailsState): void {
+    state.loadProduct(PRODUCT_ID);
+    state.loadSpecifications(PRODUCT_ID);
+    state.loadProductImages(PRODUCT_ID);
+    state.loadProductVariants(PRODUCT_ID);
+  }
+
+  it('reuses every server-rendered slot on the client without refetching', () => {
+    const server = setupTransfer({ platform: 'server' });
+    loadAll(server.state);
+    expect(server.state.product().status).toBe('success');
+    expect(server.state.specifications().status).toBe('success');
+    expect(server.state.images().status).toBe('success');
+    expect(server.state.variants().status).toBe('success');
+    expect(server.apiCalls).toHaveLength(4);
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    loadAll(client.state);
+
+    expect(client.apiCalls).toHaveLength(0);
+    expect(client.state.product().status).toBe('success');
+    expect(client.state.product().data?.name).toBe('Tee');
+    expect(client.state.specifications().status).toBe('success');
+    expect(client.state.images().status).toBe('success');
+    expect(client.state.variants().status).toBe('success');
+  });
+
+  it('reuses transferred empty lists as empty (gallery fallback, hidden sections)', () => {
+    const server = setupTransfer({
+      platform: 'server',
+      listSpecifications: () => of(specificationsEnvelope([])),
+      listProductImages: () => of(imagesEnvelope([])),
+      listProductVariants: () => of(variantsEnvelope([])),
+    });
+    loadAll(server.state);
+    expect(server.state.specifications().status).toBe('empty');
+    expect(server.state.images().status).toBe('empty');
+    expect(server.state.variants().status).toBe('empty');
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    loadAll(client.state);
+
+    expect(client.apiCalls).toHaveLength(0);
+    expect(client.state.specifications().status).toBe('empty');
+    expect(client.state.images().status).toBe('empty');
+    expect(client.state.variants().status).toBe('empty');
+  });
+
+  it('fetches live on transfer miss (different product id)', () => {
+    const server = setupTransfer({ platform: 'server' });
+    server.state.loadProduct(PRODUCT_ID);
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProduct('22222222-2222-2222-2222-222222222222');
+
+    expect(client.apiCalls).toHaveLength(1);
+    expect(client.state.product().status).toBe('success');
+  });
+
+  it('consumes transfers once (second identical load refetches)', () => {
+    const server = setupTransfer({ platform: 'server' });
+    server.state.loadProduct(PRODUCT_ID);
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProduct(PRODUCT_ID);
+    expect(client.apiCalls).toHaveLength(0);
+
+    client.state.loadProduct(PRODUCT_ID);
+    expect(client.apiCalls).toHaveLength(1);
+  });
+
+  it('never stores server failures (the client retries live, incl. 404)', () => {
+    const rejection = new ApiError({ status: 404, message: 'Not found.' });
+    const server = setupTransfer({
+      platform: 'server',
+      getProduct: () => throwError(() => rejection),
+    });
+    server.state.loadProduct(PRODUCT_ID);
+    expect(server.state.product().status).toBe('error');
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProduct(PRODUCT_ID);
+
+    expect(client.apiCalls).toHaveLength(1);
+    expect(client.state.product().status).toBe('success');
   });
 });

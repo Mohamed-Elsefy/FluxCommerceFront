@@ -1,11 +1,12 @@
 /**
- * Feature-owned Product Details state for Sub-Phases 6.1–6.6 — Foundation
+ * Feature-owned Product Details state for Sub-Phases 6.1–6.9 — Foundation
  * + Page & Information + Image Gallery + Variant Selection + SKU Binding +
- * Quantity Selection.
+ * Quantity Selection + Add to Cart Integration + SSR & SEO.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.6 (product +
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.9 (product +
  * specifications + images + variants resource slots, the selected variant
- * and its orderability guard, plus purchase quantity — no UI).
+ * and its orderability guard, purchase quantity, and the add-to-cart
+ * submission machine — no UI, no cart state).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -31,15 +32,32 @@
  *   never performs DTO→view-model mapping: envelopes unwrap here, wire
  *   errors flow into the `error` state through `loadResourceState`.
  * - SSR-safe: no `window`/`document`/`localStorage` anywhere in this file —
- *   server rendering only exercises the initial `idle` snapshots (the page
- *   fetches in the browser; SSR transfer arrives in Sub-Phase 6.9).
+ *   server rendering fetches live (the route is `RenderMode.Server`, never
+ *   prerendered, so a backend is reachable at request time) and settled
+ *   payloads transfer server → client once per id via `TransferState`
+ *   (same convention as `CatalogState`, Phase 5.10), so hydration never
+ *   refetches transferred data and never serves stale data. Failures are
+ *   never stored — the client always retries live after a server error.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 6.7 / Phase 7 — no add-to-cart, cart integration, or cart state.
+ * - Phase 7 — no cart pages, cart reads/state, guest persistence, or merge.
+ *   This file submits lines; it never stores carts.
  */
 
-import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
-import { map, Subscription, type Observable } from 'rxjs';
+import {
+  computed,
+  inject,
+  Injectable,
+  makeStateKey,
+  PLATFORM_ID,
+  signal,
+  TransferState,
+  type Signal,
+  type StateKey,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { map, Subscription, tap, type Observable } from 'rxjs';
+import type { CartResponse } from '@flux/models';
 import {
   ApiError,
   createResourceState,
@@ -54,9 +72,14 @@ import { ProductDetailsApiService } from '../data-access/product-details-api.ser
 import {
   INITIAL_QUANTITY,
   MIN_QUANTITY,
+  buildAddToCartItem,
   isSelectableVariant,
+  isValidAddToCartPricing,
   isValidQuantity,
   resolveVariantSelection,
+  toAddToCartStatus,
+  type AddToCartPricing,
+  type AddToCartStatus,
   type ProductDetails,
   type ProductImage,
   type ProductSpecification,
@@ -77,6 +100,8 @@ export interface ProductDetailsLoadOptions {
 @Injectable()
 export class ProductDetailsState {
   private readonly detailsApi = inject(ProductDetailsApiService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly transfer = inject(TransferState, { optional: true });
 
   private readonly productStore: ResourceStateStore<ProductDetails> =
     createResourceState<ProductDetails>();
@@ -86,6 +111,16 @@ export class ProductDetailsState {
     createResourceState<ProductImage[]>();
   private readonly variantsStore: ResourceStateStore<ProductVariant[]> =
     createResourceState<ProductVariant[]>();
+
+  /**
+   * Add-to-cart submission slot (`POST /cart/items`). Object-shaped payload
+   * — the `empty` status is unreachable; the button reads the projected
+   * `addToCartStatus` below. This slot tracks the submission only: state
+   * never retains cart contents (no items, totals, or cart ids are read
+   * out of the envelope anywhere in this feature).
+   */
+  private readonly addToCartStore: ResourceStateStore<CartResponse> =
+    createResourceState<CartResponse>();
 
   /** Selected variant id (`null` = no explicit selection). Feature-local. */
   private readonly selectedVariantIdStore = signal<string | null>(null);
@@ -172,23 +207,48 @@ export class ProductDetailsState {
   readonly quantity: Signal<number> = this.quantityStore.asReadonly();
 
   /**
+   * Add-to-cart request lifecycle for the button (`idle → adding →
+   * added | error`). Projected from the submission store, so failures
+   * arrive already normalized to `ApiError` and the `empty` status can
+   * never leak through. Readonly.
+   */
+  readonly addToCartStatus: Signal<AddToCartStatus> = computed(() =>
+    toAddToCartStatus(this.addToCartStore.status()),
+  );
+
+  /** Normalized submission failure (`null` unless `addToCartStatus` is `error`). */
+  readonly addToCartError: Signal<ApiError | null> = this.addToCartStore.error;
+
+  /**
    * Loads a single product by id into the `product` slot. A dataless
    * envelope resolves to `error` (contract violation); aborts leave state
    * untouched. Blank ids are rejected without fetching (the page validates
    * first via `parseProductIdParam` — this guard only protects direct
    * callers); the slot stays `idle`.
+   *
+   * Hydration: a server-rendered product for the same id is reused once
+   * from `TransferState` (no HTTP); misses and errors always fetch live.
    */
   loadProduct(id: string, options: ProductDetailsLoadOptions = {}): Subscription {
     if (id.trim() === '') {
       return Subscription.EMPTY;
     }
+    const key = makeStateKey<ProductDetails>(`product-details.product.${id}`);
+    const transferred = this.consumeTransferred(key);
+    if (transferred !== null) {
+      this.productStore.setSuccess(transferred);
+      return Subscription.EMPTY;
+    }
     const request: Observable<ProductDetails> = this.detailsApi
       .getProduct(id, toApiOptions(options))
-      .pipe(map(requireEnvelopeData));
+      .pipe(
+        map(requireEnvelopeData),
+        tap((product) => this.storeTransferred(key, product)),
+      );
     return loadResourceState(this.productStore, request, { signal: options.signal });
   }
 
-  /** Resets every slot, the variant selection, and the quantity to their initials. */
+  /** Resets every slot, the variant selection, the quantity, and the submission to their initials. */
   reset(): void {
     this.productStore.reset();
     this.specificationsStore.reset();
@@ -196,6 +256,7 @@ export class ProductDetailsState {
     this.variantsStore.reset();
     this.selectedVariantIdStore.set(null);
     this.quantityStore.set(INITIAL_QUANTITY);
+    this.addToCartStore.reset();
   }
 
   /**
@@ -203,14 +264,23 @@ export class ProductDetailsState {
    * slot. A dataless envelope resolves to `error` (contract violation); an
    * empty list resolves to `empty`; aborts leave state untouched. Blank ids
    * are rejected without fetching; the slot stays `idle`.
+   *
+   * Hydration: same single-use `TransferState` reuse as `loadProduct`.
    */
   loadSpecifications(productId: string, options: ProductDetailsLoadOptions = {}): Subscription {
     if (productId.trim() === '') {
       return Subscription.EMPTY;
     }
+    const key = makeStateKey<ProductSpecification[]>(`product-details.specifications.${productId}`);
+    if (this.consumeTransferredList(key, this.specificationsStore)) {
+      return Subscription.EMPTY;
+    }
     const request: Observable<ProductSpecification[]> = this.detailsApi
       .listSpecifications(productId, toApiOptions(options))
-      .pipe(map(requireEnvelopeData));
+      .pipe(
+        map(requireEnvelopeData),
+        tap((specifications) => this.storeTransferred(key, specifications)),
+      );
     return loadResourceState(this.specificationsStore, request, { signal: options.signal });
   }
 
@@ -220,14 +290,23 @@ export class ProductDetailsState {
    * resolves to `empty` (the gallery shows its missing-image fallback);
    * aborts leave state untouched. Blank ids are rejected without fetching;
    * the slot stays `idle`.
+   *
+   * Hydration: same single-use `TransferState` reuse as `loadProduct`.
    */
   loadProductImages(productId: string, options: ProductDetailsLoadOptions = {}): Subscription {
     if (productId.trim() === '') {
       return Subscription.EMPTY;
     }
+    const key = makeStateKey<ProductImage[]>(`product-details.images.${productId}`);
+    if (this.consumeTransferredList(key, this.imagesStore)) {
+      return Subscription.EMPTY;
+    }
     const request: Observable<ProductImage[]> = this.detailsApi
       .listProductImages(productId, toApiOptions(options))
-      .pipe(map(requireEnvelopeData));
+      .pipe(
+        map(requireEnvelopeData),
+        tap((images) => this.storeTransferred(key, images)),
+      );
     return loadResourceState(this.imagesStore, request, { signal: options.signal });
   }
 
@@ -240,15 +319,73 @@ export class ProductDetailsState {
    * the customer's choice, while the owning page clears it on product
    * change — and `selectedVariant` self-heals to `null` if the id is gone
    * from the fresh list.
+   *
+   * Hydration: same single-use `TransferState` reuse as `loadProduct`.
    */
   loadProductVariants(productId: string, options: ProductDetailsLoadOptions = {}): Subscription {
     if (productId.trim() === '') {
       return Subscription.EMPTY;
     }
+    const key = makeStateKey<ProductVariant[]>(`product-details.variants.${productId}`);
+    if (this.consumeTransferredList(key, this.variantsStore)) {
+      return Subscription.EMPTY;
+    }
     const request: Observable<ProductVariant[]> = this.detailsApi
       .listProductVariants(productId, toApiOptions(options))
-      .pipe(map(requireEnvelopeData));
+      .pipe(
+        map(requireEnvelopeData),
+        tap((variants) => this.storeTransferred(key, variants)),
+      );
     return loadResourceState(this.variantsStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Reuses a server-rendered payload once: on the browser, a stored payload
+   * is consumed (and removed — single use, never stale) instead of
+   * fetching; on the server, or on a miss, returns `null` so the caller
+   * loads live. Pure lookup — performs no HTTP.
+   */
+  private consumeTransferred<T>(key: StateKey<T>): T | null {
+    if (!this.isBrowser) {
+      return null;
+    }
+    const stored = this.transfer?.get<T | null>(key, null) ?? null;
+    if (stored === null) {
+      return null;
+    }
+    this.transfer?.remove(key);
+    return stored;
+  }
+
+  /**
+   * Reuses a server-rendered list once, restoring the matching
+   * success/empty status. Returns whether a transfer was consumed.
+   */
+  private consumeTransferredList<T>(
+    key: StateKey<T[] | null>,
+    store: ResourceStateStore<T[]>,
+  ): boolean {
+    const stored = this.consumeTransferred(key);
+    if (stored === null) {
+      return false;
+    }
+    if (stored.length === 0) {
+      store.setEmpty(stored);
+    } else {
+      store.setSuccess(stored);
+    }
+    return true;
+  }
+
+  /**
+   * Stores a settled payload for hydration: server-only (the browser
+   * renders from live data or consumed transfers). Failures are never
+   * stored, so the client always retries live after a server error.
+   */
+  private storeTransferred<T>(key: StateKey<T>, payload: T): void {
+    if (!this.isBrowser) {
+      this.transfer?.set(key, payload);
+    }
   }
 
   /**
@@ -298,6 +435,51 @@ export class ProductDetailsState {
   /** Resets the purchase quantity to `INITIAL_QUANTITY` (e.g. on product change). */
   resetQuantity(): void {
     this.quantityStore.set(INITIAL_QUANTITY);
+  }
+
+  /**
+   * Submits the selected purchasable item and quantity to the authenticated
+   * cart (`POST /cart/items`) with an explicit price snapshot.
+   *
+   * Guards (all silent, all pre-HTTP):
+   * - an in-flight submission is running → ignored (duplicate-submission
+   *   lock; the button also disables while `adding`);
+   * - no selectable variant, an invalid quantity, or a malformed pricing
+   *   snapshot → ignored with state untouched (the button disables on the
+   *   same conditions — defense in depth, never a doomed request).
+   *
+   * Otherwise drives `idle → adding → added | error` with failures
+   * normalized to `ApiError` by `loadResourceState`. Aborts complete
+   * silently and leave state untouched.
+   *
+   * Pricing note: `pricing` is an explicit argument because no
+   * customer-readable contract source exists for it (see the integration
+   * note in `../models`) — the 6.7 page supplies none, so production
+   * submission stays parked until a contract price source (or Phase 7
+   * price sourcing) provides one. Nothing here defaults or estimates it.
+   * Guest submission (cartId lifecycle) unlocks in Phase 7.
+   */
+  submitAddToCart(pricing: AddToCartPricing, options: ProductDetailsLoadOptions = {}): void {
+    if (this.addToCartStore.isLoading()) {
+      return;
+    }
+    const item = buildAddToCartItem(this.selectedVariant(), this.quantityStore());
+    if (item === null || !isValidAddToCartPricing(pricing)) {
+      return;
+    }
+    const request: Observable<CartResponse> = this.detailsApi
+      .addAuthenticatedCartItem({ ...item, ...pricing }, toApiOptions(options))
+      .pipe(map(requireEnvelopeData));
+    loadResourceState(this.addToCartStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Returns the submission machine to `idle` (e.g. when the selection,
+   * quantity, or product changes, so stale added/error feedback never
+   * survives its cause).
+   */
+  resetAddToCartStatus(): void {
+    this.addToCartStore.reset();
   }
 }
 

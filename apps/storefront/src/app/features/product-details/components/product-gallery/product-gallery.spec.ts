@@ -43,7 +43,7 @@ const IMAGES: readonly ProductImage[] = [
 function setup(options: {
   images?: readonly ProductImage[];
   productName?: string | null;
-  culture?: 'en' | 'fr';
+  culture?: 'en' | 'fr' | 'ar';
   platform?: 'browser' | 'server';
 }): { fixture: ComponentFixture<ProductGallery>; element: HTMLElement } {
   TestBed.configureTestingModule({
@@ -201,6 +201,20 @@ describe('ProductGallery accessibility and platform safety', () => {
     const { element } = setup({ platform: 'server' });
 
     expect(mainSrc(element)).toBe('/images/img-2.jpg');
+    expect(element.querySelectorAll('.product-gallery-thumb')).toHaveLength(3);
+  });
+
+  it('localizes gallery chrome for the RTL culture with identical structure', () => {
+    const { element } = setup({ culture: 'ar' });
+
+    expect(element.querySelector('.product-gallery')?.getAttribute('aria-label')).toBe(
+      'صور المنتج',
+    );
+    expect(pressedLabels(element)).toEqual([
+      'عرض الصورة: View img-1',
+      'عرض الصورة: View img-2',
+      'عرض الصورة: View img-3',
+    ]);
     expect(element.querySelectorAll('.product-gallery-thumb')).toHaveLength(3);
   });
 });

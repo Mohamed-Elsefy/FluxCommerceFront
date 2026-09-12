@@ -1,0 +1,62 @@
+/* Add-to-Cart button (Sub-Phase 6.7). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.add-to-cart {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-block-start: var(--spacing-sm);
+}
+
+.add-to-cart-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  min-block-size: 2.75rem;
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-primary-contrast);
+  background-color: var(--color-primary);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.add-to-cart-button:disabled {
+  cursor: not-allowed;
+}
+
+.add-to-cart-button:focus-visible,
+.add-to-cart-retry:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.add-to-cart-confirmation {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.add-to-cart-error {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  margin-block: 0;
+  color: var(--color-danger);
+}
+
+.add-to-cart-retry {
+  justify-self: start;
+  padding-block: var(--spacing-sm);
+  padding-inline: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  background: none;
+  border: none;
+  cursor: pointer;
+}

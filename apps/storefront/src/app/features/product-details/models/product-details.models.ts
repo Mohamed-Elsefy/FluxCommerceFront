@@ -1,9 +1,9 @@
 /**
- * Storefront Product Details feature models for Sub-Phases 6.1–6.6 —
+ * Storefront Product Details feature models for Sub-Phases 6.1–6.7 —
  * Foundation + Page & Information + Image Gallery + Variant Selection + SKU
- * Binding + Quantity Selection.
+ * Binding + Quantity Selection + Add to Cart Integration.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.6.
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.7.
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.3/2.6/2.7
  * (`GET /catalog/products/{id:guid}` → `200 ApiResponse<ProductResponse>`;
@@ -37,6 +37,20 @@
  * boundary, and there is no contract-defined maximum to clamp. Quantity
  * is feature-local `ProductDetailsState` (never cart/global state).
  *
+ * Integration note (§6.7 — the Product Details → Cart boundary): the
+ * phase's "selected purchasable item and quantity" is exactly
+ * `AddToCartItem` (`variantId` + `quantity`, validated, `null` when
+ * unsubmittable). The wire bodies (`AddCartItemRequest`) additionally
+ * require `unitPriceAmount` + `currency` — for which NO customer-readable
+ * contract source exists (`VariantResponse`: no price, annotated in three
+ * places; inventory reads are `Admin`-only; checkout reprices
+ * authoritatively server-side). The boundary therefore carries pricing as
+ * an EXPLICIT, validated caller argument (`AddToCartPricing`): no price
+ * is ever defaulted, estimated, or fabricated here, and guest `cartId`
+ * lifecycle stays in Phase 7 (explicitly out of scope for §6.7). Until a
+ * contract price source exists, production submission stays parked —
+ * everything else (button, machine, guards, façades) is real and covered.
+ *
  * Contract fidelity note (§6.2 rule — display only backend-provided fields):
  * no read contract exposes pricing or availability (`VariantResponse`
  * carries no price/currency fields), and SKU lives on variants whose
@@ -51,11 +65,10 @@
  *   Envelope mapping and fetching live in `state/` and `data-access/`.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 6.7 — no add-to-cart.
- * - Phase 7 — no cart state or cart API usage.
+ * - Phase 7 — no cart pages, cart state, guest persistence, or merge.
  */
 
-import type { ApiError } from '@flux/api';
+import type { ApiError, ResourceStatus } from '@flux/api';
 import { VariantStatus } from '@flux/models';
 import type {
   ProductImageResponse,
@@ -196,4 +209,85 @@ export function parseQuantityInput(text: string | null | undefined): number | nu
   }
   const parsed = Number.parseInt(candidate, 10);
   return isValidQuantity(parsed) ? parsed : null;
+}
+
+/** Add-to-Cart request lifecycle (button-facing projection of the submission store). */
+export type AddToCartStatus = 'idle' | 'adding' | 'added' | 'error';
+
+/**
+ * Maps a resource status onto the button lifecycle. `empty` is unreachable
+ * for the object-shaped cart payload (the default emptiness rule only
+ * matches nullish/array data) and folds to `idle` defensively. Pure.
+ */
+export function toAddToCartStatus(status: ResourceStatus): AddToCartStatus {
+  switch (status) {
+    case 'loading':
+      return 'adding';
+    case 'success':
+      return 'added';
+    case 'error':
+      return 'error';
+    default:
+      return 'idle';
+  }
+}
+
+/**
+ * The phase's "selected purchasable item and quantity": a validated
+ * variant id plus a validated quantity. Price/currency travel separately
+ * (`AddToCartPricing`) because they come from a different (currently
+ * nonexistent for the storefront) contract source — never defaulted here.
+ */
+export interface AddToCartItem {
+  variantId: string;
+  quantity: number;
+}
+
+/**
+ * Builds the submittable purchasable item: the variant id when a
+ * selectable variant is given plus a valid quantity, otherwise `null`
+ * (nothing selected, unselectable variant, or invalid quantity). The
+ * single builder behind the submission path — unsubmittable states can
+ * never produce a payload. Pure — throws nothing.
+ */
+export function buildAddToCartItem(
+  variant: ProductVariant | null | undefined,
+  quantity: number,
+): AddToCartItem | null {
+  if (variant === null || variant === undefined || !isSelectableVariant(variant)) {
+    return null;
+  }
+  if (!isValidQuantity(quantity)) {
+    return null;
+  }
+  return { variantId: variant.id, quantity };
+}
+
+/**
+ * Price snapshot completing the wire body (`AddCartItemRequest`).
+ * Structural echo of the backend `DataAnnotations`
+ * (`[Range(0.01, max)]`, 3-letter currency) — a request-shape pre-check,
+ * not business logic. Supplied explicitly by the caller from a contract
+ * source; see the integration note above for why the 6.7 page provides
+ * none.
+ */
+export interface AddToCartPricing {
+  unitPriceAmount: number;
+  currency: string;
+}
+
+/**
+ * Whether a pricing snapshot is structurally submittable: finite amount
+ * within the contract range and an ISO-4217-shaped (upper, 3-letter)
+ * currency. Pure — throws nothing.
+ */
+export function isValidAddToCartPricing(pricing: AddToCartPricing | null | undefined): boolean {
+  if (pricing === null || pricing === undefined) {
+    return false;
+  }
+  return (
+    Number.isFinite(pricing.unitPriceAmount) &&
+    pricing.unitPriceAmount >= 0.01 &&
+    /^[A-Z]{3}$/.test(pricing.currency)
+  );
 }
