@@ -1,20 +1,21 @@
 /**
- * State tests for the Sub-Phase 6.1 `ProductDetailsState`.
+ * State tests for the Sub-Phase 6.1–6.2 `ProductDetailsState`.
  *
  * `ProductDetailsApiService` (the feature HTTP boundary, covered by
  * `product-details-api.service.spec.ts`) is stubbed at its typed seam so
- * these tests own the feature logic: idle → loading → success | error
- * transitions, data retention across reloads, dataless-envelope violations,
- * blank-id rejection, cancellation passthrough, reset, and feature-local
- * scoping (no root singleton — every injection site gets an independent
- * instance).
+ * these tests own the feature logic: idle → loading → success | empty |
+ * error transitions for both the product and specifications slots, data
+ * retention across reloads, dataless-envelope violations, blank-id
+ * rejection, cancellation passthrough, reset of every slot, and
+ * feature-local scoping (no root singleton — every injection site gets an
+ * independent instance).
  */
 
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
-import type { ProductResponse } from '@flux/models';
+import type { ProductResponse, ProductSpecificationResponse } from '@flux/models';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
 import { ProductDetailsState } from './product-details-state';
 
@@ -38,25 +39,54 @@ function productEnvelope() {
   return { isSuccess: true, data: PRODUCT };
 }
 
-function setup(flows: { getProduct?: () => ReturnType<ProductDetailsApiService['getProduct']> }): {
+const SPECIFICATIONS: ProductSpecificationResponse[] = [
+  {
+    id: 'a1a1a1a1-1111-4111-8111-111111111111',
+    productId: PRODUCT_ID,
+    name: 'Material',
+    value: 'Cotton',
+  },
+  {
+    id: 'b2b2b2b2-2222-4222-8222-222222222222',
+    productId: PRODUCT_ID,
+    name: 'Fit',
+    value: 'Regular',
+  },
+];
+
+function specificationsEnvelope(items: ProductSpecificationResponse[] = SPECIFICATIONS) {
+  return { isSuccess: true, data: items };
+}
+
+function setup(flows: {
+  getProduct?: () => ReturnType<ProductDetailsApiService['getProduct']>;
+  listSpecifications?: () => ReturnType<ProductDetailsApiService['listSpecifications']>;
+}): {
   state: ProductDetailsState;
   seenSignals: (AbortSignal | undefined)[];
   ids: unknown[];
+  specificationIds: unknown[];
 } {
   const seenSignals: (AbortSignal | undefined)[] = [];
   const ids: unknown[] = [];
+  const specificationIds: unknown[] = [];
   const apiStub = {
     getProduct: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
       ids.push(id);
       seenSignals.push(options.signal);
       return flows.getProduct?.() ?? of(productEnvelope());
     }) as ProductDetailsApiService['getProduct'],
+    listSpecifications: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
+      specificationIds.push(id);
+      seenSignals.push(options.signal);
+      return flows.listSpecifications?.() ?? of(specificationsEnvelope());
+    }) as ProductDetailsApiService['listSpecifications'],
   } as ProductDetailsApiService;
 
   TestBed.configureTestingModule({
     providers: [{ provide: ProductDetailsApiService, useValue: apiStub }, ProductDetailsState],
   });
-  return { state: TestBed.inject(ProductDetailsState), seenSignals, ids };
+  return { state: TestBed.inject(ProductDetailsState), seenSignals, ids, specificationIds };
 }
 
 describe('ProductDetailsState product', () => {
@@ -138,6 +168,74 @@ describe('ProductDetailsState product', () => {
 
     expect(state.product().status).toBe('idle');
     expect(state.product().data).toBeNull();
+  });
+});
+
+describe('ProductDetailsState specifications', () => {
+  it('starts idle and resolves to success with envelope data in wire order', () => {
+    const { state } = setup({});
+    expect(state.specifications().status).toBe('idle');
+
+    state.loadSpecifications(PRODUCT_ID);
+
+    const snapshot = state.specifications();
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.data?.map((spec) => spec.name)).toEqual(['Material', 'Fit']);
+  });
+
+  it('resolves to empty when the product carries no specifications', () => {
+    const { state } = setup({ listSpecifications: () => of(specificationsEnvelope([])) });
+    state.loadSpecifications(PRODUCT_ID);
+
+    const snapshot = state.specifications();
+    expect(snapshot.status).toBe('empty');
+    expect(snapshot.isEmpty).toBe(true);
+  });
+
+  it('resolves to error on failures without touching the product slot', () => {
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    const { state } = setup({ listSpecifications: () => throwError(() => rejection) });
+    state.loadProduct(PRODUCT_ID);
+    state.loadSpecifications(PRODUCT_ID);
+
+    expect(state.specifications().status).toBe('error');
+    expect(state.specifications().error).toBe(rejection);
+    expect(state.product().status).toBe('success');
+  });
+
+  it('resolves to error on dataless success envelopes', () => {
+    const { state } = setup({ listSpecifications: () => of({ isSuccess: true, data: null }) });
+    state.loadSpecifications(PRODUCT_ID);
+
+    expect(state.specifications().status).toBe('error');
+  });
+
+  it('rejects blank ids without fetching and leaves state idle', () => {
+    const { state, specificationIds } = setup({});
+    state.loadSpecifications('   ');
+
+    expect(specificationIds).toHaveLength(0);
+    expect(state.specifications().status).toBe('idle');
+  });
+
+  it('forwards the AbortSignal to data access without touching state shape', () => {
+    const { state, seenSignals } = setup({});
+    const controller = new AbortController();
+    state.loadSpecifications(PRODUCT_ID, { signal: controller.signal });
+
+    expect(seenSignals).toEqual([controller.signal]);
+    expect(state.specifications().status).toBe('success');
+  });
+
+  it('resets every slot back to idle', () => {
+    const { state } = setup({});
+    state.loadProduct(PRODUCT_ID);
+    state.loadSpecifications(PRODUCT_ID);
+    state.reset();
+
+    expect(state.product().status).toBe('idle');
+    expect(state.specifications().status).toBe('idle');
+    expect(state.specifications().data).toBeNull();
   });
 });
 

@@ -1,12 +1,12 @@
 /**
- * Product Details data-access service for Sub-Phase 6.1 — Product Details
- * Foundation.
+ * Product Details data-access service for Sub-Phases 6.1–6.2 — Product
+ * Details Foundation + Page & Information.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §6.1 (foundation only —
- * single-product read).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.2 (product +
+ * specifications reads).
  *
- * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §2.1
- * (`GET /catalog/products/{id:guid}` is `[AllowAnonymous]`).
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.7
+ * (both `GET` endpoints are `[AllowAnonymous]`).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
@@ -29,14 +29,15 @@
  *   and `Authorization` stays owned by the interceptor pipeline.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.4+ — no variant/attribute/image/specification detail reads.
+ * - 6.3 — no image detail reads.
+ * - 6.4+ — no variant/attribute detail reads.
  * - 6.7 — no cart API usage.
  * - Phase 7 — no cart state or cart management.
  */
 
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
-import type { ProductResponse } from '@flux/models';
+import type { ProductResponse, ProductSpecificationResponse } from '@flux/models';
 import {
   ApiClient,
   CATALOG_ENDPOINTS,
@@ -66,5 +67,22 @@ export class ProductDetailsApiService {
       ...options,
       pathParams: { id, ...(options.pathParams ?? {}) },
     });
+  }
+
+  /**
+   * `GET /catalog/products/{productId}/specifications` — anonymous.
+   * Specification list (`name`/`value`, both non-null); no pagination,
+   * sorting, or filtering on the backend.
+   * Success: `200 ApiResponse<ProductSpecificationResponse[]>`.
+   * Failures: `400` validation, `404` unknown product.
+   */
+  listSpecifications(
+    productId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<ProductSpecificationResponse[]>> {
+    return this.api.get<ApiResponseWithData<ProductSpecificationResponse[]>>(
+      CATALOG_ENDPOINTS.listSpecifications.path,
+      { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
+    );
   }
 }

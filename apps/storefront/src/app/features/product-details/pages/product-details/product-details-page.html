@@ -1,23 +1,47 @@
 <section class="product-details-page" aria-labelledby="product-details-title">
-  <h1 id="product-details-title">Product details</h1>
+  <h1 id="product-details-title">{{ heading() }}</h1>
 
   @if (productId() === null) {
     <flux-empty-state
-      title="Invalid product link"
-      message="This product link is missing or invalid."
+      [title]="copy().invalidIdTitle"
+      [message]="copy().invalidIdMessage"
     ></flux-empty-state>
   } @else if (product().isLoading) {
-    <flux-loading-indicator label="Loading product"></flux-loading-indicator>
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (isNotFound()) {
+    <flux-empty-state
+      [title]="copy().notFoundTitle"
+      [message]="copy().notFoundMessage"
+    ></flux-empty-state>
+    <p class="product-details-back">
+      <a routerLink="/catalog">{{ copy().backToCatalog }}</a>
+    </p>
   } @else if (product().isError) {
     <flux-error-state
-      title="Could not load the product"
+      [title]="copy().errorTitle"
       [message]="errorMessage()"
-      retryLabel="Retry"
+      [retryLabel]="copy().retry"
       (retry)="reload()"
     ></flux-error-state>
   } @else if (product().isSuccess) {
-    <!-- Foundation proof of data flow only: the full product information,
-      spec sheets (6.2), and image gallery (6.3) arrive in later sub-phases. -->
-    <p class="product-details-name">{{ product().data?.name }}</p>
+    <section class="product-details-info" aria-labelledby="product-details-description-title">
+      <h2 id="product-details-description-title">{{ copy().descriptionTitle }}</h2>
+      <p class="product-details-description">
+        {{ product().data?.description ?? copy().noDescription }}
+      </p>
+    </section>
+    @if (specifications().isSuccess) {
+      <section class="product-details-specs" aria-labelledby="product-details-specs-title">
+        <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>
+        <dl class="product-details-specs-list">
+          @for (spec of specifications().data ?? []; track spec.id) {
+            <div class="product-details-spec">
+              <dt>{{ spec.name }}</dt>
+              <dd>{{ spec.value }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
   }
 </section>

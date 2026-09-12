@@ -1,14 +1,14 @@
 /**
- * Feature-owned Product Details state for Sub-Phase 6.1 — Product Details
- * Foundation.
+ * Feature-owned Product Details state for Sub-Phases 6.1–6.2 — Product
+ * Details Foundation + Page & Information.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §6.1 (foundation only —
- * single-product resource slot, no UI).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.2 (product +
+ * specifications resource slots, no UI).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
  * ```text
- * ProductDetailsPage (pages/ — orchestration only, Sub-Phase 6.1 shell)
+ * ProductDetailsPage (pages/ — orchestration only)
  *     ↓ ProductDetailsState (this file — feature-owned, local Signals)
  *     ↓ ProductDetailsApiService (../data-access — feature data access)
  *     ↓ ApiClient (@flux/api — the ONLY HttpClient user)
@@ -23,17 +23,16 @@
  *   never global state (no NgRx, no SignalStore, no shared library). Each
  *   product-details route subtree gets its own instance.
  * - Signals stay local via the Phase 1 `createResourceState` primitive
- *   (idle → loading → success | error, data retained across reloads,
+ *   (idle → loading → success | empty | error, data retained across reloads,
  *   failures normalized to `ApiError`). No global store is touched.
  * - The state never touches `HttpClient`, never builds query strings, and
  *   never performs DTO→view-model mapping: envelopes unwrap here, wire
  *   errors flow into the `error` state through `loadResourceState`.
  * - SSR-safe: no `window`/`document`/`localStorage` anywhere in this file —
- *   server rendering only exercises the initial `idle` snapshot (the page
+ *   server rendering only exercises the initial `idle` snapshots (the page
  *   fetches in the browser; SSR transfer arrives in Sub-Phase 6.9).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.2 — no info/spec presentation state.
  * - 6.3 — no selected-image state.
  * - 6.4–6.6 — no selected-variant or quantity state.
  * - 6.7 / Phase 7 — no cart integration or cart state.
@@ -52,7 +51,7 @@ import {
   type ResourceStateStore,
 } from '@flux/api';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
-import type { ProductDetails } from '../models/product-details.models';
+import type { ProductDetails, ProductSpecification } from '../models/product-details.models';
 
 /** Options for every `ProductDetailsState` load: cancellation only, never mapping. */
 export interface ProductDetailsLoadOptions {
@@ -71,12 +70,24 @@ export class ProductDetailsState {
 
   private readonly productStore: ResourceStateStore<ProductDetails> =
     createResourceState<ProductDetails>();
+  private readonly specificationsStore: ResourceStateStore<ProductSpecification[]> =
+    createResourceState<ProductSpecification[]>();
 
   /** Currently selected product (`GET /catalog/products/{id}`). */
   readonly product: Signal<ResourceState<ProductDetails>> = this.productStore.state;
 
   /** Whether the product is currently loading. */
   readonly productLoading: Signal<boolean> = this.productStore.isLoading;
+
+  /**
+   * Specifications for the selected product
+   * (`GET /catalog/products/{productId}/specifications`, wire order — the
+   * backend defines no sorting). An empty list resolves to `empty` (the page
+   * hides the section); failures resolve to `error` without touching the
+   * product slot.
+   */
+  readonly specifications: Signal<ResourceState<ProductSpecification[]>> =
+    this.specificationsStore.state;
 
   /**
    * Loads a single product by id into the `product` slot. A dataless
@@ -98,6 +109,23 @@ export class ProductDetailsState {
   /** Resets the product slot to `idle` (e.g. when the route id is cleared). */
   reset(): void {
     this.productStore.reset();
+    this.specificationsStore.reset();
+  }
+
+  /**
+   * Loads the specification list for `productId` into the `specifications`
+   * slot. A dataless envelope resolves to `error` (contract violation); an
+   * empty list resolves to `empty`; aborts leave state untouched. Blank ids
+   * are rejected without fetching; the slot stays `idle`.
+   */
+  loadSpecifications(productId: string, options: ProductDetailsLoadOptions = {}): Subscription {
+    if (productId.trim() === '') {
+      return Subscription.EMPTY;
+    }
+    const request: Observable<ProductSpecification[]> = this.detailsApi
+      .listSpecifications(productId, toApiOptions(options))
+      .pipe(map(requireEnvelopeData));
+    return loadResourceState(this.specificationsStore, request, { signal: options.signal });
   }
 }
 

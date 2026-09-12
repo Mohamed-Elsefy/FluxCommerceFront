@@ -1,10 +1,10 @@
 /**
- * Delegation tests for the Sub-Phase 6.1 `ProductDetailsApiService`.
+ * Delegation tests for the Sub-Phase 6.1–6.2 `ProductDetailsApiService`.
  *
  * `ApiClient` (the shared-lib HTTP boundary, already covered by `libs/api`
  * specs) is stubbed at its typed seam so these tests own the feature logic:
- * correct route template from `CATALOG_ENDPOINTS`, correct `pathParams`
- * interpolation key, envelope passthrough without unwrapping, and
+ * correct route templates from `CATALOG_ENDPOINTS`, correct `pathParams`
+ * interpolation keys, envelope passthrough without unwrapping, and
  * request-options forwarding. Errors propagate untouched — the service never
  * catches.
  */
@@ -42,6 +42,16 @@ describe('ProductDetailsApiService routes', () => {
     expect(calls.paths).toEqual([CATALOG_ENDPOINTS.getProduct.path]);
     expect(calls.options).toEqual([{ pathParams: { id: '11111111-1111-1111-1111-111111111111' } }]);
   });
+
+  it('lists specifications through the canonical route template', () => {
+    const { service, calls } = setup();
+    service.listSpecifications('11111111-1111-1111-1111-111111111111').subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listSpecifications.path]);
+    expect(calls.options).toEqual([
+      { pathParams: { productId: '11111111-1111-1111-1111-111111111111' } },
+    ]);
+  });
 });
 
 describe('ProductDetailsApiService passthrough', () => {
@@ -72,6 +82,20 @@ describe('ProductDetailsApiService passthrough', () => {
     vi.mocked(api.get).mockReturnValueOnce(throwError(() => rejection));
     let observed: unknown;
     service.getProduct('00000000-0000-0000-0000-000000000000').subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+  });
+
+  it('propagates specification failures untouched for feature state to normalize', () => {
+    const { service, api } = setup();
+    const rejection = new ApiError({ status: 404, message: 'Not found.' });
+    vi.mocked(api.get).mockReturnValueOnce(throwError(() => rejection));
+    let observed: unknown;
+    service.listSpecifications('00000000-0000-0000-0000-000000000000').subscribe({
       error: (error: unknown) => {
         observed = error;
       },
