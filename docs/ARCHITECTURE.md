@@ -160,6 +160,15 @@ A feature owns the code required to implement its business capability.
 
 Shared code must only be extracted when it is genuinely reusable.
 
+As built in Phase 5 (see `docs/adr/012–014`), the Catalog feature is
+the reference implementation: `apps/storefront/.../features/catalog/`
+(pages, presentational components, `CatalogApiService` data access,
+route-provided `CatalogState`, feature-owned models/i18n,
+`catalogRoutes` lazy boundary) plus a sibling `features/home/` entry
+page. Cross-feature needs travel through routes only — home imports no
+catalog code and catalog imports no home/auth code. No shared catalog
+library was created.
+
 ---
 
 ## 6. Shared Libraries
@@ -441,6 +450,15 @@ Use SignalStore or NgRx only when the feature has meaningful state complexity, s
 - Complex effects
 - State that must be coordinated across multiple screens
 
+As built in Phase 5 (see `docs/adr/012–013`), Catalog proves the
+simple path suffices for discovery: route-provided `CatalogState`
+(resource slots only, no `providedIn`) plus the pure, immutable
+`CatalogQueryState` (typed search/category/filters/sort/page with
+page-reset rules and one backend/route funnel). No global store, no
+NgRx, no SignalStore — and data-access calls that read their own slot
+must run `untracked` inside effects, or every settled response
+reschedules the effect into an infinite fetch loop.
+
 ---
 
 ## 10. API Communication
@@ -608,6 +626,14 @@ PagedResult<T>
 The exact contract must follow the backend API specification.
 
 Pagination, filtering, and sorting should be represented as typed state rather than unstructured query-string manipulation throughout components.
+
+As built in Phase 5: the wire carries only
+`items/totalCount/pageNumber/pageSize` — `totalPages`/`hasNext` are
+client-side derivations (`totalPagesOf`, never sent or stored). Pager
+UI stays feature-owned (the shared-library module set is closed);
+pager state renders from RESPONSE-effective values, and page moves
+commit through the coherent query state so search/filter/sort survive
+navigation.
 
 ---
 
@@ -853,6 +879,16 @@ Catalog/product UI should support:
 - Specifications
 
 Product presentation should consume API contracts rather than making assumptions about backend storage or implementation.
+
+As built in Phase 5 (discovery only — details/variants/SKU/pricing/
+availability arrive in Phase 6): the product card renders exactly what
+`CatalogProductListItem` carries (image, name, details link) and
+nothing it does not; price and availability were requested by example
+text but do not exist in the catalog contract, so they are not
+fabricated. Catalog copy is feature-owned per culture (catalog + home
+namespaces); SSR renders idle shells with dynamic `Title`/`Meta`, and
+settled list pages transfer server → client once per query
+(`docs/adr/014`).
 
 ---
 

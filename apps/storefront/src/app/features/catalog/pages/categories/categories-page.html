@@ -1,0 +1,98 @@
+<section class="categories-page" aria-labelledby="categories-title">
+  <h1 id="categories-title">{{ copy().title }}</h1>
+  <p>{{ copy().subtitle }}</p>
+
+  <catalog-search-input
+    [value]="queryState().search"
+    [label]="searchCopy().label"
+    [placeholder]="searchCopy().placeholder"
+    (valueChange)="onSearchChange($event)"
+  ></catalog-search-input>
+
+  <div class="catalog-filters">
+    <catalog-filter-select
+      [label]="filtersCopy().statusLabel"
+      [options]="statusOptions()"
+      [value]="statusValue()"
+      (valueChange)="onStatusChange($event)"
+    ></catalog-filter-select>
+    <catalog-filter-select
+      [label]="filtersCopy().visibilityLabel"
+      [options]="visibilityOptions()"
+      [value]="visibilityValue()"
+      (valueChange)="onVisibilityChange($event)"
+    ></catalog-filter-select>
+    <catalog-filter-select
+      [label]="filtersCopy().sortLabel"
+      [options]="sortOptions()"
+      [value]="sortValue()"
+      (valueChange)="onSortChange($event)"
+    ></catalog-filter-select>
+    @if (hasActiveFilters()) {
+      <button type="button" class="filters-clear" (click)="clearFilters()">
+        {{ filtersCopy().clearAll }}
+      </button>
+    }
+  </div>
+
+  @if (categories().isLoading) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (categories().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="reload()"
+    ></flux-error-state>
+  } @else if (categories().isEmpty) {
+    <flux-empty-state
+      [title]="copy().emptyTitle"
+      [message]="copy().emptyMessage"
+    ></flux-empty-state>
+  } @else if (categories().isSuccess) {
+    <catalog-category-nav
+      [categories]="categories().data?.items ?? []"
+      [activeCategoryId]="activeCategoryId()"
+      [label]="copy().title"
+    ></catalog-category-nav>
+    @if (activeCategoryId() !== null) {
+      <p>
+        <a routerLink="/catalog">{{ copy().clearSelection }}</a>
+      </p>
+    }
+  }
+
+  @if (showListing()) {
+    <section aria-labelledby="products-title">
+      <h2 id="products-title">{{ listingCopy().title }}</h2>
+      @if (productList().isLoading) {
+        <flux-loading-indicator [label]="listingCopy().loading"></flux-loading-indicator>
+      } @else if (productList().isError) {
+        <flux-error-state
+          [title]="listingCopy().errorTitle"
+          [message]="listingErrorMessage()"
+          [retryLabel]="listingCopy().retry"
+          (retry)="reloadProducts()"
+        ></flux-error-state>
+      } @else if (productList().data !== null) {
+        @if (productList().isEmpty) {
+          <flux-empty-state
+            [title]="emptyCopy().title"
+            [message]="emptyCopy().message"
+          ></flux-empty-state>
+        }
+        @if (productList().isSuccess) {
+          <p>{{ resultCount() }}</p>
+          <catalog-product-grid [products]="productList().data?.items ?? []"></catalog-product-grid>
+        }
+        <catalog-product-pagination
+          [page]="productList().data?.pageNumber ?? 1"
+          [pageSize]="productList().data?.pageSize ?? 20"
+          [totalCount]="productList().data?.totalCount ?? 0"
+          [copy]="paginationCopy()"
+          (pageChange)="onPageChange($event)"
+        ></catalog-product-pagination>
+      }
+    </section>
+  }
+</section>

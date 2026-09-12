@@ -1,0 +1,33 @@
+/**
+ * Product grid component for Sub-Phase 5.3 — Product Listing.
+ *
+ * Presentation only: renders HOW a product set lays out (a responsive
+ * list of reusable `ProductCard`s). The owning page decides WHEN and WHAT
+ * — items arrive as an input; loading/empty/error states stay with the
+ * page and the shared `@flux/ui` primitives. No API access, no state, no
+ * HTTP. Reused by every listing surface (category listing now; search,
+ * filter, and sort surfaces in 5.5–5.6).
+ *
+ * List semantics (`ul`/`li`) let assistive technology announce the result
+ * set; the fluid `auto-fill` grid scales from mobile to desktop without
+ * breakpoint overrides or device-specific duplicates.
+ *
+ * SSR/hydration safe: static markup from inputs only, no browser APIs.
+ * RTL safe: logical properties only, no direction branching.
+ */
+
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import type { ProductListItem } from '../../models/catalog.models';
+import { ProductCard } from '../product-card/product-card';
+
+@Component({
+  selector: 'catalog-product-grid',
+  imports: [ProductCard],
+  templateUrl: './product-grid.html',
+  styleUrl: './product-grid.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ProductGrid {
+  /** Products to render (one reusable card each, backend order kept). */
+  @Input({ required: true }) products: readonly ProductListItem[] = [];
+}

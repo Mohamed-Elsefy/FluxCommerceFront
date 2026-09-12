@@ -1,0 +1,7 @@
+<ul class="product-grid">
+  @for (product of products; track product.id) {
+    <li>
+      <catalog-product-card [product]="product"></catalog-product-card>
+    </li>
+  }
+</ul>

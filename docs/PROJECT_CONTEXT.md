@@ -826,6 +826,9 @@ Discovery**. No business features exist yet.
 
 # 26. Phase 5 — Catalog & Product Discovery
 
+Status: **Complete** (2026-09-12) — see
+`docs/completed/PHASE_5_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Home
@@ -846,6 +849,16 @@ Deliverable:
 ```text
 Customer can discover products
 ```
+
+All Phase 5 acceptance criteria are satisfied (lazy catalog feature with
+feature-scoped signal state, coherent `CatalogQueryState`, backend search /
+filter / sort / pagination over `GET /catalog`, reusable product cards and
+grid, differentiated resource states, 5-culture localization with RTL-safe
+rendering, responsive single-component UI, SSR-compatible pages with
+transfer-state hydration and dynamic metadata, unit/component/integration
+tests, catalog E2E journey, architecture audit 97/97). The baseline is
+ready for **Phase 6 — Product Details & Variants**. Product
+details/variants/cart remain explicitly deferred.
 
 ---
 
