@@ -183,4 +183,14 @@ export default [
       'no-restricted-imports': ['error', { patterns: [noRawHttpClientInFeatures] }],
     },
   },
+  {
+    // The documented testing seam: feature specs may use
+    // '@angular/common/http/testing' (HttpTestingController) while every
+    // other boundary (barrels, traversal, cross-app) keeps applying.
+    // Placed after the block above so it takes precedence for spec files.
+    files: ['apps/*/src/app/features/**/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [noLibTraversal, barrelOnly] }],
+    },
+  },
 ];
