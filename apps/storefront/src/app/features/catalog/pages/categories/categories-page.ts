@@ -1,6 +1,7 @@
 /**
- * Catalog page for Sub-Phases 5.2–5.8 — Discovery + Listing + Query +
- * Search + Filtering, Sorting, Pagination & Resource States.
+ * Catalog page for Sub-Phases 5.2–5.10 — Discovery + Listing + Query +
+ * Search + Filtering, Sorting, Pagination, Resource States,
+ * Localization/RTL & SSR/SEO.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `CatalogState` (provided by the parent `catalogRoutes` entry — never a
@@ -65,9 +66,14 @@
  * (TransferState, request dedupe) arrives in Sub-Phase 5.10.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 5.9 — no localization/RTL integration beyond the catalog bundle.
- * - 5.10 — no SSR/SEO optimization beyond the idle shell.
+ * - 5.11 — no E2E suites (unit/component coverage only).
  * - Phase 6 — no variants, quantities, or add-to-cart.
+ *
+ * SSR/SEO (5.10): `Title`/`Meta` apply in `ngOnInit` (server + client)
+ * and refresh in an effect on query/category/culture changes; list data
+ * transfers server → client once per query via `CatalogState`, so
+ * hydration never refetches transferred pages. The prerender build has no
+ * backend, so it emits the idle shell with base metadata by design.
  */
 
 import {
@@ -83,6 +89,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { debounceTime, distinctUntilChanged, map, Subject } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import {
@@ -165,6 +172,8 @@ export class CategoriesPage implements OnInit {
   private readonly router = inject(Router);
   private readonly cultures = inject(CultureService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly title = inject(Title);
+  private readonly meta = inject(Meta);
 
   /** Raw search keystrokes from the input (debounced below, never sent raw). */
   private readonly searchText = new Subject<string>();
@@ -230,6 +239,14 @@ export class CategoriesPage implements OnInit {
     this.searchText
       .pipe(debounceTime(SEARCH_DEBOUNCE_MS), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((search) => this.applySearch(search));
+
+    // Dynamic metadata (5.10): tracks the query, the loaded categories,
+    // and the culture; `Title`/`Meta` write the document only (no signals
+    // touched inside, so no dependency besides the tracked reads above).
+    // Effects never run on the server — `ngOnInit` covers the SSR pass.
+    effect(() => {
+      this.applyMetadata();
+    });
   }
 
   /**
@@ -513,10 +530,44 @@ export class CategoriesPage implements OnInit {
   );
 
   ngOnInit(): void {
-    // Browser only: the server prerenders the idle shell (see above).
+    // Runs on server and client alike: metadata applies during SSR (the
+    // only catalog write in the server pass — no fetch, no browser APIs),
+    // while data loads stay browser-only (see above).
+    this.applyMetadata();
     if (this.isBrowser) {
       this.reload();
     }
+  }
+
+  /**
+   * Applies dynamic page metadata for the current query (5.10): document
+   * title, standard description, and OpenGraph tags. Search takes
+   * precedence, then the loaded category name (falling back to the
+   * localized catalog title), then the category description (falling back
+   * to the localized subtitle). `Title`/`Meta` are SSR-safe Angular
+   * services — on the server they render into the prerendered `<head>`.
+   */
+  private applyMetadata(): void {
+    const culture = this.cultures.culture();
+    const query = this.queryState();
+    const category =
+      query.category === null
+        ? null
+        : (this.categories().data?.items.find((item) => item.id === query.category) ?? null);
+    const pageLabel =
+      query.search !== ''
+        ? `"${query.search}"`
+        : (category?.name ??
+          translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.metaCatalogTitle));
+    const description =
+      category?.description ??
+      translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesSubtitle);
+    const title = `${pageLabel} | FluxCommerce`;
+    this.title.setTitle(title);
+    this.meta.updateTag({ name: 'description', content: description });
+    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:description', content: description });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
   }
 
   /** (Re)loads the discovery set; discovery retry re-enters here. */

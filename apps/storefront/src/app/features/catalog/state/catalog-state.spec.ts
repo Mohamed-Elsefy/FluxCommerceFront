@@ -10,6 +10,7 @@
  */
 
 import { TestBed } from '@angular/core/testing';
+import { PLATFORM_ID, TransferState } from '@angular/core';
 import { describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
@@ -236,5 +237,137 @@ describe('CatalogState locality (no global state)', () => {
   it('is not a root singleton (no providedIn root)', () => {
     const metadata = (CatalogState as unknown as { ɵprov?: { providedIn?: unknown } }).ɵprov;
     expect(metadata?.providedIn).not.toBe('root');
+  });
+});
+
+describe('CatalogState transfer state (5.10 hydration)', () => {
+  const QUERY = { categoryId: '22222222-2222-2222-2222-222222222222' };
+  const PAGE = {
+    items: [PRODUCT_ITEM],
+    totalCount: 1,
+    pageNumber: 1,
+    pageSize: 20,
+  };
+
+  interface TransferHarness {
+    state: CatalogState;
+    transfer: TransferState;
+    apiCalls: unknown[];
+  }
+
+  /**
+   * Builds an isolated state on the given platform. Sharing one
+   * `TransferState` instance across a server/client pair simulates the
+   * serialized HTML transfer (payloads are JSON-safe by contract).
+   */
+  function setupTransfer(options: {
+    platform?: 'browser' | 'server';
+    transfer?: TransferState;
+    searchCatalog?: () => ReturnType<CatalogApiService['searchCatalog']>;
+    listCategories?: () => ReturnType<CatalogApiService['listCategories']>;
+  }): TransferHarness {
+    const apiCalls: unknown[] = [];
+    const apiStub = {
+      searchCatalog: ((query: unknown) => {
+        apiCalls.push(query);
+        return options.searchCatalog?.() ?? of({ isSuccess: true, data: PAGE });
+      }) as CatalogApiService['searchCatalog'],
+      listCategories: ((query: unknown) => {
+        apiCalls.push(query);
+        return (
+          options.listCategories?.() ??
+          of({ isSuccess: true, data: { ...PAGE, items: [CATEGORY] } })
+        );
+      }) as CatalogApiService['listCategories'],
+    } as CatalogApiService;
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: CatalogApiService, useValue: apiStub },
+        ...(options.transfer === undefined
+          ? []
+          : [{ provide: TransferState, useValue: options.transfer }]),
+        ...(options.platform === undefined || options.platform === 'browser'
+          ? []
+          : [{ provide: PLATFORM_ID, useValue: 'server' }]),
+        CatalogState,
+      ],
+    });
+    return {
+      state: TestBed.inject(CatalogState),
+      transfer: TestBed.inject(TransferState),
+      apiCalls,
+    };
+  }
+
+  it('reuses server-rendered products on the client without refetching', () => {
+    const server = setupTransfer({ platform: 'server' });
+    server.state.loadProducts(QUERY);
+    expect(server.state.products().status).toBe('success');
+    expect(server.apiCalls).toHaveLength(1);
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProducts(QUERY);
+
+    expect(client.apiCalls).toHaveLength(0);
+    expect(client.state.products().status).toBe('success');
+    expect(client.state.products().data).toEqual(PAGE);
+  });
+
+  it('reuses server-rendered categories on the client without refetching', () => {
+    const server = setupTransfer({ platform: 'server' });
+    server.state.loadCategories({ pageNumber: 1, pageSize: 100 });
+    expect(server.state.categories().status).toBe('success');
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadCategories({ pageNumber: 1, pageSize: 100 });
+
+    expect(client.apiCalls).toHaveLength(0);
+    expect(client.state.categories().status).toBe('success');
+    expect(client.state.categories().data?.items).toEqual([CATEGORY]);
+  });
+
+  it('fetches live on transfer miss (different query)', () => {
+    const server = setupTransfer({ platform: 'server' });
+    server.state.loadProducts(QUERY);
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProducts({ ...QUERY, searchTerm: 'other' });
+
+    expect(client.apiCalls).toHaveLength(1);
+    expect(client.state.products().status).toBe('success');
+  });
+
+  it('consumes transfers once (second identical load refetches)', () => {
+    const server = setupTransfer({ platform: 'server' });
+    server.state.loadProducts(QUERY);
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProducts(QUERY);
+    expect(client.apiCalls).toHaveLength(0);
+
+    client.state.loadProducts(QUERY);
+    expect(client.apiCalls).toHaveLength(1);
+  });
+
+  it('never stores server failures (the client retries live)', () => {
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    const server = setupTransfer({
+      platform: 'server',
+      searchCatalog: () => throwError(() => rejection),
+    });
+    server.state.loadProducts(QUERY);
+    expect(server.state.products().status).toBe('error');
+    TestBed.resetTestingModule();
+
+    const client = setupTransfer({ transfer: server.transfer });
+    client.state.loadProducts(QUERY);
+
+    expect(client.apiCalls).toHaveLength(1);
+    expect(client.state.products().status).toBe('success');
   });
 });

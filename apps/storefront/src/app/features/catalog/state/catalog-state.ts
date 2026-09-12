@@ -27,7 +27,15 @@
  *   `toCategoryList` fallbacks: envelopes unwrap here, wire errors flow into
  *   the `error` state through `loadResourceState`.
  * - SSR-safe: no `window`/`document`/`localStorage` anywhere in this file —
- *   server rendering only exercises the initial `idle` snapshots.
+ *   server rendering only exercises the initial `idle` snapshots, and
+ *   `TransferState`/`PLATFORM_ID` are the only platform seams (both
+ *   SSR-safe by Angular design).
+ * - Hydration (5.10): settled list pages transfer server → client once
+ *   per query (keyed by the canonical query hash, consumed on read, never
+ *   stored on failure), so hydration never refetches transferred data and
+ *   never serves stale data. Prerendering without a backend yields idle
+ *   shells by design (the page skips server fetches); the mechanism
+ *   activates whenever a server render settles loads.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
  * - 5.2 — no pages, no category discovery orchestration.
@@ -39,9 +47,17 @@
  * executes backend queries and owns the resource slots, never the query.
  */
 
-import { inject, Injectable } from '@angular/core';
-import type { Signal } from '@angular/core';
-import { map, type Observable, type Subscription } from 'rxjs';
+import {
+  inject,
+  Injectable,
+  makeStateKey,
+  PLATFORM_ID,
+  TransferState,
+  type Signal,
+  type StateKey,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { map, Subscription, tap, type Observable } from 'rxjs';
 import {
   ApiError,
   createResourceState,
@@ -58,6 +74,7 @@ import { CatalogApiService } from '../data-access/catalog-api.service';
 import {
   emptyCategoryList,
   emptyProductList,
+  toCatalogQueryParams,
   type CatalogQuery,
   type Category,
   type CategoryList,
@@ -79,6 +96,8 @@ export interface CatalogLoadOptions {
 @Injectable()
 export class CatalogState {
   private readonly catalogApi = inject(CatalogApiService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly transfer = inject(TransferState, { optional: true });
 
   private readonly productsStore: ResourceStateStore<ProductList> =
     createResourceState<ProductList>();
@@ -106,11 +125,27 @@ export class CatalogState {
    * (`items: []`, including out-of-range pages which the backend answers
    * with `200`) resolves to `empty`; a dataless envelope resolves to
    * `error` (contract violation); aborts leave state untouched.
+   *
+   * Hydration: a server-rendered page for the same query is reused once
+   * from `TransferState` (no HTTP); misses and errors always fetch live.
    */
   loadProducts(query: CatalogQuery = {}, options: CatalogLoadOptions = {}): Subscription {
+    const key = makeStateKey<ProductList>(`catalog.products.${queryHash(query)}`);
+    const transferred = this.consumeTransferred(key);
+    if (transferred !== null) {
+      if (transferred.items.length === 0) {
+        this.productsStore.setEmpty(transferred);
+      } else {
+        this.productsStore.setSuccess(transferred);
+      }
+      return Subscription.EMPTY;
+    }
     const request: Observable<ProductList> = this.catalogApi
       .searchCatalog(query, toApiOptions(options))
-      .pipe(map((envelope) => requirePagedData(envelope, emptyProductList(query.pageSize ?? 20))));
+      .pipe(
+        map((envelope) => requirePagedData(envelope, emptyProductList(query.pageSize ?? 20))),
+        tap((page) => this.storeTransferred(key, page)),
+      );
     return loadResourceState(this.productsStore, request, {
       signal: options.signal,
       isEmpty: (page) => page.items.length === 0,
@@ -118,12 +153,26 @@ export class CatalogState {
   }
 
   /**
-   * Loads the paged category list. Same lifecycle rules as `loadProducts`.
+   * Loads the paged category list. Same lifecycle and hydration rules as
+   * `loadProducts`.
    */
   loadCategories(query: PaginationRequest = {}, options: CatalogLoadOptions = {}): Subscription {
+    const key = makeStateKey<CategoryList>(`catalog.categories.${queryHash(query)}`);
+    const transferred = this.consumeTransferred(key);
+    if (transferred !== null) {
+      if (transferred.items.length === 0) {
+        this.categoriesStore.setEmpty(transferred);
+      } else {
+        this.categoriesStore.setSuccess(transferred);
+      }
+      return Subscription.EMPTY;
+    }
     const request: Observable<CategoryList> = this.catalogApi
       .listCategories(query, toApiOptions(options))
-      .pipe(map((envelope) => requirePagedData(envelope, emptyCategoryList(query.pageSize ?? 20))));
+      .pipe(
+        map((envelope) => requirePagedData(envelope, emptyCategoryList(query.pageSize ?? 20))),
+        tap((page) => this.storeTransferred(key, page)),
+      );
     return loadResourceState(this.categoriesStore, request, {
       signal: options.signal,
       isEmpty: (page) => page.items.length === 0,
@@ -161,10 +210,54 @@ export class CatalogState {
   clearProducts(): void {
     this.productsStore.reset();
   }
+
+  /**
+   * Reuses a server-rendered page once: on the browser, a stored payload
+   * is consumed (and removed — single use, never stale) instead of
+   * fetching; on the server, or on a miss, returns `null` so the caller
+   * loads live. Pure lookup — performs no HTTP.
+   */
+  private consumeTransferred<T>(key: StateKey<T>): T | null {
+    if (!this.isBrowser) {
+      return null;
+    }
+    const stored = this.transfer?.get<T | null>(key, null) ?? null;
+    if (stored === null) {
+      return null;
+    }
+    this.transfer?.remove(key);
+    return stored;
+  }
+
+  /**
+   * Stores a settled page for hydration: server-only (the browser renders
+   * from live data or consumed transfers). Failures are never stored, so
+   * the client always retries live after a server error.
+   */
+  private storeTransferred<T>(key: StateKey<T>, page: T): void {
+    if (!this.isBrowser) {
+      this.transfer?.set(key, page);
+    }
+  }
 }
 
 function toApiOptions(options: CatalogLoadOptions): ApiRequestOptions {
   return options.signal === undefined ? {} : { signal: options.signal };
+}
+
+/**
+ * Stable transfer key suffix for a backend query: the canonical funnel
+ * form (`toCatalogQueryParams` — normalized, nulls omitted, fixed field
+ * order) hashed compactly, so server and client derive identical keys
+ * for identical queries without embedding long strings.
+ */
+function queryHash(query: CatalogQuery): string {
+  const text = JSON.stringify(toCatalogQueryParams(query));
+  let hash = 5381;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = ((hash << 5) + hash + text.charCodeAt(index)) | 0;
+  }
+  return (hash >>> 0).toString(36);
 }
 
 /** Unwraps a paged envelope; a dataless `200` is a contract violation. */

@@ -68,6 +68,7 @@ export const CATALOG_TRANSLATION_KEYS = {
   paginationPrevious: 'catalog.pagination.previous',
   paginationNext: 'catalog.pagination.next',
   paginationLast: 'catalog.pagination.last',
+  metaCatalogTitle: 'catalog.meta.catalogTitle',
 } as const;
 
 /** English (`en`) catalog vocabulary. Also the deterministic fallback source. */
@@ -123,6 +124,9 @@ const EN_CATALOG: TranslationDictionary = {
       previous: 'Previous',
       next: 'Next',
       last: 'Last',
+    },
+    meta: {
+      catalogTitle: 'Catalog',
     },
   },
 };
@@ -181,6 +185,9 @@ const FR_CATALOG: TranslationDictionary = {
       next: 'Suivant',
       last: 'Dernier',
     },
+    meta: {
+      catalogTitle: 'Catalogue',
+    },
   },
 };
 
@@ -237,6 +244,9 @@ const DE_CATALOG: TranslationDictionary = {
       previous: 'Zurück',
       next: 'Weiter',
       last: 'Letzte',
+    },
+    meta: {
+      catalogTitle: 'Katalog',
     },
   },
 };
@@ -295,6 +305,9 @@ const ES_CATALOG: TranslationDictionary = {
       next: 'Siguiente',
       last: 'Última',
     },
+    meta: {
+      catalogTitle: 'Catálogo',
+    },
   },
 };
 
@@ -351,6 +364,9 @@ const AR_CATALOG: TranslationDictionary = {
       previous: 'السابق',
       next: 'التالي',
       last: 'الأخيرة',
+    },
+    meta: {
+      catalogTitle: 'الكتالوج',
     },
   },
 };

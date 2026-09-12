@@ -14,6 +14,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BehaviorSubject, of } from 'rxjs';
 import {
@@ -1020,5 +1021,74 @@ describe('CategoriesPage pagination (5.7)', () => {
 
     expect(pager?.getAttribute('aria-label')).toBe('Pages de produits');
     expect(pagerButtons(element)[0]?.textContent?.trim()).toBe('Première');
+  });
+});
+
+describe('CategoriesPage metadata (5.10 SSR/SEO)', () => {
+  const categoryId = '22222222-2222-2222-2222-222222222222';
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function metaContent(selector: string): string | null {
+    return TestBed.inject(Meta).getTag(selector)?.getAttribute('content') ?? null;
+  }
+
+  it('sets base catalog metadata on the default route', () => {
+    setup({ snapshot: successResource(categoryList()) });
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Catalog | FluxCommerce');
+    expect(metaContent('name="description"')).toBe('Browse the catalog through its categories.');
+    expect(metaContent('property="og:title"')).toBe('Catalog | FluxCommerce');
+    expect(metaContent('property="og:description"')).toBe(
+      'Browse the catalog through its categories.',
+    );
+    expect(metaContent('property="og:type"')).toBe('website');
+  });
+
+  it('names the selected category with its backend description', () => {
+    const [first, ...rest] = CATEGORIES;
+    setup({
+      snapshot: successResource({
+        ...categoryList(),
+        items: [{ ...first!, description: 'Wearables and basics.' }, ...rest],
+      }),
+      categoryId,
+    });
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Apparel | FluxCommerce');
+    expect(metaContent('name="description"')).toBe('Wearables and basics.');
+    expect(metaContent('property="og:title"')).toBe('Apparel | FluxCommerce');
+  });
+
+  it('prefers the search text over the category in the title', () => {
+    setup({
+      snapshot: successResource(categoryList()),
+      categoryId,
+      routeQuery: { searchTerm: 'tee' },
+    });
+
+    expect(TestBed.inject(Title).getTitle()).toBe('"tee" | FluxCommerce');
+  });
+
+  it('localizes metadata per active culture', () => {
+    setup({ snapshot: successResource(categoryList()), culture: 'fr' });
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Catalogue | FluxCommerce');
+    expect(metaContent('name="description"')).toBe('Parcourez le catalogue par catégories.');
+    expect(metaContent('property="og:title"')).toBe('Catalogue | FluxCommerce');
+  });
+
+  it('applies metadata on the server platform (SSR prerender path)', () => {
+    setup({ snapshot: successResource(categoryList()), platform: 'server' });
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Catalog | FluxCommerce');
+    expect(metaContent('name="description"')).toBe('Browse the catalog through its categories.');
+    expect(metaContent('property="og:type"')).toBe('website');
   });
 });
