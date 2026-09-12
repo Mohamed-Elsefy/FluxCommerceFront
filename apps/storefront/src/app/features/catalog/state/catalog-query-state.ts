@@ -115,6 +115,20 @@ export function defaultCatalogQueryState(): CatalogQueryState {
 }
 
 /**
+ * Whether the query carries search/filter/sort criteria beyond a bare
+ * category scope. The page uses it to differentiate empty states ("no
+ * products here" vs "no results match the active criteria"). Pure.
+ */
+export function hasListingCriteria(state: CatalogQueryState): boolean {
+  return (
+    state.search !== '' ||
+    state.filters.status !== null ||
+    state.filters.visibility !== null ||
+    state.sort.by !== null
+  );
+}
+
+/**
  * Whether a query selects a listing at all: a category, a search text, an
  * active filter, or an explicit sort. The page renders the listing section
  * (and loads it) only then; pure discovery otherwise. Pure.

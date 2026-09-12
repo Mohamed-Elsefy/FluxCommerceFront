@@ -18,6 +18,7 @@ import {
   decodeSortSelection,
   defaultCatalogQueryState,
   encodeSortSelection,
+  hasListingCriteria,
   hasListingQuery,
   queryStateFromRouteParams,
   setQueryCategory,
@@ -248,6 +249,30 @@ describe('sort selection codec', () => {
       by: CatalogProductSortBy.Name,
       direction: CatalogProductSortDirection.Ascending,
     });
+  });
+});
+
+describe('hasListingCriteria', () => {
+  it('reports no criteria for default and bare-category queries', () => {
+    expect(hasListingCriteria(defaultCatalogQueryState())).toBe(false);
+    expect(hasListingCriteria(setQueryCategory(defaultCatalogQueryState(), CATEGORY))).toBe(false);
+  });
+
+  it('reports criteria for search, filters, and sorting', () => {
+    expect(hasListingCriteria(setQuerySearch(defaultCatalogQueryState(), 'tee'))).toBe(true);
+    expect(
+      hasListingCriteria(
+        setQueryFilters(defaultCatalogQueryState(), { visibility: ProductVisibility.Visible }),
+      ),
+    ).toBe(true);
+    expect(
+      hasListingCriteria(
+        setQuerySort(defaultCatalogQueryState(), {
+          by: CatalogProductSortBy.CreatedAtUtc,
+          direction: CatalogProductSortDirection.Descending,
+        }),
+      ),
+    ).toBe(true);
   });
 });
 

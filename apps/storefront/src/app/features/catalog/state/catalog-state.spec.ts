@@ -139,6 +139,21 @@ describe('CatalogState products', () => {
     expect(state.products().status).toBe('error');
   });
 
+  it('stays stable on non-protocol failures (never throws, always normalized)', () => {
+    const { state } = setup({
+      searchCatalog: () => throwError(() => new TypeError('Failed to fetch')),
+    });
+    let snapshot: ReturnType<typeof state.products> | undefined;
+    expect(() => {
+      state.loadProducts({});
+      snapshot = state.products();
+    }).not.toThrow();
+
+    expect(snapshot?.status).toBe('error');
+    expect(snapshot?.error).not.toBeNull();
+    expect(typeof snapshot?.error?.message).toBe('string');
+  });
+
   it('forwards the AbortSignal to data access without touching state shape', () => {
     const { state, seenSignals } = setup({});
     const controller = new AbortController();

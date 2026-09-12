@@ -332,7 +332,7 @@ describe('CategoriesPage product listing', () => {
     expect(element.querySelector('#products-title')).not.toBeNull();
   });
 
-  it('renders the localized listing empty state', () => {
+  it('renders the no-products empty state for a bare category scope', () => {
     const { element } = setup({
       snapshot: successResource(categoryList()),
       productsSnapshot: emptyResource<ProductList>(productList()),
@@ -342,11 +342,88 @@ describe('CategoriesPage product listing', () => {
       'section[aria-labelledby="products-title"] flux-empty-state',
     );
 
-    expect(empty?.querySelector('.title')?.textContent).toBe('No products found');
+    expect(empty?.querySelector('.title')?.textContent).toBe('No products here yet');
     expect(empty?.querySelector('.message')?.textContent).toBe(
-      'Try another category — new products arrive often.',
+      'There are no products in Apparel yet.',
     );
     expect(element.querySelector('catalog-product-grid')).toBeNull();
+  });
+
+  it('falls back to a generic noun when the category name is unknown', () => {
+    const { element } = setup({
+      snapshot: emptyResource<CategoryList>({ ...categoryList(), items: [], totalCount: 0 }),
+      productsSnapshot: emptyResource<ProductList>(productList()),
+      categoryId,
+    });
+    const empty = element.querySelector(
+      'section[aria-labelledby="products-title"] flux-empty-state',
+    );
+
+    expect(empty?.querySelector('.message')?.textContent).toBe(
+      'There are no products in this category yet.',
+    );
+  });
+
+  it('renders the no-results empty state for active search criteria', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: emptyResource<ProductList>(productList()),
+      categoryId,
+      routeQuery: { searchTerm: 'zzz-no-match' },
+    });
+    const empty = element.querySelector(
+      'section[aria-labelledby="products-title"] flux-empty-state',
+    );
+
+    expect(empty?.querySelector('.title')?.textContent).toBe('No matching products');
+    expect(empty?.querySelector('.message')?.textContent).toBe(
+      'Try a different search or clear some filters.',
+    );
+  });
+
+  it('renders the no-results empty state for active filter and sort criteria', () => {
+    const filtered = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: emptyResource<ProductList>(productList()),
+      categoryId,
+      routeQuery: { status: '1' },
+    });
+    expect(
+      filtered.element.querySelector(
+        'section[aria-labelledby="products-title"] flux-empty-state .title',
+      )?.textContent,
+    ).toBe('No matching products');
+
+    TestBed.resetTestingModule();
+    const sorted = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: emptyResource<ProductList>(productList()),
+      categoryId,
+      routeQuery: { sortBy: 'Name', sortDirection: 'Ascending' },
+    });
+    expect(
+      sorted.element.querySelector(
+        'section[aria-labelledby="products-title"] flux-empty-state .title',
+      )?.textContent,
+    ).toBe('No matching products');
+  });
+
+  it('localizes the no-results empty state for the active culture', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: emptyResource<ProductList>(productList()),
+      categoryId,
+      routeQuery: { searchTerm: 'zzz' },
+      culture: 'fr',
+    });
+    const empty = element.querySelector(
+      'section[aria-labelledby="products-title"] flux-empty-state',
+    );
+
+    expect(empty?.querySelector('.title')?.textContent).toBe('Aucun produit correspondant');
+    expect(empty?.querySelector('.message')?.textContent).toBe(
+      'Essayez une autre recherche ou retirez certains filtres.',
+    );
   });
 
   it('renders the localized listing error state with retry', () => {

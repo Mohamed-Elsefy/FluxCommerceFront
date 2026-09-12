@@ -77,8 +77,8 @@
       } @else if (productList().data !== null) {
         @if (productList().isEmpty) {
           <flux-empty-state
-            [title]="listingCopy().emptyTitle"
-            [message]="listingCopy().emptyMessage"
+            [title]="emptyCopy().title"
+            [message]="emptyCopy().message"
           ></flux-empty-state>
         }
         @if (productList().isSuccess) {

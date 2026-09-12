@@ -1,6 +1,6 @@
 /**
- * Catalog page for Sub-Phases 5.2–5.7 — Discovery + Listing + Query +
- * Search + Filtering, Sorting & Pagination.
+ * Catalog page for Sub-Phases 5.2–5.8 — Discovery + Listing + Query +
+ * Search + Filtering, Sorting, Pagination & Resource States.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `CatalogState` (provided by the parent `catalogRoutes` entry — never a
@@ -48,6 +48,12 @@
  * sort fields. Price-like filters/sorts and availability signals do not
  * exist in the catalog contract and are not offered.
  *
+ * Resource states (5.8): every slot renders idle → loading → success |
+ * empty | error through the shared primitives with localized copy and
+ * retry. Listing emptiness differentiates "no products here" (bare
+ * category scope, naming the category when its data is available) from
+ * "no results match" (active search/filter/sort criteria).
+ *
  * Copy is localized per the active `CultureService.culture()`: feature
  * copy through the catalog bundle, retry through `common.actions.retry`,
  * and failures through `resolveApiErrorMessage` (never backend text).
@@ -59,7 +65,8 @@
  * (TransferState, request dedupe) arrives in Sub-Phase 5.10.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 5.8 — no resource-state/UX overrides beyond the shared primitives.
+ * - 5.9 — no localization/RTL integration beyond the catalog bundle.
+ * - 5.10 — no SSR/SEO optimization beyond the idle shell.
  * - Phase 6 — no variants, quantities, or add-to-cart.
  */
 
@@ -98,6 +105,7 @@ import {
   decodeSortSelection,
   defaultCatalogQueryState,
   encodeSortSelection,
+  hasListingCriteria,
   hasListingQuery,
   parseProductStatus,
   parseProductVisibility,
@@ -328,8 +336,6 @@ export class CategoriesPage implements OnInit {
     return {
       title: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingTitle),
       loading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingLoading),
-      emptyTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingEmptyTitle),
-      emptyMessage: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingEmptyMessage),
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingErrorTitle),
       retry: translateKey(culture, 'common.actions.retry'),
     };
@@ -470,6 +476,31 @@ export class CategoriesPage implements OnInit {
       count: this.productList().data?.totalCount ?? 0,
     }),
   );
+
+  /**
+   * Differentiated empty copy (5.8): active search/filter/sort criteria
+   * mean "no results match", while a bare category scope means "no
+   * products here". The category slot names the scope when its data is
+   * available, else a generic localized noun.
+   */
+  protected readonly emptyCopy = computed(() => {
+    const culture = this.cultures.culture();
+    if (hasListingCriteria(this.queryState())) {
+      return {
+        title: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingNoResultsTitle),
+        message: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingNoResultsMessage),
+      };
+    }
+    const categoryId = this.queryState().category;
+    const known = this.categories().data?.items.find((category) => category.id === categoryId);
+    return {
+      title: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingNoProductsTitle),
+      message: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingNoProductsMessage, {
+        category:
+          known?.name ?? translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingThisCategory),
+      }),
+    };
+  });
 
   /** Localized discovery failure message (never backend text). */
   protected readonly errorMessage = computed(() =>
