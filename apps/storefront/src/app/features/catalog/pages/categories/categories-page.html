@@ -74,14 +74,24 @@
           [retryLabel]="listingCopy().retry"
           (retry)="reloadProducts()"
         ></flux-error-state>
-      } @else if (productList().isEmpty) {
-        <flux-empty-state
-          [title]="listingCopy().emptyTitle"
-          [message]="listingCopy().emptyMessage"
-        ></flux-empty-state>
-      } @else if (productList().isSuccess) {
-        <p>{{ resultCount() }}</p>
-        <catalog-product-grid [products]="productList().data?.items ?? []"></catalog-product-grid>
+      } @else if (productList().data !== null) {
+        @if (productList().isEmpty) {
+          <flux-empty-state
+            [title]="listingCopy().emptyTitle"
+            [message]="listingCopy().emptyMessage"
+          ></flux-empty-state>
+        }
+        @if (productList().isSuccess) {
+          <p>{{ resultCount() }}</p>
+          <catalog-product-grid [products]="productList().data?.items ?? []"></catalog-product-grid>
+        }
+        <catalog-product-pagination
+          [page]="productList().data?.pageNumber ?? 1"
+          [pageSize]="productList().data?.pageSize ?? 20"
+          [totalCount]="productList().data?.totalCount ?? 0"
+          [copy]="paginationCopy()"
+          (pageChange)="onPageChange($event)"
+        ></catalog-product-pagination>
       }
     </section>
   }

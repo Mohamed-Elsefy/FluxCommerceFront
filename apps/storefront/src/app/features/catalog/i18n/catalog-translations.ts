@@ -60,6 +60,11 @@ export const CATALOG_TRANSLATION_KEYS = {
   filtersSortNewest: 'catalog.sort.newest',
   filtersSortOldest: 'catalog.sort.oldest',
   filtersClearAll: 'catalog.filters.clearAll',
+  paginationLabel: 'catalog.pagination.label',
+  paginationFirst: 'catalog.pagination.first',
+  paginationPrevious: 'catalog.pagination.previous',
+  paginationNext: 'catalog.pagination.next',
+  paginationLast: 'catalog.pagination.last',
 } as const;
 
 /** English (`en`) catalog vocabulary. Also the deterministic fallback source. */
@@ -105,6 +110,13 @@ const EN_CATALOG: TranslationDictionary = {
       nameDesc: 'Name (Z–A)',
       newest: 'Newest first',
       oldest: 'Oldest first',
+    },
+    pagination: {
+      label: 'Product pages',
+      first: 'First',
+      previous: 'Previous',
+      next: 'Next',
+      last: 'Last',
     },
   },
 };
@@ -153,6 +165,13 @@ const FR_CATALOG: TranslationDictionary = {
       newest: 'Plus récents',
       oldest: 'Plus anciens',
     },
+    pagination: {
+      label: 'Pages de produits',
+      first: 'Première',
+      previous: 'Précédent',
+      next: 'Suivant',
+      last: 'Dernier',
+    },
   },
 };
 
@@ -199,6 +218,13 @@ const DE_CATALOG: TranslationDictionary = {
       nameDesc: 'Name (Z–A)',
       newest: 'Neueste zuerst',
       oldest: 'Älteste zuerst',
+    },
+    pagination: {
+      label: 'Produktseiten',
+      first: 'Erste',
+      previous: 'Zurück',
+      next: 'Weiter',
+      last: 'Letzte',
     },
   },
 };
@@ -247,6 +273,13 @@ const ES_CATALOG: TranslationDictionary = {
       newest: 'Más recientes',
       oldest: 'Más antiguos',
     },
+    pagination: {
+      label: 'Páginas de productos',
+      first: 'Primera',
+      previous: 'Anterior',
+      next: 'Siguiente',
+      last: 'Última',
+    },
   },
 };
 
@@ -293,6 +326,13 @@ const AR_CATALOG: TranslationDictionary = {
       nameDesc: 'الاسم (ي–أ)',
       newest: 'الأحدث أولاً',
       oldest: 'الأقدم أولاً',
+    },
+    pagination: {
+      label: 'صفحات المنتجات',
+      first: 'الأولى',
+      previous: 'السابق',
+      next: 'التالي',
+      last: 'الأخيرة',
     },
   },
 };

@@ -814,3 +814,134 @@ describe('CategoriesPage filtering and sorting (5.6)', () => {
     );
   });
 });
+
+describe('CategoriesPage pagination (5.7)', () => {
+  const categoryId = '22222222-2222-2222-2222-222222222222';
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function pagedList(pageNumber: number, totalCount: number): ProductList {
+    return { ...productList(), pageNumber, totalCount, pageSize: 20 };
+  }
+
+  function pagerButtons(element: HTMLElement): HTMLButtonElement[] {
+    return [...element.querySelectorAll('catalog-product-pagination nav button')].map(
+      (button) => button as HTMLButtonElement,
+    );
+  }
+
+  it('renders the pager from response-effective values', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(pagedList(1, 45)),
+      categoryId,
+    });
+    const pager = element.querySelector('catalog-product-pagination nav');
+
+    expect(pager?.getAttribute('aria-label')).toBe('Product pages');
+    expect(pagerButtons(element).map((button) => button.textContent?.trim())).toEqual([
+      'First',
+      'Previous',
+      '1',
+      '2',
+      '3',
+      'Next',
+      'Last',
+    ]);
+  });
+
+  it('hides the pager for single-page results', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      categoryId,
+    });
+
+    expect(element.querySelector('catalog-product-grid')).not.toBeNull();
+    expect(element.querySelector('catalog-product-pagination nav')).toBeNull();
+  });
+
+  it('preserves the full query across page navigation', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(pagedList(1, 45)),
+      categoryId,
+      routeQuery: {
+        searchTerm: 'tee',
+        status: '1',
+        sortBy: 'Name',
+        sortDirection: 'Descending',
+        pageNumber: '1',
+      },
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const next = pagerButtons(element).find((button) => button.textContent?.trim() === '2');
+
+    next?.click();
+
+    expect(navigate).toHaveBeenCalledWith(['/catalog'], {
+      queryParams: {
+        searchTerm: 'tee',
+        categoryId,
+        status: 1,
+        sortBy: 0,
+        sortDirection: 1,
+        pageNumber: 2,
+        pageSize: 20,
+      },
+      replaceUrl: true,
+    });
+  });
+
+  it('renders the effective page, not the requested one', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(pagedList(2, 45)),
+      categoryId,
+      routeQuery: { pageNumber: '5' },
+    });
+    const current = pagerButtons(element).find(
+      (button) => button.getAttribute('aria-current') === 'page',
+    );
+
+    expect(current?.textContent?.trim()).toBe('2');
+  });
+
+  it('handles out-of-range pages with an empty state and no crash', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: emptyResource<ProductList>({
+        items: [],
+        totalCount: 2,
+        pageNumber: 99,
+        pageSize: 20,
+      }),
+      categoryId,
+      routeQuery: { pageNumber: '99' },
+    });
+
+    expect(
+      element.querySelector('section[aria-labelledby="products-title"] flux-empty-state'),
+    ).not.toBeNull();
+    expect(element.querySelector('catalog-product-pagination nav')).toBeNull();
+  });
+
+  it('localizes pager controls for the active culture', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(pagedList(1, 45)),
+      categoryId,
+      culture: 'fr',
+    });
+    const pager = element.querySelector('catalog-product-pagination nav');
+
+    expect(pager?.getAttribute('aria-label')).toBe('Pages de produits');
+    expect(pagerButtons(element)[0]?.textContent?.trim()).toBe('Première');
+  });
+});

@@ -1,6 +1,6 @@
 /**
- * Catalog page for Sub-Phases 5.2–5.6 — Discovery + Listing + Query +
- * Search + Filtering & Sorting.
+ * Catalog page for Sub-Phases 5.2–5.7 — Discovery + Listing + Query +
+ * Search + Filtering, Sorting & Pagination.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `CatalogState` (provided by the parent `catalogRoutes` entry — never a
@@ -34,7 +34,14 @@
  *   (`setQueryFilters`/`setQuerySort` — page reset included) into the same
  *   URL schema, so deep links round-trip every dimension.
  * - Listing loads the first backend page only (`GET /catalog` defaults
- *   `1/20`); pagination (5.7) refines the same query without new URLs.
+ *   `1/20`); pagination commits page moves through the same query without
+ *   new URLs, preserving search/filter/sort/category by construction
+ *   (`setQueryPage`).
+ *
+ * Pager values always come from the RESPONSE envelope (effective
+ * `pageNumber`/`pageSize`/`totalCount`) — never request values — and page
+ * counts derive from the shared `totalPagesOf` helper (the backend sends
+ * no `totalPages`).
  *
  * Contract fidelity (5.6 rule — only backend-exposed options): status and
  * visibility are the backend's filter fields; name/creation-date are its
@@ -52,7 +59,7 @@
  * (TransferState, request dedupe) arrives in Sub-Phase 5.10.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 5.7 — no pagination controls.
+ * - 5.8 — no resource-state/UX overrides beyond the shared primitives.
  * - Phase 6 — no variants, quantities, or add-to-cart.
  */
 
@@ -82,6 +89,10 @@ import { CatalogState } from '../../state/catalog-state';
 import { CategoryNav } from '../../components/category-nav/category-nav';
 import { FilterSelect, type FilterOption } from '../../components/filter-select/filter-select';
 import { ProductGrid } from '../../components/product-grid/product-grid';
+import {
+  ProductPagination,
+  type PaginationCopy,
+} from '../../components/product-pagination/product-pagination';
 import { SearchInput } from '../../components/search-input/search-input';
 import {
   decodeSortSelection,
@@ -92,6 +103,7 @@ import {
   parseProductVisibility,
   queryStateFromRouteParams,
   setQueryFilters,
+  setQueryPage,
   setQuerySearch,
   setQuerySort,
   toBackendQuery,
@@ -128,6 +140,7 @@ export const SEARCH_DEBOUNCE_MS = 300;
     RouterLink,
     CategoryNav,
     ProductGrid,
+    ProductPagination,
     SearchInput,
     FilterSelect,
     LoadingIndicator,
@@ -241,6 +254,15 @@ export class CategoriesPage implements OnInit {
       queryParams: toRouteQueryParams(next),
       replaceUrl: true,
     });
+  }
+
+  /**
+   * Commits a page move: `setQueryPage` preserves search, category,
+   * filters, and sort while clamping to valid pages — pagination never
+   * loses the active query and never throws on invalid input.
+   */
+  onPageChange(page: number): void {
+    this.commitQuery(setQueryPage(this.queryState(), page));
   }
 
   /**
@@ -429,6 +451,18 @@ export class CategoriesPage implements OnInit {
       query.filters.status !== null || query.filters.visibility !== null || query.sort.by !== null
     );
   });
+
+  /** Localized pager copy for the active culture. */
+  protected readonly paginationCopy = computed((): PaginationCopy => ({
+    label: translateCatalogKey(this.cultures.culture(), CATALOG_TRANSLATION_KEYS.paginationLabel),
+    first: translateCatalogKey(this.cultures.culture(), CATALOG_TRANSLATION_KEYS.paginationFirst),
+    previous: translateCatalogKey(
+      this.cultures.culture(),
+      CATALOG_TRANSLATION_KEYS.paginationPrevious,
+    ),
+    next: translateCatalogKey(this.cultures.culture(), CATALOG_TRANSLATION_KEYS.paginationNext),
+    last: translateCatalogKey(this.cultures.culture(), CATALOG_TRANSLATION_KEYS.paginationLast),
+  }));
 
   /** Localized result count for the current page (`{count}` interpolated). */
   protected readonly resultCount = computed(() =>
