@@ -1,9 +1,10 @@
 /**
- * Feature-owned Product Details state for Sub-Phases 6.1–6.3 — Foundation
- * + Page & Information + Image Gallery.
+ * Feature-owned Product Details state for Sub-Phases 6.1–6.4 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.3 (product +
- * specifications + images resource slots, no UI).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.4 (product +
+ * specifications + images + variants resource slots plus the selected
+ * variant, no UI).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -33,11 +34,11 @@
  *   fetches in the browser; SSR transfer arrives in Sub-Phase 6.9).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.4–6.6 — no selected-variant or quantity state.
- * - 6.7 / Phase 7 — no cart integration or cart state.
+ * - 6.5 — no SKU/pricing/availability derivation.
+ * - 6.6–6.7 / Phase 7 — no quantity, cart integration, or cart state.
  */
 
-import { inject, Injectable, type Signal } from '@angular/core';
+import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
 import { map, Subscription, type Observable } from 'rxjs';
 import {
   ApiError,
@@ -50,10 +51,12 @@ import {
   type ResourceStateStore,
 } from '@flux/api';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
-import type {
-  ProductDetails,
-  ProductImage,
-  ProductSpecification,
+import {
+  resolveVariantSelection,
+  type ProductDetails,
+  type ProductImage,
+  type ProductSpecification,
+  type ProductVariant,
 } from '../models/product-details.models';
 
 /** Options for every `ProductDetailsState` load: cancellation only, never mapping. */
@@ -77,6 +80,11 @@ export class ProductDetailsState {
     createResourceState<ProductSpecification[]>();
   private readonly imagesStore: ResourceStateStore<ProductImage[]> =
     createResourceState<ProductImage[]>();
+  private readonly variantsStore: ResourceStateStore<ProductVariant[]> =
+    createResourceState<ProductVariant[]>();
+
+  /** Selected variant id (`null` = no explicit selection). Feature-local. */
+  private readonly selectedVariantIdStore = signal<string | null>(null);
 
   /** Currently selected product (`GET /catalog/products/{id}`). */
   readonly product: Signal<ResourceState<ProductDetails>> = this.productStore.state;
@@ -105,6 +113,34 @@ export class ProductDetailsState {
   readonly images: Signal<ResourceState<ProductImage[]>> = this.imagesStore.state;
 
   /**
+   * Variants for the selected product
+   * (`GET /catalog/products/{productId}/variants`, flat backend list — no
+   * option dimensions). An empty list resolves to `empty` (the page hides
+   * the selector); failures resolve to `error` without touching the
+   * product slot.
+   */
+  readonly variants: Signal<ResourceState<ProductVariant[]>> = this.variantsStore.state;
+
+  /**
+   * Selected variant id. Set only through `selectVariant` (validated
+   * against the loaded list — invalid selections are impossible) and
+   * cleared by `clearVariantSelection`/`reset`. Readonly — the single
+   * source of truth Sub-Phase 6.5 builds upon.
+   */
+  readonly selectedVariantId: Signal<string | null> = this.selectedVariantIdStore.asReadonly();
+
+  /**
+   * Selected variant object (`null` when nothing valid is selected, e.g.
+   * before any choice or while a new product loads). Derived — never set
+   * directly, so it can never disagree with `selectedVariantId`.
+   */
+  readonly selectedVariant: Signal<ProductVariant | null> = computed(
+    () =>
+      this.variantsStore.data()?.find((variant) => variant.id === this.selectedVariantIdStore()) ??
+      null,
+  );
+
+  /**
    * Loads a single product by id into the `product` slot. A dataless
    * envelope resolves to `error` (contract violation); aborts leave state
    * untouched. Blank ids are rejected without fetching (the page validates
@@ -121,11 +157,13 @@ export class ProductDetailsState {
     return loadResourceState(this.productStore, request, { signal: options.signal });
   }
 
-  /** Resets every slot to `idle` (e.g. when the route id is cleared). */
+  /** Resets every slot and the variant selection to `idle`/`null`. */
   reset(): void {
     this.productStore.reset();
     this.specificationsStore.reset();
     this.imagesStore.reset();
+    this.variantsStore.reset();
+    this.selectedVariantIdStore.set(null);
   }
 
   /**
@@ -159,6 +197,45 @@ export class ProductDetailsState {
       .listProductImages(productId, toApiOptions(options))
       .pipe(map(requireEnvelopeData));
     return loadResourceState(this.imagesStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Loads the variant list for `productId` into the `variants` slot. A
+   * dataless envelope resolves to `error` (contract violation); an empty
+   * list resolves to `empty`; aborts leave state untouched. Blank ids are
+   * rejected without fetching; the slot stays `idle`. Never touches the
+   * selection: a reload of the same product (e.g. error retry) preserves
+   * the customer's choice, while the owning page clears it on product
+   * change — and `selectedVariant` self-heals to `null` if the id is gone
+   * from the fresh list.
+   */
+  loadProductVariants(productId: string, options: ProductDetailsLoadOptions = {}): Subscription {
+    if (productId.trim() === '') {
+      return Subscription.EMPTY;
+    }
+    const request: Observable<ProductVariant[]> = this.detailsApi
+      .listProductVariants(productId, toApiOptions(options))
+      .pipe(map(requireEnvelopeData));
+    return loadResourceState(this.variantsStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Selects a variant by id. Only a loaded, selectable variant (active,
+   * non-deleted) is accepted — unknown, inactive, or deleted ids are
+   * ignored and the current selection is preserved. No default is ever
+   * applied here: the contract defines none, so selection starts empty and
+   * stays empty until the customer chooses (§6.4 default-selection rule).
+   */
+  selectVariant(id: string): void {
+    const resolved = resolveVariantSelection(this.variantsStore.data(), id);
+    if (resolved !== null) {
+      this.selectedVariantIdStore.set(resolved);
+    }
+  }
+
+  /** Clears the variant selection (e.g. when the route product changes). */
+  clearVariantSelection(): void {
+    this.selectedVariantIdStore.set(null);
   }
 }
 

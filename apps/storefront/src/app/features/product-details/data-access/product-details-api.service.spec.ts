@@ -1,5 +1,5 @@
 /**
- * Delegation tests for the Sub-Phase 6.1–6.3 `ProductDetailsApiService`.
+ * Delegation tests for the Sub-Phase 6.1–6.4 `ProductDetailsApiService`.
  *
  * `ApiClient` (the shared-lib HTTP boundary, already covered by `libs/api`
  * specs) is stubbed at its typed seam so these tests own the feature logic:
@@ -62,6 +62,16 @@ describe('ProductDetailsApiService routes', () => {
       { pathParams: { productId: '11111111-1111-1111-1111-111111111111' } },
     ]);
   });
+
+  it('lists product variants through the canonical route template', () => {
+    const { service, calls } = setup();
+    service.listProductVariants('11111111-1111-1111-1111-111111111111').subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listVariants.path]);
+    expect(calls.options).toEqual([
+      { pathParams: { productId: '11111111-1111-1111-1111-111111111111' } },
+    ]);
+  });
 });
 
 describe('ProductDetailsApiService passthrough', () => {
@@ -120,6 +130,20 @@ describe('ProductDetailsApiService passthrough', () => {
     vi.mocked(api.get).mockReturnValueOnce(throwError(() => rejection));
     let observed: unknown;
     service.listProductImages('11111111-1111-1111-1111-111111111111').subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+  });
+
+  it('propagates variant failures untouched for feature state to normalize', () => {
+    const { service, api } = setup();
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    vi.mocked(api.get).mockReturnValueOnce(throwError(() => rejection));
+    let observed: unknown;
+    service.listProductVariants('11111111-1111-1111-1111-111111111111').subscribe({
       error: (error: unknown) => {
         observed = error;
       },

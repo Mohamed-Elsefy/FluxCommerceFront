@@ -1,12 +1,12 @@
 /**
- * Product Details data-access service for Sub-Phases 6.1–6.3 — Foundation
- * + Page & Information + Image Gallery.
+ * Product Details data-access service for Sub-Phases 6.1–6.4 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.3 (product +
- * specifications + images reads).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.4 (product +
+ * specifications + images + variants reads).
  *
- * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.6/2.7
- * (all three `GET` endpoints are `[AllowAnonymous]`).
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.3/2.6/2.7
+ * (all four `GET` endpoints are `[AllowAnonymous]`).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
@@ -29,7 +29,7 @@
  *   and `Authorization` stays owned by the interceptor pipeline.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.4+ — no variant/attribute detail reads.
+ * - 6.5 — no SKU/pricing/availability reads beyond the variant list itself.
  * - 6.7 — no cart API usage.
  * - Phase 7 — no cart state or cart management.
  */
@@ -40,6 +40,7 @@ import type {
   ProductImageResponse,
   ProductResponse,
   ProductSpecificationResponse,
+  VariantResponse,
 } from '@flux/models';
 import {
   ApiClient,
@@ -101,6 +102,23 @@ export class ProductDetailsApiService {
   ): Observable<ApiResponseWithData<ProductImageResponse[]>> {
     return this.api.get<ApiResponseWithData<ProductImageResponse[]>>(
       CATALOG_ENDPOINTS.listProductImages.path,
+      { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `GET /catalog/products/{productId}/variants` — anonymous. Flat variant
+   * list (`id`/`sku`/`name`/`status`, no option dimensions, no
+   * price/currency); no pagination, sorting, or filtering on the backend.
+   * Success: `200 ApiResponse<VariantResponse[]>`.
+   * Failures: `400` validation, `404` unknown product.
+   */
+  listProductVariants(
+    productId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<VariantResponse[]>> {
+    return this.api.get<ApiResponseWithData<VariantResponse[]>>(
+      CATALOG_ENDPOINTS.listVariants.path,
       { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
     );
   }

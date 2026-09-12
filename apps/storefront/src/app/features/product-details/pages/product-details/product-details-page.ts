@@ -1,6 +1,6 @@
 /**
- * Product Details page for Sub-Phases 6.1–6.3 — Foundation + Page &
- * Information + Image Gallery.
+ * Product Details page for Sub-Phases 6.1–6.4 — Foundation + Page &
+ * Information + Image Gallery + Variant Selection.
  *
  * Smart page (route-level composition): reads the `:id` route parameter,
  * validates it through the pure `parseProductIdParam` helper, and drives
@@ -22,9 +22,9 @@
  * - This page owns `/catalog/products/:id` (lazy boundary in
  *   `product-details.routes.ts`, mounted in `app.routes.ts`).
  * - A missing, blank, or malformed id renders the invalid-id state and
- *   never fetches (no doomed request); both state slots stay `idle`.
- * - A well-formed id loads the product and its specifications in the
- *   browser after hydration; the server keeps the idle shell (production
+ *   never fetches (no doomed request); all state slots stay `idle`.
+ * - A well-formed id loads the product, specifications, images, and
+ *   variants in the browser after hydration; the server keeps the idle
  *   prerendering has no backend at build time, so server-side fetching
  *   would hang the render — SSR transfer arrives in Sub-Phase 6.9).
  *
@@ -36,21 +36,26 @@
  *   presentation arrives with selection in Sub-Phase 6.4). Nothing is
  *   fabricated.
  *
- * Resource states (§§6.2–6.3): invalid-id → loading → success | not-found
+ * Resource states (§§6.2–6.4): invalid-id → loading → success | not-found
  * (`404`, with a back-to-catalog link and no retry) | error (shared
- * `ErrorState` + retry over all three slots). The specifications section
+ * `ErrorState` + retry over all four slots). The specifications section
  * renders on success only — while it loads, fails, or is empty the product
  * still shows (the section hides; the product is the primary resource and
  * a specs `404` coincides with a product `404` anyway). The gallery
  * section follows the same rule, except an empty image list shows the
- * gallery's missing-image fallback instead of hiding.
+ * gallery's missing-image fallback instead of hiding. The variant selector
+ * renders once variants succeed with at least one option — an empty,
+ * loading, or failed variants slot hides it (the product still shows);
+ * selection starts empty (the contract defines no default) and the page
+ * clears it whenever the route product changes, while error retry
+ * preserves it.
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.4–6.5 — no variant selection, SKU/pricing/availability presentation.
+ * - 6.5 — no SKU/pricing/availability presentation.
  * - 6.6–6.7 — no quantity or add-to-cart.
  */
 
@@ -70,6 +75,7 @@ import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { ProductGallery } from '../../components/product-gallery/product-gallery';
+import { VariantSelector } from '../../components/variant-selector/variant-selector';
 import { ProductDetailsState } from '../../state/product-details-state';
 import {
   PRODUCT_DETAILS_ID_PARAM,
@@ -83,7 +89,7 @@ import {
 
 @Component({
   selector: 'app-product-details-page',
-  imports: [RouterLink, LoadingIndicator, EmptyState, ErrorState, ProductGallery],
+  imports: [RouterLink, LoadingIndicator, EmptyState, ErrorState, ProductGallery, VariantSelector],
   templateUrl: './product-details-page.html',
   styleUrl: './product-details-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -105,6 +111,12 @@ export class ProductDetailsPage {
 
   /** Images resource (`GET .../images`, `displayOrder` server-side). */
   readonly images = this.state.images;
+
+  /** Variants resource (`GET .../variants`, flat backend list). */
+  readonly variants = this.state.variants;
+
+  /** Selected variant id (`null` = no explicit selection). */
+  readonly selectedVariantId = this.state.selectedVariantId;
 
   /**
    * Validated product id from the `:id` route parameter (`null` when
@@ -166,6 +178,14 @@ export class ProductDetailsPage {
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.galleryLoading,
       ),
+      selectorTitle: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.selectorTitle,
+      ),
+      selectorUnavailable: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.selectorUnavailable,
+      ),
       retry: translateKey(culture, 'common.actions.retry'),
     };
   });
@@ -181,7 +201,7 @@ export class ProductDetailsPage {
   );
 
   constructor() {
-    // Browser only: drives both details loads from the route id (initial
+    // Browser only: drives all details loads from the route id (initial
     // value included, param changes followed). Runs after the first render;
     // the server keeps the idle shell (see above).
     //
@@ -191,6 +211,10 @@ export class ProductDetailsPage {
     // effect dependencies and every settled response would reschedule the
     // effect — an infinite fetch loop. The effect depends on the route id
     // alone.
+    //
+    // A new route product never inherits the previous selection
+    // (`clearVariantSelection` on this id-driven path only — error retry
+    // goes through `reload()` and preserves the customer's choice).
     //
     // Stale safety: every run owns an `AbortController` torn down before
     // the next run (and on destroy via effect cleanup), so older pending
@@ -208,6 +232,7 @@ export class ProductDetailsPage {
           this.cancelDetailsLoad();
           this.state.reset();
         } else {
+          this.state.clearVariantSelection();
           this.startDetailsLoad(id);
         }
       });
@@ -215,12 +240,17 @@ export class ProductDetailsPage {
     });
   }
 
-  /** (Re)loads the product, specifications, and images for the current route id; error retry re-enters here. */
+  /** (Re)loads every details slot for the current route id; error retry re-enters here. */
   reload(): void {
     const id = this.productId();
     if (id !== null) {
       this.startDetailsLoad(id);
     }
+  }
+
+  /** Forwards a selector choice to feature state (validated there — invalid ids are ignored). */
+  onVariantSelect(id: string): void {
+    this.state.selectVariant(id);
   }
 
   /** Cancels the in-flight details requests, if any (idempotent). */
@@ -230,7 +260,7 @@ export class ProductDetailsPage {
   }
 
   /**
-   * Starts both details requests for `id` under one controller,
+   * Starts all details requests for `id` under one controller,
    * superseding any in-flight ones — latest request wins by construction.
    * Aborting is sufficient teardown: `cancelOnAbort` (Phase 1.7) completes
    * aborted calls silently (never delivered to state) and tears down the
@@ -242,6 +272,7 @@ export class ProductDetailsPage {
     this.state.loadProduct(id, { signal: controller.signal });
     this.state.loadSpecifications(id, { signal: controller.signal });
     this.state.loadProductImages(id, { signal: controller.signal });
+    this.state.loadProductVariants(id, { signal: controller.signal });
     this.detailsTeardown = () => controller.abort();
   }
 }

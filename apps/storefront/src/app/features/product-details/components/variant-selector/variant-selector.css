@@ -1,0 +1,55 @@
+/* Variant selector (Sub-Phase 6.4). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.variant-selector-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.variant-selector-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.variant-selector-option {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-inline-size: 8rem;
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.variant-selector-name {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+}
+
+.variant-selector-unavailable {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+}
+
+.variant-selector-option[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  border-width: var(--border-width-medium);
+}
+
+.variant-selector-option:disabled {
+  cursor: not-allowed;
+}
+
+.variant-selector-option:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

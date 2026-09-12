@@ -1,15 +1,17 @@
 /**
- * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.3 — Foundation
- * + Page & Information + Image Gallery).
+ * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.4 — Foundation
+ * + Page & Information + Image Gallery + Variant Selection).
  *
  * `ProductDetailsState` is stubbed at its typed seam (its orchestration is
  * covered by `product-details-state.spec.ts`) so these tests own the page
- * logic: product + specifications + images loads driven by the `:id` route
- * parameter, graceful missing/malformed ids (no fetch, invalid state, slot
- * reset), loading / success / error / not-found rendering, error retry over
- * all slots, specification rendering (wire order, empty-hidden), gallery
- * integration (rendering, empty fallback, failure hiding), and the
- * browser-only fetch rule (the server prerenders the idle shell).
+ * logic: product + specifications + images + variants loads driven by the
+ * `:id` route parameter, graceful missing/malformed ids (no fetch,
+ * invalid state, slot reset), loading / success / error / not-found
+ * rendering, error retry over all slots, specification rendering (wire
+ * order, empty-hidden), gallery integration (rendering, empty fallback,
+ * failure hiding), selector integration (rendering, selection forwarding,
+ * clearing on product change), and the browser-only fetch rule (the server
+ * prerenders the idle shell).
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -27,12 +29,13 @@ import {
   type ResourceState,
 } from '@flux/api';
 import { CultureService } from '@flux/i18n';
-import type { ProductResponse } from '@flux/models';
+import { VariantStatus, type ProductResponse } from '@flux/models';
 import { ProductDetailsState } from '../../state/product-details-state';
 import type {
   ProductDetails,
   ProductImage,
   ProductSpecification,
+  ProductVariant,
 } from '../../models/product-details.models';
 import { ProductDetailsPage } from './product-details-page';
 
@@ -67,10 +70,35 @@ const SPECIFICATIONS: ProductSpecification[] = [
   },
 ];
 
+const VARIANTS: ProductVariant[] = [
+  {
+    id: 'aaaaaaaa-1111-4111-8111-111111111111',
+    productId: PRODUCT_ID,
+    sku: 'TEE-RED-M',
+    name: 'Red / M',
+    status: VariantStatus.Active,
+    isDeleted: false,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    deletedAtUtc: null,
+  },
+  {
+    id: 'bbbbbbbb-2222-4222-8222-222222222222',
+    productId: PRODUCT_ID,
+    sku: 'TEE-BLUE-M',
+    name: 'Blue / M',
+    status: VariantStatus.Inactive,
+    isDeleted: false,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    deletedAtUtc: null,
+  },
+];
+
 function setup(options: {
   snapshot?: ResourceState<ProductDetails>;
   specificationsSnapshot?: ResourceState<ProductSpecification[]>;
   imagesSnapshot?: ResourceState<ProductImage[]>;
+  variantsSnapshot?: ResourceState<ProductVariant[]>;
+  selectedVariantId?: string | null;
   productId?: string | null;
   culture?: 'en' | 'fr';
   platform?: 'browser' | 'server';
@@ -80,11 +108,17 @@ function setup(options: {
   loadCalls: unknown[];
   loadSpecificationsCalls: unknown[];
   loadImagesCalls: unknown[];
+  loadVariantsCalls: unknown[];
+  selectCalls: unknown[];
+  clearSelectionCalls: number;
   resetCalls: number;
 } {
   const loadCalls: unknown[] = [];
   const loadSpecificationsCalls: unknown[] = [];
   const loadImagesCalls: unknown[] = [];
+  const loadVariantsCalls: unknown[] = [];
+  const selectCalls: unknown[] = [];
+  let clearSelectionCalls = 0;
   let resetCalls = 0;
   const stateStub = {
     product: signal(options.snapshot ?? idleResource<ProductDetails>()),
@@ -92,6 +126,8 @@ function setup(options: {
       options.specificationsSnapshot ?? idleResource<ProductSpecification[]>(),
     ),
     images: signal(options.imagesSnapshot ?? idleResource<ProductImage[]>()),
+    variants: signal(options.variantsSnapshot ?? idleResource<ProductVariant[]>()),
+    selectedVariantId: signal(options.selectedVariantId ?? null),
     loadProduct: ((id: unknown) => {
       loadCalls.push(id);
     }) as ProductDetailsState['loadProduct'],
@@ -101,6 +137,15 @@ function setup(options: {
     loadProductImages: ((id: unknown) => {
       loadImagesCalls.push(id);
     }) as ProductDetailsState['loadProductImages'],
+    loadProductVariants: ((id: unknown) => {
+      loadVariantsCalls.push(id);
+    }) as ProductDetailsState['loadProductVariants'],
+    selectVariant: ((id: unknown) => {
+      selectCalls.push(id);
+    }) as ProductDetailsState['selectVariant'],
+    clearVariantSelection: (() => {
+      clearSelectionCalls += 1;
+    }) as ProductDetailsState['clearVariantSelection'],
     reset: (() => {
       resetCalls += 1;
     }) as ProductDetailsState['reset'],
@@ -135,6 +180,9 @@ function setup(options: {
     loadCalls,
     loadSpecificationsCalls,
     loadImagesCalls,
+    loadVariantsCalls,
+    selectCalls,
+    clearSelectionCalls,
     resetCalls,
   };
 }
@@ -144,24 +192,40 @@ describe('ProductDetailsPage route parameter', () => {
     TestBed.resetTestingModule();
   });
 
-  it('loads the product, specifications, and images for a valid route id on init', () => {
-    const { loadCalls, loadSpecificationsCalls, loadImagesCalls } = setup({
+  it('loads every details slot and clears the selection for a valid route id on init', () => {
+    const {
+      loadCalls,
+      loadSpecificationsCalls,
+      loadImagesCalls,
+      loadVariantsCalls,
+      clearSelectionCalls,
+    } = setup({
       productId: PRODUCT_ID,
     });
 
     expect(loadCalls).toEqual([PRODUCT_ID]);
     expect(loadSpecificationsCalls).toEqual([PRODUCT_ID]);
     expect(loadImagesCalls).toEqual([PRODUCT_ID]);
+    expect(loadVariantsCalls).toEqual([PRODUCT_ID]);
+    expect(clearSelectionCalls).toBe(1);
   });
 
   it('never fetches and renders the invalid state for a missing id', () => {
-    const { element, loadCalls, loadSpecificationsCalls, loadImagesCalls, resetCalls } = setup({
+    const {
+      element,
+      loadCalls,
+      loadSpecificationsCalls,
+      loadImagesCalls,
+      loadVariantsCalls,
+      resetCalls,
+    } = setup({
       productId: null,
     });
 
     expect(loadCalls).toEqual([]);
     expect(loadSpecificationsCalls).toEqual([]);
     expect(loadImagesCalls).toEqual([]);
+    expect(loadVariantsCalls).toEqual([]);
     expect(resetCalls).toBe(1);
     expect(element.querySelector('flux-empty-state')).not.toBeNull();
     expect(element.querySelector('flux-loading-indicator')).toBeNull();
@@ -214,7 +278,14 @@ describe('ProductDetailsPage resource states', () => {
   });
 
   it('renders the error state on non-404 failures and retries all slots', () => {
-    const { element, fixture, loadCalls, loadSpecificationsCalls, loadImagesCalls } = setup({
+    const {
+      element,
+      fixture,
+      loadCalls,
+      loadSpecificationsCalls,
+      loadImagesCalls,
+      loadVariantsCalls,
+    } = setup({
       productId: PRODUCT_ID,
       snapshot: errorResource(new ApiError({ status: 500, message: 'Server error.' })),
     });
@@ -224,6 +295,7 @@ describe('ProductDetailsPage resource states', () => {
     expect(loadCalls).toEqual([PRODUCT_ID]);
     expect(loadSpecificationsCalls).toEqual([PRODUCT_ID]);
     expect(loadImagesCalls).toEqual([PRODUCT_ID]);
+    expect(loadVariantsCalls).toEqual([PRODUCT_ID]);
 
     element.querySelector('flux-error-state button')?.dispatchEvent(new Event('click'));
     fixture.detectChanges();
@@ -231,6 +303,7 @@ describe('ProductDetailsPage resource states', () => {
     expect(loadCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
     expect(loadSpecificationsCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
     expect(loadImagesCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
+    expect(loadVariantsCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
   });
 
   it('renders localized copy for the active culture', () => {
@@ -396,5 +469,76 @@ describe('ProductDetailsPage gallery', () => {
     expect(element.querySelector('h1')?.textContent).toBe('Tee');
     expect(element.querySelector('product-details-gallery')).toBeNull();
     expect(element.querySelector('flux-error-state')).toBeNull();
+  });
+});
+
+describe('ProductDetailsPage variant selector', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function successSetup(
+    variantsSnapshot: ResourceState<ProductVariant[]>,
+    selectedVariantId: string | null = null,
+  ) {
+    return setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      variantsSnapshot,
+      selectedVariantId,
+    });
+  }
+
+  it('renders the selector with backend options once variants succeed', () => {
+    const { element } = successSetup(successResource(VARIANTS));
+
+    const selector = element.querySelector('product-details-variant-selector');
+    expect(selector).not.toBeNull();
+    expect(selector?.querySelector('.variant-selector-title')?.textContent).toBe('Variant');
+    const names = [...(selector?.querySelectorAll('.variant-selector-name') ?? [])].map((name) =>
+      name.textContent?.trim(),
+    );
+    expect(names).toEqual(['Red / M', 'Blue / M']);
+  });
+
+  it('reflects the feature-state selection in the selector', () => {
+    const { element } = successSetup(
+      successResource(VARIANTS),
+      'aaaaaaaa-1111-4111-8111-111111111111',
+    );
+
+    const buttons = [
+      ...element.querySelectorAll('product-details-variant-selector .variant-selector-option'),
+    ];
+    expect(buttons[0]?.getAttribute('aria-pressed')).toBe('true');
+    expect(buttons[1]?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('forwards selector choices to feature state', () => {
+    const { element, fixture, selectCalls } = successSetup(successResource(VARIANTS));
+
+    [
+      ...element.querySelectorAll('product-details-variant-selector .variant-selector-option'),
+    ][0]?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(selectCalls).toEqual(['aaaaaaaa-1111-4111-8111-111111111111']);
+  });
+
+  it('hides the selector when variants are loading, empty, or failed', () => {
+    const pending: ResourceState<ProductVariant[]>[] = [
+      loadingResource<ProductVariant[]>(),
+      emptyResource<ProductVariant[]>([]),
+      errorResource(new ApiError({ status: 500, message: 'Server error.' })),
+    ];
+    for (const variantsSnapshot of pending) {
+      TestBed.resetTestingModule();
+      const { element } = successSetup(variantsSnapshot);
+
+      expect(element.querySelector('h1')?.textContent).toBe('Tee');
+      expect(element.querySelector('product-details-variant-selector')).toBeNull();
+      expect(element.querySelector('flux-error-state')).toBeNull();
+    }
   });
 });

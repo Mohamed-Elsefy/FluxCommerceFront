@@ -1,17 +1,27 @@
 /**
- * Storefront Product Details feature models for Sub-Phases 6.1–6.3 —
- * Foundation + Page & Information + Image Gallery.
+ * Storefront Product Details feature models for Sub-Phases 6.1–6.4 —
+ * Foundation + Page & Information + Image Gallery + Variant Selection.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.3.
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.4.
  *
- * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.6/2.7
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.3/2.6/2.7
  * (`GET /catalog/products/{id:guid}` → `200 ApiResponse<ProductResponse>`;
+ * `GET /catalog/products/{productId}/variants` →
+ * `200 ApiResponse<VariantResponse[]>` (no pagination);
  * `GET /catalog/products/{productId}/images` →
  * `200 ApiResponse<ProductImageResponse[]>` ordered by `displayOrder`
  * server-side; `GET .../specifications` →
  * `200 ApiResponse<ProductSpecificationResponse[]>`) and
  * `docs/frontend-contract/DTO_REFERENCE.md` §2
  * (`FluxCommerce.Modules.Catalog.Contracts` records).
+ *
+ * Variant-structure note (§6.4 — display only backend-provided fields):
+ * the contract models variants as a flat list (`VariantResponse`: `id`,
+ * `sku`, `name`, `status`, deletion flags) with NO Color/Size/Style
+ * dimensions and NO price/currency fields — so the selector offers the
+ * backend names, selectability follows `status` + deletion flags only, and
+ * nothing dimensional or commercial is fabricated. SKU/price/availability
+ * presentation arrives in Sub-Phase 6.5.
  *
  * Contract fidelity note (§6.2 rule — display only backend-provided fields):
  * no read contract exposes pricing or availability (`VariantResponse`
@@ -27,16 +37,18 @@
  *   Envelope mapping and fetching live in `state/` and `data-access/`.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.4–6.5 — no variant selection, SKU/pricing/availability presentation.
+ * - 6.5 — no SKU/pricing/availability presentation.
  * - 6.6–6.7 — no quantity or add-to-cart.
  * - Phase 7 — no cart state or cart API usage.
  */
 
 import type { ApiError } from '@flux/api';
+import { VariantStatus } from '@flux/models';
 import type {
   ProductImageResponse,
   ProductResponse,
   ProductSpecificationResponse,
+  VariantResponse,
 } from '@flux/models';
 
 /**
@@ -59,6 +71,15 @@ export type ProductSpecification = ProductSpecificationResponse;
  * fetching lives in `data-access/` + `state/`.
  */
 export type ProductImage = ProductImageResponse;
+
+/**
+ * Product variant read model (`GET /catalog/products/{productId}/variants`
+ * items: flat `VariantResponse` — `id`/`sku`/`name`/`status` plus deletion
+ * flags, no option dimensions, no price/currency). Re-exported, not
+ * re-declared. Selection state lives in `state/`; the selector UI lives in
+ * `components/variant-selector/`.
+ */
+export type ProductVariant = VariantResponse;
 
 /** Route parameter carrying the product id (`/catalog/products/:id`). */
 export const PRODUCT_DETAILS_ID_PARAM = 'id';
@@ -95,4 +116,31 @@ export function parseProductIdParam(value: string | null | undefined): string | 
  */
 export function isNotFoundError(error: ApiError | null | undefined): boolean {
   return error?.status === 404;
+}
+
+/**
+ * Whether a variant can be selected: backend `Active` status and not
+ * soft-deleted. Inactive or deleted variants render disabled and can never
+ * become the selection. Pure — throws nothing.
+ */
+export function isSelectableVariant(variant: ProductVariant): boolean {
+  return variant.status === VariantStatus.Active && !variant.isDeleted;
+}
+
+/**
+ * Resolves a requested variant id against the loaded list: returns the id
+ * when it names a selectable variant, otherwise `null` (unknown id,
+ * inactive/deleted variant, or nothing loaded). The single guard behind
+ * both the selector emit path and the state transition — invalid
+ * selections are impossible by construction. Pure — throws nothing.
+ */
+export function resolveVariantSelection(
+  variants: readonly ProductVariant[] | null | undefined,
+  requestedId: string | null | undefined,
+): string | null {
+  if (requestedId === null || requestedId === undefined || requestedId.trim() === '') {
+    return null;
+  }
+  const match = variants?.find((variant) => variant.id === requestedId) ?? null;
+  return match !== null && isSelectableVariant(match) ? match.id : null;
 }

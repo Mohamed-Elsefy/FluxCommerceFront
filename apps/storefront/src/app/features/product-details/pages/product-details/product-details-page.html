@@ -38,6 +38,15 @@
         {{ product().data?.description ?? copy().noDescription }}
       </p>
     </section>
+    @if (variants().isSuccess && (variants().data?.length ?? 0) > 0) {
+      <product-details-variant-selector
+        [variants]="variants().data ?? []"
+        [selectedVariantId]="selectedVariantId()"
+        [label]="copy().selectorTitle"
+        [unavailableLabel]="copy().selectorUnavailable"
+        (selectionChange)="onVariantSelect($event)"
+      ></product-details-variant-selector>
+    }
     @if (specifications().isSuccess) {
       <section class="product-details-specs" aria-labelledby="product-details-specs-title">
         <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>

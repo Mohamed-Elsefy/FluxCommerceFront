@@ -1,24 +1,27 @@
 /**
- * State tests for the Sub-Phase 6.1–6.3 `ProductDetailsState`.
+ * State tests for the Sub-Phase 6.1–6.4 `ProductDetailsState`.
  *
  * `ProductDetailsApiService` (the feature HTTP boundary, covered by
  * `product-details-api.service.spec.ts`) is stubbed at its typed seam so
  * these tests own the feature logic: idle → loading → success | empty |
- * error transitions for the product, specifications, and images slots, data
- * retention across reloads, dataless-envelope violations, blank-id
- * rejection, cancellation passthrough, reset of every slot, and
- * feature-local scoping (no root singleton — every injection site gets an
- * independent instance).
+ * error transitions for the product, specifications, images, and variants
+ * slots; variant selection (valid acceptance, invalid rejection, no
+ * default, clearing); data retention across reloads; dataless-envelope
+ * violations; blank-id rejection; cancellation passthrough; reset of every
+ * slot; and feature-local scoping (no root singleton — every injection site
+ * gets an independent instance).
  */
 
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
+import { VariantStatus } from '@flux/models';
 import type {
   ProductImageResponse,
   ProductResponse,
   ProductSpecificationResponse,
+  VariantResponse,
 } from '@flux/models';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
 import { ProductDetailsState } from './product-details-state';
@@ -89,21 +92,53 @@ function imagesEnvelope(items: ProductImageResponse[] = IMAGES) {
   return { isSuccess: true, data: items };
 }
 
+const ACTIVE_VARIANT_ID = 'aaaaaaaa-1111-4111-8111-111111111111';
+
+const VARIANTS: VariantResponse[] = [
+  {
+    id: ACTIVE_VARIANT_ID,
+    productId: PRODUCT_ID,
+    sku: 'TEE-RED-M',
+    name: 'Red / M',
+    status: VariantStatus.Active,
+    isDeleted: false,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    deletedAtUtc: null,
+  },
+  {
+    id: 'bbbbbbbb-2222-4222-8222-222222222222',
+    productId: PRODUCT_ID,
+    sku: 'TEE-BLUE-M',
+    name: 'Blue / M',
+    status: VariantStatus.Inactive,
+    isDeleted: false,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    deletedAtUtc: null,
+  },
+];
+
+function variantsEnvelope(items: VariantResponse[] = VARIANTS) {
+  return { isSuccess: true, data: items };
+}
+
 function setup(flows: {
   getProduct?: () => ReturnType<ProductDetailsApiService['getProduct']>;
   listSpecifications?: () => ReturnType<ProductDetailsApiService['listSpecifications']>;
   listProductImages?: () => ReturnType<ProductDetailsApiService['listProductImages']>;
+  listProductVariants?: () => ReturnType<ProductDetailsApiService['listProductVariants']>;
 }): {
   state: ProductDetailsState;
   seenSignals: (AbortSignal | undefined)[];
   ids: unknown[];
   specificationIds: unknown[];
   imageIds: unknown[];
+  variantIds: unknown[];
 } {
   const seenSignals: (AbortSignal | undefined)[] = [];
   const ids: unknown[] = [];
   const specificationIds: unknown[] = [];
   const imageIds: unknown[] = [];
+  const variantIds: unknown[] = [];
   const apiStub = {
     getProduct: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
       ids.push(id);
@@ -120,6 +155,11 @@ function setup(flows: {
       seenSignals.push(options.signal);
       return flows.listProductImages?.() ?? of(imagesEnvelope());
     }) as ProductDetailsApiService['listProductImages'],
+    listProductVariants: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
+      variantIds.push(id);
+      seenSignals.push(options.signal);
+      return flows.listProductVariants?.() ?? of(variantsEnvelope());
+    }) as ProductDetailsApiService['listProductVariants'],
   } as ProductDetailsApiService;
 
   TestBed.configureTestingModule({
@@ -131,6 +171,7 @@ function setup(flows: {
     ids,
     specificationIds,
     imageIds,
+    variantIds,
   };
 }
 
@@ -277,6 +318,8 @@ describe('ProductDetailsState specifications', () => {
     state.loadProduct(PRODUCT_ID);
     state.loadSpecifications(PRODUCT_ID);
     state.loadProductImages(PRODUCT_ID);
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
     state.reset();
 
     expect(state.product().status).toBe('idle');
@@ -284,6 +327,10 @@ describe('ProductDetailsState specifications', () => {
     expect(state.specifications().data).toBeNull();
     expect(state.images().status).toBe('idle');
     expect(state.images().data).toBeNull();
+    expect(state.variants().status).toBe('idle');
+    expect(state.variants().data).toBeNull();
+    expect(state.selectedVariantId()).toBeNull();
+    expect(state.selectedVariant()).toBeNull();
   });
 });
 
@@ -341,6 +388,132 @@ describe('ProductDetailsState images', () => {
 
     expect(seenSignals).toEqual([controller.signal]);
     expect(state.images().status).toBe('success');
+  });
+});
+
+describe('ProductDetailsState variants', () => {
+  it('starts idle and resolves to success with envelope data in wire order', () => {
+    const { state } = setup({});
+    expect(state.variants().status).toBe('idle');
+
+    state.loadProductVariants(PRODUCT_ID);
+
+    const snapshot = state.variants();
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.data?.map((variant) => variant.name)).toEqual(['Red / M', 'Blue / M']);
+  });
+
+  it('resolves to empty when the product carries no variants', () => {
+    const { state } = setup({ listProductVariants: () => of(variantsEnvelope([])) });
+    state.loadProductVariants(PRODUCT_ID);
+
+    const snapshot = state.variants();
+    expect(snapshot.status).toBe('empty');
+    expect(snapshot.isEmpty).toBe(true);
+  });
+
+  it('resolves to error on failures without touching the product slot', () => {
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    const { state } = setup({ listProductVariants: () => throwError(() => rejection) });
+    state.loadProduct(PRODUCT_ID);
+    state.loadProductVariants(PRODUCT_ID);
+
+    expect(state.variants().status).toBe('error');
+    expect(state.variants().error).toBe(rejection);
+    expect(state.product().status).toBe('success');
+  });
+
+  it('resolves to error on dataless success envelopes', () => {
+    const { state } = setup({ listProductVariants: () => of({ isSuccess: true, data: null }) });
+    state.loadProductVariants(PRODUCT_ID);
+
+    expect(state.variants().status).toBe('error');
+  });
+
+  it('rejects blank ids without fetching and leaves state idle', () => {
+    const { state, variantIds } = setup({});
+    state.loadProductVariants('   ');
+
+    expect(variantIds).toHaveLength(0);
+    expect(state.variants().status).toBe('idle');
+  });
+
+  it('forwards the AbortSignal to data access without touching state shape', () => {
+    const { state, seenSignals } = setup({});
+    const controller = new AbortController();
+    state.loadProductVariants(PRODUCT_ID, { signal: controller.signal });
+
+    expect(seenSignals).toEqual([controller.signal]);
+    expect(state.variants().status).toBe('success');
+  });
+});
+
+describe('ProductDetailsState variant selection', () => {
+  it('starts without a selection (no contract-defined default)', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+
+    expect(state.selectedVariantId()).toBeNull();
+    expect(state.selectedVariant()).toBeNull();
+  });
+
+  it('accepts a selectable variant and exposes it as the source of truth', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+
+    expect(state.selectedVariantId()).toBe(ACTIVE_VARIANT_ID);
+    expect(state.selectedVariant()?.sku).toBe('TEE-RED-M');
+  });
+
+  it('ignores unknown ids and preserves the current selection', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.selectVariant('dddddddd-4444-4444-8444-444444444444');
+
+    expect(state.selectedVariantId()).toBe(ACTIVE_VARIANT_ID);
+  });
+
+  it('ignores inactive variants and preserves the current selection', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant('bbbbbbbb-2222-4222-8222-222222222222');
+
+    expect(state.selectedVariantId()).toBeNull();
+    expect(state.selectedVariant()).toBeNull();
+  });
+
+  it('ignores selections before anything loads', () => {
+    const { state } = setup({});
+    state.selectVariant(ACTIVE_VARIANT_ID);
+
+    expect(state.selectedVariantId()).toBeNull();
+  });
+
+  it('heals the derived variant to null when the selection leaves a fresh list', () => {
+    let items = VARIANTS;
+    const { state } = setup({ listProductVariants: () => of(variantsEnvelope(items)) });
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    expect(state.selectedVariant()?.sku).toBe('TEE-RED-M');
+
+    items = [];
+    state.loadProductVariants(PRODUCT_ID);
+
+    expect(state.variants().status).toBe('empty');
+    expect(state.selectedVariant()).toBeNull();
+  });
+
+  it('clears the selection without touching the loaded list', () => {
+    const { state } = setup({});
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.clearVariantSelection();
+
+    expect(state.selectedVariantId()).toBeNull();
+    expect(state.selectedVariant()).toBeNull();
+    expect(state.variants().status).toBe('success');
   });
 });
 

@@ -1,6 +1,6 @@
 /**
- * Storefront Product Details feature translations for Sub-Phases 6.2–6.3
- * — Page & Information + Image Gallery.
+ * Storefront Product Details feature translations for Sub-Phases 6.2–6.4
+ * — Page & Information + Image Gallery + Variant Selection.
  *
  * Feature-owned, business-specific copy (`productDetails` namespace) in all
  * five supported cultures (`en`/`fr`/`de`/`es`/`ar`). Per the Phase 4
@@ -45,6 +45,8 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   galleryNoImages: 'productDetails.gallery.noImages',
   galleryViewImage: 'productDetails.gallery.viewImage',
   galleryImageFallback: 'productDetails.gallery.imageFallback',
+  selectorTitle: 'productDetails.selector.title',
+  selectorUnavailable: 'productDetails.selector.unavailable',
 } as const;
 
 /** English (`en`) product-details vocabulary. Also the deterministic fallback source. */
@@ -77,6 +79,10 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
       noImages: 'No images available.',
       viewImage: 'View image: {name}',
       imageFallback: 'Product image',
+    },
+    selector: {
+      title: 'Variant',
+      unavailable: 'Unavailable',
     },
   },
 };
@@ -112,6 +118,10 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
       viewImage: 'Voir l’image : {name}',
       imageFallback: 'Image du produit',
     },
+    selector: {
+      title: 'Variante',
+      unavailable: 'Indisponible',
+    },
   },
 };
 
@@ -145,6 +155,10 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
       noImages: 'Keine Bilder verfügbar.',
       viewImage: 'Bild ansehen: {name}',
       imageFallback: 'Produktbild',
+    },
+    selector: {
+      title: 'Variante',
+      unavailable: 'Nicht verfügbar',
     },
   },
 };
@@ -180,6 +194,10 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
       viewImage: 'Ver imagen: {name}',
       imageFallback: 'Imagen del producto',
     },
+    selector: {
+      title: 'Variante',
+      unavailable: 'No disponible',
+    },
   },
 };
 
@@ -213,6 +231,10 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
       noImages: 'لا توجد صور متاحة.',
       viewImage: 'عرض الصورة: {name}',
       imageFallback: 'صورة المنتج',
+    },
+    selector: {
+      title: 'المتغير',
+      unavailable: 'غير متاح',
     },
   },
 };
