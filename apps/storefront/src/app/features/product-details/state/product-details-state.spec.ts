@@ -217,6 +217,30 @@ describe('ProductDetailsState product', () => {
     expect(state.productLoading()).toBe(false);
   });
 
+  it('transitions through loading while the request is in flight', () => {
+    let settle: (() => void) | undefined;
+    const pending = new Observable((subscriber) => {
+      settle = () => {
+        subscriber.next(productEnvelope());
+        subscriber.complete();
+      };
+    });
+    const { state } = setup({
+      getProduct: () => pending as ReturnType<ProductDetailsApiService['getProduct']>,
+    });
+    expect(state.product().status).toBe('idle');
+
+    state.loadProduct(PRODUCT_ID);
+    expect(state.product().status).toBe('loading');
+    expect(state.productLoading()).toBe(true);
+    expect(state.product().data).toBeNull();
+
+    settle?.();
+    expect(state.product().status).toBe('success');
+    expect(state.product().data?.name).toBe('Tee');
+    expect(state.productLoading()).toBe(false);
+  });
+
   it('resolves to error on failures and normalizes the ApiError', () => {
     const rejection = new ApiError({ status: 404, message: 'Not found.' });
     const { state } = setup({ getProduct: () => throwError(() => rejection) });

@@ -169,6 +169,20 @@ page. Cross-feature needs travel through routes only — home imports no
 catalog code and catalog imports no home/auth code. No shared catalog
 library was created.
 
+As built in Phase 6 (see `docs/adr/015–017`), Product Details extends
+the same pattern to a deeper vertical slice:
+`apps/storefront/.../features/product-details/` (foundation page,
+gallery/selector/commercial/quantity/add-to-cart presentational
+components, `ProductDetailsApiService` data access over catalog AND
+cart endpoint tables, route-provided `ProductDetailsState` with
+resource slots plus selection/orderability/quantity/submission
+signals, feature-owned models/i18n, `productDetailsRoutes` lazy
+boundary mounted at `catalog/products`, `RenderMode.Server`). The
+gallery's selected image stays component-local UI state; the state
+holds the image resource only. No shared product library was created,
+and no cart state exists — the `CartResponse` envelope is
+status-mapped only.
+
 ---
 
 ## 6. Shared Libraries
@@ -458,6 +472,16 @@ page-reset rules and one backend/route funnel). No global store, no
 NgRx, no SignalStore — and data-access calls that read their own slot
 must run `untracked` inside effects, or every settled response
 reschedules the effect into an infinite fetch loop.
+
+As built in Phase 6 (see `docs/adr/015–017`), the same shape scales to
+selection and purchase intent without new machinery: route-provided
+`ProductDetailsState` owns four resource slots plus a validated
+selection id, derived selection/orderability projections, a validated
+quantity, and a submission machine projected from one more resource
+slot — all plain signals and computeds, still no `providedIn`, still
+no global store. Route-param effects keep the `untracked` +
+per-run-`AbortController` discipline and additionally clear
+selection/quantity/feedback on product change (retry preserves them).
 
 ---
 
@@ -889,6 +913,24 @@ fabricated. Catalog copy is feature-owned per culture (catalog + home
 namespaces); SSR renders idle shells with dynamic `Title`/`Meta`, and
 settled list pages transfer server → client once per query
 (`docs/adr/014`).
+
+As built in Phase 6 (selection + submission boundary — cart management
+arrives in Phase 7): the details page renders exactly what the
+contracts carry — name, description, specifications, images
+(`displayOrder`), and the flat variant list (name/selectability) with
+SKU bound live to the selection. Price and availability were requested
+again and refused again for the same reason (no customer-readable
+source; `VariantResponse` is annotated "no price" in three contract
+sources and inventory reads are `Admin`-only), with tests pinning the
+SKU-only surface. The selected variant is the source of truth for
+variant-specific data; submission needs a price snapshot the storefront
+cannot source, so the add-to-cart control stays unmounted while its
+button, machine, façades, and payload ship tested (`docs/adr/016–017`).
+Product copy is feature-owned per culture (`productDetails`
+namespace); SSR fetches live at request time (`RenderMode.Server`,
+never prerendered) with dynamic `Title`/`Meta`/OpenGraph per
+resource state, and settled slots transfer server → client once per
+id.
 
 ---
 

@@ -864,6 +864,9 @@ details/variants/cart remain explicitly deferred.
 
 # 27. Phase 6 — Product Details & Variants
 
+Status: **Complete** (2026-09-12) — see
+`docs/completed/PHASE_6_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Product details
@@ -882,6 +885,22 @@ Deliverable:
 ```text
 Complete product selection experience
 ```
+
+All Phase 6 acceptance criteria are satisfied (lazy product-details
+feature with feature-scoped signal state covering product,
+specifications, images, variants, selection, orderability, quantity,
+and submission; variant-as-purchasable-unit with live SKU binding;
+contract-honest omission of price/availability with test-pinned
+surfaces; image gallery with fallbacks; full resource states incl.
+Not Found; 5-culture localization with RTL-safe rendering;
+responsive single-component UI; SSR with per-id TransferState
+hydration and dynamic metadata; unit/component/integration tests;
+product-details E2E journey; architecture audit 97/97). Production
+add-to-cart submission stays parked behind the documented contract
+gap (no customer-readable price source — see `docs/adr/016–017`),
+with the button, machine, façades, and payload implemented, tested,
+and Phase 7-ready. The baseline is ready for **Phase 7 — Shopping
+Cart**. No cart pages, cart state, persistence, or merge exist yet.
 
 ---
 
