@@ -1,0 +1,49 @@
+<section class="product-gallery" [attr.aria-label]="copy().title">
+  @if (images.length === 0) {
+    <p class="product-gallery-empty">{{ copy().noImages }}</p>
+  } @else {
+    @if (activeImage(); as active) {
+      <div class="product-gallery-main">
+        @if (hasUsableUrl(active)) {
+          <img
+            class="product-gallery-main-image"
+            [src]="active.imageUrl"
+            [alt]="imageName(active)"
+            loading="eager"
+            (error)="onImageError(active.id)"
+          />
+        } @else {
+          <div class="product-gallery-fallback" role="img" [attr.aria-label]="imageName(active)">
+            <span>{{ imageName(active) }}</span>
+          </div>
+        }
+      </div>
+    }
+    @if (images.length > 1) {
+      <ul class="product-gallery-thumbnails">
+        @for (image of images; track image.id) {
+          <li>
+            <button
+              type="button"
+              class="product-gallery-thumb"
+              (click)="select(image.id)"
+              [attr.aria-pressed]="isActive(image)"
+              [attr.aria-label]="thumbnailLabel(image)"
+            >
+              @if (hasUsableUrl(image)) {
+                <img
+                  [src]="image.imageUrl"
+                  alt=""
+                  loading="lazy"
+                  (error)="onImageError(image.id)"
+                />
+              } @else {
+                <span class="product-gallery-thumb-fallback" aria-hidden="true"></span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

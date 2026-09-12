@@ -1,6 +1,6 @@
 /**
- * Storefront Product Details feature translations for Sub-Phase 6.2 — Page
- * & Information.
+ * Storefront Product Details feature translations for Sub-Phases 6.2–6.3
+ * — Page & Information + Image Gallery.
  *
  * Feature-owned, business-specific copy (`productDetails` namespace) in all
  * five supported cultures (`en`/`fr`/`de`/`es`/`ar`). Per the Phase 4
@@ -40,6 +40,11 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   descriptionTitle: 'productDetails.info.descriptionTitle',
   noDescription: 'productDetails.info.noDescription',
   specsTitle: 'productDetails.specs.title',
+  galleryTitle: 'productDetails.gallery.title',
+  galleryLoading: 'productDetails.gallery.loading',
+  galleryNoImages: 'productDetails.gallery.noImages',
+  galleryViewImage: 'productDetails.gallery.viewImage',
+  galleryImageFallback: 'productDetails.gallery.imageFallback',
 } as const;
 
 /** English (`en`) product-details vocabulary. Also the deterministic fallback source. */
@@ -65,6 +70,13 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
     },
     specs: {
       title: 'Specifications',
+    },
+    gallery: {
+      title: 'Product images',
+      loading: 'Loading images…',
+      noImages: 'No images available.',
+      viewImage: 'View image: {name}',
+      imageFallback: 'Product image',
     },
   },
 };
@@ -93,6 +105,13 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
     specs: {
       title: 'Caractéristiques',
     },
+    gallery: {
+      title: 'Images du produit',
+      loading: 'Chargement des images…',
+      noImages: 'Aucune image disponible.',
+      viewImage: 'Voir l’image : {name}',
+      imageFallback: 'Image du produit',
+    },
   },
 };
 
@@ -119,6 +138,13 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
     },
     specs: {
       title: 'Eigenschaften',
+    },
+    gallery: {
+      title: 'Produktbilder',
+      loading: 'Bilder werden geladen…',
+      noImages: 'Keine Bilder verfügbar.',
+      viewImage: 'Bild ansehen: {name}',
+      imageFallback: 'Produktbild',
     },
   },
 };
@@ -147,6 +173,13 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
     specs: {
       title: 'Especificaciones',
     },
+    gallery: {
+      title: 'Imágenes del producto',
+      loading: 'Cargando las imágenes…',
+      noImages: 'No hay imágenes disponibles.',
+      viewImage: 'Ver imagen: {name}',
+      imageFallback: 'Imagen del producto',
+    },
   },
 };
 
@@ -173,6 +206,13 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
     },
     specs: {
       title: 'المواصفات',
+    },
+    gallery: {
+      title: 'صور المنتج',
+      loading: 'جارٍ تحميل الصور…',
+      noImages: 'لا توجد صور متاحة.',
+      viewImage: 'عرض الصورة: {name}',
+      imageFallback: 'صورة المنتج',
     },
   },
 };

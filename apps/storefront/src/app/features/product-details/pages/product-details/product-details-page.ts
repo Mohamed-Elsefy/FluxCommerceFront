@@ -1,6 +1,6 @@
 /**
- * Product Details page for Sub-Phases 6.1–6.2 — Foundation + Page &
- * Information.
+ * Product Details page for Sub-Phases 6.1–6.3 — Foundation + Page &
+ * Information + Image Gallery.
  *
  * Smart page (route-level composition): reads the `:id` route parameter,
  * validates it through the pure `parseProductIdParam` helper, and drives
@@ -36,19 +36,20 @@
  *   presentation arrives with selection in Sub-Phase 6.4). Nothing is
  *   fabricated.
  *
- * Resource states (§6.2): invalid-id → loading → success | not-found
+ * Resource states (§§6.2–6.3): invalid-id → loading → success | not-found
  * (`404`, with a back-to-catalog link and no retry) | error (shared
- * `ErrorState` + retry over both slots). The specifications section renders
- * on success only — while it loads, fails, or is empty the product still
- * shows (the section hides; the product is the primary resource and a specs
- * `404` coincides with a product `404` anyway).
+ * `ErrorState` + retry over all three slots). The specifications section
+ * renders on success only — while it loads, fails, or is empty the product
+ * still shows (the section hides; the product is the primary resource and
+ * a specs `404` coincides with a product `404` anyway). The gallery
+ * section follows the same rule, except an empty image list shows the
+ * gallery's missing-image fallback instead of hiding.
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.3 — no image gallery.
  * - 6.4–6.5 — no variant selection, SKU/pricing/availability presentation.
  * - 6.6–6.7 — no quantity or add-to-cart.
  */
@@ -68,6 +69,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
+import { ProductGallery } from '../../components/product-gallery/product-gallery';
 import { ProductDetailsState } from '../../state/product-details-state';
 import {
   PRODUCT_DETAILS_ID_PARAM,
@@ -81,7 +83,7 @@ import {
 
 @Component({
   selector: 'app-product-details-page',
-  imports: [RouterLink, LoadingIndicator, EmptyState, ErrorState],
+  imports: [RouterLink, LoadingIndicator, EmptyState, ErrorState, ProductGallery],
   templateUrl: './product-details-page.html',
   styleUrl: './product-details-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -100,6 +102,9 @@ export class ProductDetailsPage {
 
   /** Specifications resource (`GET .../specifications`, wire order). */
   readonly specifications = this.state.specifications;
+
+  /** Images resource (`GET .../images`, `displayOrder` server-side). */
+  readonly images = this.state.images;
 
   /**
    * Validated product id from the `:id` route parameter (`null` when
@@ -157,6 +162,10 @@ export class ProductDetailsPage {
         PRODUCT_DETAILS_TRANSLATION_KEYS.noDescription,
       ),
       specsTitle: translateProductDetailsKey(culture, PRODUCT_DETAILS_TRANSLATION_KEYS.specsTitle),
+      galleryLoading: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.galleryLoading,
+      ),
       retry: translateKey(culture, 'common.actions.retry'),
     };
   });
@@ -206,7 +215,7 @@ export class ProductDetailsPage {
     });
   }
 
-  /** (Re)loads the product and specifications for the current route id; error retry re-enters here. */
+  /** (Re)loads the product, specifications, and images for the current route id; error retry re-enters here. */
   reload(): void {
     const id = this.productId();
     if (id !== null) {
@@ -232,6 +241,7 @@ export class ProductDetailsPage {
     const controller = new AbortController();
     this.state.loadProduct(id, { signal: controller.signal });
     this.state.loadSpecifications(id, { signal: controller.signal });
+    this.state.loadProductImages(id, { signal: controller.signal });
     this.detailsTeardown = () => controller.abort();
   }
 }

@@ -1,9 +1,9 @@
 /**
- * Feature-owned Product Details state for Sub-Phases 6.1–6.2 — Product
- * Details Foundation + Page & Information.
+ * Feature-owned Product Details state for Sub-Phases 6.1–6.3 — Foundation
+ * + Page & Information + Image Gallery.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.2 (product +
- * specifications resource slots, no UI).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.3 (product +
+ * specifications + images resource slots, no UI).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -33,7 +33,6 @@
  *   fetches in the browser; SSR transfer arrives in Sub-Phase 6.9).
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.3 — no selected-image state.
  * - 6.4–6.6 — no selected-variant or quantity state.
  * - 6.7 / Phase 7 — no cart integration or cart state.
  */
@@ -51,7 +50,11 @@ import {
   type ResourceStateStore,
 } from '@flux/api';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
-import type { ProductDetails, ProductSpecification } from '../models/product-details.models';
+import type {
+  ProductDetails,
+  ProductImage,
+  ProductSpecification,
+} from '../models/product-details.models';
 
 /** Options for every `ProductDetailsState` load: cancellation only, never mapping. */
 export interface ProductDetailsLoadOptions {
@@ -72,6 +75,8 @@ export class ProductDetailsState {
     createResourceState<ProductDetails>();
   private readonly specificationsStore: ResourceStateStore<ProductSpecification[]> =
     createResourceState<ProductSpecification[]>();
+  private readonly imagesStore: ResourceStateStore<ProductImage[]> =
+    createResourceState<ProductImage[]>();
 
   /** Currently selected product (`GET /catalog/products/{id}`). */
   readonly product: Signal<ResourceState<ProductDetails>> = this.productStore.state;
@@ -90,6 +95,16 @@ export class ProductDetailsState {
     this.specificationsStore.state;
 
   /**
+   * Images for the selected product
+   * (`GET /catalog/products/{productId}/images`, ordered by `displayOrder`
+   * server-side). An empty list resolves to `empty` (the gallery shows its
+   * missing-image fallback); failures resolve to `error` without touching
+   * the product slot. Selection state is gallery-local UI state
+   * (`ARCHITECTURE.md` §9) — never stored here.
+   */
+  readonly images: Signal<ResourceState<ProductImage[]>> = this.imagesStore.state;
+
+  /**
    * Loads a single product by id into the `product` slot. A dataless
    * envelope resolves to `error` (contract violation); aborts leave state
    * untouched. Blank ids are rejected without fetching (the page validates
@@ -106,10 +121,11 @@ export class ProductDetailsState {
     return loadResourceState(this.productStore, request, { signal: options.signal });
   }
 
-  /** Resets the product slot to `idle` (e.g. when the route id is cleared). */
+  /** Resets every slot to `idle` (e.g. when the route id is cleared). */
   reset(): void {
     this.productStore.reset();
     this.specificationsStore.reset();
+    this.imagesStore.reset();
   }
 
   /**
@@ -126,6 +142,23 @@ export class ProductDetailsState {
       .listSpecifications(productId, toApiOptions(options))
       .pipe(map(requireEnvelopeData));
     return loadResourceState(this.specificationsStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Loads the image list for `productId` into the `images` slot. A dataless
+   * envelope resolves to `error` (contract violation); an empty list
+   * resolves to `empty` (the gallery shows its missing-image fallback);
+   * aborts leave state untouched. Blank ids are rejected without fetching;
+   * the slot stays `idle`.
+   */
+  loadProductImages(productId: string, options: ProductDetailsLoadOptions = {}): Subscription {
+    if (productId.trim() === '') {
+      return Subscription.EMPTY;
+    }
+    const request: Observable<ProductImage[]> = this.detailsApi
+      .listProductImages(productId, toApiOptions(options))
+      .pipe(map(requireEnvelopeData));
+    return loadResourceState(this.imagesStore, request, { signal: options.signal });
   }
 }
 

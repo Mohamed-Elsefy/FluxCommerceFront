@@ -1,12 +1,14 @@
 /**
- * Storefront Product Details feature models for Sub-Phases 6.1–6.2 —
- * Product Details Foundation + Page & Information.
+ * Storefront Product Details feature models for Sub-Phases 6.1–6.3 —
+ * Foundation + Page & Information + Image Gallery.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.2.
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.3.
  *
- * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.7
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.6/2.7
  * (`GET /catalog/products/{id:guid}` → `200 ApiResponse<ProductResponse>`;
- * `GET /catalog/products/{productId}/specifications` →
+ * `GET /catalog/products/{productId}/images` →
+ * `200 ApiResponse<ProductImageResponse[]>` ordered by `displayOrder`
+ * server-side; `GET .../specifications` →
  * `200 ApiResponse<ProductSpecificationResponse[]>`) and
  * `docs/frontend-contract/DTO_REFERENCE.md` §2
  * (`FluxCommerce.Modules.Catalog.Contracts` records).
@@ -25,14 +27,17 @@
  *   Envelope mapping and fetching live in `state/` and `data-access/`.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.3 — no image-gallery state.
  * - 6.4–6.5 — no variant selection, SKU/pricing/availability presentation.
  * - 6.6–6.7 — no quantity or add-to-cart.
  * - Phase 7 — no cart state or cart API usage.
  */
 
 import type { ApiError } from '@flux/api';
-import type { ProductResponse, ProductSpecificationResponse } from '@flux/models';
+import type {
+  ProductImageResponse,
+  ProductResponse,
+  ProductSpecificationResponse,
+} from '@flux/models';
 
 /**
  * Product details read model (`GET /catalog/products/{id}`).
@@ -46,6 +51,14 @@ export type ProductDetails = ProductResponse;
  * both non-null per the contract). Re-exported, not re-declared.
  */
 export type ProductSpecification = ProductSpecificationResponse;
+
+/**
+ * Product image read model (`GET /catalog/products/{productId}/images`
+ * items, ordered by `displayOrder` server-side). Re-exported, not
+ * re-declared. Selection/fallback behavior lives in the gallery component;
+ * fetching lives in `data-access/` + `state/`.
+ */
+export type ProductImage = ProductImageResponse;
 
 /** Route parameter carrying the product id (`/catalog/products/:id`). */
 export const PRODUCT_DETAILS_ID_PARAM = 'id';

@@ -1,10 +1,10 @@
 /**
- * State tests for the Sub-Phase 6.1–6.2 `ProductDetailsState`.
+ * State tests for the Sub-Phase 6.1–6.3 `ProductDetailsState`.
  *
  * `ProductDetailsApiService` (the feature HTTP boundary, covered by
  * `product-details-api.service.spec.ts`) is stubbed at its typed seam so
  * these tests own the feature logic: idle → loading → success | empty |
- * error transitions for both the product and specifications slots, data
+ * error transitions for the product, specifications, and images slots, data
  * retention across reloads, dataless-envelope violations, blank-id
  * rejection, cancellation passthrough, reset of every slot, and
  * feature-local scoping (no root singleton — every injection site gets an
@@ -15,7 +15,11 @@ import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
-import type { ProductResponse, ProductSpecificationResponse } from '@flux/models';
+import type {
+  ProductImageResponse,
+  ProductResponse,
+  ProductSpecificationResponse,
+} from '@flux/models';
 import { ProductDetailsApiService } from '../data-access/product-details-api.service';
 import { ProductDetailsState } from './product-details-state';
 
@@ -58,18 +62,48 @@ function specificationsEnvelope(items: ProductSpecificationResponse[] = SPECIFIC
   return { isSuccess: true, data: items };
 }
 
+const IMAGES: ProductImageResponse[] = [
+  {
+    id: 'c3c3c3c3-3333-4333-8333-333333333333',
+    productId: PRODUCT_ID,
+    imageUrl: '/images/tee-front.jpg',
+    altText: 'Tee front view',
+    displayOrder: 0,
+    isPrimary: true,
+    metadata: null,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+  },
+  {
+    id: 'd4d4d4d4-4444-4444-8444-444444444444',
+    productId: PRODUCT_ID,
+    imageUrl: '/images/tee-back.jpg',
+    altText: null,
+    displayOrder: 1,
+    isPrimary: false,
+    metadata: null,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+  },
+];
+
+function imagesEnvelope(items: ProductImageResponse[] = IMAGES) {
+  return { isSuccess: true, data: items };
+}
+
 function setup(flows: {
   getProduct?: () => ReturnType<ProductDetailsApiService['getProduct']>;
   listSpecifications?: () => ReturnType<ProductDetailsApiService['listSpecifications']>;
+  listProductImages?: () => ReturnType<ProductDetailsApiService['listProductImages']>;
 }): {
   state: ProductDetailsState;
   seenSignals: (AbortSignal | undefined)[];
   ids: unknown[];
   specificationIds: unknown[];
+  imageIds: unknown[];
 } {
   const seenSignals: (AbortSignal | undefined)[] = [];
   const ids: unknown[] = [];
   const specificationIds: unknown[] = [];
+  const imageIds: unknown[] = [];
   const apiStub = {
     getProduct: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
       ids.push(id);
@@ -81,12 +115,23 @@ function setup(flows: {
       seenSignals.push(options.signal);
       return flows.listSpecifications?.() ?? of(specificationsEnvelope());
     }) as ProductDetailsApiService['listSpecifications'],
+    listProductImages: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
+      imageIds.push(id);
+      seenSignals.push(options.signal);
+      return flows.listProductImages?.() ?? of(imagesEnvelope());
+    }) as ProductDetailsApiService['listProductImages'],
   } as ProductDetailsApiService;
 
   TestBed.configureTestingModule({
     providers: [{ provide: ProductDetailsApiService, useValue: apiStub }, ProductDetailsState],
   });
-  return { state: TestBed.inject(ProductDetailsState), seenSignals, ids, specificationIds };
+  return {
+    state: TestBed.inject(ProductDetailsState),
+    seenSignals,
+    ids,
+    specificationIds,
+    imageIds,
+  };
 }
 
 describe('ProductDetailsState product', () => {
@@ -231,11 +276,71 @@ describe('ProductDetailsState specifications', () => {
     const { state } = setup({});
     state.loadProduct(PRODUCT_ID);
     state.loadSpecifications(PRODUCT_ID);
+    state.loadProductImages(PRODUCT_ID);
     state.reset();
 
     expect(state.product().status).toBe('idle');
     expect(state.specifications().status).toBe('idle');
     expect(state.specifications().data).toBeNull();
+    expect(state.images().status).toBe('idle');
+    expect(state.images().data).toBeNull();
+  });
+});
+
+describe('ProductDetailsState images', () => {
+  it('starts idle and resolves to success with envelope data in wire order', () => {
+    const { state } = setup({});
+    expect(state.images().status).toBe('idle');
+
+    state.loadProductImages(PRODUCT_ID);
+
+    const snapshot = state.images();
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.data?.map((image) => image.displayOrder)).toEqual([0, 1]);
+  });
+
+  it('resolves to empty when the product carries no images', () => {
+    const { state } = setup({ listProductImages: () => of(imagesEnvelope([])) });
+    state.loadProductImages(PRODUCT_ID);
+
+    const snapshot = state.images();
+    expect(snapshot.status).toBe('empty');
+    expect(snapshot.isEmpty).toBe(true);
+  });
+
+  it('resolves to error on failures without touching the product slot', () => {
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    const { state } = setup({ listProductImages: () => throwError(() => rejection) });
+    state.loadProduct(PRODUCT_ID);
+    state.loadProductImages(PRODUCT_ID);
+
+    expect(state.images().status).toBe('error');
+    expect(state.images().error).toBe(rejection);
+    expect(state.product().status).toBe('success');
+  });
+
+  it('resolves to error on dataless success envelopes', () => {
+    const { state } = setup({ listProductImages: () => of({ isSuccess: true, data: null }) });
+    state.loadProductImages(PRODUCT_ID);
+
+    expect(state.images().status).toBe('error');
+  });
+
+  it('rejects blank ids without fetching and leaves state idle', () => {
+    const { state, imageIds } = setup({});
+    state.loadProductImages('   ');
+
+    expect(imageIds).toHaveLength(0);
+    expect(state.images().status).toBe('idle');
+  });
+
+  it('forwards the AbortSignal to data access without touching state shape', () => {
+    const { state, seenSignals } = setup({});
+    const controller = new AbortController();
+    state.loadProductImages(PRODUCT_ID, { signal: controller.signal });
+
+    expect(seenSignals).toEqual([controller.signal]);
+    expect(state.images().status).toBe('success');
   });
 });
 

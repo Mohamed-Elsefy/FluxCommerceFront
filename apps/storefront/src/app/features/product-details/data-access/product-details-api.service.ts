@@ -1,12 +1,12 @@
 /**
- * Product Details data-access service for Sub-Phases 6.1–6.2 — Product
- * Details Foundation + Page & Information.
+ * Product Details data-access service for Sub-Phases 6.1–6.3 — Foundation
+ * + Page & Information + Image Gallery.
  *
- * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.2 (product +
- * specifications reads).
+ * Scope: `docs/phases/PHASE_6_PRODUCT_DETAILS.md` §§6.1–6.3 (product +
+ * specifications + images reads).
  *
- * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.7
- * (both `GET` endpoints are `[AllowAnonymous]`).
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §§2.1/2.6/2.7
+ * (all three `GET` endpoints are `[AllowAnonymous]`).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
@@ -29,7 +29,6 @@
  *   and `Authorization` stays owned by the interceptor pipeline.
  *
  * Explicitly out of scope (later sub-phases, must not appear here):
- * - 6.3 — no image detail reads.
  * - 6.4+ — no variant/attribute detail reads.
  * - 6.7 — no cart API usage.
  * - Phase 7 — no cart state or cart management.
@@ -37,7 +36,11 @@
 
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
-import type { ProductResponse, ProductSpecificationResponse } from '@flux/models';
+import type {
+  ProductImageResponse,
+  ProductResponse,
+  ProductSpecificationResponse,
+} from '@flux/models';
 import {
   ApiClient,
   CATALOG_ENDPOINTS,
@@ -82,6 +85,22 @@ export class ProductDetailsApiService {
   ): Observable<ApiResponseWithData<ProductSpecificationResponse[]>> {
     return this.api.get<ApiResponseWithData<ProductSpecificationResponse[]>>(
       CATALOG_ENDPOINTS.listSpecifications.path,
+      { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `GET /catalog/products/{productId}/images` — anonymous. Image list
+   * ordered by `displayOrder` server-side.
+   * Success: `200 ApiResponse<ProductImageResponse[]>`.
+   * Failures: `400` validation, `404` unknown product.
+   */
+  listProductImages(
+    productId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<ProductImageResponse[]>> {
+    return this.api.get<ApiResponseWithData<ProductImageResponse[]>>(
+      CATALOG_ENDPOINTS.listProductImages.path,
       { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
     );
   }

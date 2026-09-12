@@ -1,13 +1,14 @@
 /**
- * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.2 — Foundation
- * + Page & Information).
+ * Page tests for the `ProductDetailsPage` (Sub-Phases 6.1–6.3 — Foundation
+ * + Page & Information + Image Gallery).
  *
  * `ProductDetailsState` is stubbed at its typed seam (its orchestration is
  * covered by `product-details-state.spec.ts`) so these tests own the page
- * logic: product + specifications loads driven by the `:id` route
+ * logic: product + specifications + images loads driven by the `:id` route
  * parameter, graceful missing/malformed ids (no fetch, invalid state, slot
  * reset), loading / success / error / not-found rendering, error retry over
- * both slots, specification rendering (wire order, empty-hidden), and the
+ * all slots, specification rendering (wire order, empty-hidden), gallery
+ * integration (rendering, empty fallback, failure hiding), and the
  * browser-only fetch rule (the server prerenders the idle shell).
  */
 
@@ -28,7 +29,11 @@ import {
 import { CultureService } from '@flux/i18n';
 import type { ProductResponse } from '@flux/models';
 import { ProductDetailsState } from '../../state/product-details-state';
-import type { ProductDetails, ProductSpecification } from '../../models/product-details.models';
+import type {
+  ProductDetails,
+  ProductImage,
+  ProductSpecification,
+} from '../../models/product-details.models';
 import { ProductDetailsPage } from './product-details-page';
 
 const PRODUCT_ID = '11111111-1111-1111-1111-111111111111';
@@ -65,6 +70,7 @@ const SPECIFICATIONS: ProductSpecification[] = [
 function setup(options: {
   snapshot?: ResourceState<ProductDetails>;
   specificationsSnapshot?: ResourceState<ProductSpecification[]>;
+  imagesSnapshot?: ResourceState<ProductImage[]>;
   productId?: string | null;
   culture?: 'en' | 'fr';
   platform?: 'browser' | 'server';
@@ -73,22 +79,28 @@ function setup(options: {
   element: HTMLElement;
   loadCalls: unknown[];
   loadSpecificationsCalls: unknown[];
+  loadImagesCalls: unknown[];
   resetCalls: number;
 } {
   const loadCalls: unknown[] = [];
   const loadSpecificationsCalls: unknown[] = [];
+  const loadImagesCalls: unknown[] = [];
   let resetCalls = 0;
   const stateStub = {
     product: signal(options.snapshot ?? idleResource<ProductDetails>()),
     specifications: signal(
       options.specificationsSnapshot ?? idleResource<ProductSpecification[]>(),
     ),
+    images: signal(options.imagesSnapshot ?? idleResource<ProductImage[]>()),
     loadProduct: ((id: unknown) => {
       loadCalls.push(id);
     }) as ProductDetailsState['loadProduct'],
     loadSpecifications: ((id: unknown) => {
       loadSpecificationsCalls.push(id);
     }) as ProductDetailsState['loadSpecifications'],
+    loadProductImages: ((id: unknown) => {
+      loadImagesCalls.push(id);
+    }) as ProductDetailsState['loadProductImages'],
     reset: (() => {
       resetCalls += 1;
     }) as ProductDetailsState['reset'],
@@ -122,6 +134,7 @@ function setup(options: {
     element: fixture.nativeElement as HTMLElement,
     loadCalls,
     loadSpecificationsCalls,
+    loadImagesCalls,
     resetCalls,
   };
 }
@@ -131,18 +144,24 @@ describe('ProductDetailsPage route parameter', () => {
     TestBed.resetTestingModule();
   });
 
-  it('loads the product and specifications for a valid route id on init', () => {
-    const { loadCalls, loadSpecificationsCalls } = setup({ productId: PRODUCT_ID });
+  it('loads the product, specifications, and images for a valid route id on init', () => {
+    const { loadCalls, loadSpecificationsCalls, loadImagesCalls } = setup({
+      productId: PRODUCT_ID,
+    });
 
     expect(loadCalls).toEqual([PRODUCT_ID]);
     expect(loadSpecificationsCalls).toEqual([PRODUCT_ID]);
+    expect(loadImagesCalls).toEqual([PRODUCT_ID]);
   });
 
   it('never fetches and renders the invalid state for a missing id', () => {
-    const { element, loadCalls, loadSpecificationsCalls, resetCalls } = setup({ productId: null });
+    const { element, loadCalls, loadSpecificationsCalls, loadImagesCalls, resetCalls } = setup({
+      productId: null,
+    });
 
     expect(loadCalls).toEqual([]);
     expect(loadSpecificationsCalls).toEqual([]);
+    expect(loadImagesCalls).toEqual([]);
     expect(resetCalls).toBe(1);
     expect(element.querySelector('flux-empty-state')).not.toBeNull();
     expect(element.querySelector('flux-loading-indicator')).toBeNull();
@@ -194,8 +213,8 @@ describe('ProductDetailsPage resource states', () => {
     expect(loadCalls).toEqual([PRODUCT_ID]);
   });
 
-  it('renders the error state on non-404 failures and retries both slots', () => {
-    const { element, fixture, loadCalls, loadSpecificationsCalls } = setup({
+  it('renders the error state on non-404 failures and retries all slots', () => {
+    const { element, fixture, loadCalls, loadSpecificationsCalls, loadImagesCalls } = setup({
       productId: PRODUCT_ID,
       snapshot: errorResource(new ApiError({ status: 500, message: 'Server error.' })),
     });
@@ -204,12 +223,14 @@ describe('ProductDetailsPage resource states', () => {
     expect(element.querySelector('flux-empty-state')).toBeNull();
     expect(loadCalls).toEqual([PRODUCT_ID]);
     expect(loadSpecificationsCalls).toEqual([PRODUCT_ID]);
+    expect(loadImagesCalls).toEqual([PRODUCT_ID]);
 
     element.querySelector('flux-error-state button')?.dispatchEvent(new Event('click'));
     fixture.detectChanges();
 
     expect(loadCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
     expect(loadSpecificationsCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
+    expect(loadImagesCalls).toEqual([PRODUCT_ID, PRODUCT_ID]);
   });
 
   it('renders localized copy for the active culture', () => {
@@ -287,6 +308,93 @@ describe('ProductDetailsPage information', () => {
 
     expect(element.querySelector('h1')?.textContent).toBe('Tee');
     expect(element.querySelector('.product-details-specs')).toBeNull();
+    expect(element.querySelector('flux-error-state')).toBeNull();
+  });
+});
+
+describe('ProductDetailsPage gallery', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  const GALLERY_IMAGES: ProductImage[] = [
+    {
+      id: 'c3c3c3c3-3333-4333-8333-333333333333',
+      productId: PRODUCT_ID,
+      imageUrl: '/images/tee-front.jpg',
+      altText: 'Tee front view',
+      displayOrder: 0,
+      isPrimary: true,
+      metadata: null,
+      createdAtUtc: '2026-09-04T10:00:00Z',
+    },
+    {
+      id: 'd4d4d4d4-4444-4444-8444-444444444444',
+      productId: PRODUCT_ID,
+      imageUrl: '/images/tee-back.jpg',
+      altText: null,
+      displayOrder: 1,
+      isPrimary: false,
+      metadata: null,
+      createdAtUtc: '2026-09-04T10:00:00Z',
+    },
+  ];
+
+  it('renders the gallery with backend images once the product succeeds', () => {
+    const { element } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      imagesSnapshot: successResource(GALLERY_IMAGES),
+    });
+
+    const gallery = element.querySelector('product-details-gallery');
+    expect(gallery).not.toBeNull();
+    expect(gallery?.querySelector('.product-gallery-main-image')?.getAttribute('src')).toBe(
+      '/images/tee-front.jpg',
+    );
+    expect(gallery?.querySelectorAll('.product-gallery-thumb')).toHaveLength(2);
+  });
+
+  it('shows the gallery missing-image fallback when the product carries no images', () => {
+    const { element } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      imagesSnapshot: emptyResource<ProductImage[]>([]),
+    });
+
+    const gallery = element.querySelector('product-details-gallery');
+    expect(gallery).not.toBeNull();
+    expect(gallery?.querySelector('.product-gallery-empty')?.textContent).toBe(
+      'No images available.',
+    );
+  });
+
+  it('hides the gallery while images load and shows the localized loading label', () => {
+    const { element } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      imagesSnapshot: loadingResource<ProductImage[]>(),
+    });
+
+    expect(element.querySelector('product-details-gallery')).toBeNull();
+    expect(element.querySelector('flux-loading-indicator')?.textContent).toContain(
+      'Loading images…',
+    );
+  });
+
+  it('still shows the product when images fail to load', () => {
+    const { element } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      imagesSnapshot: errorResource(new ApiError({ status: 500, message: 'Server error.' })),
+    });
+
+    expect(element.querySelector('h1')?.textContent).toBe('Tee');
+    expect(element.querySelector('product-details-gallery')).toBeNull();
     expect(element.querySelector('flux-error-state')).toBeNull();
   });
 });
