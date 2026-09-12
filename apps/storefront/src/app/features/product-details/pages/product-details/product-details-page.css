@@ -1,0 +1,17 @@
+/* Foundation shell for the Product Details page (Sub-Phase 6.1). Single
+  responsive component — no device duplicates. Logical properties only
+  (RTL-safe); visual values come from theming tokens. */
+
+.product-details-page {
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
+  padding-block: var(--spacing-lg);
+}
+
+.product-details-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}

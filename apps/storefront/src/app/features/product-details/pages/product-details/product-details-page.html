@@ -1,0 +1,23 @@
+<section class="product-details-page" aria-labelledby="product-details-title">
+  <h1 id="product-details-title">Product details</h1>
+
+  @if (productId() === null) {
+    <flux-empty-state
+      title="Invalid product link"
+      message="This product link is missing or invalid."
+    ></flux-empty-state>
+  } @else if (product().isLoading) {
+    <flux-loading-indicator label="Loading product"></flux-loading-indicator>
+  } @else if (product().isError) {
+    <flux-error-state
+      title="Could not load the product"
+      [message]="errorMessage()"
+      retryLabel="Retry"
+      (retry)="reload()"
+    ></flux-error-state>
+  } @else if (product().isSuccess) {
+    <!-- Foundation proof of data flow only: the full product information,
+      spec sheets (6.2), and image gallery (6.3) arrive in later sub-phases. -->
+    <p class="product-details-name">{{ product().data?.name }}</p>
+  }
+</section>

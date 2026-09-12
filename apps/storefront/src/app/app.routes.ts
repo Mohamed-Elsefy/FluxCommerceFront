@@ -23,6 +23,16 @@ export const routes: Routes = [
         loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
       },
       {
+        // Sub-Phase 6.1 — more specific than 'catalog' below, so this entry
+        // must stay first: 'catalog' alone would otherwise swallow the
+        // 'catalog/products/:id' prefix. Serves /catalog/products/:id.
+        path: 'catalog/products',
+        loadChildren: () =>
+          import('./features/product-details/product-details.routes').then(
+            (m) => m.productDetailsRoutes,
+          ),
+      },
+      {
         path: 'catalog',
         loadChildren: () =>
           import('./features/catalog/catalog.routes').then((m) => m.catalogRoutes),
