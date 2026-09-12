@@ -1,0 +1,79 @@
+<section class="product-details-page" aria-labelledby="product-details-title">
+  <h1 id="product-details-title">{{ heading() }}</h1>
+
+  @if (productId() === null) {
+    <flux-empty-state
+      [title]="copy().invalidIdTitle"
+      [message]="copy().invalidIdMessage"
+    ></flux-empty-state>
+  } @else if (product().isLoading) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (isNotFound()) {
+    <flux-empty-state
+      [title]="copy().notFoundTitle"
+      [message]="copy().notFoundMessage"
+    ></flux-empty-state>
+    <p class="product-details-back">
+      <a routerLink="/catalog">{{ copy().backToCatalog }}</a>
+    </p>
+  } @else if (product().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="reload()"
+    ></flux-error-state>
+  } @else if (product().isSuccess) {
+    @if (images().isSuccess || images().isEmpty) {
+      <product-details-gallery
+        [images]="images().data ?? []"
+        [productName]="product().data?.name ?? null"
+      ></product-details-gallery>
+    } @else if (images().isLoading) {
+      <flux-loading-indicator [label]="copy().galleryLoading"></flux-loading-indicator>
+    }
+    <section class="product-details-info" aria-labelledby="product-details-description-title">
+      <h2 id="product-details-description-title">{{ copy().descriptionTitle }}</h2>
+      <p class="product-details-description">
+        {{ product().data?.description ?? copy().noDescription }}
+      </p>
+    </section>
+    @if (variants().isSuccess && (variants().data?.length ?? 0) > 0) {
+      <product-details-variant-selector
+        [variants]="variants().data ?? []"
+        [selectedVariantId]="selectedVariantId()"
+        [label]="copy().selectorTitle"
+        [unavailableLabel]="copy().selectorUnavailable"
+        (selectionChange)="onVariantSelect($event)"
+      ></product-details-variant-selector>
+      <product-details-variant-commercial
+        [variant]="selectedVariant()"
+        [title]="copy().commercialTitle"
+        [skuLabel]="copy().commercialSkuLabel"
+        [selectPrompt]="copy().commercialSelectPrompt"
+        [unavailableMessage]="copy().commercialUnavailable"
+      ></product-details-variant-commercial>
+      <product-details-quantity-selector
+        [quantity]="quantity()"
+        [label]="copy().quantityTitle"
+        [decreaseLabel]="copy().quantityDecrease"
+        [increaseLabel]="copy().quantityIncrease"
+        [invalidMessage]="copy().quantityInvalid"
+        (quantityChange)="onQuantityChange($event)"
+      ></product-details-quantity-selector>
+    }
+    @if (specifications().isSuccess) {
+      <section class="product-details-specs" aria-labelledby="product-details-specs-title">
+        <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>
+        <dl class="product-details-specs-list">
+          @for (spec of specifications().data ?? []; track spec.id) {
+            <div class="product-details-spec">
+              <dt>{{ spec.name }}</dt>
+              <dd>{{ spec.value }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
+  }
+</section>

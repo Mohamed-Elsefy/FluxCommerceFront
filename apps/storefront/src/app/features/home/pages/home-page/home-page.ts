@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CultureService } from '@flux/i18n';
-import { HOME_TRANSLATION_KEYS, translateHomeKey } from './i18n/home-translations';
+import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-translations';
 
 /**
  * Storefront Home page — the primary entry point for product discovery

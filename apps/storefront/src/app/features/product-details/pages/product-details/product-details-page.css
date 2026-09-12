@@ -1,0 +1,57 @@
+/* Product Details page (Sub-Phases 6.2–6.8 — Page & Information through
+  Localization/RTL/Responsive/A11y). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.product-details-page {
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
+  padding-block: var(--spacing-lg);
+}
+
+.product-details-info {
+  margin-block-start: var(--spacing-sm);
+}
+
+.product-details-description {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.product-details-specs {
+  margin-block-start: var(--spacing-lg);
+}
+
+.product-details-specs-list {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.product-details-spec {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--spacing-sm);
+  padding-block: var(--spacing-sm);
+  border-block-start: var(--border-width-thin) solid var(--color-border);
+}
+
+.product-details-spec dt {
+  font-weight: var(--font-weight-medium);
+}
+
+.product-details-spec dd {
+  margin: 0;
+}
+
+.product-details-back {
+  margin-block-start: var(--spacing-sm);
+}
+
+.product-details-back a:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

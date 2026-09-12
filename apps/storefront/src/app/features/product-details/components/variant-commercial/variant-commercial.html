@@ -1,0 +1,15 @@
+<section class="variant-commercial" [attr.aria-label]="title">
+  <h2 class="variant-commercial-title">{{ title }}</h2>
+  @if (variant === null) {
+    <p class="variant-commercial-prompt">{{ selectPrompt }}</p>
+  } @else if (!isSelectable(variant)) {
+    <p class="variant-commercial-unavailable" role="alert">{{ unavailableMessage }}</p>
+  } @else {
+    <dl class="variant-commercial-list">
+      <div class="variant-commercial-row">
+        <dt>{{ skuLabel }}</dt>
+        <dd>{{ variant.sku }}</dd>
+      </div>
+    </dl>
+  }
+</section>

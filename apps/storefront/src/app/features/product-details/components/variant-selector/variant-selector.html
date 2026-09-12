@@ -1,0 +1,21 @@
+<section class="variant-selector" [attr.aria-label]="label">
+  <h2 class="variant-selector-title">{{ label }}</h2>
+  <ul class="variant-selector-options">
+    @for (variant of variants; track variant.id) {
+      <li>
+        <button
+          type="button"
+          class="variant-selector-option"
+          (click)="selectVariant(variant)"
+          [disabled]="!isSelectable(variant)"
+          [attr.aria-pressed]="isSelected(variant)"
+        >
+          <span class="variant-selector-name">{{ variant.name }}</span>
+          @if (!isSelectable(variant)) {
+            <span class="variant-selector-unavailable">{{ unavailableLabel }}</span>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+</section>

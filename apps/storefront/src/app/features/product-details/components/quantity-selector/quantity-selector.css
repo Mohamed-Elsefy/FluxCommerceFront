@@ -1,0 +1,60 @@
+/* Quantity selector (Sub-Phase 6.6). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.quantity-selector-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.quantity-selector-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.quantity-selector-button {
+  display: grid;
+  place-items: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-base);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.quantity-selector-button:disabled {
+  cursor: not-allowed;
+}
+
+.quantity-selector-button:focus-visible,
+.quantity-selector-input:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.quantity-selector-input {
+  inline-size: 4rem;
+  block-size: 2.75rem;
+  padding-block: 0;
+  padding-inline: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  text-align: center;
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.quantity-selector-error {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+  color: var(--color-danger);
+}

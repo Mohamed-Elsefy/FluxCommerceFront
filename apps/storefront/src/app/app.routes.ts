@@ -16,11 +16,22 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage),
+        loadComponent: () =>
+          import('./features/home/pages/home-page/home-page').then((m) => m.HomePage),
       },
       {
         path: '',
         loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
+      },
+      {
+        // Sub-Phase 6.1 — more specific than 'catalog' below, so this entry
+        // must stay first: 'catalog' alone would otherwise swallow the
+        // 'catalog/products/:id' prefix. Serves /catalog/products/:id.
+        path: 'catalog/products',
+        loadChildren: () =>
+          import('./features/product-details/product-details.routes').then(
+            (m) => m.productDetailsRoutes,
+          ),
       },
       {
         path: 'catalog',
