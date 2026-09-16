@@ -32,7 +32,14 @@
  *   (validated there — invalid values are ignored; routing follows the
  *   established identity, guest or authenticated).
  * - Error retry re-enters the session lifecycle (a dead identity
- *   recovers instead of refetching the same failure).
+ *   recovers instead of refetching).
+ * - Success feedback and focus repair (§7.8): a permanently rendered
+ *   polite live region announces settled user-driven mutations
+ *   (quantity/remove/clear — silent on first establish and on failures,
+ *   which the error banner covers); removing or clearing controls moves
+ *   focus to the items or page heading (both `tabindex="-1"`) since the
+ *   focused controls unmount. Focus writes stay browser-only; the
+ *   observer itself is SSR-safe signals only.
  * - Rendering follows stale-while-revalidate: settled content stays
  *   mounted during reloads and in-flight mutations (controls freeze via
  *   `activeOperation`) and on mutation failures (an error banner renders
@@ -76,11 +83,17 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   OnInit,
+  PLATFORM_ID,
+  signal,
+  untracked,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
+import type { ApiError } from '@flux/api';
 import {
   CultureService,
   formatCurrency,
@@ -95,7 +108,13 @@ import type { CartItemLabels, CartItemView } from '../../components/cart-item/ca
 import { CartSummary } from '../../components/cart-summary/cart-summary';
 import { CartState } from '../../state/cart-state';
 import { AuthenticatedCartService } from '../../state/authenticated-cart.service';
-import { hasBackendTotals, type CartMoney } from '../../models/cart.models';
+import type { CartOperation } from '../../state/cart-state-structure';
+import {
+  hasBackendTotals,
+  isValidCartQuantity,
+  type Cart,
+  type CartMoney,
+} from '../../models/cart.models';
 import { CART_TRANSLATION_KEYS, translateCartKey } from '../../i18n/cart-translations';
 
 @Component({
@@ -110,6 +129,19 @@ export class CartPage implements OnInit {
   private readonly authCart = inject(AuthenticatedCartService);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  /**
+   * Operation awaiting settle (`null` when quiescent). Registered
+   * synchronously by the action handlers below — never observed from the
+   * transient in-flight state, which synchronous settles skip over.
+   * Plain field (never rendered); consumed on the next settle. Handler
+   * guards mirror the state's (blank ids, invalid quantities never
+   * register), and frozen/standby UI cannot reach the handlers, so a
+   * registered intent always corresponds to a real request.
+   */
+  private pendingOperation: 'updateQuantity' | 'removeItem' | 'clear' | null = null;
 
   /** Current cart resource (idle → loading → success | empty | error). */
   protected readonly cart = this.state.cart;
@@ -145,6 +177,9 @@ export class CartPage implements OnInit {
       summaryTotalsPending: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryTotalsPending),
       summaryClear: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryClear),
       summaryCheckout: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryCheckout),
+      statusQuantityUpdated: translateCartKey(culture, CART_TRANSLATION_KEYS.statusQuantityUpdated),
+      statusItemRemoved: translateCartKey(culture, CART_TRANSLATION_KEYS.statusItemRemoved),
+      statusCartCleared: translateCartKey(culture, CART_TRANSLATION_KEYS.statusCartCleared),
       retry: translateKey(culture, 'common.actions.retry'),
     };
   });
@@ -194,12 +229,98 @@ export class CartPage implements OnInit {
     resolveApiErrorMessage(this.state.error(), this.cultures.culture()),
   );
 
+  /**
+   * Polite success announcement for screen readers (visually hidden —
+   * the list change itself is the sighted feedback). Set on settled
+   * user-driven mutations only: silent while in flight (cleared at
+   * operation start so repeated messages re-announce), silent on the
+   * first establish, silent on failures (the `role="alert"` error banner
+   * covers those). Always rendered — live regions must exist before the
+   * first announcement to be observed.
+   */
+  protected readonly announcement = signal<string | null>(null);
+
   constructor() {
     // Document title tracks the localized page title (runs on server and
     // client — `ngOnInit` covers the first SSR pass).
     effect(() => {
       this.title.setTitle(`${this.copy().title} | FluxCommerce`);
     });
+
+    // Settle observer for success announcements and focus repair (runs on
+    // server and client — DOM writes stay browser-guarded). Tracks the
+    // operation, error, and data signals; everything else runs
+    // `untracked` so settled responses can never reschedule it. The
+    // one-at-a-time lock guarantees settles arrive one at a time.
+    effect(() => {
+      const operation = this.state.activeOperation();
+      const error = this.state.error();
+      const data = this.state.data();
+      untracked(() => this.observeSettle(operation, error, data));
+    });
+  }
+
+  /**
+   * Observes one operation settle: announces successful user-driven
+   * mutations and repairs focus when the focused controls unmounted
+   * (remove/clear). Effect-timing safe: intent arrives synchronously
+   * from the handlers (transient in-flight states are invisible to
+   * effects when settles land synchronously), while this observer runs
+   * post-render — so focus targets always exist when focused. Pure
+   * signal reads — DOM writes stay browser-guarded inside.
+   */
+  private observeSettle(
+    operation: CartOperation | null,
+    error: ApiError | null,
+    data: Cart | null,
+  ): void {
+    if (operation !== null) {
+      // In-flight: clear the previous announcement so repeated messages
+      // re-announce on the next settle. Intent is handler-owned.
+      this.announcement.set(null);
+      return;
+    }
+    const completed = this.pendingOperation;
+    this.pendingOperation = null;
+    if (completed === null || error !== null || data === null) {
+      return;
+    }
+    switch (completed) {
+      case 'updateQuantity':
+        this.announcement.set(this.copy().statusQuantityUpdated);
+        break;
+      case 'removeItem':
+        this.announcement.set(this.copy().statusItemRemoved);
+        this.repairFocusAfterRemove(data.items.length > 0);
+        break;
+      case 'clear':
+        this.announcement.set(this.copy().statusCartCleared);
+        this.focusHeading('cart-page-title');
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Moves focus after a remove settled: the removed line's controls
+   * unmounted, so focus returns to the items heading while lines remain,
+   * or to the page title when the cart emptied (empty state shows).
+   * Browser-only (SSR never focuses); no-op when the target is absent.
+   */
+  private repairFocusAfterRemove(linesRemain: boolean): void {
+    this.focusHeading(linesRemain ? 'cart-items-title' : 'cart-page-title');
+  }
+
+  /** Focuses a page heading by id (both carry `tabindex="-1"` — script focus only). */
+  private focusHeading(id: string): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    const target = this.host.nativeElement.querySelector(`#${id}`);
+    if (target instanceof HTMLElement) {
+      target.focus();
+    }
   }
 
   ngOnInit(): void {
@@ -212,16 +333,25 @@ export class CartPage implements OnInit {
 
   /** Forwards a per-line quantity change to feature state (validated there). */
   protected onQuantityChange(change: CartLineQuantityChange): void {
+    if (change.variantId.trim() === '' || !isValidCartQuantity(change.quantity)) {
+      return;
+    }
+    this.pendingOperation = 'updateQuantity';
     this.state.updateQuantity(change.variantId, change.quantity);
   }
 
   /** Forwards a per-line remove action to feature state. */
   protected onRemove(variantId: string): void {
+    if (variantId.trim() === '') {
+      return;
+    }
+    this.pendingOperation = 'removeItem';
     this.state.removeItem(variantId);
   }
 
   /** Forwards the clear-cart action to feature state. */
   protected onClear(): void {
+    this.pendingOperation = 'clear';
     this.state.clearCart();
   }
 

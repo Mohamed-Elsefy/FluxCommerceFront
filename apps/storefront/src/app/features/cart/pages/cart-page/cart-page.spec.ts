@@ -598,3 +598,134 @@ describe('CartPage actions', () => {
     ).toBe(true);
   });
 });
+
+describe('CartPage success announcements and focus repair (Sub-Phase 7.8)', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  function settledGuest(flows: Partial<Record<ApiMethod, Flow>> = {}): ReturnType<typeof setup> {
+    const harness = setup(flows);
+    loadGuestCart(harness.state, harness.fixture);
+    return harness;
+  }
+
+  function announcementOf(element: HTMLElement): HTMLElement | null {
+    return element.querySelector('.cart-page-announcement');
+  }
+
+  it('renders a permanent polite live region (initially empty)', () => {
+    const { element } = settledGuest();
+
+    const region = announcementOf(element);
+    expect(region).not.toBeNull();
+    expect(region?.getAttribute('role')).toBe('status');
+    expect(region?.textContent).toBe('');
+  });
+
+  it('stays silent on the initial establish', () => {
+    const { element } = setup();
+
+    expect(announcementOf(element)?.textContent).toBe('');
+  });
+
+  it('announces settled quantity updates in the active culture', () => {
+    const { element, fixture } = settledGuest();
+
+    element
+      .querySelectorAll('.cart-items-line')[0]
+      ?.querySelectorAll('.quantity-control-button')[1]
+      ?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(announcementOf(element)?.textContent).toBe('Quantity updated.');
+  });
+
+  it('announces quantity updates in Arabic for the RTL culture', () => {
+    const harness = setup({}, 'ar');
+    loadGuestCart(harness.state, harness.fixture);
+
+    harness.element
+      .querySelectorAll('.cart-items-line')[0]
+      ?.querySelectorAll('.quantity-control-button')[1]
+      ?.dispatchEvent(new Event('click'));
+    harness.fixture.detectChanges();
+
+    expect(announcementOf(harness.element)?.textContent).toBe('تم تحديث الكمية.');
+  });
+
+  it('announces settled removals and moves focus to the items heading', () => {
+    const { element, fixture } = settledGuest();
+
+    (
+      element
+        .querySelectorAll('.cart-items-line')[0]
+        ?.querySelector('.cart-item-remove') as HTMLButtonElement | null
+    )?.click();
+    fixture.detectChanges();
+
+    expect(announcementOf(element)?.textContent).toBe('Item removed from your cart.');
+    expect(document.activeElement).toBe(element.querySelector('#cart-items-title'));
+  });
+
+  it('moves focus to the page title when the last line is removed', () => {
+    const { element, fixture } = settledGuest({
+      removeGuestCartItem: () => of(cartEnvelope(guestCart({ items: [] }))),
+    });
+
+    (
+      element
+        .querySelectorAll('.cart-items-line')[0]
+        ?.querySelector('.cart-item-remove') as HTMLButtonElement | null
+    )?.click();
+    fixture.detectChanges();
+
+    expect(element.textContent).toContain('Your cart is empty');
+    expect(document.activeElement).toBe(element.querySelector('#cart-page-title'));
+  });
+
+  it('announces a settled clear and moves focus to the page title', () => {
+    const { element, fixture } = settledGuest({
+      clearGuestCart: () => of(cartEnvelope(guestCart({ items: [] }))),
+    });
+
+    (element.querySelector('.cart-summary-clear') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+
+    expect(announcementOf(element)?.textContent).toBe('Your cart was cleared.');
+    expect(document.activeElement).toBe(element.querySelector('#cart-page-title'));
+  });
+
+  it('stays silent on failures (the alert error banner covers those)', () => {
+    const rejection = new ApiError({ status: 400, message: 'Quantity limit exceeded.' });
+    const { element, fixture } = settledGuest({
+      updateGuestCartItemQuantity: () => throwError(() => rejection),
+    });
+
+    element
+      .querySelectorAll('.cart-items-line')[0]
+      ?.querySelectorAll('.quantity-control-button')[1]
+      ?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(announcementOf(element)?.textContent).toBe('');
+    expect(element.querySelector('flux-error-state')).not.toBeNull();
+  });
+
+  it('renders the error shell with retry when the login merge fails', () => {
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    const { element, fixture, calls } = setup(
+      { mergeGuestCart: () => throwError(() => rejection) },
+      'en',
+      { session: 'authenticated', storedGuestCartId: GUEST_ID },
+    );
+    expect(element.querySelector('flux-error-state')).not.toBeNull();
+
+    const errorState = element.querySelector('flux-error-state') as HTMLElement | null;
+    (errorState?.querySelector('.retry') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+
+    // Retry re-merges (the bookmark survived the failure).
+    expect(methodsOf(calls)).toEqual(['mergeGuestCart', 'mergeGuestCart']);
+  });
+});

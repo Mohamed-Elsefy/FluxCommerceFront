@@ -1,5 +1,6 @@
 <section class="cart-page" aria-labelledby="cart-page-title">
-  <h1 id="cart-page-title">{{ copy().title }}</h1>
+  <h1 id="cart-page-title" tabindex="-1">{{ copy().title }}</h1>
+  <p class="cart-page-announcement" role="status">{{ announcement() }}</p>
 
   @if (cart().data === null) {
     @if (cart().isLoading) {

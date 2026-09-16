@@ -50,6 +50,9 @@ export const CART_TRANSLATION_KEYS = {
   summaryTotalsPending: 'cart.summary.totalsPending',
   summaryClear: 'cart.summary.clear',
   summaryCheckout: 'cart.summary.checkout',
+  statusQuantityUpdated: 'cart.status.quantityUpdated',
+  statusItemRemoved: 'cart.status.itemRemoved',
+  statusCartCleared: 'cart.status.cartCleared',
 } as const;
 
 /** English (`en`) cart vocabulary. Also the deterministic fallback source. */
@@ -84,6 +87,11 @@ const EN_CART: TranslationDictionary = {
       totalsPending: 'Totals are finalized at checkout.',
       clear: 'Clear cart',
       checkout: 'Proceed to checkout',
+    },
+    status: {
+      quantityUpdated: 'Quantity updated.',
+      itemRemoved: 'Item removed from your cart.',
+      cartCleared: 'Your cart was cleared.',
     },
   },
 };
@@ -121,6 +129,11 @@ const FR_CART: TranslationDictionary = {
       clear: 'Vider le panier',
       checkout: 'Passer commande',
     },
+    status: {
+      quantityUpdated: 'Quantité mise à jour.',
+      itemRemoved: 'Article retiré de votre panier.',
+      cartCleared: 'Votre panier a été vidé.',
+    },
   },
 };
 
@@ -156,6 +169,11 @@ const DE_CART: TranslationDictionary = {
       totalsPending: 'Die Summen werden an der Kasse finalisiert.',
       clear: 'Warenkorb leeren',
       checkout: 'Zur Kasse',
+    },
+    status: {
+      quantityUpdated: 'Menge aktualisiert.',
+      itemRemoved: 'Artikel aus Ihrem Warenkorb entfernt.',
+      cartCleared: 'Ihr Warenkorb wurde geleert.',
     },
   },
 };
@@ -193,6 +211,11 @@ const ES_CART: TranslationDictionary = {
       clear: 'Vaciar la cesta',
       checkout: 'Tramitar pedido',
     },
+    status: {
+      quantityUpdated: 'Cantidad actualizada.',
+      itemRemoved: 'Artículo eliminado de tu cesta.',
+      cartCleared: 'Tu cesta se ha vaciado.',
+    },
   },
 };
 
@@ -228,6 +251,11 @@ const AR_CART: TranslationDictionary = {
       totalsPending: 'تُحسم المجاميع عند إتمام الطلب.',
       clear: 'إفراغ السلة',
       checkout: 'إتمام الطلب',
+    },
+    status: {
+      quantityUpdated: 'تم تحديث الكمية.',
+      itemRemoved: 'تمت إزالة المنتج من سلة التسوق.',
+      cartCleared: 'تم إفراغ سلة التسوق.',
     },
   },
 };
