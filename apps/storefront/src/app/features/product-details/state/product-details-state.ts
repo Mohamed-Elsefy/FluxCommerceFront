@@ -452,25 +452,68 @@ export class ProductDetailsState {
    * normalized to `ApiError` by `loadResourceState`. Aborts complete
    * silently and leave state untouched.
    *
-   * Pricing note: `pricing` is an explicit argument because no
-   * customer-readable contract source exists for it (see the integration
-   * note in `../models`) — the 6.7 page supplies none, so production
-   * submission stays parked until a contract price source (or Phase 7
-   * price sourcing) provides one. Nothing here defaults or estimates it.
-   * Guest submission (cartId lifecycle) unlocks in Phase 7.
+   * Pricing note: `pricing` is an explicit argument projected from the
+   * selected backend-issued variant snapshot (`toAddToCartPricing`).
+   * Nothing here defaults or estimates it. Returns the subscription
+   * (`EMPTY` when a guard rejects) so the caller can observe settle.
+   * Guest submission runs through `submitGuestAddToCart` below.
    */
-  submitAddToCart(pricing: AddToCartPricing, options: ProductDetailsLoadOptions = {}): void {
+  submitAddToCart(
+    pricing: AddToCartPricing,
+    options: ProductDetailsLoadOptions = {},
+  ): Subscription {
     if (this.addToCartStore.isLoading()) {
-      return;
+      return Subscription.EMPTY;
     }
     const item = buildAddToCartItem(this.selectedVariant(), this.quantityStore());
     if (item === null || !isValidAddToCartPricing(pricing)) {
-      return;
+      return Subscription.EMPTY;
     }
     const request: Observable<CartResponse> = this.detailsApi
       .addAuthenticatedCartItem({ ...item, ...pricing }, toApiOptions(options))
       .pipe(map(requireEnvelopeData));
-    loadResourceState(this.addToCartStore, request, { signal: options.signal });
+    return loadResourceState(this.addToCartStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Submits the selected purchasable item and quantity to the GUEST cart
+   * (`POST /cart/guest/{cartId}/items`) with the backend-issued price
+   * snapshot (see ADR 018 — the priced-variant contract change unblocks
+   * production guest submission).
+   *
+   * Guards (all silent, all pre-HTTP — same contract as
+   * `submitAddToCart`, plus identity):
+   * - blank `cartId` (no usable guest identity — the page establishes it
+   *   through the cart feature's `GuestCartService` first);
+   * - an in-flight submission is running → ignored (duplicate-submission
+   *   lock; the button also disables while `adding`);
+   * - no selectable variant, an invalid quantity, or a malformed pricing
+   *   snapshot → ignored with state untouched.
+   *
+   * Otherwise drives the shared `idle → adding → added | error` machine
+   * (one status for the button either way) with failures normalized to
+   * `ApiError`. Returns the subscription (`EMPTY` when a guard rejects)
+   * so the caller can observe settle — e.g. to heal a dead identity after
+   * an identity-invalid failure. Aborts complete silently and leave state
+   * untouched. This file submits lines; it never stores carts, persists
+   * identities, or merges (Phase 7 owns those).
+   */
+  submitGuestAddToCart(
+    cartId: string,
+    pricing: AddToCartPricing,
+    options: ProductDetailsLoadOptions = {},
+  ): Subscription {
+    if (cartId.trim() === '' || this.addToCartStore.isLoading()) {
+      return Subscription.EMPTY;
+    }
+    const item = buildAddToCartItem(this.selectedVariant(), this.quantityStore());
+    if (item === null || !isValidAddToCartPricing(pricing)) {
+      return Subscription.EMPTY;
+    }
+    const request: Observable<CartResponse> = this.detailsApi
+      .addGuestCartItem(cartId.trim(), { ...item, ...pricing }, toApiOptions(options))
+      .pipe(map(requireEnvelopeData));
+    return loadResourceState(this.addToCartStore, request, { signal: options.signal });
   }
 
   /**

@@ -1,0 +1,39 @@
+<div class="quantity-control" role="group" [attr.aria-label]="label">
+  <div class="quantity-control-controls">
+    <button
+      type="button"
+      class="quantity-control-button"
+      (click)="decrease()"
+      [disabled]="disabled || quantity <= minQuantity"
+      [attr.aria-label]="decreaseLabel"
+    >
+      <span aria-hidden="true">−</span>
+    </button>
+    <input
+      class="quantity-control-input"
+      type="text"
+      inputmode="numeric"
+      [value]="quantity"
+      [disabled]="disabled"
+      [attr.aria-label]="label"
+      [attr.aria-invalid]="showInvalid()"
+      [attr.aria-describedby]="showInvalid() ? 'cart-quantity-input-error' : null"
+      (input)="onInput($event)"
+      (blur)="onBlur($event)"
+    />
+    <button
+      type="button"
+      class="quantity-control-button"
+      (click)="increase()"
+      [disabled]="disabled"
+      [attr.aria-label]="increaseLabel"
+    >
+      <span aria-hidden="true">+</span>
+    </button>
+  </div>
+  @if (showInvalid()) {
+    <p id="cart-quantity-input-error" class="quantity-control-error" role="alert">
+      {{ invalidMessage }}
+    </p>
+  }
+</div>

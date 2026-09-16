@@ -914,18 +914,23 @@ namespaces); SSR renders idle shells with dynamic `Title`/`Meta`, and
 settled list pages transfer server → client once per query
 (`docs/adr/014`).
 
-As built in Phase 6 (selection + submission boundary — cart management
-arrives in Phase 7): the details page renders exactly what the
+As built in Phase 6 and unblocked by the priced-variant contract change
+(see `docs/adr/016–018`): the details page renders exactly what the
 contracts carry — name, description, specifications, images
 (`displayOrder`), and the flat variant list (name/selectability) with
-SKU bound live to the selection. Price and availability were requested
-again and refused again for the same reason (no customer-readable
-source; `VariantResponse` is annotated "no price" in three contract
-sources and inventory reads are `Admin`-only), with tests pinning the
-SKU-only surface. The selected variant is the source of truth for
-variant-specific data; submission needs a price snapshot the storefront
-cannot source, so the add-to-cart control stays unmounted while its
-button, machine, façades, and payload ship tested (`docs/adr/016–017`).
+SKU and the backend-issued unit price bound live to the selection
+(price formatted per culture, display only — never an input to math;
+availability still renders nowhere, inventory reads stay `Admin`-only).
+The selected variant is the source of truth for variant-specific data;
+submission projects the snapshot through the validated
+`toAddToCartPricing` helper (display and wire body can never disagree)
+and submits guest lines through the existing machine + façade, with the
+guest `cartId` lifecycle borrowed from the cart feature's
+`GuestCartService` seam (one-way, no cycle) and dead-identity healing
+for the next attempt. The button mounts beside the quantity section,
+gated on selectable variant + valid pricing + established guest
+identity. Authenticated submission stays parked for Phase 7.6 auth
+branching (the page never inspects auth state).
 Product copy is feature-owned per culture (`productDetails`
 namespace); SSR fetches live at request time (`RenderMode.Server`,
 never prerendered) with dynamic `Title`/`Meta`/OpenGraph per

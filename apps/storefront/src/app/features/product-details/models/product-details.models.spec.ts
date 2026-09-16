@@ -23,6 +23,7 @@ import {
   parseProductIdParam,
   parseQuantityInput,
   resolveVariantSelection,
+  toAddToCartPricing,
   toAddToCartStatus,
 } from './product-details.models';
 
@@ -85,6 +86,8 @@ const ACTIVE_VARIANT: ProductVariant = {
   productId: '11111111-1111-1111-1111-111111111111',
   sku: 'TEE-RED-M',
   name: 'Red / M',
+  unitPriceAmount: 29.99,
+  currency: 'USD',
   status: VariantStatus.Active,
   isDeleted: false,
   createdAtUtc: '2026-09-04T10:00:00Z',
@@ -218,6 +221,24 @@ describe('buildAddToCartItem', () => {
     expect(buildAddToCartItem(ACTIVE_VARIANT, 0)).toBeNull();
     expect(buildAddToCartItem(ACTIVE_VARIANT, -1)).toBeNull();
     expect(buildAddToCartItem(ACTIVE_VARIANT, 1.5)).toBeNull();
+  });
+});
+
+describe('toAddToCartPricing', () => {
+  it('projects the backend-issued snapshot from a priced variant', () => {
+    expect(toAddToCartPricing(ACTIVE_VARIANT)).toEqual({
+      unitPriceAmount: 29.99,
+      currency: 'USD',
+    });
+  });
+
+  it('returns null for missing variants and malformed snapshots without throwing', () => {
+    expect(toAddToCartPricing(null)).toBeNull();
+    expect(toAddToCartPricing(undefined)).toBeNull();
+    expect(toAddToCartPricing({ ...ACTIVE_VARIANT, unitPriceAmount: 0 })).toBeNull();
+    expect(toAddToCartPricing({ ...ACTIVE_VARIANT, unitPriceAmount: Number.NaN })).toBeNull();
+    expect(toAddToCartPricing({ ...ACTIVE_VARIANT, currency: 'usd' })).toBeNull();
+    expect(toAddToCartPricing({ ...ACTIVE_VARIANT, currency: '' })).toBeNull();
   });
 });
 

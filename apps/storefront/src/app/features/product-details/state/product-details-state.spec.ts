@@ -107,6 +107,8 @@ const VARIANTS: VariantResponse[] = [
     productId: PRODUCT_ID,
     sku: 'TEE-RED-M',
     name: 'Red / M',
+    unitPriceAmount: 29.99,
+    currency: 'USD',
     status: VariantStatus.Active,
     isDeleted: false,
     createdAtUtc: '2026-09-04T10:00:00Z',
@@ -117,6 +119,8 @@ const VARIANTS: VariantResponse[] = [
     productId: PRODUCT_ID,
     sku: 'TEE-BLUE-M',
     name: 'Blue / M',
+    unitPriceAmount: 14.5,
+    currency: 'USD',
     status: VariantStatus.Inactive,
     isDeleted: false,
     createdAtUtc: '2026-09-04T10:00:00Z',
@@ -134,6 +138,7 @@ function setup(flows: {
   listProductImages?: () => ReturnType<ProductDetailsApiService['listProductImages']>;
   listProductVariants?: () => ReturnType<ProductDetailsApiService['listProductVariants']>;
   addAuthenticatedCartItem?: () => ReturnType<ProductDetailsApiService['addAuthenticatedCartItem']>;
+  addGuestCartItem?: () => ReturnType<ProductDetailsApiService['addGuestCartItem']>;
 }): {
   state: ProductDetailsState;
   seenSignals: (AbortSignal | undefined)[];
@@ -142,6 +147,7 @@ function setup(flows: {
   imageIds: unknown[];
   variantIds: unknown[];
   cartBodies: unknown[];
+  guestCartPosts: { cartId: unknown; body: unknown }[];
 } {
   const seenSignals: (AbortSignal | undefined)[] = [];
   const ids: unknown[] = [];
@@ -149,6 +155,7 @@ function setup(flows: {
   const imageIds: unknown[] = [];
   const variantIds: unknown[] = [];
   const cartBodies: unknown[] = [];
+  const guestCartPosts: { cartId: unknown; body: unknown }[] = [];
   const apiStub = {
     getProduct: ((id: unknown, options: { signal?: AbortSignal } = {}) => {
       ids.push(id);
@@ -175,6 +182,11 @@ function setup(flows: {
       seenSignals.push(options.signal);
       return flows.addAuthenticatedCartItem?.() ?? of({ isSuccess: true, data: CART_RESULT });
     },
+    addGuestCartItem: (cartId: unknown, body: unknown, options: { signal?: AbortSignal } = {}) => {
+      guestCartPosts.push({ cartId, body });
+      seenSignals.push(options.signal);
+      return flows.addGuestCartItem?.() ?? of({ isSuccess: true, data: CART_RESULT });
+    },
   } as ProductDetailsApiService;
 
   TestBed.configureTestingModule({
@@ -188,6 +200,7 @@ function setup(flows: {
     imageIds,
     variantIds,
     cartBodies,
+    guestCartPosts,
   };
 }
 
@@ -756,6 +769,92 @@ describe('ProductDetailsState add-to-cart submission', () => {
     expect(state.selectedVariantId()).toBe(ACTIVE_VARIANT_ID);
     expect(state.quantity()).toBe(2);
     expect(state.variants().status).toBe('success');
+  });
+});
+
+describe('ProductDetailsState guest add-to-cart submission (ADR 018)', () => {
+  const GUEST_CART_ID = '11111111-1111-4111-8111-111111111111';
+
+  function guestSubmittable(): {
+    state: ProductDetailsState;
+    guestCartPosts: { cartId: unknown; body: unknown }[];
+  } {
+    const harness = setup({});
+    harness.state.loadProductVariants(PRODUCT_ID);
+    harness.state.selectVariant(ACTIVE_VARIANT_ID);
+    harness.state.setQuantity(2);
+    return harness;
+  }
+
+  it('submits the purchasable item, quantity, and variant pricing to the guest cart', () => {
+    const { state, guestCartPosts } = guestSubmittable();
+    const submission = state.submitGuestAddToCart(GUEST_CART_ID, PRICING);
+
+    expect(guestCartPosts).toEqual([
+      {
+        cartId: GUEST_CART_ID,
+        body: {
+          variantId: ACTIVE_VARIANT_ID,
+          quantity: 2,
+          unitPriceAmount: 29.99,
+          currency: 'USD',
+        } satisfies AddCartItemRequest,
+      },
+    ]);
+    expect(state.addToCartStatus()).toBe('added');
+    expect(state.addToCartError()).toBeNull();
+    expect(submission.closed).toBe(true);
+  });
+
+  it('rejects blank cart ids without fetching', () => {
+    const { state, guestCartPosts } = guestSubmittable();
+    const submission = state.submitGuestAddToCart('   ', PRICING);
+
+    expect(guestCartPosts).toHaveLength(0);
+    expect(state.addToCartStatus()).toBe('idle');
+    expect(submission.closed).toBe(true);
+  });
+
+  it('ignores submissions without a selectable variant, valid quantity, or valid pricing', () => {
+    const fresh = setup({});
+    fresh.state.loadProductVariants(PRODUCT_ID);
+    fresh.state.submitGuestAddToCart(GUEST_CART_ID, PRICING);
+    expect(fresh.state.addToCartStatus()).toBe('idle');
+    expect(fresh.guestCartPosts).toHaveLength(0);
+
+    TestBed.resetTestingModule();
+    const { state, guestCartPosts } = guestSubmittable();
+    state.submitGuestAddToCart(GUEST_CART_ID, { unitPriceAmount: 0, currency: 'USD' });
+    state.submitGuestAddToCart(GUEST_CART_ID, { unitPriceAmount: 29.99, currency: 'usd' });
+    expect(guestCartPosts).toHaveLength(0);
+    expect(state.addToCartStatus()).toBe('idle');
+  });
+
+  it('locks duplicate guest submissions while a request is in flight', () => {
+    const { state, guestCartPosts } = setup({
+      addGuestCartItem: () => new Observable<ApiResponseWithData<CartResponse>>(() => {}),
+    });
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.submitGuestAddToCart(GUEST_CART_ID, PRICING);
+    state.submitGuestAddToCart(GUEST_CART_ID, PRICING);
+
+    expect(guestCartPosts).toHaveLength(1);
+    expect(state.addToCartStatus()).toBe('adding');
+  });
+
+  it('resolves guest failures to error with a normalized ApiError', () => {
+    const rejection = new ApiError({ status: 404, message: 'Cart not found.' });
+    const { state, guestCartPosts } = setup({
+      addGuestCartItem: () => throwError(() => rejection),
+    });
+    state.loadProductVariants(PRODUCT_ID);
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.submitGuestAddToCart(GUEST_CART_ID, PRICING);
+
+    expect(guestCartPosts).toHaveLength(1);
+    expect(state.addToCartStatus()).toBe('error');
+    expect(state.addToCartError()).toBe(rejection);
   });
 });
 

@@ -1,29 +1,29 @@
 /**
- * Product Details E2E journey for Sub-Phase 6.10 — Testing.
+ * Product Details E2E journey for Sub-Phase 6.10 — Testing (guest
+ * submission unblocked by the priced-variant contract change, ADR 018).
  *
  * Covers the critical customer flow end to end through the real
  * storefront (routing, param handling, components, resource states):
  *
  * ```text
  * Home → Category → Product Listing → Product Details →
- * Select Variant → SKU binding → Select Quantity
+ * Select Variant → SKU + backend-issued price binding →
+ * Select Quantity → Guest Add to Cart → Added confirmation
  * ```
  *
  * Transport is mocked at the network boundary (`page.route`) with
  * backend-faithful fixtures (numeric wire enums, `ApiResponse` envelopes,
- * camelCase casing, `displayOrder` image ordering): no live backend runs
- * in this environment — while the unit integration spec
- * (`product-details-integration.spec.ts`) proves the live contract path
- * with contract-exact fixtures. The handlers below stay isolated in
- * `mockProductDetailsApi` so the same journey runs live by dropping them
- * once seed data allows it.
+ * camelCase casing, `displayOrder` image ordering, backend-issued variant
+ * pricing): no live backend runs in this environment — while the unit
+ * integration spec (`product-details-integration.spec.ts`) proves the
+ * live contract path with contract-exact fixtures. The handlers below
+ * stay isolated in `mockProductDetailsApi` so the same journey runs live
+ * by dropping them once seed data allows it.
  *
- * Submission boundary (Sub-Phase 6.7 contract gap): the wire bodies
- * (`AddCartItemRequest`) require a price snapshot for which no
- * customer-readable contract source exists, so the page mounts no
- * add-to-cart control yet. The journey therefore ends at quantity
- * selection, and a dedicated test pins the parked boundary so Phase 7
- * crosses it consciously.
+ * Submission (ADR 018): the priced-variant contract change provides the
+ * wire snapshot, so the page mounts the control and submits guest lines
+ * through the cart lifecycle; a dedicated test pins the exact guest
+ * request body.
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
@@ -109,6 +109,8 @@ function variantsPayload(): Record<string, unknown>[] {
       productId: PRODUCT_ID,
       sku: 'TEE-RED-M',
       name: 'Red / M',
+      unitPriceAmount: 29.99,
+      currency: 'USD',
       status: 0,
       isDeleted: false,
       createdAtUtc: '2026-09-04T10:00:00Z',
@@ -119,12 +121,39 @@ function variantsPayload(): Record<string, unknown>[] {
       productId: PRODUCT_ID,
       sku: 'TEE-BLUE-M',
       name: 'Blue / M',
+      unitPriceAmount: 14.5,
+      currency: 'USD',
       status: 1,
       isDeleted: false,
       createdAtUtc: '2026-09-04T10:00:00Z',
       deletedAtUtc: null,
     },
   ];
+}
+
+const GUEST_CART_ID = '11111111-1111-4111-8111-111111111111';
+
+function guestCartPayload(): Record<string, unknown> {
+  return {
+    cartId: GUEST_CART_ID,
+    userId: null,
+    version: 2,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    updatedAtUtc: '2026-09-04T10:05:00Z',
+    items: [
+      {
+        productId: PRODUCT_ID,
+        variantId: ACTIVE_VARIANT_ID,
+        sku: 'TEE-RED-M',
+        productName: 'Tee',
+        unitPriceAmount: 29.99,
+        currency: 'USD',
+        quantity: 1,
+      },
+    ],
+    isGuest: true,
+    isAuthenticated: false,
+  };
 }
 
 /** Development backend origin (dev `ng serve` environment, never the app itself). */
@@ -195,6 +224,12 @@ async function mockProductDetailsApi(page: Page): Promise<void> {
   await page.route(api(`/catalog/products/${PRODUCT_ID}/variants`), (route) =>
     route.fulfill({ json: envelope(variantsPayload()) }),
   );
+  await page.route(api('/cart/guest'), (route) =>
+    route.fulfill({ status: 201, json: envelope({ ...guestCartPayload(), items: [] }) }),
+  );
+  await page.route(api(`/cart/guest/${GUEST_CART_ID}/items`), (route) =>
+    route.fulfill({ json: envelope(guestCartPayload()) }),
+  );
   await page.route(
     (url) => url.pathname.startsWith('/images/'),
     (route: Route) => route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL_PNG }),
@@ -241,19 +276,43 @@ test('completes the discovery-to-details journey with variant, SKU, and quantity
   await expect(page.getByRole('textbox', { name: 'Quantity' })).toHaveValue('2');
 });
 
-test('defers submission without a contract price source (no add-to-cart control)', async ({
+test('submits the guest line with the backend-issued price snapshot (ADR 018)', async ({
   page,
 }) => {
-  // Boundary pin (Sub-Phase 6.7): the wire bodies demand a price snapshot
-  // with no customer-readable contract source, so the page mounts no
-  // submission control. Phase 7 removes this test when it mounts the
-  // control beside its price source.
+  // Capture the exact wire body: the snapshot must come from the selected
+  // backend-issued variant, never from local math or defaults.
+  let submittedBody: unknown = null;
+  await page.unroute(
+    (url) =>
+      url.origin === DETAILS_API_ORIGIN && url.pathname === `/cart/guest/${GUEST_CART_ID}/items`,
+  );
+  await page.route(
+    (url) =>
+      url.origin === DETAILS_API_ORIGIN && url.pathname === `/cart/guest/${GUEST_CART_ID}/items`,
+    (route: Route) => {
+      submittedBody = route.request().postDataJSON();
+      route.fulfill({ json: envelope(guestCartPayload()) });
+    },
+  );
+
   await page.goto(`/catalog/products/${PRODUCT_ID}`);
   await expect(page.getByRole('heading', { name: 'Tee' })).toBeVisible();
 
-  expect(await page.locator('product-details-add-to-cart').count()).toBe(0);
-  await expect(page.locator('product-details-variant-selector')).toBeVisible();
-  await expect(page.locator('product-details-quantity-selector')).toBeVisible();
+  await page.getByRole('button', { name: 'Red / M' }).click();
+  await expect(page.getByText('TEE-RED-M', { exact: true })).toBeVisible();
+  await expect(page.getByText('$29.99', { exact: true })).toBeVisible();
+
+  const add = page.getByRole('button', { name: 'Add to cart' });
+  await expect(add).toBeEnabled();
+  await add.click();
+
+  await expect(page.getByText('Added to cart.')).toBeVisible();
+  expect(submittedBody).toEqual({
+    variantId: ACTIVE_VARIANT_ID,
+    unitPriceAmount: 29.99,
+    currency: 'USD',
+    quantity: 1,
+  });
 });
 
 test('shows Product Not Found with a working back link', async ({ page }) => {

@@ -114,8 +114,9 @@ export class ProductDetailsApiService {
 
   /**
    * `GET /catalog/products/{productId}/variants` — anonymous. Flat variant
-   * list (`id`/`sku`/`name`/`status`, no option dimensions, no
-   * price/currency); no pagination, sorting, or filtering on the backend.
+   * list (`id`/`sku`/`name`, backend-issued `unitPriceAmount` + `currency`,
+   * `status`, no option dimensions); no pagination, sorting, or filtering
+   * on the backend.
    * Success: `200 ApiResponse<VariantResponse[]>`.
    * Failures: `400` validation, `404` unknown product.
    */

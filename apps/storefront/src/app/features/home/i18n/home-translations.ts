@@ -25,6 +25,9 @@ export const HOME_TRANSLATION_KEYS = {
   discoveryTitle: 'home.discovery.title',
   discoverySubtitle: 'home.discovery.subtitle',
   discoveryLink: 'home.discovery.link',
+  cartTitle: 'home.cart.title',
+  cartSubtitle: 'home.cart.subtitle',
+  cartLink: 'home.cart.link',
 } as const;
 
 /** English (`en`) home vocabulary. Also the deterministic fallback source. */
@@ -34,6 +37,11 @@ const EN_HOME: TranslationDictionary = {
       title: 'Discover products',
       subtitle: 'Browse the catalog through its categories.',
       link: 'Browse categories',
+    },
+    cart: {
+      title: 'Your cart',
+      subtitle: 'Review your selected items and continue toward checkout.',
+      link: 'View your cart',
     },
   },
 };
@@ -46,6 +54,11 @@ const FR_HOME: TranslationDictionary = {
       subtitle: 'Parcourez le catalogue par catégories.',
       link: 'Parcourir les catégories',
     },
+    cart: {
+      title: 'Votre panier',
+      subtitle: 'Vérifiez vos articles et continuez vers la commande.',
+      link: 'Voir votre panier',
+    },
   },
 };
 
@@ -56,6 +69,11 @@ const DE_HOME: TranslationDictionary = {
       title: 'Produkte entdecken',
       subtitle: 'Stöbern Sie anhand der Kategorien im Katalog.',
       link: 'Kategorien durchsuchen',
+    },
+    cart: {
+      title: 'Ihr Warenkorb',
+      subtitle: 'Prüfen Sie Ihre Auswahl und fahren Sie mit der Bestellung fort.',
+      link: 'Warenkorb ansehen',
     },
   },
 };
@@ -68,6 +86,11 @@ const ES_HOME: TranslationDictionary = {
       subtitle: 'Explore el catálogo por categorías.',
       link: 'Explorar las categorías',
     },
+    cart: {
+      title: 'Tu cesta',
+      subtitle: 'Revisa tus artículos y continúa hacia el pedido.',
+      link: 'Ver tu cesta',
+    },
   },
 };
 
@@ -78,6 +101,11 @@ const AR_HOME: TranslationDictionary = {
       title: 'اكتشف المنتجات',
       subtitle: 'تصفّح الكتالوج عبر الفئات.',
       link: 'تصفح الفئات',
+    },
+    cart: {
+      title: 'سلة التسوق',
+      subtitle: 'راجع المنتجات المختارة وتابع نحو إتمام الطلب.',
+      link: 'عرض سلة التسوق',
     },
   },
 };

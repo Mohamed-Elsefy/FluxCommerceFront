@@ -186,12 +186,14 @@ export interface CategoryResponse {
   deletedAtUtc?: IsoDateString | null;
 }
 
-/** Variant payload — carries no price/currency fields. */
+/** Variant payload — backend-issued unit price snapshot plus currency. */
 export interface VariantResponse {
   id: Guid;
   productId: Guid;
   sku: string;
   name: string;
+  unitPriceAmount: number;
+  currency: string;
   status: VariantStatus;
   isDeleted: boolean;
   createdAtUtc: IsoDateString;
@@ -266,11 +268,13 @@ export interface CatalogImageSummary {
   isPrimary: boolean;
 }
 
-/** Variant summary for product details. */
+/** Variant summary for product details — backend-issued unit price snapshot plus currency. */
 export interface CatalogVariantSummary {
   id: Guid;
   sku: string;
   name: string;
+  unitPriceAmount: number;
+  currency: string;
 }
 
 /** Attribute summary for product details. */

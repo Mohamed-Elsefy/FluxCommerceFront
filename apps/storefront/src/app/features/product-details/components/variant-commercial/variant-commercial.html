@@ -10,6 +10,12 @@
         <dt>{{ skuLabel }}</dt>
         <dd>{{ variant.sku }}</dd>
       </div>
+      @if (priceText !== null) {
+        <div class="variant-commercial-row">
+          <dt>{{ priceLabel }}</dt>
+          <dd>{{ priceText }}</dd>
+        </div>
+      }
     </dl>
   }
 </section>

@@ -28,6 +28,8 @@ function variant(
     productId: PRODUCT_ID,
     sku: `SKU-${id}`,
     name,
+    unitPriceAmount: 29.99,
+    currency: 'USD',
     status: VariantStatus.Active,
     isDeleted: false,
     createdAtUtc: '2026-09-04T10:00:00Z',

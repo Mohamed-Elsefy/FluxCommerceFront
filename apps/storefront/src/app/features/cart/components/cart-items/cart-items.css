@@ -1,0 +1,16 @@
+/* Cart items list (Sub-Phase 7.4). Semantic list, unstyled except for
+  separation reset; line separation lives on the item. Logical properties
+  only (RTL-safe); visual values come from theming tokens. */
+
+.cart-items-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  margin-block: 0 var(--spacing-lg);
+}
+
+.cart-items-list {
+  list-style: none;
+  margin-block: 0;
+  padding-inline-start: 0;
+}

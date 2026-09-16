@@ -906,6 +906,9 @@ Cart**. No cart pages, cart state, persistence, or merge exist yet.
 
 # 28. Phase 7 — Shopping Cart
 
+Status: **Complete** (2026-09-16) — see
+`docs/completed/PHASE_7_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Guest cart
@@ -933,6 +936,20 @@ Authenticated Cart
 ```
 
 The merge scenario must have automated test coverage.
+
+All Phase 7 acceptance criteria are satisfied (guest cart with
+contract-persisted identity and expiration recovery; authenticated
+cart established session-driven with refresh retention; full CRUD in
+both contexts; backend-authoritative totals with no local price math;
+feature-local signal state; Guest → Login → Cart Merge with
+backend-atomic behavior, duplicate prevention, and failure handling;
+loading/empty/success/error states; 5-culture localization with
+RTL-safe rendering and polite success announcements; responsive
+single-component UI; keyboard/ARIA coverage with focus repair;
+unit/component/integration tests; mandatory merge E2E journey plus
+edge suites; boundary audit 8/8; architecture audit 97/97). The
+baseline is ready for **Phase 8 — Checkout**. No checkout, payment,
+order, or shipping logic exists in the Phase 7 touchpoints.
 
 ---
 

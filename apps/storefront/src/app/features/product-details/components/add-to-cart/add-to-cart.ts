@@ -23,11 +23,13 @@
  * SSR/hydration safe: static markup from inputs only, no browser APIs.
  * RTL safe: logical properties only, no direction branching.
  *
- * Mount note: the 6.7 page does not mount this component yet — submission
- * requires a contract price source that does not exist (see the
- * integration note in `../../models`), and mounting a control that can
- * never succeed would mislead customers. It mounts in Phase 7 beside the
- * price source as:
+ * Mount note: the page mounts this component beside the quantity
+ * section (ADR 018 — the priced-variant contract change provides the
+ * snapshot, so the control can succeed). The page binds lifecycle,
+ * guards, copy, and the `add` handler per the snippet below; the control
+ * stays disabled until the page's `canSubmit` guard (selectable variant,
+ * valid pricing, established guest identity, no in-flight submission)
+ * allows activation.
  *
  * ```html
  * <product-details-add-to-cart

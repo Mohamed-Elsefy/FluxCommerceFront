@@ -12,13 +12,11 @@
  *     ↓ Backend Catalog/Cart API contracts (contract-exact fixtures)
  * ```
  *
- * And the purchase path:
+ * And the purchase paths (authenticated + guest, ADR 018):
  *
  * ```text
- * Selected Variant + Quantity (+ explicit price snapshot — no
- * customer-readable contract source exists; see the integration note in
- * `../models`)
- *     ↓ POST /cart/items
+ * Selected Variant + Quantity + backend-issued price snapshot
+ *     ↓ POST /cart/items (authenticated) | POST /cart/guest/{id}/items (guest)
  *     ↓ added | error
  * ```
  *
@@ -112,6 +110,8 @@ function variantsPayload(): Record<string, unknown>[] {
       productId: PRODUCT_ID,
       sku: 'TEE-RED-M',
       name: 'Red / M',
+      unitPriceAmount: 29.99,
+      currency: 'USD',
       status: VariantStatus.Active,
       isDeleted: false,
       createdAtUtc: '2026-09-04T10:00:00Z',
@@ -122,6 +122,8 @@ function variantsPayload(): Record<string, unknown>[] {
       productId: PRODUCT_ID,
       sku: 'TEE-BLUE-M',
       name: 'Blue / M',
+      unitPriceAmount: 14.5,
+      currency: 'USD',
       status: VariantStatus.Inactive,
       isDeleted: false,
       createdAtUtc: '2026-09-04T10:00:00Z',
@@ -302,5 +304,31 @@ describe('product-details feature integration (state → api → contract)', () 
 
     expect(state.addToCartStatus()).toBe('error');
     expect(state.addToCartError()?.status).toBe(409);
+  });
+
+  it('submits the backend-issued variant snapshot to the guest cart with the exact body', () => {
+    const guestCartId = '11111111-1111-4111-8111-111111111111';
+    state.loadProductVariants(PRODUCT_ID);
+    http
+      .expectOne(`/api/catalog/products/${PRODUCT_ID}/variants`)
+      .flush(envelope(variantsPayload()));
+
+    state.selectVariant(ACTIVE_VARIANT_ID);
+    state.setQuantity(2);
+    state.submitGuestAddToCart(guestCartId, { unitPriceAmount: 29.99, currency: 'USD' });
+
+    const pending = http.expectOne(`/api/cart/guest/${guestCartId}/items`);
+    expect(pending.request.method).toBe('POST');
+    expect(pending.request.body).toEqual({
+      variantId: ACTIVE_VARIANT_ID,
+      unitPriceAmount: 29.99,
+      currency: 'USD',
+      quantity: 2,
+    });
+
+    pending.flush(envelope({ ...cartPayload(), isGuest: true, isAuthenticated: false }));
+
+    expect(state.addToCartStatus()).toBe('added');
+    expect(state.addToCartError()).toBeNull();
   });
 });
