@@ -83,6 +83,7 @@ function cartEnvelope(cart: Cart = guestCart()): ApiResponseWithData<Cart> {
 
 const STATE_METHODS = [
   'createGuestCart',
+  'getOrCreateCart',
   'getGuestCart',
   'getCart',
   'addGuestCartItem',
@@ -758,6 +759,73 @@ describe('CartState guest creation (Sub-Phase 7.5)', () => {
     state.createGuestCart();
 
     expect(methodsOf(calls)).toEqual(['createGuestCart']);
+    expect(state.activeOperation()).toBe('load');
+  });
+});
+
+describe('CartState authenticated establish (Sub-Phase 7.6)', () => {
+  it('establishes the authenticated cart with no prior identity and adopts it', () => {
+    const { state, calls } = setup({ getOrCreateCart: () => of(cartEnvelope(authCart())) });
+
+    state.ensureAuthenticatedCart();
+
+    expect(methodsOf(calls)).toEqual(['getOrCreateCart']);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+    expect(state.cart().status).toBe('success');
+    expect(state.data()?.userId).toBe(USER_ID);
+    expect(state.owner()).toBe('authenticated');
+    expect(state.activeOperation()).toBeNull();
+  });
+
+  it('lands an empty authenticated cart as empty', () => {
+    const { state } = setup({
+      getOrCreateCart: () => of(cartEnvelope(authCart({ items: [] }))),
+    });
+
+    state.ensureAuthenticatedCart();
+
+    expect(state.cart().status).toBe('empty');
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+  });
+
+  it('resolves establish failures to error without adopting identity', () => {
+    const rejection = new ApiError({ status: 401, message: 'Anonymous.' });
+    const { state } = setup({ getOrCreateCart: () => throwError(() => rejection) });
+
+    state.ensureAuthenticatedCart();
+
+    expect(state.cart().status).toBe('error');
+    expect(state.cart().error).toBe(rejection);
+    expect(state.identity()).toBeNull();
+    expect(state.activeOperation()).toBeNull();
+  });
+
+  it('rejects a dataless establish echo as a contract violation', () => {
+    const { state } = setup({ getOrCreateCart: () => of({ isSuccess: true }) });
+
+    state.ensureAuthenticatedCart();
+
+    expect(state.cart().status).toBe('error');
+    expect(state.identity()).toBeNull();
+  });
+
+  it('rejects a non-authenticated establish echo as a contract violation', () => {
+    const { state } = setup({ getOrCreateCart: () => of(cartEnvelope(guestCart())) });
+
+    state.ensureAuthenticatedCart();
+
+    expect(state.cart().status).toBe('error');
+    expect(state.identity()).toBeNull();
+  });
+
+  it('respects the one-at-a-time lock while establishing', () => {
+    const pending = new Observable<ApiResponseWithData<Cart>>(() => undefined);
+    const { state, calls } = setup({ getOrCreateCart: () => pending });
+
+    state.ensureAuthenticatedCart();
+    state.ensureAuthenticatedCart();
+
+    expect(methodsOf(calls)).toEqual(['getOrCreateCart']);
     expect(state.activeOperation()).toBe('load');
   });
 });

@@ -1,6 +1,7 @@
 /**
  * Storefront Cart page for Sub-Phase 7.4 — Cart Page & UI — plus the
- * Sub-Phase 7.5 guest lifecycle.
+ * Sub-Phase 7.5 guest lifecycle and the Sub-Phase 7.6 auth-driven
+ * lifecycle.
  *
  * Smart page (route-level composition): drives the feature-scoped
  * `CartState` (provided by the parent `cartRoutes` entry — never a
@@ -11,25 +12,27 @@
  *
  * ```text
  * CartPage (this file — orchestration only)
- *     ↓ GuestCartService (7.5 guest lifecycle — WHEN identity is established)
- *     ↓ CartState (state/, feature-owned local Signals)
+ *     ↓ AuthenticatedCartService (7.6 session lifecycle — WHEN identity follows the session)
+ *     ↓ GuestCartService (7.5 guest branch) + CartState (state/, feature-owned local Signals)
  *     ↓ CartApiService (feature data access)
  *     ↓ ApiClient (@flux/api — the ONLY HttpClient user)
  *     ↓ Backend Cart API
  * ```
  *
  * Page contract:
- * - `ngOnInit` boots the guest lifecycle (`GuestCartService.initialize`):
- *   first visit creates the guest cart and persists the backend-issued
- *   id; return visits load the stored id; expired/invalid stored ids
- *   are dropped and replaced with a fresh cart. Initialization is
- *   browser-only — the server renders the standby state and the client
- *   establishes identity after hydration. The page never reads
- *   `localStorage`, never inspects auth state, and never triggers merges.
+ * - First render flows through the session lifecycle (owned by the
+ *   service constructor effect): restoration pending → standby;
+ *   anonymous → guest create/load/recover; authenticated → establish
+ *   the backend cart (GET-first, single-shot get-or-create fallback).
+ *   Synchronization is browser-only — the server renders the standby
+ *   state and the client establishes identity after hydration. The page
+ *   never reads `localStorage`, never inspects auth state itself, and
+ *   never triggers merges.
  * - Quantity, remove, and clear intents forward to feature state
- *   (validated there — invalid values are ignored).
- * - Error retry re-enters the guest lifecycle (a dead stored identity
- *   recovers to a fresh cart instead of refetching the same 404).
+ *   (validated there — invalid values are ignored; routing follows the
+ *   established identity, guest or authenticated).
+ * - Error retry re-enters the session lifecycle (a dead identity
+ *   recovers instead of refetching the same failure).
  * - Rendering follows stale-while-revalidate: settled content stays
  *   mounted during reloads and in-flight mutations (controls freeze via
  *   `activeOperation`) and on mutation failures (an error banner renders
@@ -64,8 +67,7 @@
  * APIs. RTL safe: logical properties only, no direction branching.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 7.6 — no authenticated identity, no auth-state inspection.
- * - 7.7 — no merge wiring.
+ * - 7.7 — no merge wiring or merge triggering.
  * - Phase 8 — no checkout page, shipping, tax, order, or payment logic.
  */
 
@@ -92,7 +94,7 @@ import { CartItems, type CartLineQuantityChange } from '../../components/cart-it
 import type { CartItemLabels, CartItemView } from '../../components/cart-item/cart-item';
 import { CartSummary } from '../../components/cart-summary/cart-summary';
 import { CartState } from '../../state/cart-state';
-import { GuestCartService } from '../../state/guest-cart.service';
+import { AuthenticatedCartService } from '../../state/authenticated-cart.service';
 import { hasBackendTotals, type CartMoney } from '../../models/cart.models';
 import { CART_TRANSLATION_KEYS, translateCartKey } from '../../i18n/cart-translations';
 
@@ -105,7 +107,7 @@ import { CART_TRANSLATION_KEYS, translateCartKey } from '../../i18n/cart-transla
 })
 export class CartPage implements OnInit {
   private readonly state = inject(CartState);
-  private readonly guestCart = inject(GuestCartService);
+  private readonly authCart = inject(AuthenticatedCartService);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
 
@@ -201,10 +203,10 @@ export class CartPage implements OnInit {
   }
 
   ngOnInit(): void {
-    // Boots the Sub-Phase 7.5 guest lifecycle (create/load/recover);
-    // browser-only inside the service, so the server pass renders the
-    // standby shell and the client establishes identity after hydration.
-    this.guestCart.initialize();
+    // First render flows through the session lifecycle owned by the
+    // service constructor effect (standby → guest/authenticated) — no
+    // explicit call here, so init cannot double-fire. Server pass stays
+    // standby (browser-only inside the service).
     this.title.setTitle(`${this.copy().title} | FluxCommerce`);
   }
 
@@ -223,9 +225,9 @@ export class CartPage implements OnInit {
     this.state.clearCart();
   }
 
-  /** Re-enters the guest lifecycle (recovers dead identities to a fresh cart). */
+  /** Re-enters the session lifecycle (recovers dead identities instead of refetching). */
   protected onRetry(): void {
-    this.guestCart.initialize();
+    this.authCart.synchronize();
   }
 }
 

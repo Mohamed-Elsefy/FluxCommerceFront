@@ -454,23 +454,25 @@ export class ProductDetailsState {
    *
    * Pricing note: `pricing` is an explicit argument projected from the
    * selected backend-issued variant snapshot (`toAddToCartPricing`).
-   * Nothing here defaults or estimates it. Authenticated submission stays
-   * parked until Phase 7.6/8 auth branching routes it (the page never
-   * inspects auth state); guest submission runs through
-   * `submitGuestAddToCart` below.
+   * Nothing here defaults or estimates it. Returns the subscription
+   * (`EMPTY` when a guard rejects) so the caller can observe settle.
+   * Guest submission runs through `submitGuestAddToCart` below.
    */
-  submitAddToCart(pricing: AddToCartPricing, options: ProductDetailsLoadOptions = {}): void {
+  submitAddToCart(
+    pricing: AddToCartPricing,
+    options: ProductDetailsLoadOptions = {},
+  ): Subscription {
     if (this.addToCartStore.isLoading()) {
-      return;
+      return Subscription.EMPTY;
     }
     const item = buildAddToCartItem(this.selectedVariant(), this.quantityStore());
     if (item === null || !isValidAddToCartPricing(pricing)) {
-      return;
+      return Subscription.EMPTY;
     }
     const request: Observable<CartResponse> = this.detailsApi
       .addAuthenticatedCartItem({ ...item, ...pricing }, toApiOptions(options))
       .pipe(map(requireEnvelopeData));
-    loadResourceState(this.addToCartStore, request, { signal: options.signal });
+    return loadResourceState(this.addToCartStore, request, { signal: options.signal });
   }
 
   /**

@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { AuthenticatedCartService } from '../cart/state/authenticated-cart.service';
 import { CartState } from '../cart/state/cart-state';
 import { GuestCartService } from '../cart/state/guest-cart.service';
 import { ProductDetailsPage } from './pages/product-details/product-details-page';
@@ -22,6 +23,7 @@ describe('productDetailsRoutes', () => {
     expect(productDetailsRoutes[0]?.providers).toContain(ProductDetailsState);
     expect(productDetailsRoutes[0]?.providers).toContain(CartState);
     expect(productDetailsRoutes[0]?.providers).toContain(GuestCartService);
+    expect(productDetailsRoutes[0]?.providers).toContain(AuthenticatedCartService);
   });
 
   it('lazy-loads the details page on the :id child', async () => {

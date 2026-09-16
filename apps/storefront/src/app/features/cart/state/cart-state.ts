@@ -1,9 +1,10 @@
 /**
  * Feature-owned Cart state for Sub-Phase 7.3 — Cart Feature State —
- * plus the Sub-Phase 7.5 guest-creation transition.
+ * plus the Sub-Phase 7.5 guest-creation and Sub-Phase 7.6
+ * authenticated-establish transitions.
  *
- * Scope: `docs/phases/PHASE_7_SHOPPING_CART.md` §§7.3/7.5 (state only —
- * no UI, no identity persistence, no merge wiring).
+ * Scope: `docs/phases/PHASE_7_SHOPPING_CART.md` §§7.3/7.5/7.6 (state
+ * only — no UI, no identity persistence, no merge wiring).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -56,8 +57,12 @@
  *   (that lives in `GuestCartService`); `setIdentity` stays the explicit
  *   seam those flows drive, and `createGuestCart` is the creation
  *   transport they drive.
- * - 7.7 — no merge triggering or merge-effect guards. `mergeCart`
- *   transports only and never adopts identity or triggers follow-ups.
+ * - 7.6 — no auth-state inspection (that lives in `AuthService` and the
+ *   `AuthenticatedCartService` driving `setIdentity`/`ensureAuthenticatedCart`
+ *   below); this file only routes established identities to their endpoints.
+ * - 7.7 — no merge triggering or merge-effect guards (triggering lives
+ *   in `AuthenticatedCartService` since 7.7). `mergeCart` transports
+ *   only and never adopts identity or triggers follow-ups.
  * - Phase 8 — no checkout, payment, or order logic.
  */
 
@@ -79,6 +84,7 @@ import {
   createGuestCartIdentity,
   getCartItemCount,
   getCartOwner,
+  isAuthenticatedCart,
   isEmptyCartData,
   isGuestCart,
   isValidCartQuantity,
@@ -213,6 +219,26 @@ export class CartState {
       () => this.cartApi.createGuestCart(toApiOptions(options)),
       options,
       (cart) => this.adoptCreatedGuestIdentity(cart),
+    );
+  }
+
+  /**
+   * Establishes the caller's authenticated cart (`POST /cart` —
+   * get-or-create: returns the existing cart or creates one; no body,
+   * the server resolves the user from the JWT session) and adopts the
+   * authenticated identity in one transition (no follow-up `GET`). A
+   * dataless envelope or a non-authenticated echo is a contract violation
+   * surfacing as `error` — same rule as `requireEnvelopeData`. Needs no
+   * prior identity (this is how the authenticated identity is
+   * established after login or session restoration). Nothing is persisted
+   * locally: the backend owns the authenticated cart across refreshes.
+   */
+  ensureAuthenticatedCart(options: CartActionOptions = {}): Subscription {
+    return this.runOperation(
+      'load',
+      () => this.cartApi.getOrCreateCart(toApiOptions(options)),
+      options,
+      (cart) => this.adoptEnsuredAuthenticatedIdentity(cart),
     );
   }
 
@@ -434,6 +460,24 @@ export class CartState {
       });
     }
     this.identityStore.set(identity);
+  }
+
+  /**
+   * Adopts the authenticated identity from a get-or-create echo
+   * (`ensureAuthenticatedCart` only). Throws (→ normalized slot `error`)
+   * when the echo is not an authenticated cart — the caller must never
+   * show another identity's cart. Pure backend echo handling: performs
+   * no HTTP and writes no storage (backend persistence owns refreshes).
+   */
+  private adoptEnsuredAuthenticatedIdentity(cart: Cart): void {
+    if (!isAuthenticatedCart(cart)) {
+      throw new ApiError({
+        status: 200,
+        code: UNKNOWN_ERROR_CODE,
+        message: 'The server returned a cart without an authenticated identity.',
+      });
+    }
+    this.identityStore.set({ kind: 'authenticated' });
   }
 }
 

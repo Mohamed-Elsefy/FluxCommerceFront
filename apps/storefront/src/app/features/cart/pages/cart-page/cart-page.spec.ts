@@ -1,44 +1,63 @@
 /**
  * Page tests for the Sub-Phase 7.4 `CartPage` (plus the Sub-Phase 7.5
- * guest lifecycle wiring).
+ * guest lifecycle and Sub-Phases 7.6–7.7 session lifecycle wiring).
  *
  * Covers page orchestration only (state transitions live in
  * `cart-state.spec.ts`, the guest lifecycle in
- * `guest-cart.service.spec.ts`, presentational contracts in the
- * component specs): the standby shell on the server (initialization is
- * browser-only), guest bootstrap on first visit (creation) and return
- * visits (stored identity), expired-identity recovery, backend-only
- * price display (no locally computed line totals anywhere),
+ * `guest-cart.service.spec.ts`, the session lifecycle and merge trigger
+ * in `authenticated-cart.service.spec.ts`, presentational contracts in
+ * the component specs): the standby shell on the server and while
+ * restoration pends (synchronization is browser-only), guest bootstrap
+ * on first visit (creation) and return visits (stored identity),
+ * expired-identity recovery, authenticated establishment (GET-first with
+ * get-or-create fallback), login merge (stored guest source post,
+ * backend-merged adoption, bookmark cleared) and logout/reset flows,
+ * backend-only price display (no locally computed line totals anywhere),
  * quantity/remove/clear bubbling into feature state, error retry
- * through the guest lifecycle, the in-flight control freeze, the
+ * through the session lifecycle, the in-flight control freeze, the
  * checkout navigation boundary, localized document title, and Arabic
  * rendering.
  *
- * The real `CartState` plus the real `GuestCartService` are wired to a
- * stubbed `CartApiService` and the real (cleared per test)
- * `localStorage`-backed storage, so these tests pin the full page →
- * lifecycle → state → data-access delegation path without HTTP.
+ * The real `CartState`, `GuestCartService`, `AuthenticatedCartService`,
+ * and `AuthService` are wired to a stubbed `CartApiService` and the real
+ * (cleared per test) `localStorage`-backed storage, so these tests pin
+ * the full page → lifecycle → state → data-access delegation path —
+ * including genuine login-merge/logout/restoration transitions —
+ * without HTTP.
  */
 
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Observable, of, throwError } from 'rxjs';
-import { ApiError, type ApiResponseWithData } from '@flux/api';
+import { provideApi, provideAppEnvironment, ApiError, type ApiResponseWithData } from '@flux/api';
+import { AuthService, type CurrentUser } from '@flux/auth';
 import { CultureService, formatCurrency, type Culture } from '@flux/i18n';
 import { CartApiService } from '../../data-access/cart-api.service';
 import { GUEST_CART_STORAGE_KEY } from '../../state/guest-cart-storage.service';
 import { GuestCartService } from '../../state/guest-cart.service';
+import { AuthenticatedCartService } from '../../state/authenticated-cart.service';
 import { CartState } from '../../state/cart-state';
 import type { Cart, CartItem } from '../../models/cart.models';
 import { CartPage } from './cart-page';
 
 const GUEST_ID = '11111111-1111-4111-8111-111111111111';
+const AUTH_ID = '22222222-2222-4222-8222-222222222222';
+const USER_ID = 'cccccccc-3333-4333-8333-333333333333';
 const PRODUCT_ID = '22222222-2222-4222-8222-222222222222';
 const VARIANT_A = 'aaaaaaaa-1111-4111-8111-111111111111';
 const VARIANT_B = 'bbbbbbbb-2222-4222-8222-222222222222';
+
+const USER: CurrentUser = {
+  id: USER_ID,
+  email: 'ada@flux.local',
+  displayName: 'Ada Lovelace',
+  roles: ['Customer'],
+  isEmailVerified: true,
+};
 
 function line(overrides: Partial<CartItem> = {}): CartItem {
   return {
@@ -70,12 +89,45 @@ function guestCart(overrides: Partial<Cart> = {}): Cart {
   };
 }
 
+function authCart(overrides: Partial<Cart> = {}): Cart {
+  return {
+    cartId: AUTH_ID,
+    userId: USER_ID,
+    version: 1,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    updatedAtUtc: '2026-09-04T10:05:00Z',
+    items: [
+      line({ variantId: VARIANT_A, sku: 'HOOD-GRY-L', productName: 'Hoodie' }),
+      line({ variantId: VARIANT_B, sku: 'HOOD-BLK-L', productName: 'Hoodie', quantity: 1 }),
+    ],
+    isGuest: false,
+    isAuthenticated: true,
+    ...overrides,
+  };
+}
+
+/**
+ * Backend-merged cart: guest lines folded into the caller's cart with
+ * backend-consolidated quantities — asserted verbatim (the client never
+ * computes merge results).
+ */
+function mergedCart(): Cart {
+  return authCart({
+    version: 3,
+    items: [
+      line({ variantId: VARIANT_A, sku: 'HOOD-GRY-L', productName: 'Hoodie' }),
+      line({ variantId: VARIANT_B, sku: 'TEE-BLK-M', productName: 'Tee', quantity: 5 }),
+    ],
+  });
+}
+
 function cartEnvelope(cart: Cart = guestCart()): ApiResponseWithData<Cart> {
   return { isSuccess: true, data: cart };
 }
 
 const API_METHODS = [
   'createGuestCart',
+  'getOrCreateCart',
   'getGuestCart',
   'getCart',
   'addGuestCartItem',
@@ -91,6 +143,7 @@ const API_METHODS = [
 
 type ApiMethod = (typeof API_METHODS)[number];
 type Flow = () => Observable<ApiResponseWithData<Cart>>;
+type SessionStatus = 'initializing' | 'anonymous' | 'authenticated';
 
 interface RecordedCall {
   method: string;
@@ -100,11 +153,16 @@ interface RecordedCall {
 function setup(
   flows: Partial<Record<ApiMethod, Flow>> = {},
   culture: Culture = 'en',
-  options: { storedGuestCartId?: string; platform?: 'browser' | 'server' } = {},
+  options: {
+    storedGuestCartId?: string;
+    platform?: 'browser' | 'server';
+    session?: SessionStatus;
+  } = {},
 ): {
   fixture: ComponentFixture<CartPage>;
   element: HTMLElement;
   state: CartState;
+  auth: AuthService;
   calls: RecordedCall[];
 } {
   const calls: RecordedCall[] = [];
@@ -119,10 +177,19 @@ function setup(
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
+      provideAppEnvironment({
+        name: 'development',
+        production: false,
+        appName: 'test',
+        apiBaseUrl: '/api',
+      }),
+      provideApi(),
+      provideHttpClientTesting(),
       { provide: CartApiService, useValue: apiStub },
       { provide: PLATFORM_ID, useValue: options.platform ?? 'browser' },
       CartState,
       GuestCartService,
+      AuthenticatedCartService,
     ],
   });
   window.localStorage.clear();
@@ -130,12 +197,20 @@ function setup(
     window.localStorage.setItem(GUEST_CART_STORAGE_KEY, options.storedGuestCartId);
   }
   TestBed.inject(CultureService).setCulture(culture);
+  const auth = TestBed.inject(AuthService);
+  const session = options.session ?? 'anonymous';
+  if (session === 'anonymous') {
+    auth.markInitializedAnonymous();
+  } else if (session === 'authenticated') {
+    auth.setAuthenticated({ user: USER, accessToken: 'test-access-token' });
+  }
   const fixture = TestBed.createComponent(CartPage);
   fixture.detectChanges();
   return {
     fixture,
     element: fixture.nativeElement as HTMLElement,
     state: TestBed.inject(CartState),
+    auth,
     calls,
   };
 }
@@ -179,6 +254,13 @@ describe('CartPage standby (server render, before browser bootstrap)', () => {
     expect(element.querySelector('.cart-page-standby')?.textContent).toBe('ستظهر سلة التسوق هنا.');
     expect(TestBed.inject(Title).getTitle()).toBe('سلة التسوق | FluxCommerce');
   });
+
+  it('stands by while session restoration pends (never treats initializing as anonymous)', () => {
+    const { element, calls } = setup({}, 'en', { session: 'initializing' });
+
+    expect(element.querySelector('.cart-page-standby')).not.toBeNull();
+    expect(calls).toHaveLength(0);
+  });
 });
 
 describe('CartPage guest bootstrap (Sub-Phase 7.5)', () => {
@@ -220,6 +302,124 @@ describe('CartPage guest bootstrap (Sub-Phase 7.5)', () => {
     expect(methodsOf(calls)).toEqual(['getGuestCart', 'createGuestCart']);
     expect(window.localStorage.getItem(GUEST_CART_STORAGE_KEY)).toBe(freshId);
     expect(element.textContent).toContain('Your cart is empty');
+  });
+});
+
+describe('CartPage authenticated session (Sub-Phases 7.6–7.7)', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  it('establishes the authenticated cart on init without touching guest state', () => {
+    const { element, state, calls } = setup({ getCart: () => of(cartEnvelope(authCart())) }, 'en', {
+      session: 'authenticated',
+    });
+
+    expect(methodsOf(calls)).toEqual(['getCart']);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+    expect(element.querySelectorAll('.cart-items-line')).toHaveLength(2);
+    expect(element.textContent).toContain('HOOD-GRY-L');
+    expect(window.localStorage.getItem(GUEST_CART_STORAGE_KEY)).toBeNull();
+  });
+
+  it('falls back to get-or-create when the user has no active cart yet', () => {
+    const noCart = new ApiError({
+      status: 404,
+      message: 'Cart not found.',
+      code: 'Cart.CartNotFound',
+    });
+    const { element, calls } = setup(
+      {
+        getCart: () => throwError(() => noCart),
+        getOrCreateCart: () => of(cartEnvelope(authCart({ items: [] }))),
+      },
+      'en',
+      { session: 'authenticated' },
+    );
+
+    expect(methodsOf(calls)).toEqual(['getCart', 'getOrCreateCart']);
+    expect(element.textContent).toContain('Your cart is empty');
+  });
+
+  it('merges the guest cart into the authenticated cart on login (no mixing)', () => {
+    const { element, fixture, state, auth, calls } = setup(
+      {
+        mergeGuestCart: () => of(cartEnvelope(mergedCart())),
+      },
+      'en',
+      { storedGuestCartId: GUEST_ID },
+    );
+    expect(methodsOf(calls)).toEqual(['getGuestCart']);
+    expect(element.querySelectorAll('.cart-items-line')).toHaveLength(2);
+    expect(element.textContent).toContain('TEE-BLK-M');
+
+    auth.setAuthenticated({ user: USER, accessToken: 'test-access-token' });
+    fixture.detectChanges();
+
+    // Merge — never a plain load while the guest bookmark exists.
+    expect(methodsOf(calls)).toEqual(['getGuestCart', 'mergeGuestCart']);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+    expect(element.textContent).toContain('HOOD-GRY-L');
+    expect(element.textContent).toContain('TEE-BLK-M');
+    // Source died server-side: the local bookmark is cleared.
+    expect(window.localStorage.getItem(GUEST_CART_STORAGE_KEY)).toBeNull();
+  });
+
+  it('starts a fresh guest cart on logout after the merge consumed the bookmark', () => {
+    const { element, fixture, state, auth, calls } = setup(
+      { mergeGuestCart: () => of(cartEnvelope(mergedCart())) },
+      'en',
+      { session: 'authenticated', storedGuestCartId: GUEST_ID },
+    );
+    expect(methodsOf(calls)).toEqual(['mergeGuestCart']);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+
+    auth.clearSession();
+    fixture.detectChanges();
+
+    expect(methodsOf(calls)).toEqual(['mergeGuestCart', 'createGuestCart']);
+    expect(state.identity()).toEqual({ kind: 'guest', cartId: GUEST_ID });
+    expect(element.textContent).toContain('TEE-BLK-M');
+  });
+
+  it('loads the persisted cart after session restoration (refresh retention)', () => {
+    const { element, fixture, state, auth, calls } = setup(
+      { getCart: () => of(cartEnvelope(authCart())) },
+      'en',
+      { session: 'initializing' },
+    );
+    expect(element.querySelector('.cart-page-standby')).not.toBeNull();
+    expect(calls).toHaveLength(0);
+
+    auth.setAuthenticated({ user: USER, accessToken: 'test-access-token' });
+    fixture.detectChanges();
+
+    expect(methodsOf(calls)).toEqual(['getCart']);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+    expect(element.querySelectorAll('.cart-items-line')).toHaveLength(2);
+    expect(element.textContent).toContain('HOOD-GRY-L');
+    // Backend persistence owns refreshes: guest storage untouched.
+    expect(window.localStorage.getItem(GUEST_CART_STORAGE_KEY)).toBeNull();
+  });
+
+  it('retries the authenticated load on retry after a failure', () => {
+    const rejection = new ApiError({ status: 401, message: 'Anonymous.' });
+    let failNext = true;
+    const { element, fixture, calls } = setup(
+      { getCart: () => (failNext ? throwError(() => rejection) : of(cartEnvelope(authCart()))) },
+      'en',
+      { session: 'authenticated' },
+    );
+    expect(element.textContent).toContain('Cart unavailable');
+
+    failNext = false;
+    const errorState = element.querySelector('flux-error-state') as HTMLElement | null;
+    expect(errorState).not.toBeNull();
+    (errorState?.querySelector('.retry') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+
+    expect(methodsOf(calls)).toEqual(['getCart', 'getCart']);
+    expect(element.querySelectorAll('.cart-items-line')).toHaveLength(2);
   });
 });
 

@@ -39,8 +39,10 @@ import {
   type ResourceState,
 } from '@flux/api';
 import { CultureService, formatCurrency } from '@flux/i18n';
+import { AuthService } from '@flux/auth';
 import { VariantStatus, type ProductResponse } from '@flux/models';
 import { GuestCartService } from '../../../cart/state/guest-cart.service';
+import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart.service';
 import type { CartIdentity } from '../../../cart/models/cart.models';
 import { ProductDetailsState } from '../../state/product-details-state';
 import { isSelectableVariant } from '../../models/product-details.models';
@@ -122,6 +124,7 @@ function setup(options: {
   addToCartStatus?: AddToCartStatus;
   addToCartError?: ApiError | null;
   guestIdentity?: CartIdentity | null;
+  authenticated?: boolean;
   productId?: string | null;
   culture?: 'en' | 'fr' | 'ar';
   platform?: 'browser' | 'server';
@@ -140,6 +143,8 @@ function setup(options: {
   resetCalls: number;
   guestInitializeCount: () => number;
   guestSubmissions: { cartId: unknown; pricing: unknown }[];
+  authSubmissions: { pricing: unknown }[];
+  establishCount: () => number;
   setSelectedVariant: (variant: ProductVariant | null) => void;
 } {
   const loadCalls: unknown[] = [];
@@ -155,6 +160,8 @@ function setup(options: {
   let resetCalls = 0;
   const guestSubmissions: { cartId: unknown; pricing: unknown }[] = [];
   let guestInitializeCalls = 0;
+  const authSubmissions: { pricing: unknown }[] = [];
+  let establishCalls = 0;
   const stateStub = {
     product: signal(options.snapshot ?? idleResource<ProductDetails>()),
     specifications: signal(
@@ -202,6 +209,10 @@ function setup(options: {
       guestSubmissions.push({ cartId, pricing });
       return Subscription.EMPTY;
     }) as ProductDetailsState['submitGuestAddToCart'],
+    submitAddToCart: ((pricing: unknown) => {
+      authSubmissions.push({ pricing });
+      return Subscription.EMPTY;
+    }) as ProductDetailsState['submitAddToCart'],
     reset: (() => {
       resetCalls += 1;
     }) as ProductDetailsState['reset'],
@@ -230,6 +241,21 @@ function setup(options: {
           identity: signal<CartIdentity | null>(options.guestIdentity ?? null),
         } as unknown as GuestCartService,
       },
+      {
+        provide: AuthenticatedCartService,
+        useValue: {
+          establishAuthenticated: (() => {
+            establishCalls += 1;
+            return Subscription.EMPTY;
+          }) as AuthenticatedCartService['establishAuthenticated'],
+        } as unknown as AuthenticatedCartService,
+      },
+      {
+        provide: AuthService,
+        useValue: {
+          isAuthenticated: signal(options.authenticated ?? false),
+        } as unknown as AuthService,
+      },
       { provide: ActivatedRoute, useValue: routeStub },
       ...(options.platform === undefined
         ? []
@@ -255,6 +281,8 @@ function setup(options: {
     resetCalls,
     guestInitializeCount: () => guestInitializeCalls,
     guestSubmissions,
+    authSubmissions,
+    establishCount: () => establishCalls,
     setSelectedVariant: (variant: ProductVariant | null) => selectedVariant.set(variant),
   };
 }
@@ -798,8 +826,10 @@ describe('ProductDetailsPage add-to-cart section (ADR 018)', () => {
   function cartSetup(
     options: {
       guestIdentity?: CartIdentity | null;
+      authenticated?: boolean;
       selectedVariant?: ProductVariant | null;
       addToCartStatus?: AddToCartStatus;
+      addToCartError?: ApiError | null;
     } = {},
   ) {
     return setup({
@@ -810,10 +840,12 @@ describe('ProductDetailsPage add-to-cart section (ADR 018)', () => {
       selectedVariant:
         options.selectedVariant === undefined ? (VARIANTS[0] ?? null) : options.selectedVariant,
       addToCartStatus: options.addToCartStatus ?? 'idle',
+      addToCartError: options.addToCartError ?? null,
       guestIdentity:
         options.guestIdentity === undefined
           ? { kind: 'guest', cartId: GUEST_CART_ID }
           : options.guestIdentity,
+      authenticated: options.authenticated ?? false,
     });
   }
 
@@ -827,10 +859,13 @@ describe('ProductDetailsPage add-to-cart section (ADR 018)', () => {
     expect(button?.textContent?.trim()).toBe('Add to cart');
   });
 
-  it('establishes the guest lifecycle on init', () => {
+  it('delegates first-render synchronization to the session lifecycle', () => {
+    // The page never bootstraps the guest flow directly on init — the
+    // lifecycle service constructor effect owns first render (pinned with
+    // real services in `cart-page.spec.ts` / `authenticated-cart.service.spec.ts`).
     const { guestInitializeCount } = cartSetup();
 
-    expect(guestInitializeCount()).toBe(1);
+    expect(guestInitializeCount()).toBe(0);
   });
 
   it('enables submission for a selectable variant with guest identity', () => {
@@ -881,7 +916,45 @@ describe('ProductDetailsPage add-to-cart section (ADR 018)', () => {
     fixture.componentInstance.onAddToCart();
 
     expect(guestSubmissions).toHaveLength(0);
-    expect(guestInitializeCount()).toBe(2);
+    expect(guestInitializeCount()).toBe(1);
+  });
+
+  it('enables submission for an authenticated session without guest identity', () => {
+    const { element } = cartSetup({ authenticated: true, guestIdentity: null });
+
+    expect(
+      (element.querySelector('.add-to-cart-button') as HTMLButtonElement | null)?.disabled,
+    ).toBe(false);
+  });
+
+  it('submits the backend-issued snapshot to the session cart when authenticated', () => {
+    const { element, fixture, authSubmissions, guestSubmissions } = cartSetup({
+      authenticated: true,
+      guestIdentity: null,
+    });
+
+    element.querySelector('.add-to-cart-button')?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(authSubmissions).toEqual([{ pricing: { unitPriceAmount: 29.99, currency: 'USD' } }]);
+    expect(guestSubmissions).toHaveLength(0);
+  });
+
+  it('re-establishes the session cart when the authenticated add finds no active cart', () => {
+    const noCart = new ApiError({
+      status: 404,
+      message: 'Cart not found.',
+      code: 'Cart.CartNotFound',
+    });
+    const { fixture, establishCount } = cartSetup({
+      authenticated: true,
+      guestIdentity: null,
+      addToCartError: noCart,
+    });
+
+    fixture.componentInstance.onAddToCart();
+
+    expect(establishCount()).toBe(1);
   });
 });
 

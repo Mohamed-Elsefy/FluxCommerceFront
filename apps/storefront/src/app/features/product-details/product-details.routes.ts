@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AuthenticatedCartService } from '../cart/state/authenticated-cart.service';
 import { CartState } from '../cart/state/cart-state';
 import { GuestCartService } from '../cart/state/guest-cart.service';
 import { ProductDetailsState } from './state/product-details-state';
@@ -18,12 +19,14 @@ import { ProductDetailsState } from './state/product-details-state';
  * page sections — not as new global state.
  *
  * Guest submission (ADR 018) additionally provides the cart feature's
- * `CartState` + `GuestCartService` here: the page establishes the guest
- * identity through the lifecycle and reads its readiness through the
- * service seam, then submits lines through its OWN state machine and
- * data-access façade. No cart contents, persistence logic, or merge
- * wiring is duplicated or owned here — the cart feature stays the single
- * owner; this route only borrows its lifecycle seam (one-way, no cycle).
+ * `CartState` + `GuestCartService` here, and authenticated submission
+ * (Sub-Phase 7.6) the `AuthenticatedCartService` session lifecycle: the
+ * page establishes identity through the lifecycle seams and reads
+ * readiness through them, then submits lines through its OWN state
+ * machine and data-access façade. No cart contents, persistence logic,
+ * or merge wiring is duplicated or owned here — the cart feature stays
+ * the single owner; this route only borrows its lifecycle seams
+ * (one-way, no cycle).
  *
  * Architectural flow (`ARCHITECTURE.md` §10):
  *
@@ -39,7 +42,7 @@ import { ProductDetailsState } from './state/product-details-state';
 export const productDetailsRoutes: Routes = [
   {
     path: '',
-    providers: [ProductDetailsState, CartState, GuestCartService],
+    providers: [ProductDetailsState, CartState, GuestCartService, AuthenticatedCartService],
     children: [
       {
         path: ':id',

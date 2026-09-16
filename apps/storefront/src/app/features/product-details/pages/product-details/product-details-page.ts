@@ -70,22 +70,23 @@
  *   the same variants gate and echoes feature-local quantity (minimum 1, no
  *   contract maximum); a new route product resets it while error retry
  *   preserves it. The add-to-cart button (§6.7 machine + ADR 018 guest
- *   submission) mounts beside the quantity section: enabled for a
- *   selectable variant with valid pricing once the guest lifecycle
- *   (established here via the cart feature's `GuestCartService`,
- *   browser-only) holds a guest identity; submission carries the selected
- *   backend-issued price snapshot into the guest cart, and a dead identity
- *   heals for the next attempt. Authenticated submission stays parked for
- *   Phase 7.6 auth branching (the page never inspects auth state).
+ *   submission + Sub-Phase 7.6 authenticated submission) mounts beside
+ *   the quantity section: enabled for a selectable variant with valid
+ *   pricing once a session identity is established — guest identity via
+ *   the cart feature's `GuestCartService`, or an authenticated session
+ *   (established via `AuthenticatedCartService`, browser-only); guest
+ *   submission carries the selected backend-issued price snapshot into
+ *   the guest cart with dead-identity healing for the next attempt, and
+ *   authenticated submission posts the same snapshot to the session cart
+ *   with no-active-cart healing. Merge wiring stays out (Phase 7.7).
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
  * Explicitly out of scope (later work, must not appear here):
- * - Phase 7.6 — no authenticated submission or auth-state inspection.
  * - Phase 7.7 — no merge wiring. Cart contents, persistence, and merge
- *   stay in the cart feature; this page only establishes guest identity
+ *   stay in the cart feature; this page only establishes session identity
  *   and submits lines through it.
  */
 
@@ -103,6 +104,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
 import { CultureService, formatCurrency, resolveApiErrorMessage, translateKey } from '@flux/i18n';
+import { AuthService } from '@flux/auth';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { AddToCart } from '../../components/add-to-cart/add-to-cart';
 import { ProductGallery } from '../../components/product-gallery/product-gallery';
@@ -113,6 +115,7 @@ import {
   GuestCartService,
   isInvalidGuestIdentityError,
 } from '../../../cart/state/guest-cart.service';
+import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart.service';
 import { ProductDetailsState } from '../../state/product-details-state';
 import {
   PRODUCT_DETAILS_ID_PARAM,
@@ -145,6 +148,8 @@ import {
 export class ProductDetailsPage implements OnInit {
   private readonly state = inject(ProductDetailsState);
   private readonly guestCart = inject(GuestCartService);
+  private readonly authCart = inject(AuthenticatedCartService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
@@ -332,14 +337,15 @@ export class ProductDetailsPage implements OnInit {
 
   /**
    * Submission guard for the button: selectable variant, valid pricing,
-   * established guest identity, and no in-flight submission. The state
-   * re-validates everything pre-HTTP (defense in depth).
+   * an established session identity (authenticated session, or guest
+   * identity via the guest lifecycle), and no in-flight submission. The
+   * state re-validates everything pre-HTTP (defense in depth).
    */
   protected readonly canSubmit = computed(
     () =>
       this.state.selectedVariantSelectable() &&
       this.selectedPricing() !== null &&
-      this.guestCart.identity()?.kind === 'guest' &&
+      (this.auth.isAuthenticated() || this.guestCart.identity()?.kind === 'guest') &&
       this.state.addToCartStatus() !== 'adding',
   );
 
@@ -403,11 +409,11 @@ export class ProductDetailsPage implements OnInit {
   ngOnInit(): void {
     // Runs on server and client alike: metadata applies during SSR (an
     // SSR-safe write into the server `<head>`), while data loads flow
-    // through the effect above on both platforms. Boots the guest cart
-    // lifecycle for later submission (browser-only inside the service —
-    // the server pass is a standby no-op, so SSR never creates carts).
+    // through the effect above on both platforms. Session identity for
+    // later submission flows through the lifecycle service constructor
+    // effect (browser-only inside the service — the server pass is a
+    // standby no-op, so SSR never creates carts).
     this.applyMetadata();
-    this.guestCart.initialize();
   }
 
   /**
@@ -465,17 +471,28 @@ export class ProductDetailsPage implements OnInit {
   }
 
   /**
-   * Submits the selected variant to the guest cart (validated in state —
-   * invalid snapshots and blank identities never fetch). Without an
-   * established guest identity yet, establishes the lifecycle (browser-only
-   * no-op on server) for the next attempt instead of sending a doomed
-   * request. Heals a dead identity for the next attempt when the backend
-   * verdict proves the stored id unusable; other failures stay on the
-   * button for retry.
+   * Submits the selected variant to the session cart (validated in state —
+   * invalid snapshots and blank identities never fetch): authenticated
+   * sessions post to the session cart; anonymous sessions post to the
+   * guest cart. Without an established guest identity yet, establishes
+   * the lifecycle (browser-only no-op on server) for the next attempt
+   * instead of sending a doomed request. Heals for the next attempt when
+   * the backend verdict proves the identity unusable (dead guest id →
+   * guest lifecycle; no active authenticated cart → session establish);
+   * other failures stay on the button for retry.
    */
   onAddToCart(): void {
     const pricing = this.selectedPricing();
     if (pricing === null) {
+      return;
+    }
+    if (this.auth.isAuthenticated()) {
+      const submission = this.state.submitAddToCart(pricing);
+      submission.add(() => {
+        if (this.state.addToCartError()?.code === 'Cart.CartNotFound') {
+          this.authCart.establishAuthenticated();
+        }
+      });
       return;
     }
     const identity = this.guestCart.identity();

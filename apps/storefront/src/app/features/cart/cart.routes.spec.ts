@@ -11,15 +11,17 @@
 
 import { describe, expect, it } from 'vitest';
 import { CartPage } from './pages/cart-page/cart-page';
+import { AuthenticatedCartService } from './state/authenticated-cart.service';
 import { CartState } from './state/cart-state';
 import { GuestCartService } from './state/guest-cart.service';
 import { cartRoutes } from './cart.routes';
 
 describe('cartRoutes', () => {
-  it('provides the feature-scoped state and guest lifecycle on the parent entry', () => {
+  it('provides the feature-scoped state and lifecycles on the parent entry', () => {
     expect(cartRoutes).toHaveLength(1);
     expect(cartRoutes[0]?.providers).toContain(CartState);
     expect(cartRoutes[0]?.providers).toContain(GuestCartService);
+    expect(cartRoutes[0]?.providers).toContain(AuthenticatedCartService);
   });
 
   it('lazy-loads the cart page on the default child', async () => {
