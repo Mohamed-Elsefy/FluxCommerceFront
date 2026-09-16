@@ -439,28 +439,28 @@ A tested Cart feature with automated coverage for the critical merge scenario.
 
 Phase 7 is complete when:
 
-- [ ] Guest Cart works.
-- [ ] Authenticated Cart works.
-- [ ] Add Item works.
-- [ ] Update Quantity works.
-- [ ] Remove Item works.
-- [ ] Clear Cart works.
-- [ ] Cart totals are taken from the backend contract.
-- [ ] Cart is managed as feature state.
-- [ ] Cart persistence follows the backend contract.
-- [ ] Guest → Login → Cart Merge works correctly.
-- [ ] Duplicate variants are handled according to backend merge behavior.
-- [ ] Repeated merge does not create duplicate state.
-- [ ] Loading, empty, success, and error states are implemented.
-- [ ] Localization is complete.
-- [ ] RTL/LTR behavior is verified.
-- [ ] Responsive behavior is verified.
-- [ ] Accessibility requirements are covered.
-- [ ] Unit tests are implemented.
-- [ ] Component tests are implemented.
-- [ ] API/data-access tests are implemented.
-- [ ] Mandatory Guest → Login → Cart Merge E2E test is implemented.
-- [ ] No Checkout, Payment, or Order business logic is implemented in this phase.
+- [x] Guest Cart works.
+- [x] Authenticated Cart works.
+- [x] Add Item works.
+- [x] Update Quantity works.
+- [x] Remove Item works.
+- [x] Clear Cart works.
+- [x] Cart totals are taken from the backend contract.
+- [x] Cart is managed as feature state.
+- [x] Cart persistence follows the backend contract.
+- [x] Guest → Login → Cart Merge works correctly.
+- [x] Duplicate variants are handled according to backend merge behavior.
+- [x] Repeated merge does not create duplicate state.
+- [x] Loading, empty, success, and error states are implemented.
+- [x] Localization is complete.
+- [x] RTL/LTR behavior is verified.
+- [x] Responsive behavior is verified.
+- [x] Accessibility requirements are covered.
+- [x] Unit tests are implemented.
+- [x] Component tests are implemented.
+- [x] API/data-access tests are implemented.
+- [x] Mandatory Guest → Login → Cart Merge E2E test is implemented.
+- [x] No Checkout, Payment, or Order business logic is implemented in this phase.
 
 ---
 

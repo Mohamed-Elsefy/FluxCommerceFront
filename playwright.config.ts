@@ -75,6 +75,11 @@ export default defineConfig({
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
     },
     {
+      name: 'cart-chromium',
+      testMatch: /cart\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'culture-storefront-chromium',
       testMatch: /culture\.spec\.ts/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
