@@ -1,0 +1,38 @@
+/* Cart page (Sub-Phase 7.4). Centered single-column shell; items and
+  summary stack on narrow viewports and settle side by side from the
+  canonical medium breakpoint. Logical properties only (RTL-safe);
+  visual values come from theming tokens. */
+
+.cart-page {
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
+  padding-block: var(--spacing-lg);
+}
+
+.cart-page-content {
+  display: grid;
+  gap: var(--spacing-2xl);
+}
+
+@media (min-width: 48rem) {
+  .cart-page-content {
+    grid-template-columns: 2fr 1fr;
+    align-items: start;
+  }
+}
+
+.cart-page-browse {
+  margin-block: var(--spacing-lg);
+}
+
+.cart-page-browse a:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cart-page-standby {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+}

@@ -162,6 +162,25 @@ export function isValidCartQuantity(value: number): boolean {
 }
 
 /**
+ * Parses raw quantity textbox text into a cart quantity: digits-only
+ * (after trimming) mapping to a valid quantity, otherwise `null`.
+ * Rejects empty text, signs, decimals, and any non-digit characters —
+ * so invalid keystrokes never reach feature state. Consumed by the
+ * §7.4 quantity control. Pure — throws nothing.
+ */
+export function parseCartQuantityInput(text: string | null | undefined): number | null {
+  if (text === null || text === undefined) {
+    return null;
+  }
+  const candidate = text.trim();
+  if (!/^[0-9]+$/.test(candidate)) {
+    return null;
+  }
+  const parsed = Number.parseInt(candidate, 10);
+  return isValidCartQuantity(parsed) ? parsed : null;
+}
+
+/**
  * Whether a cart holds no lines. `null`/`undefined` carts count as
  * empty (nothing loaded is nothing to render). Pure — throws nothing.
  */

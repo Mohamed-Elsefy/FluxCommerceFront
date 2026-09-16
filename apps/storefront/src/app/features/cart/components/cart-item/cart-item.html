@@ -1,0 +1,30 @@
+<article class="cart-item">
+  <div class="cart-item-thumb" aria-hidden="true"></div>
+  <div class="cart-item-info">
+    <h3 class="cart-item-name">{{ view.item.productName }}</h3>
+    <dl class="cart-item-meta">
+      <div class="cart-item-row">
+        <dt>{{ labels.sku }}</dt>
+        <dd>{{ view.item.sku }}</dd>
+      </div>
+      <div class="cart-item-row">
+        <dt>{{ labels.unitPrice }}</dt>
+        <dd>{{ view.unitPriceText }}</dd>
+      </div>
+    </dl>
+  </div>
+  <div class="cart-item-actions">
+    <cart-quantity-control
+      [quantity]="view.item.quantity"
+      [label]="labels.quantity"
+      [decreaseLabel]="labels.decrease"
+      [increaseLabel]="labels.increase"
+      [invalidMessage]="labels.invalidQuantity"
+      [disabled]="disabled"
+      (quantityChange)="quantityChange.emit($event)"
+    ></cart-quantity-control>
+    <button type="button" class="cart-item-remove" (click)="remove.emit()" [disabled]="disabled">
+      {{ view.removeLabel }}
+    </button>
+  </div>
+</article>

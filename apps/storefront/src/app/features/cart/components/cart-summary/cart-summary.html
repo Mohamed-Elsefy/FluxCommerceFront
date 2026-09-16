@@ -1,0 +1,30 @@
+<section class="cart-summary" aria-labelledby="cart-summary-title">
+  <h2 id="cart-summary-title" class="cart-summary-title">{{ title }}</h2>
+  <dl class="cart-summary-list">
+    <div class="cart-summary-row">
+      <dt>{{ itemsLabel }}</dt>
+      <dd>{{ itemsValue }}</dd>
+    </div>
+    @if (subtotalText !== null) {
+      <div class="cart-summary-row">
+        <dt>{{ subtotalLabel }}</dt>
+        <dd>{{ subtotalText }}</dd>
+      </div>
+    }
+    @if (totalText !== null) {
+      <div class="cart-summary-row cart-summary-total">
+        <dt>{{ totalLabel }}</dt>
+        <dd>{{ totalText }}</dd>
+      </div>
+    }
+  </dl>
+  @if (totalsNote !== null) {
+    <p class="cart-summary-note">{{ totalsNote }}</p>
+  }
+  <div class="cart-summary-actions">
+    <button type="button" class="cart-summary-clear" (click)="clear.emit()" [disabled]="clearing">
+      {{ clearLabel }}
+    </button>
+    <a class="cart-summary-checkout" routerLink="/checkout">{{ checkoutLabel }}</a>
+  </div>
+</section>

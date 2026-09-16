@@ -38,6 +38,13 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/catalog/catalog.routes').then((m) => m.catalogRoutes),
       },
+      {
+        // Sub-Phase 7.4 — customer cart area serving /cart (lazy feature
+        // boundary with route-provided CartState; identity establishment
+        // and merge wiring arrive in Sub-Phases 7.5–7.7).
+        path: 'cart',
+        loadChildren: () => import('./features/cart/cart.routes').then((m) => m.cartRoutes),
+      },
     ],
   },
   {

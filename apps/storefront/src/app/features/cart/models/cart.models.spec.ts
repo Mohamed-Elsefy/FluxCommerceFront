@@ -1,5 +1,5 @@
 /**
- * Unit tests for the Sub-Phase 7.1 cart feature models.
+ * Unit tests for the Sub-Phases 7.1/7.4 cart feature models.
  *
  * Covers the pure helpers only (summaries, totals shape, counts,
  * currency reads, ownership/identity guards, quantity bounds,
@@ -31,6 +31,7 @@ import {
   isGuestCart,
   isGuestCartIdentity,
   isValidCartQuantity,
+  parseCartQuantityInput,
   resolveCartCurrency,
   toCartItemProductSummary,
   toCartItemVariantSummary,
@@ -225,5 +226,27 @@ describe('cart identity distinction (shape only — no persistence)', () => {
     expect(isAuthenticatedCartIdentity({ kind: 'authenticated' })).toBe(true);
     expect(isAuthenticatedCartIdentity({ kind: 'guest', cartId: GUEST_ID })).toBe(false);
     expect(isAuthenticatedCartIdentity(undefined)).toBe(false);
+  });
+});
+
+describe('parseCartQuantityInput (§7.4 quantity control)', () => {
+  it('parses digits-only text into quantities', () => {
+    expect(parseCartQuantityInput('1')).toBe(1);
+    expect(parseCartQuantityInput('  12  ')).toBe(12);
+    expect(parseCartQuantityInput('007')).toBe(7);
+  });
+
+  it('rejects empty, signed, decimal, and non-numeric text without throwing', () => {
+    expect(parseCartQuantityInput(null)).toBeNull();
+    expect(parseCartQuantityInput(undefined)).toBeNull();
+    expect(parseCartQuantityInput('')).toBeNull();
+    expect(parseCartQuantityInput('   ')).toBeNull();
+    expect(parseCartQuantityInput('0')).toBeNull();
+    expect(parseCartQuantityInput('-2')).toBeNull();
+    expect(parseCartQuantityInput('+2')).toBeNull();
+    expect(parseCartQuantityInput('2.5')).toBeNull();
+    expect(parseCartQuantityInput('2e2')).toBeNull();
+    expect(parseCartQuantityInput('two')).toBeNull();
+    expect(parseCartQuantityInput('3 pieces')).toBeNull();
   });
 });
