@@ -18,18 +18,19 @@
  *
  * Variant-structure note (§6.4 — display only backend-provided fields):
  * the contract models variants as a flat list (`VariantResponse`: `id`,
- * `sku`, `name`, `status`, deletion flags) with NO Color/Size/Style
- * dimensions and NO price/currency fields — so the selector offers the
- * backend names, selectability follows `status` + deletion flags only, and
- * nothing dimensional or commercial is fabricated.
+ * `sku`, `name`, backend-issued `unitPriceAmount` + `currency`, `status`,
+ * deletion flags) with NO Color/Size/Style dimensions — so the selector
+ * offers the backend names, selectability follows `status` + deletion
+ * flags only, and nothing dimensional is fabricated.
  *
- * Commercial note (§6.5 — strictly contract-driven): the ONLY
- * customer-visible commercial field in any readable contract is
- * `VariantResponse.sku`. Price exists solely on the admin-only
- * create-variant *request* (and checkout reprices authoritatively
- * server-side); stock reads are `Admin`-only inventory endpoints — so the
- * storefront displays SKU bound to the selection and no price or
- * availability content whatsoever (see also `ARCHITECTURE.md` §21).
+ * Commercial note (§6.5 — strictly contract-driven, lifted by the
+ * priced-variant contract change — see ADR 018): the customer-visible
+ * commercial fields are `VariantResponse.sku` plus the backend-issued
+ * `unitPriceAmount` + `currency` snapshot. The storefront displays both
+ * bound to the selection (price formatted per culture, display only —
+ * never an input to math); stock reads stay `Admin`-only inventory
+ * endpoints, so no availability content is rendered (see also
+ * `ARCHITECTURE.md` §21).
  *
  * Quantity note (§6.6): the contract bounds cart quantities to
  * `[Range(1, int.MaxValue)]` with backend `QuantityLimitExceeded`
@@ -37,25 +38,25 @@
  * boundary, and there is no contract-defined maximum to clamp. Quantity
  * is feature-local `ProductDetailsState` (never cart/global state).
  *
- * Integration note (§6.7 — the Product Details → Cart boundary): the
- * phase's "selected purchasable item and quantity" is exactly
- * `AddToCartItem` (`variantId` + `quantity`, validated, `null` when
- * unsubmittable). The wire bodies (`AddCartItemRequest`) additionally
- * require `unitPriceAmount` + `currency` — for which NO customer-readable
- * contract source exists (`VariantResponse`: no price, annotated in three
- * places; inventory reads are `Admin`-only; checkout reprices
- * authoritatively server-side). The boundary therefore carries pricing as
- * an EXPLICIT, validated caller argument (`AddToCartPricing`): no price
- * is ever defaulted, estimated, or fabricated here, and guest `cartId`
- * lifecycle stays in Phase 7 (explicitly out of scope for §6.7). Until a
- * contract price source exists, production submission stays parked —
- * everything else (button, machine, guards, façades) is real and covered.
+ * Integration note (§6.7 — the Product Details → Cart boundary, unblocked
+ * by the priced-variant contract change — see ADR 018): the phase's
+ * "selected purchasable item and quantity" is exactly `AddToCartItem`
+ * (`variantId` + `quantity`, validated, `null` when unsubmittable). The
+ * wire bodies (`AddCartItemRequest`) additionally require
+ * `unitPriceAmount` + `currency` — now sourced from the selected
+ * backend-issued variant snapshot via `toAddToCartPricing` (validated,
+ * `null` when absent) and carried explicitly as `AddToCartPricing`: no
+ * price is ever defaulted, estimated, or fabricated here. Guest `cartId`
+ * lifecycle is owned by the cart feature (`GuestCartService`, Phase 7.5 —
+ * the page establishes it and passes the id to
+ * `submitGuestAddToCart`); authenticated submission stays parked for
+ * Phase 8/7.6 auth branching.
  *
  * Contract fidelity note (§6.2 rule — display only backend-provided fields):
- * no read contract exposes pricing or availability (`VariantResponse`
- * carries no price/currency fields), and SKU lives on variants whose
- * selection UI arrives in Sub-Phase 6.4 — so this sub-phase renders the
- * product name, description, and specifications only. Nothing is fabricated.
+ * pricing and availability render only from backend-issued variant
+ * snapshots, and SKU lives on variants whose selection UI arrives in
+ * Sub-Phase 6.4 — the page renders the product name, description, and
+ * specifications plus the selection-bound SKU/price. Nothing is fabricated.
  *
  * Ownership (`ARCHITECTURE.md` §5 — feature-based architecture):
  * - Contract mirrors live in `@flux/models` and stay the single declaration
@@ -100,10 +101,10 @@ export type ProductImage = ProductImageResponse;
 
 /**
  * Product variant read model (`GET /catalog/products/{productId}/variants`
- * items: flat `VariantResponse` — `id`/`sku`/`name`/`status` plus deletion
- * flags, no option dimensions, no price/currency). Re-exported, not
- * re-declared. Selection state lives in `state/`; the selector UI lives in
- * `components/variant-selector/`.
+ * items: flat `VariantResponse` — `id`/`sku`/`name`, backend-issued
+ * `unitPriceAmount` + `currency`, `status` plus deletion flags, no option
+ * dimensions). Re-exported, not re-declared. Selection state lives in
+ * `state/`; the selector UI lives in `components/variant-selector/`.
  */
 export type ProductVariant = VariantResponse;
 
@@ -235,8 +236,9 @@ export function toAddToCartStatus(status: ResourceStatus): AddToCartStatus {
 /**
  * The phase's "selected purchasable item and quantity": a validated
  * variant id plus a validated quantity. Price/currency travel separately
- * (`AddToCartPricing`) because they come from a different (currently
- * nonexistent for the storefront) contract source — never defaulted here.
+ * (`AddToCartPricing`, projected from the selected variant via
+ * `toAddToCartPricing`) because they snapshot backend-issued variant
+ * pricing — never defaulted here.
  */
 export interface AddToCartItem {
   variantId: string;
@@ -267,9 +269,9 @@ export function buildAddToCartItem(
  * Price snapshot completing the wire body (`AddCartItemRequest`).
  * Structural echo of the backend `DataAnnotations`
  * (`[Range(0.01, max)]`, 3-letter currency) — a request-shape pre-check,
- * not business logic. Supplied explicitly by the caller from a contract
- * source; see the integration note above for why the 6.7 page provides
- * none.
+ * not business logic. Supplied explicitly by the caller from the
+ * selected variant snapshot (`toAddToCartPricing`); see the integration
+ * note above.
  */
 export interface AddToCartPricing {
   unitPriceAmount: number;
@@ -290,4 +292,25 @@ export function isValidAddToCartPricing(pricing: AddToCartPricing | null | undef
     pricing.unitPriceAmount >= 0.01 &&
     /^[A-Z]{3}$/.test(pricing.currency)
   );
+}
+
+/**
+ * Projects the submittable price snapshot out of a variant: the
+ * backend-issued `unitPriceAmount` + `currency` when structurally valid,
+ * otherwise `null` (missing or malformed snapshot — the page disables
+ * submission instead of sending a doomed request). The single projection
+ * site for variant → wire pricing — display formatting (`formatCurrency`)
+ * stays at the page. Pure — throws nothing.
+ */
+export function toAddToCartPricing(
+  variant: ProductVariant | null | undefined,
+): AddToCartPricing | null {
+  if (variant === null || variant === undefined) {
+    return null;
+  }
+  const pricing: AddToCartPricing = {
+    unitPriceAmount: variant.unitPriceAmount,
+    currency: variant.currency,
+  };
+  return isValidAddToCartPricing(pricing) ? pricing : null;
 }

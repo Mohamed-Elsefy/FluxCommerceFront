@@ -52,12 +52,13 @@
  * - Phase 8 — no checkout, payment, or order logic.
  */
 
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, type Signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Subscription } from 'rxjs';
 import type { ApiError } from '@flux/api';
 import { CartState, type CartActionOptions } from './cart-state';
 import { GUEST_CART_STORAGE } from './guest-cart-storage.service';
+import type { CartIdentity } from '../models/cart.models';
 
 /**
  * Backend codes proving a guest identity is dead (the stored `cartId`
@@ -94,6 +95,16 @@ export class GuestCartService {
   private readonly state = inject(CartState);
   private readonly storage = inject(GUEST_CART_STORAGE);
   private readonly isBrowser: boolean;
+
+  /**
+   * Current cart identity (`null` before establishment). Read-only
+   * passthrough of the owned `CartState` identity — the stable seam for
+   * cross-feature consumers (e.g. product-details gates its guest
+   * add-to-cart affordance on guest readiness): readers observe WHEN
+   * identity exists; establishment and transitions stay in
+   * `initialize()`/recovery here, and cart contents stay in `CartState`.
+   */
+  readonly identity: Signal<CartIdentity | null> = this.state.identity;
 
   constructor() {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));

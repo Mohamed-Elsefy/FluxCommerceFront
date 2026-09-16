@@ -354,6 +354,17 @@ describe('GuestCartService guards', () => {
     expect(state.cart().status).toBe('idle');
   });
 
+  it('exposes the owned state identity as a read-only cross-feature seam', () => {
+    const { service, state } = setup();
+
+    expect(service.identity()).toBeNull();
+
+    service.initialize();
+
+    expect(service.identity()).toEqual({ kind: 'guest', cartId: GUEST_ID });
+    expect(state.identity()).toEqual(service.identity());
+  });
+
   it('routes guest CRUD through the established identity after bootstrap', () => {
     const { service, state, calls } = setup();
     service.initialize();

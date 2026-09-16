@@ -4,8 +4,10 @@
  * Quantity Selection + Add to Cart Integration + SSR & SEO).
  *
  * `ProductDetailsState` is stubbed at its typed seam (its orchestration is
- * covered by `product-details-state.spec.ts`) so these tests own the page
- * logic: product + specifications + images + variants loads driven by the
+ * covered by `product-details-state.spec.ts`) and `GuestCartService` is
+ * stubbed at its seam (its lifecycle is covered by
+ * `guest-cart.service.spec.ts`), so these tests own the page logic:
+ * product + specifications + images + variants loads driven by the
  * `:id` route parameter on both platforms (server fetch feeds SSR +
  * transfer; the server never renders browser-only shells), graceful
  * missing/malformed ids (no fetch, invalid state, slot reset), loading /
@@ -13,18 +15,20 @@
  * specification rendering (wire order, empty-hidden), gallery integration
  * (rendering, empty fallback, failure hiding), selector integration
  * (rendering, selection forwarding, clearing on product change),
- * commercial integration (SKU binding, no-selection prompt, unavailable
- * handling), quantity integration (rendering, forwarding),
- * submission-feedback lifecycle resets, and dynamic SSR-safe metadata
- * (title, description, OpenGraph per resource state, incl. 404).
+ * commercial integration (SKU + backend-issued unit-price binding,
+ * no-selection prompt, unavailable handling), quantity integration
+ * (rendering, forwarding), guest add-to-cart integration (guest lifecycle
+ * bootstrap, gated mounting, priced guest submission, no-identity
+ * fallback), submission-feedback lifecycle resets, and dynamic SSR-safe
+ * metadata (title, description, OpenGraph per resource state, incl. 404).
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { PLATFORM_ID, signal } from '@angular/core';
+import { PLATFORM_ID, computed, signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { afterEach, describe, expect, it } from 'vitest';
-import { of } from 'rxjs';
+import { Subscription, of } from 'rxjs';
 import {
   ApiError,
   emptyResource,
@@ -34,10 +38,14 @@ import {
   successResource,
   type ResourceState,
 } from '@flux/api';
-import { CultureService } from '@flux/i18n';
+import { CultureService, formatCurrency } from '@flux/i18n';
 import { VariantStatus, type ProductResponse } from '@flux/models';
+import { GuestCartService } from '../../../cart/state/guest-cart.service';
+import type { CartIdentity } from '../../../cart/models/cart.models';
 import { ProductDetailsState } from '../../state/product-details-state';
+import { isSelectableVariant } from '../../models/product-details.models';
 import type {
+  AddToCartStatus,
   ProductDetails,
   ProductImage,
   ProductSpecification,
@@ -82,6 +90,8 @@ const VARIANTS: ProductVariant[] = [
     productId: PRODUCT_ID,
     sku: 'TEE-RED-M',
     name: 'Red / M',
+    unitPriceAmount: 29.99,
+    currency: 'USD',
     status: VariantStatus.Active,
     isDeleted: false,
     createdAtUtc: '2026-09-04T10:00:00Z',
@@ -92,6 +102,8 @@ const VARIANTS: ProductVariant[] = [
     productId: PRODUCT_ID,
     sku: 'TEE-BLUE-M',
     name: 'Blue / M',
+    unitPriceAmount: 14.5,
+    currency: 'USD',
     status: VariantStatus.Inactive,
     isDeleted: false,
     createdAtUtc: '2026-09-04T10:00:00Z',
@@ -107,6 +119,9 @@ function setup(options: {
   selectedVariantId?: string | null;
   selectedVariant?: ProductVariant | null;
   quantity?: number;
+  addToCartStatus?: AddToCartStatus;
+  addToCartError?: ApiError | null;
+  guestIdentity?: CartIdentity | null;
   productId?: string | null;
   culture?: 'en' | 'fr' | 'ar';
   platform?: 'browser' | 'server';
@@ -123,6 +138,8 @@ function setup(options: {
   resetQuantityCalls: number;
   resetAddToCartCalls: unknown[];
   resetCalls: number;
+  guestInitializeCount: () => number;
+  guestSubmissions: { cartId: unknown; pricing: unknown }[];
   setSelectedVariant: (variant: ProductVariant | null) => void;
 } {
   const loadCalls: unknown[] = [];
@@ -136,6 +153,8 @@ function setup(options: {
   let resetQuantityCalls = 0;
   const resetAddToCartCalls: unknown[] = [];
   let resetCalls = 0;
+  const guestSubmissions: { cartId: unknown; pricing: unknown }[] = [];
+  let guestInitializeCalls = 0;
   const stateStub = {
     product: signal(options.snapshot ?? idleResource<ProductDetails>()),
     specifications: signal(
@@ -145,7 +164,13 @@ function setup(options: {
     variants: signal(options.variantsSnapshot ?? idleResource<ProductVariant[]>()),
     selectedVariantId: signal(options.selectedVariantId ?? null),
     selectedVariant,
+    selectedVariantSelectable: computed(() => {
+      const selected = selectedVariant();
+      return selected !== null && isSelectableVariant(selected);
+    }),
     quantity: signal(options.quantity ?? 1),
+    addToCartStatus: signal(options.addToCartStatus ?? 'idle'),
+    addToCartError: signal(options.addToCartError ?? null),
     loadProduct: ((id: unknown) => {
       loadCalls.push(id);
     }) as ProductDetailsState['loadProduct'],
@@ -173,6 +198,10 @@ function setup(options: {
     resetAddToCartStatus: (() => {
       resetAddToCartCalls.push(true);
     }) as ProductDetailsState['resetAddToCartStatus'],
+    submitGuestAddToCart: ((cartId: unknown, pricing: unknown) => {
+      guestSubmissions.push({ cartId, pricing });
+      return Subscription.EMPTY;
+    }) as ProductDetailsState['submitGuestAddToCart'],
     reset: (() => {
       resetCalls += 1;
     }) as ProductDetailsState['reset'],
@@ -191,6 +220,16 @@ function setup(options: {
     providers: [
       provideRouter([]),
       { provide: ProductDetailsState, useValue: stateStub },
+      {
+        provide: GuestCartService,
+        useValue: {
+          initialize: (() => {
+            guestInitializeCalls += 1;
+            return Subscription.EMPTY;
+          }) as GuestCartService['initialize'],
+          identity: signal<CartIdentity | null>(options.guestIdentity ?? null),
+        } as unknown as GuestCartService,
+      },
       { provide: ActivatedRoute, useValue: routeStub },
       ...(options.platform === undefined
         ? []
@@ -214,6 +253,8 @@ function setup(options: {
     resetQuantityCalls,
     resetAddToCartCalls,
     resetCalls,
+    guestInitializeCount: () => guestInitializeCalls,
+    guestSubmissions,
     setSelectedVariant: (variant: ProductVariant | null) => selectedVariant.set(variant),
   };
 }
@@ -637,7 +678,7 @@ describe('ProductDetailsPage commercial section', () => {
     });
   }
 
-  it('binds the selected variant SKU once variants succeed', () => {
+  it('binds the selected variant SKU and backend unit price once variants succeed', () => {
     const { element } = commercialSetup(successResource(VARIANTS), VARIANTS[0] ?? null);
 
     const commercial = element.querySelector('product-details-variant-commercial');
@@ -645,8 +686,12 @@ describe('ProductDetailsPage commercial section', () => {
     expect(commercial?.querySelector('.variant-commercial-title')?.textContent).toBe(
       'Variant details',
     );
-    expect(commercial?.querySelector('.variant-commercial-row dt')?.textContent).toBe('SKU');
-    expect(commercial?.querySelector('.variant-commercial-row dd')?.textContent).toBe('TEE-RED-M');
+    const rows = [...(commercial?.querySelectorAll('.variant-commercial-row') ?? [])];
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.querySelector('dt')?.textContent).toBe('SKU');
+    expect(rows[0]?.querySelector('dd')?.textContent).toBe('TEE-RED-M');
+    expect(rows[1]?.querySelector('dt')?.textContent).toBe('Unit price');
+    expect(rows[1]?.querySelector('dd')?.textContent).toBe(formatCurrency(29.99, 'USD', 'en'));
   });
 
   it('updates the SKU instantly on selection switches with no stale data', () => {
@@ -662,7 +707,7 @@ describe('ProductDetailsPage commercial section', () => {
     fixture.detectChanges();
 
     const rows = [...element.querySelectorAll('.variant-commercial-row')];
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
     expect(rows[0]?.querySelector('dd')?.textContent).toBe('TEE-BLUE-M');
     expect(element.textContent).not.toContain('TEE-RED-M');
   });
@@ -740,6 +785,103 @@ describe('ProductDetailsPage quantity section', () => {
 
     expect(element.querySelector('h1')?.textContent).toBe('Tee');
     expect(element.querySelector('product-details-quantity-selector')).toBeNull();
+  });
+});
+
+describe('ProductDetailsPage add-to-cart section (ADR 018)', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  const GUEST_CART_ID = '11111111-1111-4111-8111-111111111111';
+
+  function cartSetup(
+    options: {
+      guestIdentity?: CartIdentity | null;
+      selectedVariant?: ProductVariant | null;
+      addToCartStatus?: AddToCartStatus;
+    } = {},
+  ) {
+    return setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      specificationsSnapshot: successResource(SPECIFICATIONS),
+      variantsSnapshot: successResource(VARIANTS),
+      selectedVariant:
+        options.selectedVariant === undefined ? (VARIANTS[0] ?? null) : options.selectedVariant,
+      addToCartStatus: options.addToCartStatus ?? 'idle',
+      guestIdentity:
+        options.guestIdentity === undefined
+          ? { kind: 'guest', cartId: GUEST_CART_ID }
+          : options.guestIdentity,
+    });
+  }
+
+  it('mounts the button beside quantity once variants succeed', () => {
+    const { element } = cartSetup();
+
+    const button = element.querySelector(
+      'product-details-add-to-cart .add-to-cart-button',
+    ) as HTMLButtonElement | null;
+    expect(button).not.toBeNull();
+    expect(button?.textContent?.trim()).toBe('Add to cart');
+  });
+
+  it('establishes the guest lifecycle on init', () => {
+    const { guestInitializeCount } = cartSetup();
+
+    expect(guestInitializeCount()).toBe(1);
+  });
+
+  it('enables submission for a selectable variant with guest identity', () => {
+    const { element } = cartSetup();
+
+    expect(
+      (element.querySelector('.add-to-cart-button') as HTMLButtonElement | null)?.disabled,
+    ).toBe(false);
+  });
+
+  it('disables submission until guest identity is established', () => {
+    const { element } = cartSetup({ guestIdentity: null });
+
+    expect(
+      (element.querySelector('.add-to-cart-button') as HTMLButtonElement | null)?.disabled,
+    ).toBe(true);
+  });
+
+  it('disables submission without a selected variant', () => {
+    const { element } = cartSetup({ selectedVariant: null });
+
+    expect(
+      (element.querySelector('.add-to-cart-button') as HTMLButtonElement | null)?.disabled,
+    ).toBe(true);
+  });
+
+  it('submits the backend-issued snapshot to the guest cart on add', () => {
+    const { element, fixture, guestSubmissions } = cartSetup();
+
+    element.querySelector('.add-to-cart-button')?.dispatchEvent(new Event('click'));
+    fixture.detectChanges();
+
+    expect(guestSubmissions).toEqual([
+      {
+        cartId: GUEST_CART_ID,
+        pricing: { unitPriceAmount: 29.99, currency: 'USD' },
+      },
+    ]);
+  });
+
+  it('establishes the lifecycle when adding without identity instead of submitting', () => {
+    // The disabled button already blocks this path in the DOM (defense in
+    // depth); the direct call pins the page-level fallback.
+    const { fixture, guestInitializeCount, guestSubmissions } = cartSetup({
+      guestIdentity: null,
+    });
+
+    fixture.componentInstance.onAddToCart();
+
+    expect(guestSubmissions).toHaveLength(0);
+    expect(guestInitializeCount()).toBe(2);
   });
 });
 

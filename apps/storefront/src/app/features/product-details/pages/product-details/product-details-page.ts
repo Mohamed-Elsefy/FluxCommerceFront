@@ -61,29 +61,32 @@
  * renders once variants succeed with at least one option — an empty,
  * loading, or failed variants slot hides it (the product still shows);
  * selection starts empty (the contract defines no default) and the page
- * clears it whenever the route product changes, while error retry
- * preserves it. The commercial section binds the selected variant's SKU
- * (§6.5 — the only customer-visible commercial field the contract
- * provides; price and availability exist in no readable contract and are
- * not fabricated): no selection → prompt, stale-unselectable selection →
- * unavailable notice, never stale SKU. The quantity section (§6.6) rides
- * the same variants gate and echoes feature-local quantity (minimum 1, no
- * contract maximum); a new route product resets it while error retry
- * preserves it. The add-to-cart submission machine (§6.7 — status, guards,
- * endpoint façades, button component) is fully implemented and tested,
- * but the button is deliberately NOT mounted yet: submission needs a
- * contract price source that does not exist (see the integration note in
- * `../models`), and mounting a control that can never succeed would
- * mislead customers. The page already runs the machine's lifecycle
- * (resets below), so mounting later is a template-only change beside the
- * quantity section — see the mount snippet on `AddToCart`.
+ *   clears it whenever the route product changes, while error retry
+ *   preserves it. The commercial section binds the selected variant's SKU
+ *   and backend-issued unit price (§6.5 + ADR 018 — display only, formatted
+ *   per culture; availability exists in no readable contract and is not
+ *   fabricated): no selection → prompt, stale-unselectable selection →
+ *   unavailable notice, never stale SKU. The quantity section (§6.6) rides
+ *   the same variants gate and echoes feature-local quantity (minimum 1, no
+ *   contract maximum); a new route product resets it while error retry
+ *   preserves it. The add-to-cart button (§6.7 machine + ADR 018 guest
+ *   submission) mounts beside the quantity section: enabled for a
+ *   selectable variant with valid pricing once the guest lifecycle
+ *   (established here via the cart feature's `GuestCartService`,
+ *   browser-only) holds a guest identity; submission carries the selected
+ *   backend-issued price snapshot into the guest cart, and a dead identity
+ *   heals for the next attempt. Authenticated submission stays parked for
+ *   Phase 7.6 auth branching (the page never inspects auth state).
  *
  * Copy is localized per the active `CultureService.culture()` through the
  * feature-owned bundle; retry through `common.actions.retry` and failures
  * through `resolveApiErrorMessage` (never backend text).
  *
  * Explicitly out of scope (later work, must not appear here):
- * - Phase 7 — no cart pages, cart state, guest persistence, or merge.
+ * - Phase 7.6 — no authenticated submission or auth-state inspection.
+ * - Phase 7.7 — no merge wiring. Cart contents, persistence, and merge
+ *   stay in the cart feature; this page only establishes guest identity
+ *   and submits lines through it.
  */
 
 import {
@@ -99,17 +102,23 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
-import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
+import { CultureService, formatCurrency, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
+import { AddToCart } from '../../components/add-to-cart/add-to-cart';
 import { ProductGallery } from '../../components/product-gallery/product-gallery';
 import { QuantitySelector } from '../../components/quantity-selector/quantity-selector';
 import { VariantCommercial } from '../../components/variant-commercial/variant-commercial';
 import { VariantSelector } from '../../components/variant-selector/variant-selector';
+import {
+  GuestCartService,
+  isInvalidGuestIdentityError,
+} from '../../../cart/state/guest-cart.service';
 import { ProductDetailsState } from '../../state/product-details-state';
 import {
   PRODUCT_DETAILS_ID_PARAM,
   isNotFoundError,
   parseProductIdParam,
+  toAddToCartPricing,
 } from '../../models/product-details.models';
 import {
   PRODUCT_DETAILS_TRANSLATION_KEYS,
@@ -127,6 +136,7 @@ import {
     VariantSelector,
     VariantCommercial,
     QuantitySelector,
+    AddToCart,
   ],
   templateUrl: './product-details-page.html',
   styleUrl: './product-details-page.css',
@@ -134,6 +144,7 @@ import {
 })
 export class ProductDetailsPage implements OnInit {
   private readonly state = inject(ProductDetailsState);
+  private readonly guestCart = inject(GuestCartService);
   private readonly route = inject(ActivatedRoute);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
@@ -162,6 +173,9 @@ export class ProductDetailsPage implements OnInit {
 
   /** Purchase quantity — the quantity section's source of truth. */
   readonly quantity = this.state.quantity;
+
+  /** Add-to-cart lifecycle for the button (`idle → adding → added | error`). */
+  protected readonly addStatus = this.state.addToCartStatus;
 
   /**
    * Validated product id from the `:id` route parameter (`null` when
@@ -239,6 +253,10 @@ export class ProductDetailsPage implements OnInit {
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.commercialSkuLabel,
       ),
+      commercialPriceLabel: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.commercialPriceLabel,
+      ),
       commercialSelectPrompt: translateProductDetailsKey(
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.commercialSelectPrompt,
@@ -263,6 +281,18 @@ export class ProductDetailsPage implements OnInit {
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.quantityInvalid,
       ),
+      addToCartAdd: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.addToCartAdd,
+      ),
+      addToCartAdding: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.addToCartAdding,
+      ),
+      addToCartAdded: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.addToCartAdded,
+      ),
       retry: translateKey(culture, 'common.actions.retry'),
     };
   });
@@ -275,6 +305,47 @@ export class ProductDetailsPage implements OnInit {
   /** Localized failure message (never backend text). */
   protected readonly errorMessage = computed(() =>
     resolveApiErrorMessage(this.product().error, this.cultures.culture()),
+  );
+
+  /**
+   * Validated price snapshot projected from the selected backend-issued
+   * variant (`null` when nothing submittable is selected). The single
+   * source for both the displayed unit price and the wire body — display
+   * and submission can never disagree.
+   */
+  protected readonly selectedPricing = computed(() => toAddToCartPricing(this.selectedVariant()));
+
+  /**
+   * Page-formatted backend unit price for the active culture (display
+   * only), or `null` when absent (the commercial row hides) or
+   * unformattable (never render broken money).
+   */
+  protected readonly unitPriceText = computed(() => {
+    const pricing = this.selectedPricing();
+    if (pricing === null) {
+      return null;
+    }
+    return (
+      formatCurrency(pricing.unitPriceAmount, pricing.currency, this.cultures.culture()) || null
+    );
+  });
+
+  /**
+   * Submission guard for the button: selectable variant, valid pricing,
+   * established guest identity, and no in-flight submission. The state
+   * re-validates everything pre-HTTP (defense in depth).
+   */
+  protected readonly canSubmit = computed(
+    () =>
+      this.state.selectedVariantSelectable() &&
+      this.selectedPricing() !== null &&
+      this.guestCart.identity()?.kind === 'guest' &&
+      this.state.addToCartStatus() !== 'adding',
+  );
+
+  /** Localized submission failure message (never backend text). */
+  protected readonly addErrorMessage = computed(() =>
+    resolveApiErrorMessage(this.state.addToCartError(), this.cultures.culture()),
   );
 
   constructor() {
@@ -332,8 +403,11 @@ export class ProductDetailsPage implements OnInit {
   ngOnInit(): void {
     // Runs on server and client alike: metadata applies during SSR (an
     // SSR-safe write into the server `<head>`), while data loads flow
-    // through the effect above on both platforms.
+    // through the effect above on both platforms. Boots the guest cart
+    // lifecycle for later submission (browser-only inside the service —
+    // the server pass is a standby no-op, so SSR never creates carts).
     this.applyMetadata();
+    this.guestCart.initialize();
   }
 
   /**
@@ -388,6 +462,33 @@ export class ProductDetailsPage implements OnInit {
   onQuantityChange(value: number): void {
     this.state.setQuantity(value);
     this.state.resetAddToCartStatus();
+  }
+
+  /**
+   * Submits the selected variant to the guest cart (validated in state —
+   * invalid snapshots and blank identities never fetch). Without an
+   * established guest identity yet, establishes the lifecycle (browser-only
+   * no-op on server) for the next attempt instead of sending a doomed
+   * request. Heals a dead identity for the next attempt when the backend
+   * verdict proves the stored id unusable; other failures stay on the
+   * button for retry.
+   */
+  onAddToCart(): void {
+    const pricing = this.selectedPricing();
+    if (pricing === null) {
+      return;
+    }
+    const identity = this.guestCart.identity();
+    if (identity?.kind !== 'guest') {
+      this.guestCart.initialize();
+      return;
+    }
+    const submission = this.state.submitGuestAddToCart(identity.cartId, pricing);
+    submission.add(() => {
+      if (isInvalidGuestIdentityError(this.state.addToCartError())) {
+        this.guestCart.initialize();
+      }
+    });
   }
 
   /** Cancels the in-flight details requests, if any (idempotent). */

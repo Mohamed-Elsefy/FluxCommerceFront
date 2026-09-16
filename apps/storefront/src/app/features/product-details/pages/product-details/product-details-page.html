@@ -50,6 +50,8 @@
         [variant]="selectedVariant()"
         [title]="copy().commercialTitle"
         [skuLabel]="copy().commercialSkuLabel"
+        [priceLabel]="copy().commercialPriceLabel"
+        [priceText]="unitPriceText()"
         [selectPrompt]="copy().commercialSelectPrompt"
         [unavailableMessage]="copy().commercialUnavailable"
       ></product-details-variant-commercial>
@@ -61,6 +63,16 @@
         [invalidMessage]="copy().quantityInvalid"
         (quantityChange)="onQuantityChange($event)"
       ></product-details-quantity-selector>
+      <product-details-add-to-cart
+        [status]="addStatus()"
+        [disabled]="!canSubmit()"
+        [addLabel]="copy().addToCartAdd"
+        [addingLabel]="copy().addToCartAdding"
+        [addedLabel]="copy().addToCartAdded"
+        [errorMessage]="addErrorMessage()"
+        [retryLabel]="copy().retry"
+        (add)="onAddToCart()"
+      ></product-details-add-to-cart>
     }
     @if (specifications().isSuccess) {
       <section class="product-details-specs" aria-labelledby="product-details-specs-title">

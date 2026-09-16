@@ -39,4 +39,26 @@ describe('HomePage', () => {
       arabic.querySelector('section[aria-labelledby="discovery-title"] a')?.textContent?.trim(),
     ).toBe('تصفح الفئات');
   });
+
+  it('links the cart entry point to the cart feature', () => {
+    const entry = setup().querySelector('section[aria-labelledby="cart-title"] a');
+
+    expect(entry?.getAttribute('href')).toBe('/cart');
+    expect(entry?.textContent?.trim()).toBe('View your cart');
+  });
+
+  it('localizes the cart entry per active culture', () => {
+    const french = setup('fr');
+    expect(french.querySelector('#cart-title')?.textContent).toBe('Votre panier');
+    expect(
+      french.querySelector('section[aria-labelledby="cart-title"] a')?.textContent?.trim(),
+    ).toBe('Voir votre panier');
+
+    TestBed.resetTestingModule();
+    const arabic = setup('ar');
+    expect(arabic.querySelector('#cart-title')?.textContent).toBe('سلة التسوق');
+    expect(
+      arabic.querySelector('section[aria-labelledby="cart-title"] a')?.textContent?.trim(),
+    ).toBe('عرض سلة التسوق');
+  });
 });

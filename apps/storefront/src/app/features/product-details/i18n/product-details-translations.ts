@@ -51,6 +51,7 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   selectorUnavailable: 'productDetails.selector.unavailable',
   commercialTitle: 'productDetails.commercial.title',
   commercialSkuLabel: 'productDetails.commercial.skuLabel',
+  commercialPriceLabel: 'productDetails.commercial.priceLabel',
   commercialSelectPrompt: 'productDetails.commercial.selectPrompt',
   commercialUnavailable: 'productDetails.commercial.unavailable',
   quantityTitle: 'productDetails.quantity.title',
@@ -100,6 +101,7 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
     commercial: {
       title: 'Variant details',
       skuLabel: 'SKU',
+      priceLabel: 'Unit price',
       selectPrompt: 'Select a variant to see its details.',
       unavailable: 'This variant is no longer available.',
     },
@@ -155,6 +157,7 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
     commercial: {
       title: 'Détails de la variante',
       skuLabel: 'SKU',
+      priceLabel: 'Prix unitaire',
       selectPrompt: 'Sélectionnez une variante pour voir ses détails.',
       unavailable: 'Cette variante n’est plus disponible.',
     },
@@ -210,6 +213,7 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
     commercial: {
       title: 'Variantendetails',
       skuLabel: 'SKU',
+      priceLabel: 'Stückpreis',
       selectPrompt: 'Wählen Sie eine Variante, um ihre Details zu sehen.',
       unavailable: 'Diese Variante ist nicht mehr verfügbar.',
     },
@@ -265,6 +269,7 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
     commercial: {
       title: 'Detalles de la variante',
       skuLabel: 'SKU',
+      priceLabel: 'Precio unitario',
       selectPrompt: 'Seleccione una variante para ver sus detalles.',
       unavailable: 'Esta variante ya no está disponible.',
     },
@@ -320,6 +325,7 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
     commercial: {
       title: 'تفاصيل المتغير',
       skuLabel: 'SKU',
+      priceLabel: 'سعر الوحدة',
       selectPrompt: 'اختر متغيرًا لرؤية تفاصيله.',
       unavailable: 'هذا المتغير لم يعد متاحًا.',
     },
