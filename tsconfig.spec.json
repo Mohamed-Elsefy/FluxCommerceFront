@@ -5,7 +5,9 @@
   },
   "include": [
     "apps/*/src/**/*.spec.ts",
+    "apps/*/src/**/*.d.ts",
     "libs/*/src/**/*.spec.ts",
+    "libs/*/src/**/*.d.ts",
     "e2e/**/*.spec.ts",
     "vitest.config.ts",
     "vitest-base.config.ts",

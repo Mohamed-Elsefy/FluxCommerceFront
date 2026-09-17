@@ -45,6 +45,14 @@ export const routes: Routes = [
         path: 'cart',
         loadChildren: () => import('./features/cart/cart.routes').then((m) => m.cartRoutes),
       },
+      {
+        // Sub-Phase 8.2 — checkout feature boundary serving /checkout
+        // (lazy, auth-guarded at the feature boundary; the page and the
+        // feature-scoped CheckoutState arrive in Sub-Phases 8.3–8.4).
+        path: 'checkout',
+        loadChildren: () =>
+          import('./features/checkout/checkout.routes').then((m) => m.checkoutRoutes),
+      },
     ],
   },
   {

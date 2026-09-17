@@ -1,0 +1,12 @@
+/* Checkout field errors (Sub-Phase 8.4). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.checkout-field-errors {
+  margin-block: var(--spacing-sm);
+  margin-inline: 0;
+  padding-inline-start: var(--spacing-lg);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+}
