@@ -1,0 +1,60 @@
+/* Checkout address section (Sub-Phase 8.4). Single intrinsically
+  responsive component — no device duplicates, no viewport media queries.
+  Logical properties only (RTL-safe); visual values come from theming
+  tokens. */
+
+.checkout-address {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.checkout-address-title {
+  padding: 0;
+  margin-block-end: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.checkout-field {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.checkout-field label {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.checkout-optional {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.checkout-field input {
+  inline-size: 100%;
+  block-size: 2.75rem;
+  padding-block: 0;
+  padding-inline: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.checkout-field input:disabled {
+  cursor: not-allowed;
+}
+
+.checkout-field input:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: 2px;
+}

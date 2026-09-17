@@ -1,0 +1,152 @@
+<fieldset class="checkout-address" [formGroup]="group">
+  <legend class="checkout-address-title">{{ labels.sectionTitle }}</legend>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('recipientName')">{{ labels.recipientName }}</label>
+    <input
+      [id]="fieldId('recipientName')"
+      type="text"
+      formControlName="recipientName"
+      required
+      maxlength="100"
+      autocomplete="name"
+      [attr.aria-invalid]="isInvalid('recipientName')"
+      [attr.aria-describedby]="errorsId('recipientName')"
+    />
+    <div [id]="errorsId('recipientName')">
+      <checkout-field-errors
+        [control]="group.controls.recipientName"
+        [label]="labels.recipientName"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('line1')">{{ labels.line1 }}</label>
+    <input
+      [id]="fieldId('line1')"
+      type="text"
+      formControlName="line1"
+      required
+      maxlength="200"
+      autocomplete="address-line1"
+      [attr.aria-invalid]="isInvalid('line1')"
+      [attr.aria-describedby]="errorsId('line1')"
+    />
+    <div [id]="errorsId('line1')">
+      <checkout-field-errors
+        [control]="group.controls.line1"
+        [label]="labels.line1"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('line2')">
+      {{ labels.line2 }}
+      <span class="checkout-optional">({{ labels.line2Optional }})</span>
+    </label>
+    <input
+      [id]="fieldId('line2')"
+      type="text"
+      formControlName="line2"
+      maxlength="200"
+      autocomplete="address-line2"
+      [attr.aria-invalid]="isInvalid('line2')"
+      [attr.aria-describedby]="errorsId('line2')"
+    />
+    <div [id]="errorsId('line2')">
+      <checkout-field-errors
+        [control]="group.controls.line2"
+        [label]="labels.line2"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('city')">{{ labels.city }}</label>
+    <input
+      [id]="fieldId('city')"
+      type="text"
+      formControlName="city"
+      required
+      maxlength="100"
+      autocomplete="address-level2"
+      [attr.aria-invalid]="isInvalid('city')"
+      [attr.aria-describedby]="errorsId('city')"
+    />
+    <div [id]="errorsId('city')">
+      <checkout-field-errors
+        [control]="group.controls.city"
+        [label]="labels.city"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('region')">{{ labels.region }}</label>
+    <input
+      [id]="fieldId('region')"
+      type="text"
+      formControlName="region"
+      required
+      maxlength="100"
+      autocomplete="address-level1"
+      [attr.aria-invalid]="isInvalid('region')"
+      [attr.aria-describedby]="errorsId('region')"
+    />
+    <div [id]="errorsId('region')">
+      <checkout-field-errors
+        [control]="group.controls.region"
+        [label]="labels.region"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('postalCode')">{{ labels.postalCode }}</label>
+    <input
+      [id]="fieldId('postalCode')"
+      type="text"
+      formControlName="postalCode"
+      required
+      maxlength="20"
+      autocomplete="postal-code"
+      [attr.aria-invalid]="isInvalid('postalCode')"
+      [attr.aria-describedby]="errorsId('postalCode')"
+    />
+    <div [id]="errorsId('postalCode')">
+      <checkout-field-errors
+        [control]="group.controls.postalCode"
+        [label]="labels.postalCode"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+
+  <div class="checkout-field">
+    <label [for]="fieldId('countryCode')">{{ labels.countryCode }}</label>
+    <input
+      [id]="fieldId('countryCode')"
+      type="text"
+      formControlName="countryCode"
+      required
+      maxlength="2"
+      autocomplete="country"
+      [attr.aria-invalid]="isInvalid('countryCode')"
+      [attr.aria-describedby]="errorsId('countryCode')"
+    />
+    <div [id]="errorsId('countryCode')">
+      <checkout-field-errors
+        [control]="group.controls.countryCode"
+        [label]="labels.countryCode"
+        [templates]="templates"
+      />
+    </div>
+  </div>
+</fieldset>

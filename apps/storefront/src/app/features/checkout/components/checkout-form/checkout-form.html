@@ -1,0 +1,29 @@
+<form class="checkout-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <checkout-address-form
+    [group]="form.controls.shippingAddress"
+    [labels]="labels.shipping"
+    [templates]="labels.templates"
+    idPrefix="shipping"
+  />
+
+  <div class="checkout-same">
+    <label for="checkout-billing-same">
+      <input
+        id="checkout-billing-same"
+        type="checkbox"
+        formControlName="billingSameAsShipping"
+        (change)="onBillingSameAsShippingChange($event)"
+      />
+      {{ labels.billingSameAsShipping }}
+    </label>
+  </div>
+
+  <checkout-address-form
+    [group]="form.controls.billingAddress"
+    [labels]="labels.billing"
+    [templates]="labels.templates"
+    idPrefix="billing"
+  />
+
+  <button class="checkout-submit" type="submit">{{ labels.submit }}</button>
+</form>
