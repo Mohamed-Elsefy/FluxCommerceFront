@@ -369,6 +369,119 @@ describe('CheckoutState duplicate-submit prevention', () => {
     expect(calls).toHaveLength(1);
     expect(state.result()).toEqual(order());
   });
+
+  it('locks submits after a failure until explicitly cleared', () => {
+    const failure = new ApiError({ status: 409, message: 'Conflict.' });
+    const { state, calls } = readyState(() => throwError(() => failure));
+    state.submitOrder({ idempotencyKey: IDEMPOTENCY_KEY }).unsubscribe();
+    expect(state.workflow()).toBe('failure');
+
+    // A failed request never silently re-fires — not even with a fresh key.
+    state.submitOrder({ idempotencyKey: 'another-key' }).unsubscribe();
+
+    expect(calls).toHaveLength(1);
+    expect(state.workflow()).toBe('failure');
+  });
+
+  it('records the attempt key and clears it only on reset', () => {
+    const { state } = setup();
+    expect(state.lastIdempotencyKey()).toBeNull();
+
+    state.initialize(cart(), true);
+    state.setFormData(formData());
+    state.submitOrder({ idempotencyKey: IDEMPOTENCY_KEY }).unsubscribe();
+
+    expect(state.lastIdempotencyKey()).toBe(IDEMPOTENCY_KEY);
+
+    state.reset();
+    expect(state.lastIdempotencyKey()).toBeNull();
+  });
+});
+
+describe('CheckoutState retrySubmission (same-key transport retry)', () => {
+  function failOnceTransport(): () => Observable<ApiResponseWithData<CreateOrderResponse>> {
+    let attempts = 0;
+    return () => {
+      attempts += 1;
+      return attempts === 1
+        ? throwError(() => new ApiError({ status: 0, message: 'Transport failed.' }))
+        : of(orderEnvelope());
+    };
+  }
+
+  it('reuses the failed attempt key for the identical payload', () => {
+    const { state, calls } = readyState(failOnceTransport());
+    state.submitOrder().unsubscribe();
+    const failedKey = state.lastIdempotencyKey();
+    expect(failedKey).not.toBeNull();
+    expect(state.workflow()).toBe('failure');
+
+    state.retrySubmission().unsubscribe();
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.key).toBe(failedKey);
+    expect(calls[1]?.body).toEqual(calls[0]?.body);
+    expect(state.workflow()).toBe('success');
+    expect(state.result()).toEqual(order());
+  });
+
+  it('ignores retry without a failure (nothing to retry)', () => {
+    const { state, calls } = readyState();
+
+    state.retrySubmission().unsubscribe();
+
+    expect(calls).toHaveLength(0);
+    expect(state.workflow()).toBe('ready');
+  });
+
+  it('ignores retry while a retry is already in flight', () => {
+    const { state, calls } = readyState(() => new Observable(() => {}));
+    state.submitOrder({ idempotencyKey: IDEMPOTENCY_KEY });
+    expect(state.workflow()).toBe('submitting');
+
+    state.retrySubmission().unsubscribe();
+
+    expect(calls).toHaveLength(1);
+  });
+
+  it('ignores retry after an order was created', () => {
+    const { state, calls } = readyState();
+    state.submitOrder({ idempotencyKey: IDEMPOTENCY_KEY }).unsubscribe();
+    expect(state.workflow()).toBe('success');
+
+    state.retrySubmission().unsubscribe();
+
+    expect(calls).toHaveLength(1);
+  });
+
+  it('ignores retry without snapshot or form', () => {
+    const { state, calls } = setup();
+
+    state.retrySubmission().unsubscribe();
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it('ignores retry with a stale cart', () => {
+    const { state, calls } = readyState(() =>
+      throwError(() => new ApiError({ status: 0, message: 'Gone.' })),
+    );
+    state.submitOrder().unsubscribe();
+    expect(state.workflow()).toBe('failure');
+
+    state.retrySubmission({ currentCart: cart({ version: 99 }) }).unsubscribe();
+
+    expect(calls).toHaveLength(1);
+  });
+
+  it('preserves the form across failure and retry', () => {
+    const { state } = readyState(failOnceTransport());
+    state.submitOrder().unsubscribe();
+    state.retrySubmission().unsubscribe();
+
+    expect(state.formData()).toEqual(formData());
+    expect(state.workflow()).toBe('success');
+  });
 });
 
 describe('CheckoutState recovery and reset', () => {

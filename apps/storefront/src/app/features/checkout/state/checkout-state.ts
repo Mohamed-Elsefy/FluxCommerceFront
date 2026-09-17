@@ -1,9 +1,9 @@
 /**
- * Feature-owned Checkout state for Sub-Phase 8.3 — Checkout State
- * Management.
+ * Feature-owned Checkout state for Sub-Phases 8.3 (Checkout State
+ * Management) and 8.7 (Failure Handling & Recovery).
  *
- * Scope: `docs/phases/PHASE_8_CHECKOUT.md` §8.3 (state only — no forms,
- * no UI, no payment).
+ * Scope: `docs/phases/PHASE_8_CHECKOUT.md` §§8.3/8.7 (state and recovery
+ * only — no forms, no UI, no payment).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -31,8 +31,20 @@
  * - Form state and submission state are separate signals by
  *   construction: `setFormData` stores customer-entered data only and
  *   triggers nothing; the submission resource is driven only by
- *   `submitOrder`. Failure recovery (`clearSubmissionError`) and full
- *   reset (`reset`) never wipe the form implicitly — the page decides.
+ *   `submitOrder`/`retrySubmission`. Failure recovery
+ *   (`clearSubmissionError`) and full reset (`reset`) never wipe the
+ *   form implicitly — the page decides.
+ * - Submit locks (§8.7): the in-flight lock drops concurrent attempts
+ *   (factory never invoked — no HTTP), the post-success lock requires
+ *   an explicit `reset` for a new order, and the post-failure lock
+ *   requires an explicit `clearSubmissionError` (edit path) or
+ *   `retrySubmission` (same-key transport retry) before any new
+ *   attempt. A failed request never silently re-fires.
+ * - Idempotency-key tracking (§8.7): every attempt records its key.
+ *   Fresh attempts mint fresh keys; `retrySubmission` reuses the failed
+ *   attempt's key for the identical payload (transport failures only —
+ *   replay-or-create-once instead of risking a duplicate order with a
+ *   new key). Keys clear on `reset` only.
  * - The state never becomes a second Cart store: it holds no lines, no
  *   quantities, no prices, and no totals — only the §8.1 freshness
  *   anchor (`cartId` + backend `version` + line count). Cart data enters
@@ -109,10 +121,11 @@ export type CheckoutWorkflow =
 /** Options for `CheckoutState.submitOrder`: key supply and lifecycle only. */
 export interface CheckoutSubmitOptions {
   /**
-   * Idempotency key for this attempt. Reuse the previous key when
-   * retrying the identical payload after a transport failure; omit to
-   * mint a fresh key for a new attempt (a new payload MUST use a new
-   * key, else `409 IdempotencyConflict`).
+   * Idempotency key for this attempt. Omit to mint a fresh key for a
+   * new attempt (a new payload MUST use a new key, else `409
+   * IdempotencyConflict`). Reuse the previous key ONLY when retrying
+   * the identical payload after a transport failure — prefer
+   * `retrySubmission` for that path (it reuses the recorded key).
    */
   readonly idempotencyKey?: string;
   /** Lifecycle signal — aborts complete silently and leave settled data alone. */
@@ -122,6 +135,22 @@ export interface CheckoutSubmitOptions {
    * cart moved since initialization (`cartId`/`version`/line count),
    * the submit is ignored — re-review before submit, never silent
    * submit against stale lines.
+   */
+  readonly currentCart?: CartResponse | null;
+}
+
+/**
+ * Options for `CheckoutState.retrySubmission`: lifecycle and freshness
+ * only. The key is never supplied here — the failed attempt's recorded
+ * key is always reused (same key + same body replays the original
+ * order instead of creating a duplicate).
+ */
+export interface CheckoutRetryOptions {
+  /** Lifecycle signal — aborts complete silently and leave settled data alone. */
+  readonly signal?: AbortSignal;
+  /**
+   * Live cart for the pre-retry freshness check (same stale-review
+   * rule as `submitOrder`).
    */
   readonly currentCart?: CartResponse | null;
 }
@@ -141,6 +170,7 @@ export class CheckoutState {
   private readonly cartSnapshotStore = signal<CheckoutCartSnapshot | null>(null);
   private readonly initializationStore = signal<CheckoutInitialization | null>(null);
   private readonly awaitingCartStore = signal(false);
+  private readonly lastIdempotencyKeyStore = signal<string | null>(null);
 
   /** Order-creation resource (`idle` before the first submit). */
   readonly submission: Signal<ResourceState<CreateOrderResponse>> = this.submissionStore.state;
@@ -160,6 +190,13 @@ export class CheckoutState {
   /** Initialization outcome, if resolved (`null` before any settled attempt). */
   readonly initialization: Signal<CheckoutInitialization | null> =
     this.initializationStore.asReadonly();
+
+  /**
+   * Idempotency key of the latest submit attempt (`null` before the
+   * first attempt or after `reset`). `retrySubmission` reuses it for
+   * the identical payload; fresh attempts mint and record a new one.
+   */
+  readonly lastIdempotencyKey: Signal<string | null> = this.lastIdempotencyKeyStore.asReadonly();
 
   /** Workflow stage derived from submission + initialization (never set directly). */
   readonly workflow: Signal<CheckoutWorkflow> = computed(() => {
@@ -253,17 +290,24 @@ export class CheckoutState {
    * - a submission is already in flight (duplicate-submit lock);
    * - an order was already created (explicit `reset` required for a
    *   new order — a created order must never be re-ordered silently);
+   * - a submission already failed (explicit `clearSubmissionError` for
+   *   the edit path or `retrySubmission` for the same-key retry path —
+   *   a failed request never silently re-fires);
    * - no snapshot (not initialized);
    * - no form data (nothing validated to send);
    * - `currentCart` provided and changed since initialization (stale
    *   review — re-initialize before submit).
    *
-   * The idempotency key defaults to a fresh mint per attempt; pass the
-   * previous key explicitly only when retrying the identical payload.
-   * A dataless envelope is a contract violation surfacing as `error`.
+   * The idempotency key defaults to a fresh mint per attempt and is
+   * recorded for `retrySubmission`. A dataless envelope is a contract
+   * violation surfacing as `error`.
    */
   submitOrder(options: CheckoutSubmitOptions = {}): Subscription {
-    if (this.submissionStore.isLoading() || this.submissionStore.data() !== null) {
+    if (
+      this.submissionStore.isLoading() ||
+      this.submissionStore.data() !== null ||
+      this.submissionStore.isError()
+    ) {
       return Subscription.EMPTY;
     }
     const snapshot = this.cartSnapshotStore();
@@ -278,6 +322,54 @@ export class CheckoutState {
       return Subscription.EMPTY;
     }
     const idempotencyKey = options.idempotencyKey ?? newIdempotencyKey();
+    this.lastIdempotencyKeyStore.set(idempotencyKey);
+    const tracked: Observable<CreateOrderResponse> = this.checkoutApi
+      .createOrder(
+        buildCreateOrderRequest(snapshot.cartId, form.shippingAddress, form.billingAddress),
+        idempotencyKey,
+        toApiOptions(options),
+      )
+      .pipe(map(requireEnvelopeData));
+    return loadResourceState(this.submissionStore, tracked, { signal: options.signal });
+  }
+
+  /**
+   * Retries the failed submission with the failed attempt's recorded
+   * idempotency key and the identical payload (same key + same body
+   * replays the original order when the first attempt actually landed,
+   * or creates it once when the attempt never arrived — never a
+   * duplicate). Intended for transport failures (`status 0`,
+   * `checkoutRecoveryFor` → `retry`); validation and business
+   * rejections need corrected input first (use `clearSubmissionError`
+   * and resubmit as a fresh attempt instead — replaying them only
+   * reproduces the rejection).
+   *
+   * Guard rejections (call ignored, factory never invoked, no HTTP):
+   * the submission is not in the error state (nothing to retry),
+   * in-flight/succeeded rules from `submitOrder`, missing snapshot or
+   * form, or a stale `currentCart`. The recorded key survives the retry
+   * for further attempts; `reset` clears it.
+   */
+  retrySubmission(options: CheckoutRetryOptions = {}): Subscription {
+    if (!this.submissionStore.isError()) {
+      return Subscription.EMPTY;
+    }
+    if (this.submissionStore.isLoading() || this.submissionStore.data() !== null) {
+      return Subscription.EMPTY;
+    }
+    const snapshot = this.cartSnapshotStore();
+    const form = this.formStore();
+    if (snapshot === null || form === null) {
+      return Subscription.EMPTY;
+    }
+    if (
+      options.currentCart !== undefined &&
+      hasCheckoutCartChanged(snapshot, options.currentCart)
+    ) {
+      return Subscription.EMPTY;
+    }
+    const idempotencyKey = this.lastIdempotencyKeyStore() ?? newIdempotencyKey();
+    this.lastIdempotencyKeyStore.set(idempotencyKey);
     const tracked: Observable<CreateOrderResponse> = this.checkoutApi
       .createOrder(
         buildCreateOrderRequest(snapshot.cartId, form.shippingAddress, form.billingAddress),
@@ -298,17 +390,18 @@ export class CheckoutState {
     this.submissionStore.reset();
   }
 
-  /** Restores the §8.1 initial shape: idle submission, no form, no snapshot. */
+  /** Restores the §8.1 initial shape: idle submission, no form, no snapshot, no key. */
   reset(): void {
     this.submissionStore.reset();
     this.formStore.set(null);
     this.cartSnapshotStore.set(null);
     this.initializationStore.set(null);
     this.awaitingCartStore.set(false);
+    this.lastIdempotencyKeyStore.set(null);
   }
 }
 
-function toApiOptions(options: CheckoutSubmitOptions): ApiRequestOptions {
+function toApiOptions(options: CheckoutSubmitOptions | CheckoutRetryOptions): ApiRequestOptions {
   return options.signal === undefined ? {} : { signal: options.signal };
 }
 

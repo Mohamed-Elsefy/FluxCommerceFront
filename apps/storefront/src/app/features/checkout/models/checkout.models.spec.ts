@@ -31,6 +31,7 @@ import {
   CHECKOUT_RECIPIENT_NAME_MAX_LENGTH,
   CHECKOUT_REGION_MAX_LENGTH,
   CHECKOUT_SHIPPING_METHOD_SUPPORTED,
+  checkoutRecoveryFor,
   emptyShippingSelection,
   hasBackendOrderTotals,
   hasCheckoutFieldErrors,
@@ -395,5 +396,27 @@ describe('checkout error codes and classifiers (status-first, never message text
     expect(isFormPreservingCheckoutFailure({ status: 500 })).toBe(false);
     expect(isFormPreservingCheckoutFailure(null)).toBe(false);
     expect(isFormPreservingCheckoutFailure(undefined)).toBe(false);
+  });
+
+  it('routes transport failures to same-key retry', () => {
+    expect(checkoutRecoveryFor({ status: 0 })).toBe('retry');
+    expect(checkoutRecoveryFor({ status: 0, code: 'NetworkError' })).toBe('retry');
+  });
+
+  it('routes missing and denied carts to the back-to-cart path', () => {
+    expect(checkoutRecoveryFor({ status: 404 })).toBe('cart');
+    expect(checkoutRecoveryFor({ status: 403 })).toBe('cart');
+  });
+
+  it('routes validation, business, auth, and server failures to edit-and-resubmit', () => {
+    expect(checkoutRecoveryFor({ status: 400 })).toBe('edit');
+    expect(checkoutRecoveryFor({ status: 401 })).toBe('edit');
+    expect(checkoutRecoveryFor({ status: 409 })).toBe('edit');
+    expect(checkoutRecoveryFor({ status: 500 })).toBe('edit');
+  });
+
+  it('maps no failure to no recovery', () => {
+    expect(checkoutRecoveryFor(null)).toBeNull();
+    expect(checkoutRecoveryFor(undefined)).toBeNull();
   });
 });

@@ -59,6 +59,7 @@ export const CHECKOUT_TRANSLATION_KEYS = {
   summaryTotalsPending: 'checkout.summary.totalsPending',
   pageTitle: 'checkout.page.title',
   pageLoading: 'checkout.page.loading',
+  pageLoadErrorTitle: 'checkout.page.loadErrorTitle',
   pageEmptyTitle: 'checkout.page.emptyTitle',
   pageEmptyMessage: 'checkout.page.emptyMessage',
   pageBackToCart: 'checkout.page.backToCart',
@@ -90,6 +91,7 @@ const EN_CHECKOUT: TranslationDictionary = {
     page: {
       title: 'Checkout',
       loading: 'Loading checkout…',
+      loadErrorTitle: 'Checkout unavailable',
       emptyTitle: 'Your cart is empty',
       emptyMessage: 'Add items to your cart before checking out.',
       backToCart: 'Back to cart',
@@ -142,6 +144,7 @@ const FR_CHECKOUT: TranslationDictionary = {
     page: {
       title: 'Commande',
       loading: 'Chargement de la commande…',
+      loadErrorTitle: 'Commande indisponible',
       emptyTitle: 'Votre panier est vide',
       emptyMessage: 'Ajoutez des articles à votre panier avant de commander.',
       backToCart: 'Retour au panier',
@@ -194,6 +197,7 @@ const DE_CHECKOUT: TranslationDictionary = {
     page: {
       title: 'Kasse',
       loading: 'Kasse wird geladen…',
+      loadErrorTitle: 'Kasse nicht verfügbar',
       emptyTitle: 'Ihr Warenkorb ist leer',
       emptyMessage: 'Legen Sie Artikel in den Warenkorb, bevor Sie zur Kasse gehen.',
       backToCart: 'Zurück zum Warenkorb',
@@ -246,6 +250,7 @@ const ES_CHECKOUT: TranslationDictionary = {
     page: {
       title: 'Tramitar el pedido',
       loading: 'Cargando el pedido…',
+      loadErrorTitle: 'Pedido no disponible',
       emptyTitle: 'Tu cesta está vacía',
       emptyMessage: 'Añade artículos a tu cesta antes de tramitar el pedido.',
       backToCart: 'Volver a la cesta',
@@ -298,6 +303,7 @@ const AR_CHECKOUT: TranslationDictionary = {
     page: {
       title: 'إتمام الطلب',
       loading: 'جارٍ تحميل إتمام الطلب…',
+      loadErrorTitle: 'إتمام الطلب غير متاح',
       emptyTitle: 'سلة التسوق فارغة',
       emptyMessage: 'أضف منتجات إلى السلة قبل إتمام الطلب.',
       backToCart: 'العودة إلى السلة',

@@ -242,6 +242,25 @@ describe('CheckoutPage shells', () => {
     expect(TestBed.inject(Title).getTitle()).toBe('إتمام الطلب | FluxCommerce');
     expect(element.querySelector('#checkout-page-title')?.textContent).toBe('إتمام الطلب');
   });
+
+  it('renders the cart error shell and retries through the session lifecycle', () => {
+    const failure = new ApiError({ status: 404, message: 'Cart gone.' });
+    const { element, fixture, cartApi, orderCalls } = setup({
+      cart: () => throwError(() => failure),
+    });
+
+    const banner = element.querySelector('flux-error-state');
+    expect(banner).not.toBeNull();
+    expect(banner?.textContent).toContain('Checkout unavailable');
+    expect(element.querySelector('checkout-form')).toBeNull();
+    expect(orderCalls).toHaveLength(0);
+
+    const callsBefore = cartApi.getCart.mock.calls.length;
+    (banner?.querySelector('button.retry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(cartApi.getCart.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
 });
 
 describe('CheckoutPage ready rendering', () => {
@@ -365,5 +384,123 @@ describe('CheckoutPage failure handling', () => {
 
     expect(element.querySelector('flux-error-state')).toBeNull();
     expect(element.querySelector('checkout-form')).not.toBeNull();
+  });
+
+  it('locks resubmits after a failure until the recovery action clears it', () => {
+    const { element, fixture, orderCalls } = setup({
+      order: () => throwError(() => new ApiError({ status: 409, message: 'Conflict.' })),
+    });
+    fillSection(element, fixture, 'shipping');
+    fillSection(element, fixture, 'billing');
+    submitForm(element, fixture);
+    submitForm(element, fixture);
+
+    expect(orderCalls).toHaveLength(1);
+  });
+
+  it('retries transport failures with the same idempotency key', () => {
+    let attempts = 0;
+    const { element, fixture, orderCalls } = setup({
+      order: () => {
+        attempts += 1;
+        return attempts === 1
+          ? throwError(() => new ApiError({ status: 0, message: 'Transport failed.' }))
+          : of(orderEnvelope());
+      },
+    });
+    fillSection(element, fixture, 'shipping');
+    fillSection(element, fixture, 'billing');
+    submitForm(element, fixture);
+    expect(orderCalls).toHaveLength(1);
+    const failedKey = orderCalls[0]?.key;
+
+    (element.querySelector('flux-error-state button.retry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(orderCalls).toHaveLength(2);
+    expect(orderCalls[1]?.key).toBe(failedKey);
+    expect(orderCalls[1]?.body).toEqual(orderCalls[0]?.body);
+    expect(element.querySelector('.checkout-page-success')).not.toBeNull();
+  });
+
+  it('guides back to Cart when re-validation proves the cart is gone', () => {
+    const { element, fixture, orderCalls, cartApi } = setup({
+      order: () => throwError(() => new ApiError({ status: 404, message: 'Cart gone.' })),
+    });
+    fillSection(element, fixture, 'shipping');
+    fillSection(element, fixture, 'billing');
+    submitForm(element, fixture);
+    expect(orderCalls).toHaveLength(1);
+    expect(element.querySelector('flux-error-state')).not.toBeNull();
+
+    // Background re-validation finds nothing left to order.
+    cartApi.getCart.mockReturnValue(of(cartEnvelope(authCart({ items: [] }))));
+    (element.querySelector('flux-error-state button.retry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // Automatic re-validation runs; the stale snapshot is abandoned so
+    // no resubmit can target the dead cart — the empty shell guides
+    // back to Cart instead.
+    expect(cartApi.getCart).toHaveBeenCalled();
+    expect(orderCalls).toHaveLength(1);
+    expect(element.querySelector('flux-empty-state')).not.toBeNull();
+    expect(element.querySelector('a[href="/cart"]')).not.toBeNull();
+    expect(element.querySelector('checkout-form')).toBeNull();
+  });
+
+  it('returns to the failure banner when re-validation proves the cart intact', () => {
+    const { element, fixture, orderCalls, cartApi } = setup({
+      order: () => throwError(() => new ApiError({ status: 404, message: 'Cart gone.' })),
+    });
+    fillSection(element, fixture, 'shipping');
+    fillSection(element, fixture, 'billing');
+    submitForm(element, fixture);
+    expect(orderCalls).toHaveLength(1);
+
+    // Re-validation returns the same settled cart: the review is fresh
+    // again, so the failure banner persists for explicit dismissal
+    // instead of stranding the user.
+    cartApi.getCart.mockClear();
+    (element.querySelector('flux-error-state button.retry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(cartApi.getCart).toHaveBeenCalled();
+    expect(orderCalls).toHaveLength(1);
+    expect(element.querySelector('flux-error-state')).not.toBeNull();
+    expect(element.querySelector('checkout-form')).not.toBeNull();
+  });
+
+  it('never exposes raw backend error details to the user', () => {
+    const leak = 'TECHNICAL-LEAK-XYZ-987';
+    const { element, fixture } = setup({
+      order: () => throwError(() => new ApiError({ status: 409, message: leak })),
+    });
+    fillSection(element, fixture, 'shipping');
+    fillSection(element, fixture, 'billing');
+    submitForm(element, fixture);
+
+    const banner = element.querySelector('flux-error-state');
+    expect(banner).not.toBeNull();
+    expect(element.textContent).not.toContain(leak);
+  });
+
+  it('moves focus to the submission error banner once per failure', () => {
+    const { element, fixture } = setup({
+      order: () => throwError(() => new ApiError({ status: 409, message: 'Conflict.' })),
+    });
+    fillSection(element, fixture, 'shipping');
+    fillSection(element, fixture, 'billing');
+    submitForm(element, fixture);
+    // Flush the failure-focus effect scheduled by the settle.
+    fixture.detectChanges();
+
+    const banner = element.querySelector('#checkout-submit-error') as HTMLElement;
+    expect(banner).not.toBeNull();
+    expect(document.activeElement).toBe(banner);
+
+    // Re-renders must not steal focus back while the failure stands.
+    banner.blur();
+    fixture.detectChanges();
+    expect(document.activeElement).not.toBe(banner);
   });
 });

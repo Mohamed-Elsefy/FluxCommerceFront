@@ -12,7 +12,7 @@
       <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
     } @else if (cart().isError) {
       <flux-error-state
-        [title]="copy().submitErrorTitle"
+        [title]="copy().loadErrorTitle"
         [message]="cartErrorMessage()"
         [retryLabel]="copy().retry"
         (retry)="onCartRetry()"
@@ -30,12 +30,14 @@
     </p>
   } @else {
     @if (workflow() === 'failure') {
-      <flux-error-state
-        [title]="copy().submitErrorTitle"
-        [message]="submissionErrorMessage()"
-        [retryLabel]="copy().retry"
-        (retry)="onSubmissionRetry()"
-      ></flux-error-state>
+      <div id="checkout-submit-error" tabindex="-1">
+        <flux-error-state
+          [title]="copy().submitErrorTitle"
+          [message]="submissionErrorMessage()"
+          [retryLabel]="copy().retry"
+          (retry)="onSubmissionRetry()"
+        ></flux-error-state>
+      </div>
     }
     <div class="checkout-page-content">
       <checkout-form

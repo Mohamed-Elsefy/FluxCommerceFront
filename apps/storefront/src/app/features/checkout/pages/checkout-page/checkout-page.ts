@@ -38,9 +38,17 @@
  * - The created order stays in `CheckoutState.result` verbatim — the
  *   handoff boundary Phase 9 consumes (`orderId` entry to payment).
  *   This page navigates nowhere and executes no payment.
- * - Submission failures render above the preserved form; dismissal
- *   returns to `ready` for a fresh attempt (nuanced retry policy
- *   arrives in 8.7).
+ * - Submission failures render above the preserved form with a
+ *   recovery action mapped from the failure (`checkoutRecoveryFor`,
+ *   §8.1 models — status-first, never message text):
+ *   transport failures retry with the SAME idempotency key
+ *   (`retrySubmission` — replay-or-create-once, never a duplicate);
+ *   missing/denied carts re-validate the cart in the background and
+ *   guide back to Cart (the stale snapshot is abandoned, never
+ *   resubmitted); every other rejection dismisses back to `ready`
+ *   with the form preserved for correction and a fresh attempt.
+ *   Backend technical details never reach the UI — all copy resolves
+ *   through `resolveApiErrorMessage` and the feature bundle.
  *
  * Contract fidelity (only backend-provided fields):
  * - Money formats the backend snapshot for the active culture (display
@@ -54,26 +62,39 @@
  * Document title follows the localized page title (customer area — no
  * SEO metadata beyond the title).
  *
- * SSR-safe: signals, `Title`, and router templating only — no browser
- * APIs. RTL safe: logical properties only, no direction branching.
+ * SSR-safe: signals, `Title`, and router templating only — focus
+ * writes stay browser-guarded. RTL safe: logical properties only, no
+ * direction branching.
+ *
+ * Accessibility (§8.8): the form exposes `role="form"` with labelled
+ * controls in DOM order (natural Tab sequence, no positive tabindex);
+ * field errors announce through `role="alert"`; loading and success
+ * states expose `role="status"`; every input carries `aria-invalid`
+ * plus `aria-describedby`. Submission failures move focus to the error
+ * banner once per failure (browser-only, script focus via
+ * `tabindex="-1"` — same convention as the cart page focus repair).
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 8.7 — no failure-class recovery paths, no cart-refresh orchestration.
  * - Phase 9 — no payment state, navigation, Stripe, or client secrets.
  * - Phase 10 — no order polling or order-history reads.
  */
 
 import {
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   OnInit,
+  PLATFORM_ID,
   untracked,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
+import type { ApiError } from '@flux/api';
 import {
   CultureService,
   formatCurrency,
@@ -88,7 +109,11 @@ import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart
 import type { OrderMoneyResponse } from '@flux/models';
 import { CheckoutState } from '../../state/checkout-state';
 import type { CheckoutFormData } from '../../state/checkout-state-boundaries';
-import { toCheckoutOrderSummary } from '../../models/checkout.models';
+import {
+  checkoutRecoveryFor,
+  toCheckoutOrderSummary,
+  type CheckoutRecovery,
+} from '../../models/checkout.models';
 import {
   CheckoutFormComponent,
   type CheckoutFormLabels,
@@ -124,6 +149,15 @@ export class CheckoutPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  /**
+   * Submission failure already moved to the error banner (focus fires
+   * once per failure instance — retries and re-renders must not steal
+   * focus back).
+   */
+  private focusedSubmissionError: ApiError | null = null;
 
   /** Current cart resource (idle → loading → success | empty | error). */
   protected readonly cart = this.carts.cart;
@@ -200,6 +234,7 @@ export class CheckoutPage implements OnInit {
       emptyMessage: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageEmptyMessage),
       backToCart: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageBackToCart),
       successTitle: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageSuccessTitle),
+      loadErrorTitle: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageLoadErrorTitle),
       orderNumber: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageOrderNumber),
       orderStatus: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageOrderStatus),
       submitErrorTitle: translateCheckoutKey(
@@ -235,6 +270,14 @@ export class CheckoutPage implements OnInit {
     resolveApiErrorMessage(this.checkout.submissionError(), this.cultures.culture()),
   );
 
+  /**
+   * Recovery path for the current submission failure (`null` while no
+   * failure is present). Drives the retry action below.
+   */
+  protected readonly recovery = computed((): CheckoutRecovery | null =>
+    checkoutRecoveryFor(this.checkout.submissionError()),
+  );
+
   /** Localized cart failure message (never backend text). */
   protected readonly cartErrorMessage = computed(() =>
     resolveApiErrorMessage(this.carts.error(), this.cultures.culture()),
@@ -250,7 +293,10 @@ export class CheckoutPage implements OnInit {
     // Checkout initialization tracks the settled cart plus the auth
     // session. Everything else runs `untracked` so settled responses
     // can never reschedule the effect into a loop (`initialize` writes
-    // checkout-owned signals only — never cart signals).
+    // checkout-owned signals only — never cart signals). A cart load
+    // failure invalidates the review even when stale data is retained
+    // (stale-while-revalidate must never leave an orderable snapshot
+    // behind a dead cart) — the template guides back to Cart.
     effect(() => {
       const status = this.carts.cart().status;
       const data = this.carts.data();
@@ -258,11 +304,44 @@ export class CheckoutPage implements OnInit {
       untracked(() => {
         if (status === 'idle' || status === 'loading') {
           this.checkout.initialize(undefined, authenticated);
-        } else if (data !== null) {
+        } else if (status === 'error' || data === null) {
+          this.checkout.initialize(null, authenticated);
+        } else {
           this.checkout.initialize(data, authenticated);
         }
       });
     });
+
+    // Submission-failure focus management (§8.8): once per failure,
+    // move focus to the error banner so keyboard and screen-reader
+    // users land on the recovery action. An after-render effect (not a
+    // plain effect): the banner must exist in the DOM before focusing
+    // — focusing too early would record the error as handled while
+    // focusing nothing. DOM writes stay browser-guarded; the observer
+    // itself is SSR-safe signals only (after-render hooks never run on
+    // the server).
+    afterRenderEffect(() => {
+      const error = this.checkout.submissionError();
+      untracked(() => this.focusSubmissionError(error));
+    });
+  }
+
+  /**
+   * Moves focus to the submission error banner for a new failure.
+   * Records the failure only once focus actually moves: a missing
+   * banner leaves the error unrecorded so a later render retries.
+   * Browser-only (SSR never focuses); no-op for repeats. Plain field
+   * (never rendered).
+   */
+  private focusSubmissionError(error: ApiError | null): void {
+    if (!this.isBrowser || error === null || error === this.focusedSubmissionError) {
+      return;
+    }
+    const target = this.host.nativeElement.querySelector('#checkout-submit-error');
+    if (target instanceof HTMLElement) {
+      this.focusedSubmissionError = error;
+      target.focus();
+    }
   }
 
   ngOnInit(): void {
@@ -291,7 +370,28 @@ export class CheckoutPage implements OnInit {
 
   /** Dismisses the submission failure back to `ready` (form preserved). */
   protected onSubmissionRetry(): void {
-    this.checkout.clearSubmissionError();
+    switch (this.recovery()) {
+      case 'retry':
+        // Transport failure (no response): the order may or may not
+        // exist server-side — retry reuses the recorded key for the
+        // identical payload (replay-or-create-once, never a duplicate).
+        this.checkout.retrySubmission({ currentCart: this.carts.data() });
+        break;
+      case 'cart':
+        // Cart gone or denied: the snapshot is stale by definition.
+        // Re-validate the cart in the background and abandon the
+        // snapshot — the template guides back to Cart. Never resubmit
+        // against the dead snapshot.
+        this.carts.loadCart();
+        this.checkout.initialize(null, this.auth.isAuthenticated());
+        break;
+      default:
+        // Validation, business, auth, and server rejections: dismiss
+        // with the form preserved for correction (and re-login where
+        // the session expired), then resubmit as a fresh attempt.
+        this.checkout.clearSubmissionError();
+        break;
+    }
   }
 }
 

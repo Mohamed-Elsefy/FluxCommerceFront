@@ -1,4 +1,4 @@
-<form class="checkout-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+<form class="checkout-form" role="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <checkout-address-form
     [group]="form.controls.shippingAddress"
     [labels]="labels.shipping"

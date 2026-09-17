@@ -94,6 +94,7 @@ describe('CheckoutFormComponent composition', () => {
     expect(element.textContent).toContain('Billing address');
     expect(element.textContent).toContain('Billing address is the same as shipping');
     expect(element.querySelector('.checkout-submit')?.textContent?.trim()).toBe('Continue');
+    expect(element.querySelector('form')?.getAttribute('role')).toBe('form');
   });
 
   it('disables billing editing while the same-flag is checked', () => {

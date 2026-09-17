@@ -550,3 +550,41 @@ export function isFormPreservingCheckoutFailure(
 ): boolean {
   return failure !== null && failure !== undefined && failure.status >= 400 && failure.status < 500;
 }
+
+/**
+ * Recovery path for a checkout failure (Sub-Phase 8.7):
+ *
+ * - `retry` — transport failure (`status 0`, no response received):
+ *   the order may or may not exist server-side, so the safe retry
+ *   reuses the SAME idempotency key + body (replay-or-create-once).
+ *   Never mint a fresh key here — that risks a duplicate order.
+ * - `cart` — the cart is gone or denied (`404`/`403`): the snapshot is
+ *   stale by definition. Recover by re-validating the cart and guiding
+ *   back to Cart — never by resubmitting against the dead snapshot.
+ * - `edit` — every other rejection (validation, business conflicts,
+ *   expired session, server faults): dismiss the failure with the form
+ *   preserved, fix or re-authenticate, then submit as a fresh attempt
+ *   (fresh key). Re-authentication itself happens through the shell —
+ *   the preserved form survives it.
+ */
+export type CheckoutRecovery = 'retry' | 'edit' | 'cart';
+
+/**
+ * Maps a normalized checkout failure to its recovery path
+ * (status-first, never message text — `ERROR_CATALOG.md` §0). `null`
+ * for no failure (nothing to recover). Pure — throws nothing.
+ */
+export function checkoutRecoveryFor(
+  failure: CheckoutFailure | null | undefined,
+): CheckoutRecovery | null {
+  if (failure === null || failure === undefined) {
+    return null;
+  }
+  if (failure.status === 0) {
+    return 'retry';
+  }
+  if (failure.status === 404 || failure.status === 403) {
+    return 'cart';
+  }
+  return 'edit';
+}
