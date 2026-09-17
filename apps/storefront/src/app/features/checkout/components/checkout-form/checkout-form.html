@@ -25,5 +25,7 @@
     idPrefix="billing"
   />
 
-  <button class="checkout-submit" type="submit">{{ labels.submit }}</button>
+  <button class="checkout-submit" type="submit" [disabled]="disabled">
+    {{ labels.submit }}
+  </button>
 </form>

@@ -24,6 +24,7 @@ import {
   EventEmitter,
   inject,
   Input,
+  OnChanges,
   Output,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -53,7 +54,7 @@ export interface CheckoutFormLabels {
   styleUrl: './checkout-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CheckoutFormComponent {
+export class CheckoutFormComponent implements OnChanges {
   private readonly formBuilder = inject(FormBuilder);
 
   /** Typed checkout form (factory-built, owned here). */
@@ -62,8 +63,30 @@ export class CheckoutFormComponent {
   /** Form labels (page-localized, required). */
   @Input({ required: true }) labels!: CheckoutFormLabels;
 
+  /**
+   * Freezes the whole form while the owning page submits (the 8.3
+   * submit lock drops duplicate attempts at the state level; this
+   * keeps keystrokes out meanwhile). Values are preserved — disabling
+   * never clears entered data.
+   */
+  @Input() disabled = false;
+
   /** Emitted with validated form data on continue. Never emits when invalid. */
   @Output() readonly formSubmit = new EventEmitter<CheckoutFormData>();
+
+  /**
+   * Applies the frozen state: disabling the root group freezes every
+   * section; re-enabling restores the billing-same selection (a plain
+   * `enable()` would wrongly unlock the billing section).
+   */
+  ngOnChanges(): void {
+    if (this.disabled) {
+      this.form.disable();
+    } else {
+      this.form.enable();
+      setBillingSameAsShipping(this.form, this.form.controls.billingSameAsShipping.value);
+    }
+  }
 
   /** Syncs the same-flag control and disables/enables billing editing. */
   onBillingSameAsShippingChange(event: Event): void {
@@ -74,8 +97,10 @@ export class CheckoutFormComponent {
 
   /** Emits validated form data; flags every field when invalid. No HTTP, no state writes. */
   submit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    if (this.disabled || this.form.invalid) {
+      if (!this.disabled) {
+        this.form.markAllAsTouched();
+      }
       return;
     }
     this.formSubmit.emit(toCheckoutFormData(this.form));

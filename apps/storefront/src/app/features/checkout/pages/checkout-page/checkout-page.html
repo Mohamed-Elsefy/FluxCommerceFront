@@ -1,0 +1,52 @@
+<section class="checkout-page" aria-labelledby="checkout-page-title">
+  <h1 id="checkout-page-title" tabindex="-1">{{ copy().title }}</h1>
+
+  @if (orderResult() !== null) {
+    <div class="checkout-page-success" role="status">
+      <h2>{{ copy().successTitle }}</h2>
+      <p>{{ copy().orderNumber }}: {{ orderResult()?.orderNumber }}</p>
+      <p>{{ copy().orderStatus }}: {{ orderResult()?.status }}</p>
+    </div>
+  } @else if (cart().data === null) {
+    @if (cart().isLoading) {
+      <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+    } @else if (cart().isError) {
+      <flux-error-state
+        [title]="copy().submitErrorTitle"
+        [message]="cartErrorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onCartRetry()"
+      ></flux-error-state>
+    } @else {
+      <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+    }
+  } @else if (initialization() !== 'ready' || summaryView() === null) {
+    <flux-empty-state
+      [title]="copy().emptyTitle"
+      [message]="copy().emptyMessage"
+    ></flux-empty-state>
+    <p class="checkout-page-back">
+      <a routerLink="/cart">{{ copy().backToCart }}</a>
+    </p>
+  } @else {
+    @if (workflow() === 'failure') {
+      <flux-error-state
+        [title]="copy().submitErrorTitle"
+        [message]="submissionErrorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onSubmissionRetry()"
+      ></flux-error-state>
+    }
+    <div class="checkout-page-content">
+      <checkout-form
+        [labels]="copy().formLabels"
+        [disabled]="formDisabled()"
+        (formSubmit)="onFormSubmit($event)"
+      ></checkout-form>
+      <checkout-order-summary
+        [view]="summaryView()"
+        [labels]="copy().summaryLabels"
+      ></checkout-order-summary>
+    </div>
+  }
+</section>

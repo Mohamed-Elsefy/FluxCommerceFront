@@ -93,7 +93,7 @@ describe('CheckoutFormComponent composition', () => {
     expect(element.textContent).toContain('Shipping address');
     expect(element.textContent).toContain('Billing address');
     expect(element.textContent).toContain('Billing address is the same as shipping');
-    expect(element.querySelector('.checkout-submit')?.textContent).toBe('Continue');
+    expect(element.querySelector('.checkout-submit')?.textContent?.trim()).toBe('Continue');
   });
 
   it('disables billing editing while the same-flag is checked', () => {
@@ -163,5 +163,42 @@ describe('CheckoutFormComponent composition', () => {
     fixture.componentInstance.submit();
 
     expect(emitted).toHaveLength(1);
+  });
+
+  it('freezes a valid form and emits nothing while disabled', () => {
+    const { fixture, element, emitted } = setup();
+    fillAddress(fixture, 'shippingAddress');
+    fillAddress(fixture, 'billingAddress');
+    expect(fixture.componentInstance.form.valid).toBe(true);
+
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+
+    expect((element.querySelector('#shipping-city') as HTMLInputElement).disabled).toBe(true);
+    expect((element.querySelector('.checkout-submit') as HTMLButtonElement).disabled).toBe(true);
+
+    fixture.componentInstance.submit();
+    expect(emitted).toEqual([]);
+  });
+
+  it('preserves values and the billing selection across a freeze cycle', () => {
+    const { fixture, element, emitted } = setup();
+    fillAddress(fixture, 'shippingAddress');
+    const box = sameCheckbox(element);
+    box.checked = true;
+    box.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+    fixture.componentRef.setInput('disabled', false);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.form.controls.shippingAddress.value.city).toBe('Berlin');
+    expect((element.querySelector('#billing-city') as HTMLInputElement).disabled).toBe(true);
+
+    fixture.componentInstance.submit();
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]?.billingAddress).toEqual(emitted[0]?.shippingAddress);
   });
 });

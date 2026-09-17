@@ -1,0 +1,94 @@
+/* Checkout order summary (Sub-Phase 8.5). Single intrinsically
+  responsive component — no device duplicates, no viewport media queries.
+  Logical properties only (RTL-safe); visual values come from theming
+  tokens. */
+
+.order-summary {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.order-summary-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.order-summary-count {
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text-muted);
+}
+
+.order-summary-lines {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-summary-line {
+  display: grid;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.order-summary-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.order-summary-meta {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-muted);
+}
+
+.order-summary-totals {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.order-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.order-summary-row dt,
+.order-summary-row dd {
+  margin: 0;
+  padding: 0;
+}
+
+.order-summary-grand {
+  font-weight: var(--font-weight-medium);
+}
+
+.order-summary-pending,
+.order-summary-empty {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text-muted);
+}
+
+.order-summary-empty-title {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}

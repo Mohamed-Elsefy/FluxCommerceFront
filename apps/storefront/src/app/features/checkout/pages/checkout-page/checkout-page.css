@@ -1,0 +1,61 @@
+/* Checkout page (Sub-Phase 8.6). Single responsive component — no
+  device duplicates. One canonical breakpoint (`--breakpoint-md` value,
+  repeated literally since `var()` is invalid in `@media`). Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.checkout-page {
+  display: grid;
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding: 0;
+}
+
+.checkout-page h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.checkout-page-content {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 48rem) {
+  .checkout-page-content {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+
+.checkout-page-back {
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+}
+
+.checkout-page-success {
+  display: grid;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.checkout-page-success h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.checkout-page-success p {
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
