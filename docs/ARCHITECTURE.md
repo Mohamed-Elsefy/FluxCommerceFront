@@ -137,25 +137,30 @@ A feature owns the code required to implement its business capability.
 ### Feature responsibilities
 
 **Pages**
+
 - Route-level components
 - Page composition
 - User interaction orchestration
 
 **Components**
+
 - Feature-specific presentation
 - Feature-specific UI behavior
 
 **Data Access**
+
 - API services
 - Server communication
 - Mapping between API data and frontend needs
 
 **State**
+
 - Feature state
 - Derived state
 - Feature actions and effects where required
 
 **Models**
+
 - Feature-specific types and view models
 
 Shared code must only be extracted when it is genuinely reusable.
@@ -182,6 +187,25 @@ gallery's selected image stays component-local UI state; the state
 holds the image resource only. No shared product library was created,
 and no cart state exists — the `CartResponse` envelope is
 status-mapped only.
+
+As built in Phases 7–8 (see `docs/adr/018–020` and
+`docs/completed/PHASE_7_COMPLETION_REPORT.md` /
+`PHASE_8_COMPLETION_REPORT.md`), Cart and Checkout prove the pattern
+holds across feature boundaries without shared business libraries:
+`apps/storefront/.../features/cart/` owns the cart slot, identity
+lifecycle, and merge transport, while
+`apps/storefront/.../features/checkout/` owns contracts
+(`CreateOrderRequest`/`CreateOrderResponse` aliases over
+`@flux/models`, never re-declared), forms, `CheckoutApiService`
+(`POST /orders/checkout` + `Idempotency-Key` context transport),
+route-provided `CheckoutState`, feature-owned models/i18n, and the
+`checkoutRoutes` lazy boundary mounted at `checkout`. Checkout
+consumes the cart read-only through the product-details seam style —
+route-provided `CartState` plus the session lifecycle, snapshot-only
+(`cartId`/`version`/line count, never lines or prices) — so no second
+cart store exists and no cycle is possible. Contract gaps stay
+honest: no email/phone/method controls exist because the wire carries
+none, and money renders backend-issued or not at all.
 
 ---
 
@@ -483,6 +507,22 @@ no global store. Route-param effects keep the `untracked` +
 per-run-`AbortController` discipline and additionally clear
 selection/quantity/feedback on product change (retry preserves them).
 
+As built in Phases 7–8 (see `docs/completed/PHASE_7_COMPLETION_REPORT.md`
+/ `PHASE_8_COMPLETION_REPORT.md`), the same shape also covers
+multi-slot workflows without new machinery: route-provided
+`CartState` (one cart resource slot plus identity plus active
+operation, pessimistic one-at-a-time lock) and route-provided
+`CheckoutState` (one order-creation resource slot plus plain form
+data, cart snapshot, initialization, and key-tracking signals, with
+the `initial → loading → ready → submitting → success | failure`
+workflow derived — never set). The two states stay isolated by
+construction: checkout holds no cart lines and cart holds no checkout
+data; the page bridges them through explicit seams (`initialize`,
+`setFormData`, `submitOrder`/`retrySubmission`) with `untracked`
+effects, and failure locks (`clearSubmissionError` for the edit path,
+same-key `retrySubmission` for transport retries) keep every
+re-attempt explicit.
+
 ---
 
 ## 10. API Communication
@@ -554,7 +594,7 @@ Authentication responsibilities include:
 As built in Phase 2:
 
 - State is a tri-state signal model (`initializing | anonymous |
-  authenticated`) with readonly selectors; `initialized` is the single
+authenticated`) with readonly selectors; `initialized` is the single
   readiness signal guards and shells await — `initializing` is never
   treated as anonymous.
 - Token injection and 401 recovery live in the interceptor pipeline
@@ -733,7 +773,7 @@ The application uses CSS custom properties and design tokens.
 Themes switch through the centralized `ThemeService`, which applies:
 
 ```html
-<html data-theme="light">
+<html data-theme="light"></html>
 ```
 
 Example conceptual tokens:
@@ -881,6 +921,17 @@ Backend services remain responsible for:
 - Saga/workflow processing
 
 The frontend must not reproduce backend payment or order orchestration logic.
+
+As built in Phase 8 (see
+`docs/completed/PHASE_8_COMPLETION_REPORT.md`), the checkout side is
+complete: the `/checkout` lazy route (auth-guarded) serves the
+`CheckoutPage`, which composes the typed address form, the
+backend-facts-only order summary, and the `createOrder` submission
+against the snapshotted cart — storing the created order verbatim as
+the Phase 9 handoff. The payment side is explicitly deferred:
+no Stripe SDK, card surface, client secret, or payment navigation
+exists in the checkout touchpoints (E2E-pinned), and order polling
+belongs to Phase 10.
 
 ---
 
@@ -1086,33 +1137,43 @@ A feature should be considered complete only when the complete user-facing slice
 The following rules should remain stable throughout development.
 
 ### Rule 1
+
 Prefer feature ownership over global shared abstractions.
 
 ### Rule 2
+
 Do not create shared code prematurely.
 
 ### Rule 3
+
 Components should not directly own business API communication.
 
 ### Rule 4
+
 Global state should contain only genuinely global concerns.
 
 ### Rule 5
+
 Backend contracts are the source of truth for API integration.
 
 ### Rule 6
+
 Backend authorization is authoritative.
 
 ### Rule 7
+
 Business workflows remain in the backend.
 
 ### Rule 8
+
 RTL and localization must be considered from the beginning.
 
 ### Rule 9
+
 Every meaningful feature must include tests.
 
 ### Rule 10
+
 Prefer simple Angular platform capabilities before introducing additional state-management or utility libraries.
 
 ---

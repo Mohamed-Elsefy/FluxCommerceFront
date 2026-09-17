@@ -43,6 +43,7 @@ import type { CreateOrderResponse } from '../../models/checkout.models';
 import { CheckoutPage } from './checkout-page';
 
 const CART_ID = '11111111-1111-4111-8111-111111111111';
+const GUEST_CART_ID = '99999999-9999-4999-8999-999999999999';
 const ORDER_ID = '44444444-4444-4444-8444-444444444444';
 const USER_ID = 'cccccccc-3333-4333-8333-333333333333';
 const PRODUCT_ID = '22222222-2222-4222-8222-222222222222';
@@ -121,7 +122,11 @@ function setup(
   checkout: CheckoutState;
   carts: CartState;
   orderCalls: RecordedOrderCall[];
-  cartApi: { getCart: ReturnType<typeof vi.fn>; getOrCreateCart: ReturnType<typeof vi.fn> };
+  cartApi: {
+    getCart: ReturnType<typeof vi.fn>;
+    getOrCreateCart: ReturnType<typeof vi.fn>;
+    createGuestCart: ReturnType<typeof vi.fn>;
+  };
 } {
   const cartApi = {
     getCart: vi.fn(() => flows.cart?.() ?? of(cartEnvelope())),
@@ -231,6 +236,30 @@ describe('CheckoutPage shells', () => {
 
     expect(element.querySelector('flux-empty-state')).not.toBeNull();
     expect(element.textContent).toContain('Your cart is empty');
+    expect(element.querySelector('a[href="/cart"]')).not.toBeNull();
+    expect(element.querySelector('checkout-form')).toBeNull();
+    expect(orderCalls).toHaveLength(0);
+  });
+
+  it('blocks an expired mid-checkout session with back-to-cart recovery', () => {
+    const { element, fixture, orderCalls, cartApi } = setup();
+    expect(element.querySelector('checkout-form')).not.toBeNull();
+
+    // Expiry drops into the guest bootstrap, which issues a guest cart
+    // the checkout snapshot must never adopt (checkout is `[Authorize]`).
+    // `clearSession` is the expiry transition (`authenticated →
+    // anonymous`); `markInitializedAnonymous` only settles startup.
+    cartApi.createGuestCart.mockReturnValueOnce(
+      of(
+        cartEnvelope(
+          authCart({ cartId: GUEST_CART_ID, userId: null, isGuest: true, isAuthenticated: false }),
+        ),
+      ),
+    );
+    TestBed.inject(AuthService).clearSession();
+    fixture.detectChanges();
+
+    expect(element.querySelector('flux-empty-state')).not.toBeNull();
     expect(element.querySelector('a[href="/cart"]')).not.toBeNull();
     expect(element.querySelector('checkout-form')).toBeNull();
     expect(orderCalls).toHaveLength(0);

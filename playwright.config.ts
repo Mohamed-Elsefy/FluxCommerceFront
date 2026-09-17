@@ -80,6 +80,11 @@ export default defineConfig({
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
     },
     {
+      name: 'checkout-chromium',
+      testMatch: /checkout\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'culture-storefront-chromium',
       testMatch: /culture\.spec\.ts/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },

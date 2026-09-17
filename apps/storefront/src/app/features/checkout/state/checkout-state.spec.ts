@@ -218,6 +218,20 @@ describe('CheckoutState initialization', () => {
 
     expect(state.formData()).toEqual(formData());
   });
+
+  it('preserves the snapshot while the cart is unsettled', () => {
+    const { state } = setup();
+    state.initialize(cart(), true);
+    expect(state.workflow()).toBe('ready');
+
+    expect(state.initialize(undefined, true)).toBeNull();
+
+    // The settled review survives: snapshot and outcome stay put, so a
+    // background cart reload never blanks an orderable review.
+    expect(state.cartSnapshot()).toEqual({ cartId: CART_ID, version: 3, itemCount: 1 });
+    expect(state.initialization()).toBe('ready');
+    expect(state.workflow()).toBe('ready');
+  });
 });
 
 describe('CheckoutState form slot (separate from submission)', () => {
@@ -482,9 +496,49 @@ describe('CheckoutState retrySubmission (same-key transport retry)', () => {
     expect(state.formData()).toEqual(formData());
     expect(state.workflow()).toBe('success');
   });
+
+  it('mints a fresh key for the next attempt after an explicit clear', () => {
+    const failure = new ApiError({ status: 409, message: 'Conflict.' });
+    const { state, calls } = readyState(() => throwError(() => failure));
+    state.submitOrder().unsubscribe();
+    const failedKey = state.lastIdempotencyKey();
+    expect(state.workflow()).toBe('failure');
+
+    state.clearSubmissionError();
+    state.submitOrder().unsubscribe();
+
+    // Same failure again (the stub always throws), but the edit path
+    // travels on a fresh key — the failed key is never silently reused.
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.key).not.toBe(failedKey);
+    expect(state.workflow()).toBe('failure');
+  });
+
+  it('ignores retry once the failure was explicitly cleared', () => {
+    const failure = new ApiError({ status: 400, message: 'Bad request.' });
+    const { state, calls } = readyState(() => throwError(() => failure));
+    state.submitOrder().unsubscribe();
+    expect(state.workflow()).toBe('failure');
+
+    state.clearSubmissionError();
+    state.retrySubmission().unsubscribe();
+
+    expect(calls).toHaveLength(1);
+    expect(state.workflow()).toBe('ready');
+  });
 });
 
 describe('CheckoutState recovery and reset', () => {
+  it('treats clearing an idle submission as a safe no-op', () => {
+    const { state } = readyState();
+
+    state.clearSubmissionError();
+
+    expect(state.submission().status).toBe('idle');
+    expect(state.workflow()).toBe('ready');
+    expect(state.formData()).toEqual(formData());
+  });
+
   it('clears submission errors back to ready with form and snapshot intact', () => {
     const failure = new ApiError({ status: 400, message: 'Bad request.' });
     const { state } = readyState(() => throwError(() => failure));

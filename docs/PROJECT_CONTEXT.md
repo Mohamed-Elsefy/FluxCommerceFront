@@ -955,6 +955,9 @@ order, or shipping logic exists in the Phase 7 touchpoints.
 
 # 29. Phase 8 — Checkout
 
+Status: **Complete** (2026-09-17) — see
+`docs/completed/PHASE_8_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Checkout page
@@ -968,6 +971,22 @@ Scope:
 - Failure handling
 
 The frontend does not implement the backend Saga.
+
+All Phase 8 acceptance criteria are satisfied (contract-aliased
+`CreateOrderRequest`/`CreateOrderResponse` with zero client price math;
+feature-local `CheckoutApiService` with `Idempotency-Key` mint and
+context transport; route-provided `CheckoutState` with Initial →
+Loading → Ready → Submitting → Success/Failure workflow, submit locks,
+and same-key transport retry; typed Reactive Forms for shipping +
+billing with contract-mirroring validators and page-localized copy;
+backend-facts-only order summary; orchestrating checkout page with
+live cart consumption, failure-recovery matrix, and Phase 9 result
+handoff; 5-culture localization with RTL-safe rendering, responsive
+single-component UI, and keyboard/ARIA coverage with failure-banner
+focus management; unit/component tests; full checkout E2E journey plus
+edge suites; architecture audit 97/97). The baseline is ready for
+**Phase 9 — Payments**. No payment, Stripe, order-polling, or saga
+logic exists in the Phase 8 touchpoints.
 
 ---
 

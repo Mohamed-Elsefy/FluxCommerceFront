@@ -129,6 +129,31 @@ describe('CheckoutAddressForm structure', () => {
     }
   });
 
+  it('shows the country-code message for lowercase input', () => {
+    const { fixture, element } = setup();
+    const country = fixture.componentInstance.group.controls.countryCode;
+    country.setValue('de');
+    country.markAsTouched();
+    fixture.detectChanges();
+
+    expect(inputFor(element, 'countryCode').getAttribute('aria-invalid')).toBe('true');
+    expect(element.querySelector('#shipping-countryCode-errors')?.textContent).toContain(
+      'Country code must be 2 uppercase letters (e.g. DE).',
+    );
+  });
+
+  it('shows the length message for over-long input', () => {
+    const { fixture, element } = setup();
+    const city = fixture.componentInstance.group.controls.city;
+    city.setValue('a'.repeat(101));
+    city.markAsTouched();
+    fixture.detectChanges();
+
+    expect(element.querySelector('#shipping-city-errors')?.textContent).toContain(
+      'City must be no more than 100 characters.',
+    );
+  });
+
   it('disables every input when the section group is disabled', () => {
     const { fixture, element } = setup();
 

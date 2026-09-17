@@ -143,6 +143,37 @@ describe('OrderSummaryComponent rendering', () => {
     expect(text).toContain('Unit price: 29.99 USD');
   });
 
+  it('renders multiple lines with structural counts', () => {
+    const { element } = setup(
+      viewOf({
+        lines: [
+          {
+            productName: 'Tee',
+            sku: 'TEE-BLK-M',
+            quantity: 2,
+            unitPriceAmount: 29.99,
+            currency: 'USD',
+          },
+          {
+            productName: 'Hoodie',
+            sku: 'HDD-GRY-L',
+            quantity: 1,
+            unitPriceAmount: 49.5,
+            currency: 'USD',
+          },
+        ],
+        itemCount: 3,
+        distinctItemCount: 2,
+      }),
+    );
+
+    expect(element.querySelectorAll('.order-summary-line')).toHaveLength(2);
+    expect(element.querySelector('.order-summary-count')?.textContent).toContain('Items: 3');
+    const text = element.textContent ?? '';
+    expect(text).toContain('HDD-GRY-L');
+    expect(text).toContain('49.50 USD');
+  });
+
   it('never renders computed line totals', () => {
     const { element } = setup(viewOf());
 

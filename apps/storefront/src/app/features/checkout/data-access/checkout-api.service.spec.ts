@@ -140,6 +140,47 @@ describe('CheckoutApiService createOrder', () => {
     });
     expect(observed).toBe(failure);
   });
+
+  it('propagates backend validation failures with the field-error map intact', () => {
+    const { service, api } = setup();
+    const failure = new ApiError({
+      status: 400,
+      message: 'Validation failed.',
+      validationErrors: { city: ['City is required.'] },
+    });
+    vi.mocked(api.post).mockReturnValueOnce(throwError(() => failure));
+
+    let observed: unknown;
+    service.createOrder(ORDER_BODY, IDEMPOTENCY_KEY).subscribe({
+      error: (error: unknown) => (observed = error),
+    });
+    expect(observed).toBe(failure);
+    expect((observed as ApiError).validationErrors).toEqual({ city: ['City is required.'] });
+  });
+
+  it('propagates transport failures without remapping', () => {
+    const { service, api } = setup();
+    const failure = new ApiError({ status: 0, code: 'NetworkError', message: 'Unreachable.' });
+    vi.mocked(api.post).mockReturnValueOnce(throwError(() => failure));
+
+    let observed: unknown;
+    service.createOrder(ORDER_BODY, IDEMPOTENCY_KEY).subscribe({
+      error: (error: unknown) => (observed = error),
+    });
+    expect(observed).toBe(failure);
+  });
+
+  it('propagates missing-cart failures without remapping', () => {
+    const { service, api } = setup();
+    const failure = new ApiError({ status: 404, message: 'Cart gone.' });
+    vi.mocked(api.post).mockReturnValueOnce(throwError(() => failure));
+
+    let observed: unknown;
+    service.createOrder(ORDER_BODY, IDEMPOTENCY_KEY).subscribe({
+      error: (error: unknown) => (observed = error),
+    });
+    expect(observed).toBe(failure);
+  });
 });
 
 describe('newIdempotencyKey', () => {

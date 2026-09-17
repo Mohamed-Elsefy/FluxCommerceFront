@@ -77,6 +77,42 @@ describe('createCheckoutFormGroup', () => {
 
     expect(form.valid).toBe(true);
   });
+
+  it('transitions from invalid to valid as sections fill', () => {
+    const form = createCheckoutFormGroup(new FormBuilder());
+    expect(form.invalid).toBe(true);
+
+    fillShipping(form);
+    expect(form.invalid).toBe(true);
+
+    form.controls.billingAddress.setValue(form.controls.shippingAddress.getRawValue());
+    expect(form.valid).toBe(true);
+  });
+
+  it('never blocks validity on the optional second line', () => {
+    const form = createCheckoutFormGroup(new FormBuilder());
+    fillShipping(form);
+    form.controls.billingAddress.setValue(form.controls.shippingAddress.getRawValue());
+
+    form.controls.shippingAddress.controls.line2.setValue('Apt 4, Floor 2');
+    expect(form.valid).toBe(true);
+
+    form.controls.shippingAddress.controls.line2.setValue('');
+    expect(form.valid).toBe(true);
+  });
+
+  it('blocks the full form on a malformed country code', () => {
+    const form = createCheckoutFormGroup(new FormBuilder());
+    fillShipping(form);
+    form.controls.billingAddress.setValue(form.controls.shippingAddress.getRawValue());
+
+    form.controls.shippingAddress.controls.countryCode.setValue('de');
+    expect(form.invalid).toBe(true);
+    expect(form.controls.shippingAddress.controls.countryCode.errors?.['pattern']).toBeTruthy();
+
+    form.controls.shippingAddress.controls.countryCode.setValue('DE');
+    expect(form.valid).toBe(true);
+  });
 });
 
 describe('setBillingSameAsShipping', () => {
@@ -145,5 +181,16 @@ describe('toCheckoutFormData', () => {
 
     expect(data.billingSameAsShipping).toBe(true);
     expect(data.billingAddress).toEqual(data.shippingAddress);
+  });
+
+  it('reflects live edits in later serializations', () => {
+    const form = createCheckoutFormGroup(new FormBuilder());
+    fillShipping(form);
+    form.controls.billingAddress.setValue(form.controls.shippingAddress.getRawValue());
+    expect(toCheckoutFormData(form).shippingAddress.city).toBe('Berlin');
+
+    form.controls.shippingAddress.controls.city.setValue('Munich');
+
+    expect(toCheckoutFormData(form).shippingAddress.city).toBe('Munich');
   });
 });
