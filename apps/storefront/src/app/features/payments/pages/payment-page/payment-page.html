@@ -1,0 +1,12 @@
+<article class="payment-page" aria-label="Payment">
+  <h1 class="payment-page-title">Payment</h1>
+  @if (params !== null) {
+    <p class="payment-page-order">Order {{ params.orderId }}</p>
+    <payment-form (formSubmit)="onFormSubmit()" />
+    <payment-status [status]="null" />
+    <payment-error [message]="null" (retry)="onRetry()" />
+    <payment-loading />
+  } @else {
+    <p class="payment-page-missing">Order reference is missing.</p>
+  }
+</article>

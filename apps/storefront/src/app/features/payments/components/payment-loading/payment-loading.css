@@ -1,0 +1,4 @@
+.payment-loading {
+  display: block;
+  padding-inline: var(--container-padding-inline);
+}

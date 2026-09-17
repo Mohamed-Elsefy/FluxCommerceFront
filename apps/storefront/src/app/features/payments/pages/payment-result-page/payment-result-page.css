@@ -1,0 +1,15 @@
+.payment-result-page {
+  display: grid;
+  gap: var(--spacing-lg);
+  padding-inline: var(--container-padding-inline);
+}
+
+.payment-result-page-title,
+.payment-result-page-order,
+.payment-result-page-missing {
+  margin: 0;
+}
+
+.payment-result-page-order {
+  color: var(--color-text-muted);
+}

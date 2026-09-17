@@ -1,0 +1,4 @@
+.payment-error {
+  display: block;
+  padding-inline: var(--container-padding-inline);
+}

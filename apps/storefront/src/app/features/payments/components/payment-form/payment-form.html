@@ -1,0 +1,12 @@
+<section class="payment-form" aria-label="Payment form">
+  <h2 class="payment-form-title">Payment details</h2>
+  <p class="payment-form-placeholder">Secure payment form loads here.</p>
+  <button
+    class="payment-form-submit"
+    type="button"
+    [disabled]="disabled"
+    (click)="formSubmit.emit()"
+  >
+    {{ submitLabel }}
+  </button>
+</section>

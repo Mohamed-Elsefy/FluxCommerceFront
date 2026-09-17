@@ -1,0 +1,9 @@
+<article class="payment-result-page" aria-label="Payment result">
+  <h1 class="payment-result-page-title">Payment result</h1>
+  @if (params !== null) {
+    <p class="payment-result-page-order">Order {{ params.orderId }}</p>
+    <payment-status [status]="null" />
+  } @else {
+    <p class="payment-result-page-missing">Order reference is missing.</p>
+  }
+</article>

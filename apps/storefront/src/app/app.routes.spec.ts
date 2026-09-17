@@ -4,6 +4,7 @@ import { routes } from './app.routes';
 import { authRoutes } from './features/auth/auth.routes';
 import { catalogRoutes } from './features/catalog/catalog.routes';
 import { checkoutRoutes } from './features/checkout/checkout.routes';
+import { paymentsRoutes } from './features/payments/payments.routes';
 
 describe('routes', () => {
   it('mounts the eager shell with a lazy home page', () => {
@@ -69,5 +70,20 @@ describe('routes', () => {
     // wires the checkout boundary; laziness itself follows from the
     // `loadChildren` shape (asserted above).
     expect(loaded).toBe(checkoutRoutes);
+  });
+
+  it('mounts the lazy auth-guarded payments feature boundary under the shell', async () => {
+    const root = routes.find((route) => route.path === '');
+    const payment = root?.children?.find((route) => route.path === 'payment');
+
+    expect(typeof payment?.loadChildren).toBe('function');
+    expect(paymentsRoutes).toHaveLength(1);
+    expect(paymentsRoutes[0]?.path).toBe('');
+
+    const loaded = await payment?.loadChildren?.();
+    // Identity against the statically imported table proves the mount
+    // wires the payments boundary; laziness itself follows from the
+    // `loadChildren` shape (asserted above).
+    expect(loaded).toBe(paymentsRoutes);
   });
 });
