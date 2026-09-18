@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@flux/auth';
+import { PaymentState } from './state/payment-state';
 
 /**
  * Storefront Payments feature routes (Sub-Phase 9.2 — Payment Feature
@@ -9,14 +10,15 @@ import { authGuard } from '@flux/auth';
  * `/payment/:orderId` (payment page) and `/payment/:orderId/result`
  * (payment result page), per `docs/phases/PHASE_9_PAYMENTS.md` §9.10.
  *
- * The lazy boundary and the authentication guard live on the
- * state-providing parent: payment reads are `[Authorize]` (plus
- * ownership — foreign ids mask as `404`), so anonymous entry is blocked
- * here by the shared Phase 2 `authGuard` (redirect to
- * `/login?returnUrl=`). The payment pages get their own feature-scoped
- * state instance in Sub-Phase 9.4 (never a global store) — no providers
- * are registered yet on purpose: state, data access, and the provider
- * boundary arrive in Sub-Phases 9.3–9.5 and register here.
+ * The lazy boundary, the authentication guard, and the feature-scoped
+ * state live on the state-providing parent: payment reads are `[Authorize]`
+ * (plus ownership — foreign ids mask as `404`), so anonymous entry is
+ * blocked here by the shared Phase 2 `authGuard` (redirect to
+ * `/login?returnUrl=`). The payment pages get their own `PaymentState`
+ * instance (never a global store — `PaymentState` has no `providedIn`
+ * and registers here only); page orchestration driving it arrives in
+ * Sub-Phase 9.6, while data access (9.3) and the provider boundary (9.5)
+ * plug in underneath the state.
  *
  * Architectural flow (target — `ARCHITECTURE.md` §10; data-access and
  * state land in 9.3/9.4, the provider boundary in 9.5):
@@ -32,6 +34,7 @@ import { authGuard } from '@flux/auth';
 export const paymentsRoutes: Routes = [
   {
     path: '',
+    providers: [PaymentState],
     canActivate: [authGuard],
     children: [
       {

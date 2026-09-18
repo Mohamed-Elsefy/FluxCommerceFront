@@ -3,12 +3,13 @@
  * Foundation).
  *
  * Covers the lazy feature boundary: a single pathless parent carrying
- * the shared Phase 2 `authGuard` (payment reads are `[Authorize]` —
+ * the feature-scoped `PaymentState` (never a global store) and the
+ * shared Phase 2 `authGuard` (payment reads are `[Authorize]` —
  * anonymous entry redirects to `/login?returnUrl=`), with `:orderId`
  * and `:orderId/result` children lazy-loading the skeleton pages and
- * inheriting the guard. No providers are asserted — the feature-scoped
- * state registers here in Sub-Phase 9.4. No API, Stripe, or payment
- * behavior is asserted here — those arrive in Sub-Phases 9.3+.
+ * inheriting the guard and the providers. Page orchestration driving
+ * the state arrives in Sub-Phase 9.6. No API execution, Stripe, or
+ * payment behavior is asserted here — those arrive in Sub-Phases 9.3+.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -16,6 +17,7 @@ import { authGuard } from '@flux/auth';
 import { PaymentPage } from './pages/payment-page/payment-page';
 import { PaymentResultPage } from './pages/payment-result-page/payment-result-page';
 import { paymentsRoutes } from './payments.routes';
+import { PaymentState } from './state/payment-state';
 
 describe('paymentsRoutes', () => {
   it('exposes a single pathless guarded parent entry', () => {
@@ -24,8 +26,8 @@ describe('paymentsRoutes', () => {
     expect(paymentsRoutes[0]?.canActivate).toContain(authGuard);
   });
 
-  it('registers no feature providers yet (state arrives in 9.4)', () => {
-    expect(paymentsRoutes[0]?.providers).toBeUndefined();
+  it('provides the feature-scoped PaymentState on the parent entry', () => {
+    expect(paymentsRoutes[0]?.providers).toContain(PaymentState);
   });
 
   it('lazy-loads the payment page on :orderId', async () => {
