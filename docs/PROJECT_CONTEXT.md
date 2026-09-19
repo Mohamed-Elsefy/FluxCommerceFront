@@ -992,6 +992,9 @@ logic exists in the Phase 8 touchpoints.
 
 # 30. Phase 9 — Payments
 
+Status: **Complete** (2026-09-19) — see
+`docs/completed/PHASE_9_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Payment initialization
@@ -1005,6 +1008,28 @@ Scope:
 - Retry
 
 Backend payment verification and Saga processing remain authoritative.
+
+All Phase 9 acceptance criteria are satisfied (audited payment
+contracts with the no-client-secret-endpoint blocker pinned instead
+of fabricated; lazy `payments` feature with auth-guarded
+`/payment/:orderId` + `/result` routes and SSR-safe shells; thin
+`PaymentApiService` over `ApiClient` with contract-blocked init/
+confirm short-circuits and a real status read; route-provided
+`PaymentState` with the 8-stage guarded lifecycle, `Initialized ≠
+Succeeded` rule, and backend-truth overrides; isolated
+`PaymentProvider`/`StripePaymentProvider` boundary with zero npm
+Stripe dependency and platform-guarded browser touches; page
+orchestration for init, provider setup, confirmation, verification,
+and outcome routing; distinguished failure/recovery tables with
+unknown-outcome submit locks; 5-culture `payment.*` localization
+with sanitized error resolution; backend-issued order summary;
+checkout `Continue to payment` seam; memory-only secrets with
+zero persistence/logging; unit/component coverage plus payments E2E
+(4 green, 5 backend-gated-skipped) and checkout regression;
+architecture audit 102/102). The baseline is ready for **Phase 10
+— Orders & Customer Account**. No order saga, inventory
+compensation, payment verification, webhook, or secret handling
+exists outside its owning layer.
 
 ---
 

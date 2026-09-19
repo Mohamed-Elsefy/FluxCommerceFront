@@ -287,6 +287,30 @@ describe('PaymentPage submission (Sub-Phase 9.7)', () => {
     expect(provider.confirmPayment).toHaveBeenCalledTimes(1);
   });
 
+  it('disables the submit control while confirmation is outstanding', async () => {
+    const { element, fixture, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    expect(state.lifecycle()).toBe('ready');
+
+    submitButton(element)?.click();
+    await settleAsync();
+    fixture.detectChanges();
+
+    expect(state.lifecycle()).toBe('processing');
+    expect(submitButton(element)?.disabled).toBe(true);
+  });
+
+  it('disables the submit control while confirmation is outstanding', async () => {
+    const { element, fixture, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    expect(state.lifecycle()).toBe('ready');
+
+    submitButton(element)?.click();
+    await settleAsync();
+    fixture.detectChanges();
+
+    expect(state.lifecycle()).toBe('processing');
+    expect(submitButton(element)?.disabled).toBe(true);
+  });
+
   it('maps provider success into the success stage', async () => {
     const succeeding = providerStub();
     succeeding.confirmPayment.mockResolvedValue({ outcome: 'succeeded', message: null });

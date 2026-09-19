@@ -21,6 +21,7 @@
           @if (errorMessage() !== null) {
             <p class="payment-result-detail">{{ errorMessage() }}</p>
           }
+          <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
           <p class="payment-result-actions">
             <a class="payment-result-link" [routerLink]="retryPath()">{{ copy().tryAgain }}</a>
             <a class="payment-result-link" routerLink="/checkout">{{ copy().backToCheckout }}</a>
@@ -31,6 +32,7 @@
         <section class="payment-result-cancelled" role="status" aria-label="Payment cancelled">
           <h2 class="payment-result-heading">{{ copy().cancelledTitle }}</h2>
           <p class="payment-result-detail">{{ copy().cancelledMessage }}</p>
+          <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
           <p class="payment-result-actions">
             <a class="payment-result-link" [routerLink]="retryPath()">{{ copy().tryAgain }}</a>
             <a class="payment-result-link" routerLink="/checkout">{{ copy().backToCheckout }}</a>
@@ -41,6 +43,7 @@
         <section class="payment-result-pending" role="status" aria-label="Payment pending">
           <h2 class="payment-result-heading">{{ copy().pendingTitle }}</h2>
           <p class="payment-result-detail">{{ copy().pendingMessage }}</p>
+          <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
           <p class="payment-result-actions">
             <button class="payment-result-check" type="button" (click)="onCheckStatus()">
               {{ copy().checkStatus }}
@@ -54,6 +57,7 @@
           <section class="payment-result-unknown" role="alert" aria-label="Payment status unknown">
             <h2 class="payment-result-heading">{{ copy().unknownTitle }}</h2>
             <p class="payment-result-detail">{{ copy().unknownMessage }}</p>
+            <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
             <p class="payment-result-actions">
               <button class="payment-result-check" type="button" (click)="onCheckStatus()">
                 {{ copy().checkStatus }}

@@ -355,4 +355,27 @@ describe('PaymentResultPage UI pass (Sub-Phase 9.10)', () => {
     expect(text).toContain('Payment is currently unavailable');
     expect(text).not.toContain('no backend HTTP contract');
   });
+
+  it('maintains the order summary on the failure block', () => {
+    const { element } = setup({
+      orderId: ORDER_ID,
+      orderFlow: () => of({ isSuccess: true, message: 'ok', data: ORDER_BODY }),
+      enter: (state) => {
+        expect(state.beginInitialization(ORDER_ID)).toBe(true);
+        state.markFailed(
+          new ApiError({
+            status: 0,
+            code: 'PaymentContractBlocked',
+            message: 'Payment initializePayment has no backend HTTP contract.',
+          }),
+        );
+        state.loadOrder(ORDER_ID);
+      },
+    });
+
+    expect(element.querySelector('.payment-result-failure')).not.toBeNull();
+    const text = element.textContent ?? '';
+    expect(text).toContain('ORD-ABC123DEF456');
+    expect(text).toContain('Tee');
+  });
 });
