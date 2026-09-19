@@ -14,6 +14,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { authGuard } from '@flux/auth';
+import { stripeEnvironment } from '../../../environments/environment';
+import { PAYMENT_PROVIDER } from './integrations/payment-provider';
+import {
+  STRIPE_JS_SCRIPT_URL,
+  STRIPE_PUBLISHABLE_KEY,
+  StripePaymentProvider,
+} from './integrations/stripe-payment-provider';
 import { PaymentPage } from './pages/payment-page/payment-page';
 import { PaymentResultPage } from './pages/payment-result-page/payment-result-page';
 import { paymentsRoutes } from './payments.routes';
@@ -28,6 +35,22 @@ describe('paymentsRoutes', () => {
 
   it('provides the feature-scoped PaymentState on the parent entry', () => {
     expect(paymentsRoutes[0]?.providers).toContain(PaymentState);
+  });
+
+  it('binds the provider abstraction with environment-sourced tokens', () => {
+    const providers = paymentsRoutes[0]?.providers ?? [];
+    expect(providers).toContainEqual({
+      provide: PAYMENT_PROVIDER,
+      useClass: StripePaymentProvider,
+    });
+    expect(providers).toContainEqual({
+      provide: STRIPE_JS_SCRIPT_URL,
+      useValue: stripeEnvironment.scriptUrl,
+    });
+    expect(providers).toContainEqual({
+      provide: STRIPE_PUBLISHABLE_KEY,
+      useValue: stripeEnvironment.publishableKey,
+    });
   });
 
   it('lazy-loads the payment page on :orderId', async () => {

@@ -1,15 +1,17 @@
 /**
- * Feature-owned Payment state for Sub-Phase 9.4 — Payment State &
- * Lifecycle.
+ * Feature-owned Payment state for Sub-Phases 9.4 (lifecycle model),
+ * 9.6 (initialization execution), and 9.7 (confirmation execution).
  *
- * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §9.4 (state model and
- * lifecycle only — no API execution, no provider integration, no UI).
+ * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.4/9.6/9.7 (state model,
+ * initialization, and confirmation — no provider internals, no UI).
  *
- * Source of truth: `docs/phases/PHASE_9_PAYMENTS.md` §9.4 (lifecycle
- * diagram), the Sub-Phase 9.1 audit module (`@flux/models`
- * `payment-contract`: `PaymentStatus`, terminal/payable classifiers),
- * and `docs/frontend-contract/PAYMENT_INTEGRATION_NOTES.md` (backend
- * owns verification — client-side outcomes are never finality).
+ * Source of truth: `docs/phases/PHASE_9_PAYMENTS.md` §§9.4/9.7
+ * (lifecycle diagram, outcome mapping), the Sub-Phase 9.1 audit module
+ * (`@flux/models` `payment-contract`: `PaymentStatus`,
+ * `ProviderConfirmationOutcome`, terminal/payable classifiers), and
+ * `docs/frontend-contract/PAYMENT_INTEGRATION_NOTES.md` (backend owns
+ * verification — provider-reported success is never order finality;
+ * order truth arrives via status reads in 9.8).
  *
  * State strategy (`ARCHITECTURE.md` §9 — smallest appropriate scope):
  *
@@ -29,15 +31,20 @@
  *   global state (no NgRx, no SignalStore, no shared library). Each
  *   payment route subtree gets its own instance.
  * - API state and UI state are separate signals by construction:
- *   `paymentStatus`/`statusError` hold backend facts only (set from API
- *   or provider outcomes by later sub-phases — this file never fetches);
- *   `lifecycle` drives shell visibility only and is moved solely
- *   through the guarded actions below. Neither side implicitly drives
- *   the other.
- * - The state never touches `HttpClient`, never builds URLs, never
- *   imports the §9.3 service (execution belongs to 9.6+ — this file
- *   stores outcomes, never produces them), and never imports Stripe or
- *   provider types.
+ *   `paymentStatus`/`statusError` hold Stripe- and backend-reported
+ *   facts only (set from service envelopes or provider outcomes — this
+ *   file never fetches and never verifies); `lifecycle` drives shell
+ *   visibility only and is moved solely through the guarded actions
+ *   below. Neither side implicitly drives the other.
+ * - The state never touches `HttpClient`, never builds URLs, and never
+ *   imports Stripe SDK shapes: the service executes transport (9.3/9.6)
+ *   and the `PaymentProvider` abstraction executes confirmation (9.5 —
+ *   injected here as the token only, never the concrete adapter). This
+ *   file stores outcomes, never produces provider behavior.
+ * - Orchestration boundary (the §9.7 critical rule): this state records
+ *   provider outcomes and moves its own lifecycle — it NEVER confirms
+ *   orders, updates inventory, or triggers sagas. Those remain backend
+ *   responsibilities; order truth arrives via status reads in 9.8.
  * - The `clientSecret` lives in a plain in-memory signal only — never
  *   persisted, never logged, never placed in URLs (the §9.1
  *   `FORBIDDEN_CLIENT_SECRET_SINKS` rule). No `localStorage`,
@@ -49,16 +56,29 @@
  * - SSR-safe: signals only — no browser APIs.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 9.5 — no Stripe SDK, no Elements, no provider abstraction.
- * - 9.6 — no initialization execution (no service calls, no Elements
- *   mounting), no page orchestration.
- * - 9.7+ — no confirmation execution, polling, retry execution, or
- *   result handling.
+ * - 9.5 impl — no Stripe SDK, no Elements, no loader (the page drives
+ *   provider setup around this state — never the reverse).
+ * - 9.8 — no result polling, no status reads, no outcome handling.
+ * - 9.9 — no failure-category handling (retry re-enters initialization
+ *   only).
+ * - 9.10 — no localized copy, no navigation.
  */
 
-import { computed, Injectable, signal, type Signal } from '@angular/core';
-import type { ApiError } from '@flux/api';
-import type { PaymentStatus } from '@flux/models';
+import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
+import { from, Subscription } from 'rxjs';
+import { ApiError, isApiError, UNKNOWN_ERROR_CODE, type ApiResponseWithData } from '@flux/api';
+import type {
+  PaymentInitializationResult,
+  PaymentStatus,
+  ProviderConfirmationOutcome,
+} from '@flux/models';
+import { PaymentApiService } from '../data-access/payment-api.service';
+import {
+  PAYMENT_PROVIDER,
+  type ConfirmPaymentOptions,
+  type PaymentProvider,
+  type ProviderConfirmationResult,
+} from '../integrations/payment-provider';
 
 /**
  * Payment lifecycle stage for the UI. Every stage the §9.4 diagram
@@ -71,7 +91,9 @@ import type { PaymentStatus } from '@flux/models';
  *   secret); submission allowed. NEVER payment success (see the
  *   `Initialized ≠ Succeeded` rule below).
  * - `processing` — confirmation submitted, outcome outstanding.
- * - `succeeded` — backend-confirmed paid (`Succeeded`).
+ * - `succeeded` — provider-reported payment success (Stripe-side
+ *   fact — never FluxCommerce order finality, which arrives via 9.8
+ *   status reads).
  * - `failed` — terminal failure (init, confirmation, or pending
  *   resolution).
  * - `pending` — non-terminal wait (async saga/webhook lag, 3-DS
@@ -153,6 +175,15 @@ export interface PaymentInitializationContext {
 }
 
 /**
+ * Client-synthesized code for provider-reported declines (card rejected
+ * at confirmation time). A stable PascalCase single (like `NetworkError`)
+ * that can never collide with dotted backend codes; the §9.10
+ * localization pass maps it to user-facing copy. The provider's decline
+ * text travels as the message (already displayable).
+ */
+export const PAYMENT_DECLINED_CODE = 'PaymentDeclined';
+
+/**
  * Feature-scoped payment state. Provide at the payments route level —
  * never at root. All selectors are readonly signals; all transitions
  * are explicit guarded action calls driven by later sub-phases (9.6+).
@@ -162,12 +193,16 @@ export interface PaymentInitializationContext {
  */
 @Injectable()
 export class PaymentState {
+  private readonly paymentApi = inject(PaymentApiService);
+  private readonly provider = inject(PAYMENT_PROVIDER);
+
   private readonly lifecycleStore = signal<PaymentLifecycle>('idle');
   private readonly orderIdStore = signal<string | null>(null);
   private readonly paymentIdStore = signal<string | null>(null);
   private readonly clientSecretStore = signal<string | null>(null);
   private readonly paymentStatusStore = signal<PaymentStatus | null>(null);
   private readonly statusErrorStore = signal<ApiError | null>(null);
+  private readonly confirmationOutcomeStore = signal<ProviderConfirmationOutcome | null>(null);
 
   /** Lifecycle stage driving shell visibility (never set directly). */
   readonly lifecycle: Signal<PaymentLifecycle> = this.lifecycleStore.asReadonly();
@@ -180,10 +215,18 @@ export class PaymentState {
    * never persisted, logged, or placed in URLs (see file header).
    */
   readonly clientSecret: Signal<string | null> = this.clientSecretStore.asReadonly();
-  /** Backend payment status facts, if known (never client-side claims). */
+  /** Stripe/backend-reported payment status, if known (never client-side derivations). */
   readonly paymentStatus: Signal<PaymentStatus | null> = this.paymentStatusStore.asReadonly();
   /** Normalized failure, if any. */
   readonly statusError: Signal<ApiError | null> = this.statusErrorStore.asReadonly();
+  /**
+   * Latest provider confirmation outcome, if any (`null` before the
+   * first confirmation and after entry/reset). Preserves the
+   * requires-action vs. pending vs. unknown distinction for the 9.8
+   * result handling — the lifecycle alone cannot carry it.
+   */
+  readonly confirmationOutcome: Signal<ProviderConfirmationOutcome | null> =
+    this.confirmationOutcomeStore.asReadonly();
 
   /** Whether confirmation is outstanding (duplicate-submit guard). */
   readonly isProcessing: Signal<boolean> = computed(() => this.lifecycleStore() === 'processing');
@@ -224,8 +267,65 @@ export class PaymentState {
     this.clientSecretStore.set(null);
     this.paymentStatusStore.set(null);
     this.statusErrorStore.set(null);
+    this.confirmationOutcomeStore.set(null);
     this.lifecycleStore.set('initializing');
     return true;
+  }
+
+  /**
+   * Executes payment initialization for the named order (Sub-Phase 9.6 —
+   * the 9.4 `beginInitialization` gate plus the §9.3 service call).
+   *
+   * Flow: `beginInitialization(orderId)` moves `idle|failed|cancelled →
+   * initializing` (rejected calls return `Subscription.EMPTY` with no
+   * HTTP — this is the duplicate-initialization guard: an active or
+   * resolved flow never re-fires); the service call then resolves to
+   * `markReady` (intent context stored in-memory only) or rejects to
+   * `markFailed` (normalized `ApiError` — today the §9.1 contract
+   * blocker, `PaymentContractBlocked`, until the backend lands the
+   * intent path). A dataless envelope is a contract violation surfacing
+   * as `error`. Non-`ApiError` throwables are normalized, never
+   * re-thrown. The caller owns teardown (unsubscribe on destroy).
+   *
+   * Provider setup and Elements mounting are NOT here — the owning page
+   * drives the `PaymentProvider` around this state once `ready` (9.6
+   * page orchestration), and confirmation belongs to 9.7.
+   */
+  initializePayment(orderId: string): Subscription {
+    if (!this.beginInitialization(orderId)) {
+      return Subscription.EMPTY;
+    }
+    return this.paymentApi.initializePayment({ orderId }).subscribe({
+      next: (envelope: ApiResponseWithData<PaymentInitializationResult>) => {
+        const data = envelope.data;
+        if (data === null || data === undefined) {
+          this.markFailed(
+            new ApiError({
+              status: 200,
+              code: UNKNOWN_ERROR_CODE,
+              message: 'The server returned an empty response.',
+            }),
+          );
+          return;
+        }
+        this.markReady({
+          paymentId: data.paymentId,
+          clientSecret: data.clientSecret,
+          paymentStatus: data.status,
+        });
+      },
+      error: (error: unknown) => {
+        this.markFailed(
+          isApiError(error)
+            ? error
+            : new ApiError({
+                status: 0,
+                code: UNKNOWN_ERROR_CODE,
+                message: 'Payment initialization failed.',
+              }),
+        );
+      },
+    });
   }
 
   /**
@@ -264,10 +364,107 @@ export class PaymentState {
   }
 
   /**
-   * Records backend-confirmed payment (`processing|pending →
-   * `succeeded`) with the authoritative status. The ONLY path to
-   * `succeeded` — provider-side claims without backend confirmation
-   * must never call this (see `markPending` for outstanding outcomes).
+   * Executes payment confirmation through the provider boundary
+   * (Sub-Phase 9.7 — the 9.4 `beginProcessing` gate plus the §9.5
+   * provider call).
+   *
+   * Flow: `beginProcessing` moves `ready → processing` (rejected calls
+   * return `Subscription.EMPTY` with no provider contact — this is the
+   * submit lock: in-flight, resolved, or unentered payments never
+   * re-submit); the provider result then maps to an explicit outcome
+   * (see `applyProviderResult`). Provider rejections (misuse, transport
+   * loss inside the SDK call) normalize to `markFailed` — never
+   * re-thrown. The caller owns teardown (unsubscribe on destroy;
+   * unsubscribing cannot recall the provider call but stops
+   * post-destroy state writes).
+   *
+   * Orchestration boundary: this action records the provider's result
+   * and moves its own lifecycle — it NEVER confirms the order, updates
+   * inventory, or triggers sagas. Finality stays backend-owned (9.8
+   * reads); `succeeded` here means provider-reported success.
+   */
+  confirmPayment(options: ConfirmPaymentOptions = {}): Subscription {
+    if (!this.beginProcessing()) {
+      return Subscription.EMPTY;
+    }
+    const confirmParams = options.returnUrl === undefined ? {} : { returnUrl: options.returnUrl };
+    return from(this.provider.confirmPayment(confirmParams)).subscribe({
+      next: (result: ProviderConfirmationResult) => this.applyProviderResult(result),
+      error: (error: unknown) => {
+        this.markFailed(
+          isApiError(error)
+            ? error
+            : new ApiError({
+                status: 0,
+                code: UNKNOWN_ERROR_CODE,
+                message: 'Payment confirmation failed.',
+              }),
+        );
+      },
+    });
+  }
+
+  /**
+   * Maps a provider confirmation result into explicit application
+   * state (the §9.7 outcome table):
+   *
+   * - `succeeded` → `markSucceeded` (immediate success, Stripe-side
+   *   fact — never order finality, see `markSucceeded`).
+   * - `failed` → `markFailed` with `PAYMENT_DECLINED_CODE` and the
+   *   displayable decline text (fallback diagnostic when absent).
+   * - `cancelled` → `markCancelled` (terminal — re-entry needs a fresh
+   *   initialization, never the cancelled attempt's context).
+   * - `requiresAction` / `pending` → `markPending` (non-terminal wait —
+   *   9.8 resolves via the backend status read).
+   * - `unknown` → lifecycle HOLDS `processing` with the submit lock on
+   *   (sent-but-unread: 9.9 checks the backend status first — never a
+   *   blind retry, never a silent failure).
+   *
+   * The outcome bucket is always recorded (`confirmationOutcome`) so
+   * 9.8 can distinguish action-required from plain pending. Pure
+   * mapping over guarded transitions — performs no I/O.
+   */
+  applyProviderResult(result: ProviderConfirmationResult): void {
+    const outcome: ProviderConfirmationOutcome = result?.outcome ?? 'unknown';
+    this.confirmationOutcomeStore.set(outcome);
+    switch (outcome) {
+      case 'succeeded':
+        this.markSucceeded('Succeeded');
+        break;
+      case 'failed':
+        this.markFailed(
+          new ApiError({
+            status: 0,
+            code: PAYMENT_DECLINED_CODE,
+            message:
+              typeof result?.message === 'string' && result.message.trim() !== ''
+                ? result.message
+                : 'Payment was declined.',
+          }),
+        );
+        break;
+      case 'cancelled':
+        this.markCancelled();
+        break;
+      case 'requiresAction':
+      case 'pending':
+        this.markPending();
+        break;
+      case 'unknown':
+        break;
+    }
+  }
+
+  /**
+   * Records provider-reported payment success (`processing|pending →
+   * `succeeded`) with the reported status. The ONLY path to `succeeded`.
+   *
+   * `Initialized ≠ Succeeded` still holds structurally (`markReady` can
+   * never produce `succeeded`); equally, this path records the
+   * PROVIDER's result only — Stripe-intent success is a Stripe-side
+   * fact, not FluxCommerce order finality. Order truth (`Confirmed`)
+   * stays backend-owned and arrives via status reads in 9.8 — this
+   * action never confirms orders, touches inventory, or triggers sagas.
    */
   markSucceeded(paymentStatus: PaymentStatus): boolean {
     if (!canTransitionPaymentLifecycle(this.lifecycleStore(), 'succeeded')) {
@@ -329,7 +526,7 @@ export class PaymentState {
     this.statusErrorStore.set(null);
   }
 
-  /** Restores the initial shape: `idle`, no context, no facts, no error. */
+  /** Restores the initial shape: `idle`, no context, no facts, no error, no outcome. */
   reset(): void {
     this.lifecycleStore.set('idle');
     this.orderIdStore.set(null);
@@ -337,5 +534,6 @@ export class PaymentState {
     this.clientSecretStore.set(null);
     this.paymentStatusStore.set(null);
     this.statusErrorStore.set(null);
+    this.confirmationOutcomeStore.set(null);
   }
 }

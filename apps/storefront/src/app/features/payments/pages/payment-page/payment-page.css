@@ -13,3 +13,8 @@
 .payment-page-order {
   color: var(--color-text-muted);
 }
+
+.payment-page-mount {
+  display: block;
+  min-inline-size: 0;
+}

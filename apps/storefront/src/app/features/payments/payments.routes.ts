@@ -1,5 +1,12 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@flux/auth';
+import { stripeEnvironment } from '../../../environments/environment';
+import { PAYMENT_PROVIDER } from './integrations/payment-provider';
+import {
+  STRIPE_JS_SCRIPT_URL,
+  STRIPE_PUBLISHABLE_KEY,
+  StripePaymentProvider,
+} from './integrations/stripe-payment-provider';
 import { PaymentState } from './state/payment-state';
 
 /**
@@ -16,9 +23,12 @@ import { PaymentState } from './state/payment-state';
  * blocked here by the shared Phase 2 `authGuard` (redirect to
  * `/login?returnUrl=`). The payment pages get their own `PaymentState`
  * instance (never a global store — `PaymentState` has no `providedIn`
- * and registers here only); page orchestration driving it arrives in
- * Sub-Phase 9.6, while data access (9.3) and the provider boundary (9.5)
- * plug in underneath the state.
+ * and registers here only). The provider boundary registers here too:
+ * `PAYMENT_PROVIDER` (the abstraction pages consume) bound to
+ * `StripePaymentProvider`, with the script URL and the environment
+ * publishable key sourced from app environments (public values only —
+ * never secrets). Page orchestration driving state and provider arrives
+ * in Sub-Phase 9.6; confirmation belongs to 9.7.
  *
  * Architectural flow (target — `ARCHITECTURE.md` §10; data-access and
  * state land in 9.3/9.4, the provider boundary in 9.5):
@@ -34,7 +44,12 @@ import { PaymentState } from './state/payment-state';
 export const paymentsRoutes: Routes = [
   {
     path: '',
-    providers: [PaymentState],
+    providers: [
+      PaymentState,
+      { provide: PAYMENT_PROVIDER, useClass: StripePaymentProvider },
+      { provide: STRIPE_JS_SCRIPT_URL, useValue: stripeEnvironment.scriptUrl },
+      { provide: STRIPE_PUBLISHABLE_KEY, useValue: stripeEnvironment.publishableKey },
+    ],
     canActivate: [authGuard],
     children: [
       {

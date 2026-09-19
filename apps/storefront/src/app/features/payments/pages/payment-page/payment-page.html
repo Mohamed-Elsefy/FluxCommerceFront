@@ -2,10 +2,13 @@
   <h1 class="payment-page-title">Payment</h1>
   @if (params !== null) {
     <p class="payment-page-order">Order {{ params.orderId }}</p>
-    <payment-form (formSubmit)="onFormSubmit()" />
-    <payment-status [status]="null" />
-    <payment-error [message]="null" (retry)="onRetry()" />
-    <payment-loading />
+    <payment-form [disabled]="submitDisabled()" (formSubmit)="onFormSubmit()" />
+    <div #paymentMount class="payment-page-mount"></div>
+    <payment-status [status]="paymentStatus()" />
+    <payment-error [message]="errorMessage()" (retry)="onRetry()" />
+    @if (lifecycle() === 'initializing') {
+      <payment-loading />
+    }
   } @else {
     <p class="payment-page-missing">Order reference is missing.</p>
   }

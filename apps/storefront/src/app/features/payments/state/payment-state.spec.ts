@@ -12,10 +12,16 @@
  */
 
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it } from 'vitest';
-import { ApiError } from '@flux/api';
+import { describe, expect, it, vi } from 'vitest';
+import { EMPTY, NEVER, of, throwError, type Observable } from 'rxjs';
+import { ApiError, type ApiResponseWithData } from '@flux/api';
+import type { PaymentInitializationResult } from '@flux/models';
+import type { ProviderConfirmationResult } from '../integrations/payment-provider';
+import { PaymentApiService } from '../data-access/payment-api.service';
+import { PAYMENT_PROVIDER } from '../integrations/payment-provider';
 import {
   canTransitionPaymentLifecycle,
+  PAYMENT_DECLINED_CODE,
   PAYMENT_LIFECYCLE_TRANSITIONS,
   PaymentState,
   type PaymentLifecycle,
@@ -27,14 +33,34 @@ const CLIENT_SECRET = 'pi_123_secret_abc';
 
 function setup(): PaymentState {
   // Fresh module per setup — several tests drive multiple isolated
-  // instances (one per stage) within a single case.
+  // instances (one per stage) within a single case. The service and the
+  // provider are stubbed inert (these tests never execute them — see the
+  // `initializePayment` / `confirmPayment` blocks for execution
+  // coverage).
   TestBed.resetTestingModule();
-  TestBed.configureTestingModule({ providers: [PaymentState] });
+  TestBed.configureTestingModule({
+    providers: [
+      PaymentState,
+      { provide: PaymentApiService, useValue: { initializePayment: () => EMPTY } },
+      { provide: PAYMENT_PROVIDER, useValue: { confirmPayment: () => EMPTY } },
+    ],
+  });
   return TestBed.inject(PaymentState);
 }
 
 function failure(): ApiError {
   return new ApiError({ status: 409, code: 'Order.CancelConflict', message: 'Conflict.' });
+}
+
+/**
+ * Flushes floating promise chains (provider confirmation resolves off
+ * the action call — one macrotask turn drains every pending microtask
+ * regardless of zone tracking).
+ */
+async function settleAsync(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }
 
 function toReady(state: PaymentState): void {
@@ -436,5 +462,278 @@ describe('PaymentState re-entry, recovery, and reset', () => {
       statusError: null,
     });
     expect(state.isTerminal()).toBe(false);
+  });
+});
+
+describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
+  const INIT_RESULT: PaymentInitializationResult = {
+    paymentId: PAYMENT_ID,
+    orderId: ORDER_ID,
+    clientSecret: CLIENT_SECRET,
+    paymentReference: 'pi_123',
+    status: 'Pending',
+  };
+
+  function setupWithApi(flow: () => Observable<ApiResponseWithData<PaymentInitializationResult>>): {
+    state: PaymentState;
+    initializePayment: ReturnType<typeof vi.fn>;
+  } {
+    TestBed.resetTestingModule();
+    const initializePayment = vi.fn(flow);
+    TestBed.configureTestingModule({
+      providers: [
+        PaymentState,
+        { provide: PaymentApiService, useValue: { initializePayment } },
+        { provide: PAYMENT_PROVIDER, useValue: { confirmPayment: () => EMPTY } },
+      ],
+    });
+    return { state: TestBed.inject(PaymentState), initializePayment };
+  }
+
+  const success = () => of({ isSuccess: true, message: 'ok', data: INIT_RESULT });
+  const blocked = () =>
+    throwError(
+      () =>
+        new ApiError({
+          status: 0,
+          code: 'PaymentContractBlocked',
+          message: 'Payment initializePayment has no backend HTTP contract; no request was sent.',
+        }),
+    );
+
+  it('initializes through the service and records intent context in memory', () => {
+    const { state, initializePayment } = setupWithApi(success);
+    state.initializePayment(ORDER_ID);
+
+    expect(initializePayment).toHaveBeenCalledTimes(1);
+    expect(initializePayment).toHaveBeenCalledWith({ orderId: ORDER_ID });
+    expect(state.lifecycle()).toBe('ready');
+    expect(state.paymentId()).toBe(PAYMENT_ID);
+    expect(state.clientSecret()).toBe(CLIENT_SECRET);
+    expect(state.paymentStatus()).toBe('Pending');
+    expect(state.statusError()).toBeNull();
+  });
+
+  it('keeps the secret in memory only (no persistent sinks, no URL echo)', () => {
+    // Isolate our writes: the shared runner environment may carry
+    // entries from other specs.
+    globalThis.localStorage.clear();
+    globalThis.sessionStorage.clear();
+    const { state } = setupWithApi(success);
+    state.initializePayment(ORDER_ID);
+
+    expect(state.clientSecret()).toBe(CLIENT_SECRET);
+    expect(globalThis.localStorage.length).toBe(0);
+    expect(globalThis.sessionStorage.length).toBe(0);
+    expect(globalThis.location.href).not.toContain(CLIENT_SECRET);
+  });
+
+  it('records the contract-blocked failure without losing the order', () => {
+    const { state, initializePayment } = setupWithApi(blocked);
+    state.initializePayment(ORDER_ID);
+
+    expect(initializePayment).toHaveBeenCalledTimes(1);
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.orderId()).toBe(ORDER_ID);
+    expect(state.statusError()).toBeInstanceOf(ApiError);
+    expect(state.statusError()?.code).toBe('PaymentContractBlocked');
+  });
+
+  it('treats a dataless envelope as a contract violation', () => {
+    const { state } = setupWithApi(() => of({ isSuccess: true, message: 'ok', data: null }));
+    state.initializePayment(ORDER_ID);
+
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.statusError()?.code).toBe('UnknownError');
+  });
+
+  it('normalizes non-ApiError throwables instead of re-throwing', () => {
+    const { state } = setupWithApi(() => throwError(() => new Error('boom')));
+    expect(() => state.initializePayment(ORDER_ID)).not.toThrow();
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.statusError()).toBeInstanceOf(ApiError);
+  });
+
+  it('drops duplicate attempts while a request is active (no second call)', () => {
+    const { state, initializePayment } = setupWithApi(() => NEVER);
+    state.initializePayment(ORDER_ID);
+    expect(state.lifecycle()).toBe('initializing');
+
+    state.initializePayment(ORDER_ID);
+    expect(initializePayment).toHaveBeenCalledTimes(1);
+    expect(state.lifecycle()).toBe('initializing');
+  });
+
+  it('retries from failed with a fresh attempt', () => {
+    const { state, initializePayment } = setupWithApi(blocked);
+    state.initializePayment(ORDER_ID);
+    expect(state.lifecycle()).toBe('failed');
+
+    state.initializePayment(ORDER_ID);
+    expect(initializePayment).toHaveBeenCalledTimes(2);
+    expect(state.lifecycle()).toBe('failed');
+  });
+});
+
+describe('PaymentState confirmPayment (Sub-Phase 9.7 execution)', () => {
+  const READY_RESULT = {
+    paymentId: PAYMENT_ID,
+    orderId: ORDER_ID,
+    clientSecret: CLIENT_SECRET,
+    paymentReference: 'pi_123',
+    status: 'Pending' as const,
+  };
+
+  function setupReady(
+    confirmFlow: () => Promise<ProviderConfirmationResult> = async () => ({
+      outcome: 'succeeded',
+      message: null,
+    }),
+  ): {
+    state: PaymentState;
+    confirmPayment: ReturnType<typeof vi.fn>;
+  } {
+    TestBed.resetTestingModule();
+    const confirmPayment = vi.fn(confirmFlow);
+    TestBed.configureTestingModule({
+      providers: [
+        PaymentState,
+        {
+          provide: PaymentApiService,
+          useValue: {
+            initializePayment: () => of({ isSuccess: true, message: 'ok', data: READY_RESULT }),
+          },
+        },
+        { provide: PAYMENT_PROVIDER, useValue: { confirmPayment } },
+      ],
+    });
+    const state = TestBed.inject(PaymentState);
+    state.initializePayment(ORDER_ID);
+    expect(state.lifecycle()).toBe('ready');
+    return { state, confirmPayment };
+  }
+
+  it('confirms through the provider and maps immediate success', async () => {
+    const { state, confirmPayment } = setupReady();
+    state.confirmPayment();
+    await settleAsync();
+
+    expect(confirmPayment).toHaveBeenCalledTimes(1);
+    expect(confirmPayment).toHaveBeenCalledWith({});
+    expect(state.lifecycle()).toBe('succeeded');
+    expect(state.paymentStatus()).toBe('Succeeded');
+    expect(state.confirmationOutcome()).toBe('succeeded');
+    expect(state.isTerminal()).toBe(true);
+  });
+
+  it('forwards the return URL for redirect-based methods', async () => {
+    const { state, confirmPayment } = setupReady();
+    state.confirmPayment({ returnUrl: 'test-return-url' });
+    await settleAsync();
+
+    expect(confirmPayment).toHaveBeenCalledWith({ returnUrl: 'test-return-url' });
+    expect(state.lifecycle()).toBe('succeeded');
+  });
+
+  it('maps declines to failed with the declined code and message', async () => {
+    const { state } = setupReady(async () => ({
+      outcome: 'failed',
+      message: 'Your card was declined.',
+    }));
+    state.confirmPayment();
+    await settleAsync();
+
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.statusError()).toBeInstanceOf(ApiError);
+    expect(state.statusError()?.code).toBe(PAYMENT_DECLINED_CODE);
+    expect(state.statusError()?.message).toBe('Your card was declined.');
+    expect(state.confirmationOutcome()).toBe('failed');
+  });
+
+  it('falls back to a diagnostic when the decline carries no message', async () => {
+    const { state } = setupReady(async () => ({ outcome: 'failed', message: null }));
+    state.confirmPayment();
+    await settleAsync();
+
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.statusError()?.code).toBe(PAYMENT_DECLINED_CODE);
+    expect(state.statusError()?.message).toBe('Payment was declined.');
+  });
+
+  it('maps cancellation to terminal cancelled', async () => {
+    const { state } = setupReady(async () => ({ outcome: 'cancelled', message: null }));
+    state.confirmPayment();
+    await settleAsync();
+
+    expect(state.lifecycle()).toBe('cancelled');
+    expect(state.confirmationOutcome()).toBe('cancelled');
+    expect(state.isTerminal()).toBe(true);
+  });
+
+  it('maps action-required and pending to non-terminal pending', async () => {
+    const action = setupReady(async () => ({ outcome: 'requiresAction', message: null }));
+    action.state.confirmPayment();
+    await settleAsync();
+    expect(action.state.lifecycle()).toBe('pending');
+    expect(action.state.confirmationOutcome()).toBe('requiresAction');
+    expect(action.state.isTerminal()).toBe(false);
+
+    const pending = setupReady(async () => ({ outcome: 'pending', message: null }));
+    pending.state.confirmPayment();
+    await settleAsync();
+    expect(pending.state.lifecycle()).toBe('pending');
+    expect(pending.state.confirmationOutcome()).toBe('pending');
+  });
+
+  it('holds processing on unknown outcomes with the submit lock on', async () => {
+    const { state, confirmPayment } = setupReady(async () => ({
+      outcome: 'unknown',
+      message: null,
+    }));
+    state.confirmPayment();
+    await settleAsync();
+
+    expect(confirmPayment).toHaveBeenCalledTimes(1);
+    expect(state.lifecycle()).toBe('processing');
+    expect(state.confirmationOutcome()).toBe('unknown');
+    expect(state.isTerminal()).toBe(false);
+
+    // The lock holds: no second provider contact while outstanding.
+    state.confirmPayment();
+    expect(confirmPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it('normalizes provider rejections to failed without re-throwing', async () => {
+    const { state } = setupReady(async () => {
+      throw new Error('sdk down');
+    });
+    expect(() => state.confirmPayment()).not.toThrow();
+    await settleAsync();
+
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.statusError()).toBeInstanceOf(ApiError);
+  });
+
+  it('locks duplicate submissions while confirmation is outstanding', async () => {
+    const { state, confirmPayment } = setupReady(() => new Promise(() => undefined));
+    state.confirmPayment();
+    state.confirmPayment();
+    await settleAsync();
+
+    expect(confirmPayment).toHaveBeenCalledTimes(1);
+    expect(state.lifecycle()).toBe('processing');
+    expect(state.isProcessing()).toBe(true);
+  });
+
+  it('rejects confirmation outside ready without contacting the provider', async () => {
+    const { state, confirmPayment } = setupReady();
+    state.reset();
+    state.confirmPayment();
+    await settleAsync();
+    expect(confirmPayment).not.toHaveBeenCalled();
+    expect(state.lifecycle()).toBe('idle');
+
+    state.initializePayment(ORDER_ID);
+    expect(state.lifecycle()).toBe('ready');
   });
 });
