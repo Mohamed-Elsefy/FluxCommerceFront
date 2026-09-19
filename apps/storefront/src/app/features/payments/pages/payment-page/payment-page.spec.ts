@@ -19,6 +19,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { EMPTY, NEVER, Observable, of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { PaymentApiService } from '../../data-access/payment-api.service';
@@ -56,6 +57,49 @@ const SUCCESS = () =>
     },
   });
 
+const ORDER_BODY = {
+  orderId: ORDER_ID,
+  orderNumber: 'ORD-ABC123DEF456',
+  status: 'Pending',
+  subtotal: { amount: 59.98, currency: 'USD' },
+  shippingCost: { amount: 0, currency: 'USD' },
+  discount: { amount: 0, currency: 'USD' },
+  grandTotal: { amount: 59.98, currency: 'USD' },
+  itemCount: 2,
+  createdAtUtc: '2026-09-04T10:00:00Z',
+  shippingAddress: {
+    recipientName: 'Ada Lovelace',
+    line1: '1 Flux St',
+    line2: null,
+    city: 'Berlin',
+    region: 'BE',
+    postalCode: '10115',
+    countryCode: 'DE',
+  },
+  billingAddress: {
+    recipientName: 'Ada Lovelace',
+    line1: '1 Flux St',
+    line2: null,
+    city: 'Berlin',
+    region: 'BE',
+    postalCode: '10115',
+    countryCode: 'DE',
+  },
+  lineItems: [
+    {
+      productName: 'Tee',
+      sku: 'TEE-BLK-M',
+      quantity: 2,
+      unitPrice: 29.99,
+      unitPriceCurrency: 'USD',
+      lineTotal: 59.98,
+      lineTotalCurrency: 'USD',
+    },
+  ],
+};
+
+const ORDER_SUCCESS = () => of({ isSuccess: true, message: 'ok', data: ORDER_BODY });
+
 interface ProviderStub {
   initialize: Mock;
   createElements: Mock;
@@ -79,11 +123,16 @@ function setup(options: {
   platform?: string;
   apiFlow?: () => Observable<unknown>;
   statusFlow?: () => Observable<unknown>;
+  orderFlow?: () => Observable<unknown>;
   provider?: ProviderStub;
 }): {
   fixture: ComponentFixture<PaymentPage>;
   element: HTMLElement;
-  api: { initializePayment: ReturnType<typeof vi.fn>; getPaymentStatus: ReturnType<typeof vi.fn> };
+  api: {
+    initializePayment: ReturnType<typeof vi.fn>;
+    getPaymentStatus: ReturnType<typeof vi.fn>;
+    getOrderDetails: ReturnType<typeof vi.fn>;
+  };
   provider: ProviderStub;
   navigate: ReturnType<typeof vi.fn>;
   state: PaymentState;
@@ -92,6 +141,7 @@ function setup(options: {
   const api = {
     initializePayment: vi.fn(options.apiFlow ?? BLOCKED),
     getPaymentStatus: vi.fn(options.statusFlow ?? (() => EMPTY)),
+    getOrderDetails: vi.fn(options.orderFlow ?? (() => EMPTY)),
   };
   const provider = options.provider ?? providerStub();
   const navigate = vi.fn(async () => true);
@@ -180,7 +230,8 @@ describe('PaymentPage initialization flow', () => {
     expect(api.initializePayment).toHaveBeenCalledTimes(1);
     expect(api.initializePayment).toHaveBeenCalledWith({ orderId: ORDER_ID });
     expect(state.lifecycle()).toBe('failed');
-    expect(element.textContent).toContain('no request was sent');
+    expect(element.textContent).toContain('Payment is currently unavailable');
+    expect(element.textContent).not.toContain('no request was sent');
     expect(retryButton(element)).not.toBeNull();
   });
 
@@ -296,9 +347,10 @@ describe('PaymentPage outcome routing (Sub-Phase 9.8)', () => {
 });
 
 describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
-  it('offers retry on terminal failure', () => {
+  it('offers retry on terminal failure with localized copy', () => {
     const { element } = setup({ orderId: ORDER_ID });
-    expect(element.textContent).toContain('no request was sent');
+    expect(element.textContent).toContain('Payment is currently unavailable');
+    expect(element.textContent).not.toContain('no request was sent');
     expect(retryButton(element)).not.toBeNull();
   });
 
@@ -318,8 +370,52 @@ describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
     fixture.detectChanges();
 
     expect(state.lifecycle()).toBe('pending');
-    expect(element.textContent).toContain('Unreachable.');
+    expect(element.textContent).toContain('A network error occurred');
+    expect(element.textContent).not.toContain('Unreachable.');
     expect(retryButton(element)).toBeNull();
+  });
+});
+
+describe('PaymentPage UI pass (Sub-Phase 9.10)', () => {
+  it('renders localized shells with the document title', () => {
+    const { element } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS, orderFlow: ORDER_SUCCESS });
+    expect(TestBed.inject(Title).getTitle()).toBe('Payment | FluxCommerce');
+
+    const text = element.textContent ?? '';
+    expect(text).toContain('Payment details');
+    expect(text).toContain('Secure payment form loads here.');
+    expect(submitButton(element)?.textContent?.trim()).toBe('Pay');
+  });
+
+  it('renders the backend order summary without secrets or technical text', () => {
+    const { element, api } = setup({
+      orderId: ORDER_ID,
+      apiFlow: SUCCESS,
+      orderFlow: ORDER_SUCCESS,
+    });
+    expect(api.getOrderDetails).toHaveBeenCalledTimes(1);
+    expect(api.getOrderDetails).toHaveBeenCalledWith(ORDER_ID);
+
+    const summary = element.querySelector('payment-order-summary');
+    expect(summary).not.toBeNull();
+    const text = element.textContent ?? '';
+    expect(text).toContain('Order summary');
+    expect(text).toContain('ORD-ABC123DEF456');
+    expect(text).toContain('Tee');
+    expect(text).not.toContain(CLIENT_SECRET);
+    expect(text).not.toContain('no request was sent');
+    expect(text).not.toContain('pi_');
+  });
+
+  it('hides the summary when the order read fails without failing payment', () => {
+    const { element, state } = setup({
+      orderId: ORDER_ID,
+      apiFlow: SUCCESS,
+      orderFlow: () => throwError(() => new Error('down')),
+    });
+    expect(state.lifecycle()).toBe('ready');
+    expect(element.querySelector('payment-order-summary')).not.toBeNull();
+    expect(element.textContent).not.toContain('ORD-ABC123DEF456');
   });
 });
 

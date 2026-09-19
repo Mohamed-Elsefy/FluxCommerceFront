@@ -1,5 +1,6 @@
 /**
- * Storefront Payment page for Sub-Phase 9.6 — Payment Initialization.
+ * Storefront Payment page for Sub-Phases 9.6 (initialization), 9.7
+ * (confirmation), and 9.10 (UI & checkout integration).
  *
  * Smart page (route-level composition): validates the `:orderId` route
  * param through the pure §9.2 `readPaymentRouteParams` helper, drives
@@ -46,17 +47,18 @@
  *   through `PaymentState.confirmPayment` (Sub-Phase 9.7 — provider
  *   boundary only, never backend orchestration).
  *
- * Copy is placeholder English (skeleton shell — feature localization
- * arrives with the §9.10 UI pass, never backend text).
+ * Copy is localized per the active `CultureService.culture()` through
+ * the feature-owned bundle; failures resolve through
+ * `resolvePaymentErrorMessage` (never backend text, never technical
+ * internals). Document title follows the localized page title
+ * (customer area — no SEO metadata beyond the title).
  *
  * SSR-safe: signals, router templating, and platform-guarded init only
  * — provider and DOM work stay browser-side. RTL safe: logical
  * properties only, no direction branching.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 9.9 — no polling loops, no failure-category handling, no recovery
- *   algorithms (retry re-enters initialization only).
- * - 9.10 — no localized copy beyond placeholders.
+ * - 9.11 — no security/SSR audit changes.
  */
 
 import {
@@ -73,12 +75,23 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { ApiError } from '@flux/api';
+import { CultureService, formatCurrency, translateKey, type Culture } from '@flux/i18n';
+import type { OrderMoneyResponse } from '@flux/models';
 import { PaymentErrorComponent } from '../../components/payment-error/payment-error';
 import { PaymentFormComponent } from '../../components/payment-form/payment-form';
 import { PaymentLoadingComponent } from '../../components/payment-loading/payment-loading';
+import {
+  PaymentOrderSummaryComponent,
+  toPaymentOrderSummaryView,
+  type PaymentOrderSummaryLabels,
+  type PaymentOrderSummaryView,
+} from '../../components/payment-order-summary/payment-order-summary';
 import { PaymentStatusComponent } from '../../components/payment-status/payment-status';
+import { PAYMENT_TRANSLATION_KEYS, translatePaymentKey } from '../../i18n/payment-translations';
+import { resolvePaymentErrorMessage } from '../../i18n/payment-errors';
 import { PAYMENT_PROVIDER } from '../../integrations/payment-provider';
 import { STRIPE_PUBLISHABLE_KEY } from '../../integrations/stripe-payment-provider';
 import { paymentRecoveryFor, readPaymentRouteParams } from '../../models/payment.models';
@@ -90,6 +103,7 @@ import { PaymentState } from '../../state/payment-state';
     PaymentErrorComponent,
     PaymentFormComponent,
     PaymentLoadingComponent,
+    PaymentOrderSummaryComponent,
     PaymentStatusComponent,
   ],
   templateUrl: './payment-page.html',
@@ -102,6 +116,8 @@ export class PaymentPage implements OnInit, OnDestroy {
   private readonly state = inject(PaymentState);
   private readonly provider = inject(PAYMENT_PROVIDER);
   private readonly publishableKey = inject(STRIPE_PUBLISHABLE_KEY);
+  private readonly cultures = inject(CultureService);
+  private readonly title = inject(Title);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   /**
@@ -115,8 +131,19 @@ export class PaymentPage implements OnInit, OnDestroy {
   protected readonly lifecycle = this.state.lifecycle;
   /** Backend payment status facts, if known. */
   protected readonly paymentStatus = this.state.paymentStatus;
-  /** Displayable failure text, if any (state-normalized — never backend text). */
-  protected readonly errorMessage = computed(() => this.state.statusError()?.message ?? null);
+  /** Active culture (drives copy and money formatting). */
+  protected readonly culture = this.cultures.culture;
+  /**
+   * Localized failure message, if any (resolved through the feature
+   * resolver — never backend text, never technical internals).
+   */
+  protected readonly errorMessage = computed(() =>
+    resolvePaymentErrorMessage(this.state.statusError(), this.cultures.culture()),
+  );
+  /** Localized error-shell title. */
+  protected readonly errorTitle = computed(() =>
+    translatePaymentKey(this.cultures.culture(), PAYMENT_TRANSLATION_KEYS.resultFailureTitle),
+  );
   /** Submit stays gated until initialization provides intent context. */
   protected readonly submitDisabled = computed(() => this.state.lifecycle() !== 'ready');
   /**
@@ -135,9 +162,62 @@ export class PaymentPage implements OnInit, OnDestroy {
 
   private initSub: Subscription | null = null;
   private confirmSub: Subscription | null = null;
+  private orderSub: Subscription | null = null;
   private preparedPaymentId: string | null = null;
 
+  /**
+   * Localized page copy for the active culture (shell labels, headings,
+   * and placeholders — no interpolation left except `{orderId}`).
+   */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    const t = (key: string, params = {}): string => translatePaymentKey(culture, key, params);
+    const keys = PAYMENT_TRANSLATION_KEYS;
+    return {
+      title: t(keys.pageTitle),
+      orderLabel: (orderId: string): string => t(keys.pageOrderLabel, { orderId }),
+      missingReference: t(keys.pageMissingReference),
+      formTitle: t(keys.formTitle),
+      formPlaceholder: t(keys.formPlaceholder),
+      submit: t(keys.formSubmit),
+      retry: translateKey(culture, 'common.actions.retry'),
+      statusWaiting: t(keys.statusWaiting),
+      loadingLabel: t(keys.loadingLabel),
+      summaryLabels: {
+        title: t(keys.summaryTitle),
+        items: t(keys.summaryItems),
+        orderNumber: t(keys.summaryOrderNumber),
+        quantity: t(keys.summaryQuantity),
+        unitPrice: t(keys.summaryUnitPrice),
+        sku: t(keys.summarySku),
+        subtotal: t(keys.summarySubtotal),
+        shippingCost: t(keys.summaryShippingCost),
+        discount: t(keys.summaryDiscount),
+        grandTotal: t(keys.summaryGrandTotal),
+      } satisfies PaymentOrderSummaryLabels,
+    };
+  });
+
+  /**
+   * Preformatted order-summary view projected from the backend order
+   * facts (display only — backend-issued lines and totals, never local
+   * math). `null` until the order read settles — the template renders
+   * its shells instead.
+   */
+  protected readonly orderSummaryView = computed((): PaymentOrderSummaryView | null => {
+    const culture = this.cultures.culture();
+    return toPaymentOrderSummaryView(this.state.orderDetails(), (money) =>
+      moneyText(money, culture),
+    );
+  });
+
   constructor() {
+    // Document title tracks the localized page title (runs on server and
+    // client — `ngOnInit` covers the first SSR pass).
+    effect(() => {
+      this.title.setTitle(`${this.copy().title} | FluxCommerce`);
+    });
+
     // Provider setup — once per initialized intent, after `ready`.
     // Keyed by `paymentId` so re-entry with a fresh intent re-prepares
     // while lifecycle re-renders never double-mount.
@@ -198,6 +278,8 @@ export class PaymentPage implements OnInit, OnDestroy {
       return;
     }
     this.startInitialization();
+    this.loadOrderSummary();
+    this.title.setTitle(`${this.copy().title} | FluxCommerce`);
   }
 
   ngOnDestroy(): void {
@@ -205,6 +287,8 @@ export class PaymentPage implements OnInit, OnDestroy {
     this.initSub = null;
     this.confirmSub?.unsubscribe();
     this.confirmSub = null;
+    this.orderSub?.unsubscribe();
+    this.orderSub = null;
     this.provider.destroy();
   }
 
@@ -253,6 +337,22 @@ export class PaymentPage implements OnInit, OnDestroy {
   }
 
   /**
+   * Loads the backend order facts for the payment UI summary (best
+   * effort — failures hide the summary without touching the payment
+   * flow, see `PaymentState.loadOrder`). Missing params never attempt.
+   * The previous read is released first — a single outstanding read by
+   * construction (the state dedupes repeat loads regardless).
+   */
+  private loadOrderSummary(): void {
+    const params = this.params;
+    if (params === null) {
+      return;
+    }
+    this.orderSub?.unsubscribe();
+    this.orderSub = this.state.loadOrder(params.orderId);
+  }
+
+  /**
    * Prepares the provider for an initialized intent: SDK setup with the
    * environment key, Elements creation with the runtime secret, then
    * mount. Setup failures record a normalized failure on the state
@@ -271,4 +371,15 @@ export class PaymentPage implements OnInit, OnDestroy {
       );
     }
   }
+}
+
+/**
+ * Formats backend money for a culture, falling back to the raw
+ * `amount currency` pair when unformattable (never renders broken or
+ * empty money). Pure — throws nothing.
+ */
+function moneyText(money: OrderMoneyResponse, culture: Culture): string {
+  return (
+    formatCurrency(money.amount, money.currency, culture) || `${money.amount} ${money.currency}`
+  );
 }

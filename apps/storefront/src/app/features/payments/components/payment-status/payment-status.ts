@@ -32,4 +32,6 @@ import type { PaymentStatus } from '@flux/models';
 export class PaymentStatusComponent {
   /** Backend payment status to display; `null` renders the waiting shell. */
   @Input() status: PaymentStatus | null = null;
+  /** Waiting text (page-localized). */
+  @Input() waitingLabel = 'Waiting for payment…';
 }

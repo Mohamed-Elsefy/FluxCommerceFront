@@ -1,0 +1,44 @@
+.payment-order-summary {
+  display: grid;
+  gap: var(--spacing-md);
+  padding-inline: var(--container-padding-inline);
+}
+
+.payment-order-summary-title,
+.payment-order-summary-number,
+.payment-order-summary-items {
+  margin: 0;
+}
+
+.payment-order-summary-number {
+  color: var(--color-text-muted);
+}
+
+.payment-order-summary-lines {
+  display: grid;
+  gap: var(--spacing-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.payment-order-summary-line {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.payment-order-summary-totals {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.payment-order-summary-total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.payment-order-summary-total dd {
+  margin: 0;
+}

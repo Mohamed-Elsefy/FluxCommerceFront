@@ -69,6 +69,7 @@ import { computed, inject, Injectable, signal, type Signal } from '@angular/core
 import { from, Subscription } from 'rxjs';
 import { ApiError, isApiError, UNKNOWN_ERROR_CODE, type ApiResponseWithData } from '@flux/api';
 import type {
+  OrderDetailsResponse,
   PaymentInitializationResult,
   PaymentStatus,
   ProviderConfirmationOutcome,
@@ -206,6 +207,8 @@ export class PaymentState {
   private readonly paymentStatusStore = signal<PaymentStatus | null>(null);
   private readonly statusErrorStore = signal<ApiError | null>(null);
   private readonly confirmationOutcomeStore = signal<ProviderConfirmationOutcome | null>(null);
+  private readonly orderDetailsStore = signal<OrderDetailsResponse | null>(null);
+  private readonly orderLoadingStore = signal(false);
 
   /** Lifecycle stage driving shell visibility (never set directly). */
   readonly lifecycle: Signal<PaymentLifecycle> = this.lifecycleStore.asReadonly();
@@ -230,6 +233,14 @@ export class PaymentState {
    */
   readonly confirmationOutcome: Signal<ProviderConfirmationOutcome | null> =
     this.confirmationOutcomeStore.asReadonly();
+  /**
+   * Backend order facts for the payment UI summary (`null` until
+   * loaded). Display only — backend-issued lines and totals, never
+   * inputs to math.
+   */
+  readonly orderDetails: Signal<OrderDetailsResponse | null> = this.orderDetailsStore.asReadonly();
+  /** Whether the order display read is in flight. */
+  readonly isOrderLoading: Signal<boolean> = this.orderLoadingStore.asReadonly();
 
   /** Whether confirmation is outstanding (duplicate-submit guard). */
   readonly isProcessing: Signal<boolean> = computed(() => this.lifecycleStore() === 'processing');
@@ -265,6 +276,10 @@ export class PaymentState {
     if (!canTransitionPaymentLifecycle(this.lifecycleStore(), 'initializing')) {
       return false;
     }
+    if (this.orderIdStore() !== orderId) {
+      this.orderDetailsStore.set(null);
+    }
+    this.orderLoadingStore.set(false);
     this.orderIdStore.set(orderId);
     this.paymentIdStore.set(null);
     this.clientSecretStore.set(null);
@@ -630,7 +645,7 @@ export class PaymentState {
     this.statusErrorStore.set(null);
   }
 
-  /** Restores the initial shape: `idle`, no context, no facts, no error, no outcome. */
+  /** Restores the initial shape: `idle`, no context, no facts, no error, no outcome, no order. */
   reset(): void {
     this.lifecycleStore.set('idle');
     this.orderIdStore.set(null);
@@ -639,5 +654,34 @@ export class PaymentState {
     this.paymentStatusStore.set(null);
     this.statusErrorStore.set(null);
     this.confirmationOutcomeStore.set(null);
+    this.orderDetailsStore.set(null);
+    this.orderLoadingStore.set(false);
+  }
+
+  /**
+   * Loads the backend order facts for the payment UI summary
+   * (Sub-Phase 9.10 — display only).
+   *
+   * Best-effort by design: failures clear the slot to `null` (the
+   * summary hides) WITHOUT touching the payment lifecycle or the
+   * failure slot — the order read is independent of the payment flow
+   * and must never fail it. Already-loaded orders skip re-fetching
+   * (dedupe by `orderId` — remounts reuse the facts).
+   */
+  loadOrder(orderId: string): Subscription {
+    if (this.orderDetailsStore()?.orderId === orderId) {
+      return Subscription.EMPTY;
+    }
+    this.orderLoadingStore.set(true);
+    return this.paymentApi.getOrderDetails(orderId).subscribe({
+      next: (envelope) => {
+        this.orderDetailsStore.set(envelope.data ?? null);
+        this.orderLoadingStore.set(false);
+      },
+      error: () => {
+        this.orderDetailsStore.set(null);
+        this.orderLoadingStore.set(false);
+      },
+    });
   }
 }

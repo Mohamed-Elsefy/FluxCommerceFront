@@ -2,6 +2,6 @@
   @if (status !== null) {
     <p class="payment-status-value">{{ status }}</p>
   } @else {
-    <p class="payment-status-waiting">Waiting for payment…</p>
+    <p class="payment-status-waiting">{{ waitingLabel }}</p>
   }
 </section>

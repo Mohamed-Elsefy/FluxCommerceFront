@@ -34,6 +34,10 @@ export class PaymentFormComponent {
   @Input() disabled = false;
   /** Submit button text (page-supplied; localized in the §9.10 pass). */
   @Input() submitLabel = 'Pay';
+  /** Section heading (page-localized). */
+  @Input() title = 'Payment details';
+  /** Placeholder note before Elements mounts (page-localized). */
+  @Input() placeholder = 'Secure payment form loads here.';
   /** Emitted on submit click — the page performs the confirmation (9.7). */
   @Output() readonly formSubmit = new EventEmitter<void>();
 }

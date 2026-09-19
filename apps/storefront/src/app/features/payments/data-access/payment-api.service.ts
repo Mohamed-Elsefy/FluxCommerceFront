@@ -1,9 +1,9 @@
 /**
- * Payments data-access service for Sub-Phase 9.3 — Payment API & Data
- * Access.
+ * Payments data-access service for Sub-Phases 9.3 (data access) and
+ * 9.10 (order-summary display read).
  *
- * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §9.3 (data access only — no
- * state implementation, no provider integration, no UI).
+ * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.3/9.10 (data access only
+ * — no state implementation, no provider integration, no UI).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §6
  * (`GET /api/payments/{id}` → `ApiResponse<PaymentResponse>`; the
@@ -74,11 +74,13 @@ import { Observable, throwError } from 'rxjs';
 import {
   ApiClient,
   ApiError,
+  ORDERS_ENDPOINTS,
   PAYMENTS_ENDPOINTS,
   type ApiRequestOptions,
   type ApiResponseWithData,
 } from '@flux/api';
 import type {
+  OrderDetailsResponse,
   Payment,
   PaymentInitializationRequest,
   PaymentInitializationResult,
@@ -179,5 +181,32 @@ export class PaymentApiService {
     void paymentId;
     void payload;
     return throwError(() => paymentContractBlockedError('confirmPayment'));
+  }
+
+  /**
+   * `GET /orders/{orderId}` — authenticated (JWT via the interceptor
+   * pipeline) + ownership (foreign ids mask as `404` — never probe ids
+   * on this path). Read-only display facts for the payment UI summary
+   * (order number, lines, backend-issued totals): the payments feature
+   * consumes the order contract here exactly like product-details
+   * consumes cart endpoints — no order orchestration, polling, or
+   * history lives here (Phase 10 owns those).
+   *
+   * `options.signal` aborts the call silently (Phase 1 `cancelOnAbort`).
+   *
+   * Success: `200 ApiResponse<OrderDetailsResponse>` (money is nested
+   * `OrderMoneyResponse` on totals, split flat fields on line items —
+   * display only, never inputs to math).
+   * Failures: `401` anonymous, `404` unknown-or-foreign id — all
+   * propagate untouched through the error channel.
+   */
+  getOrderDetails(
+    orderId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<OrderDetailsResponse>> {
+    return this.api.get<ApiResponseWithData<OrderDetailsResponse>>(ORDERS_ENDPOINTS.getOrder.path, {
+      ...options,
+      pathParams: { orderId, ...(options.pathParams ?? {}) },
+    });
   }
 }

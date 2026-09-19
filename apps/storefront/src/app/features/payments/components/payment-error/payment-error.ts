@@ -34,8 +34,12 @@ import { ErrorState } from '@flux/ui';
 export class PaymentErrorComponent {
   /** Display message (page-localized, required content — `null` renders nothing). */
   @Input() message: string | null = null;
+  /** Heading (page-localized). */
+  @Input() title = 'Something went wrong';
   /** Whether the retry affordance renders (page-owned, from the §9.9 recovery table). */
   @Input() showRetry = true;
+  /** Retry button text (page-localized). */
+  @Input() retryLabel = 'Retry';
   /** Emitted on retry click — the page performs the state-aware retry (9.9). */
   @Output() readonly retry = new EventEmitter<void>();
 }

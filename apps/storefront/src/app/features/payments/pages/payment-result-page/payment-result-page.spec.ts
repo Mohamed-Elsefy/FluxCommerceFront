@@ -1,19 +1,21 @@
 /**
- * Page tests for the Sub-Phase 9.8 `PaymentResultPage` outcome hub.
+ * Page tests for the Sub-Phase 9.8 `PaymentResultPage` outcome hub plus
+ * the Sub-Phase 9.10 UI pass (localized copy, error resolution, order
+ * summary, document title).
  *
- * Covers result presentation only: per-outcome blocks (success with
- * order reference, failure/cancelled with navigation options, pending
- * with manual verification, neutral fallback), backend verification on
- * entry for success/pending claims, and server-platform silence. The
+ * Covers result presentation: per-outcome blocks (success with order
+ * reference, failure/cancelled with navigation options, pending with
+ * manual verification, neutral fallback), backend verification on entry
+ * for success/pending claims, and server-platform silence. The
  * `PaymentApiService` is stubbed at its seam — this spec owns the page
- * orchestration around state and routing. Polling and recovery
- * algorithms arrive in Sub-Phase 9.9.
+ * orchestration around state and routing.
  */
 
 import { PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { EMPTY, of, type Observable } from 'rxjs';
 import { ApiError, type ApiResponseWithData } from '@flux/api';
 import type { Payment } from '@flux/models';
@@ -77,6 +79,7 @@ function setup(options: {
   orderId?: string | null;
   platform?: string;
   statusFlow?: () => Observable<ApiResponseWithData<Payment>>;
+  orderFlow?: () => Observable<unknown>;
   enter?: (state: PaymentState) => void;
 }): {
   fixture: ComponentFixture<PaymentResultPage>;
@@ -86,13 +89,14 @@ function setup(options: {
 } {
   TestBed.resetTestingModule();
   const getPaymentStatus = vi.fn(options.statusFlow ?? (() => of(statusEnvelope('Succeeded'))));
+  const getOrderDetails = vi.fn(options.orderFlow ?? (() => EMPTY));
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
       PaymentState,
       {
         provide: PaymentApiService,
-        useValue: { initializePayment: () => EMPTY, getPaymentStatus },
+        useValue: { initializePayment: () => EMPTY, getPaymentStatus, getOrderDetails },
       },
       { provide: PAYMENT_PROVIDER, useValue: { confirmPayment: () => EMPTY } },
       { provide: PLATFORM_ID, useValue: options.platform ?? 'browser' },
@@ -256,5 +260,88 @@ describe('PaymentResultPage unknown outcome (Sub-Phase 9.9)', () => {
     element.querySelector<HTMLButtonElement>('.payment-result-check')?.click();
 
     expect(getPaymentStatus).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('PaymentResultPage UI pass (Sub-Phase 9.10)', () => {
+  const ORDER_BODY = {
+    orderId: ORDER_ID,
+    orderNumber: 'ORD-ABC123DEF456',
+    status: 'Pending',
+    subtotal: { amount: 59.98, currency: 'USD' },
+    shippingCost: { amount: 0, currency: 'USD' },
+    discount: { amount: 0, currency: 'USD' },
+    grandTotal: { amount: 59.98, currency: 'USD' },
+    itemCount: 2,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    shippingAddress: {
+      recipientName: 'Ada Lovelace',
+      line1: '1 Flux St',
+      line2: null,
+      city: 'Berlin',
+      region: 'BE',
+      postalCode: '10115',
+      countryCode: 'DE',
+    },
+    billingAddress: {
+      recipientName: 'Ada Lovelace',
+      line1: '1 Flux St',
+      line2: null,
+      city: 'Berlin',
+      region: 'BE',
+      postalCode: '10115',
+      countryCode: 'DE',
+    },
+    lineItems: [
+      {
+        productName: 'Tee',
+        sku: 'TEE-BLK-M',
+        quantity: 2,
+        unitPrice: 29.99,
+        unitPriceCurrency: 'USD',
+        lineTotal: 59.98,
+        lineTotalCurrency: 'USD',
+      },
+    ],
+  };
+
+  function withOrder(state: PaymentState): void {
+    toSucceeded(state);
+    state.loadOrder(ORDER_ID);
+  }
+
+  it('shows the localized success view with the order summary and title', () => {
+    const { element } = setup({
+      orderId: ORDER_ID,
+      orderFlow: () => of({ isSuccess: true, message: 'ok', data: ORDER_BODY }),
+      enter: withOrder,
+    });
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Payment result | FluxCommerce');
+    const text = element.textContent ?? '';
+    expect(text).toContain('Payment successful');
+    expect(text).toContain('ORD-ABC123DEF456');
+    expect(text).toContain('Tee');
+    expect(text).toContain('Verified status: Succeeded');
+  });
+
+  it('localizes blocked failures instead of leaking technical text', () => {
+    const { element } = setup({
+      orderId: ORDER_ID,
+      enter: (state) => {
+        expect(state.beginInitialization(ORDER_ID)).toBe(true);
+        state.markFailed(
+          new ApiError({
+            status: 0,
+            code: 'PaymentContractBlocked',
+            message: 'Payment initializePayment has no backend HTTP contract.',
+          }),
+        );
+      },
+    });
+
+    const text = element.textContent ?? '';
+    expect(text).toContain('Payment is currently unavailable');
+    expect(text).not.toContain('no backend HTTP contract');
   });
 });

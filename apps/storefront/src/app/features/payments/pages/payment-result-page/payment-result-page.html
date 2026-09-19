@@ -1,81 +1,81 @@
 <article class="payment-result-page" aria-label="Payment result">
-  <h1 class="payment-result-page-title">Payment result</h1>
+  <h1 class="payment-result-page-title">{{ copy().title }}</h1>
   @if (params !== null) {
-    <p class="payment-result-page-order">Order {{ params.orderId }}</p>
+    <p class="payment-result-page-order">{{ copy().orderLabel(params.orderId) }}</p>
     @switch (lifecycle()) {
       @case ('succeeded') {
         <section class="payment-result-success" role="status" aria-label="Payment successful">
-          <h2 class="payment-result-heading">Payment successful</h2>
-          <p class="payment-result-detail">Order reference: {{ params.orderId }}</p>
+          <h2 class="payment-result-heading">{{ copy().successTitle }}</h2>
+          <p class="payment-result-detail">{{ copy().orderReference }}: {{ params.orderId }}</p>
           @if (paymentStatus() !== null) {
-            <p class="payment-result-verified">Verified status: {{ paymentStatus() }}</p>
+            <p class="payment-result-verified">
+              {{ copy().verifiedStatus }}: {{ paymentStatus() }}
+            </p>
           }
+          <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
         </section>
       }
       @case ('failed') {
         <section class="payment-result-failure" role="alert" aria-label="Payment failed">
-          <h2 class="payment-result-heading">Payment failed</h2>
+          <h2 class="payment-result-heading">{{ copy().failureTitle }}</h2>
           @if (errorMessage() !== null) {
             <p class="payment-result-detail">{{ errorMessage() }}</p>
           }
           <p class="payment-result-actions">
-            <a class="payment-result-link" [routerLink]="retryPath()">Try again</a>
-            <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+            <a class="payment-result-link" [routerLink]="retryPath()">{{ copy().tryAgain }}</a>
+            <a class="payment-result-link" routerLink="/checkout">{{ copy().backToCheckout }}</a>
           </p>
         </section>
       }
       @case ('cancelled') {
         <section class="payment-result-cancelled" role="status" aria-label="Payment cancelled">
-          <h2 class="payment-result-heading">Payment cancelled</h2>
-          <p class="payment-result-detail">No charge was made.</p>
+          <h2 class="payment-result-heading">{{ copy().cancelledTitle }}</h2>
+          <p class="payment-result-detail">{{ copy().cancelledMessage }}</p>
           <p class="payment-result-actions">
-            <a class="payment-result-link" [routerLink]="retryPath()">Try again</a>
-            <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+            <a class="payment-result-link" [routerLink]="retryPath()">{{ copy().tryAgain }}</a>
+            <a class="payment-result-link" routerLink="/checkout">{{ copy().backToCheckout }}</a>
           </p>
         </section>
       }
       @case ('pending') {
         <section class="payment-result-pending" role="status" aria-label="Payment pending">
-          <h2 class="payment-result-heading">Payment pending</h2>
-          <p class="payment-result-detail">Your payment is being verified.</p>
+          <h2 class="payment-result-heading">{{ copy().pendingTitle }}</h2>
+          <p class="payment-result-detail">{{ copy().pendingMessage }}</p>
           <p class="payment-result-actions">
             <button class="payment-result-check" type="button" (click)="onCheckStatus()">
-              Check status
+              {{ copy().checkStatus }}
             </button>
-            <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+            <a class="payment-result-link" routerLink="/checkout">{{ copy().backToCheckout }}</a>
           </p>
         </section>
       }
       @case ('processing') {
         @if (confirmationOutcome() === 'unknown') {
           <section class="payment-result-unknown" role="alert" aria-label="Payment status unknown">
-            <h2 class="payment-result-heading">Payment status unknown</h2>
-            <p class="payment-result-detail">
-              We could not confirm your payment. Check the backend status before trying again — do
-              not resubmit.
-            </p>
+            <h2 class="payment-result-heading">{{ copy().unknownTitle }}</h2>
+            <p class="payment-result-detail">{{ copy().unknownMessage }}</p>
             <p class="payment-result-actions">
               <button class="payment-result-check" type="button" (click)="onCheckStatus()">
-                Check status
+                {{ copy().checkStatus }}
               </button>
-              <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+              <a class="payment-result-link" routerLink="/checkout">{{ copy().backToCheckout }}</a>
             </p>
           </section>
         } @else {
-          <p class="payment-result-waiting">No payment result yet.</p>
+          <p class="payment-result-waiting">{{ copy().waitingMessage }}</p>
           <p class="payment-result-actions">
-            <a class="payment-result-link" [routerLink]="retryPath()">Back to payment</a>
+            <a class="payment-result-link" [routerLink]="retryPath()">{{ copy().backToPayment }}</a>
           </p>
         }
       }
       @default {
-        <p class="payment-result-waiting">No payment result yet.</p>
+        <p class="payment-result-waiting">{{ copy().waitingMessage }}</p>
         <p class="payment-result-actions">
-          <a class="payment-result-link" [routerLink]="retryPath()">Back to payment</a>
+          <a class="payment-result-link" [routerLink]="retryPath()">{{ copy().backToPayment }}</a>
         </p>
       }
     }
   } @else {
-    <p class="payment-result-page-missing">Order reference is missing.</p>
+    <p class="payment-result-page-missing">{{ copy().missingReference }}</p>
   }
 </article>

@@ -6,6 +6,11 @@
       <h2>{{ copy().successTitle }}</h2>
       <p>{{ copy().orderNumber }}: {{ orderResult()?.orderNumber }}</p>
       <p>{{ copy().orderStatus }}: {{ orderResult()?.status }}</p>
+      @if (orderResult()?.orderId) {
+        <p class="checkout-page-continue">
+          <a [routerLink]="['/payment', orderResult()?.orderId]">{{ copy().continueToPayment }}</a>
+        </p>
+      }
     </div>
   } @else if (cart().data === null) {
     @if (cart().isLoading) {

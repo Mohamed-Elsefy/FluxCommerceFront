@@ -175,6 +175,82 @@ describe('PaymentApiService getPaymentStatus', () => {
   });
 });
 
+describe('PaymentApiService getOrderDetails', () => {
+  const ORDER_BODY = {
+    isSuccess: true,
+    message: 'Operation completed successfully.',
+    data: {
+      orderId: ORDER_ID,
+      orderNumber: 'ORD-ABC123DEF456',
+      status: 'Pending',
+      subtotal: { amount: 59.98, currency: 'USD' },
+      shippingCost: { amount: 0, currency: 'USD' },
+      discount: { amount: 0, currency: 'USD' },
+      grandTotal: { amount: 59.98, currency: 'USD' },
+      itemCount: 2,
+      createdAtUtc: '2026-09-04T10:00:00Z',
+      shippingAddress: {
+        recipientName: 'Ada Lovelace',
+        line1: '1 Flux St',
+        line2: null,
+        city: 'Berlin',
+        region: 'BE',
+        postalCode: '10115',
+        countryCode: 'DE',
+      },
+      billingAddress: {
+        recipientName: 'Ada Lovelace',
+        line1: '1 Flux St',
+        line2: null,
+        city: 'Berlin',
+        region: 'BE',
+        postalCode: '10115',
+        countryCode: 'DE',
+      },
+      lineItems: [],
+    },
+  };
+
+  it('reads the canonical order route with the id as pathParams', () => {
+    const { service, calls } = setup();
+    service.getOrderDetails(ORDER_ID).subscribe();
+
+    expect(calls.getPaths).toEqual(['/orders/{orderId}']);
+    expect(calls.getOptions).toEqual([{ pathParams: { orderId: ORDER_ID } }]);
+  });
+
+  it('forwards the AbortSignal for cancellation without touching it', () => {
+    const { service, calls } = setup();
+    const controller = new AbortController();
+    service.getOrderDetails(ORDER_ID, { signal: controller.signal }).subscribe();
+
+    expect(calls.getOptions).toEqual([
+      { signal: controller.signal, pathParams: { orderId: ORDER_ID } },
+    ]);
+  });
+
+  it('passes the order envelope through without unwrapping data', () => {
+    const { service, api } = setup();
+    vi.mocked(api.get).mockReturnValueOnce(of(ORDER_BODY));
+
+    let observed: unknown;
+    service.getOrderDetails(ORDER_ID).subscribe((value) => (observed = value));
+    expect(observed).toEqual(ORDER_BODY);
+  });
+
+  it('propagates masked 404s and anonymous 401s untouched', () => {
+    const { service, api } = setup();
+    const notFound = new ApiError({ status: 404, code: 'Order.NotFound', message: 'Not found.' });
+    vi.mocked(api.get).mockReturnValueOnce(throwError(() => notFound));
+
+    let observed: unknown;
+    service.getOrderDetails(ORDER_ID).subscribe({
+      error: (error: unknown) => (observed = error),
+    });
+    expect(observed).toBe(notFound);
+  });
+});
+
 describe('PaymentApiService initializePayment (contract-blocked)', () => {
   it('short-circuits with the normalized blocked ApiError', () => {
     const { service } = setup();

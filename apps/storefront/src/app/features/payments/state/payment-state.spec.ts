@@ -15,7 +15,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { EMPTY, NEVER, of, throwError, type Observable } from 'rxjs';
 import { ApiError, type ApiResponseWithData } from '@flux/api';
-import type { Payment, PaymentInitializationResult } from '@flux/models';
+import type { OrderDetailsResponse, Payment, PaymentInitializationResult } from '@flux/models';
 import type { ProviderConfirmationResult } from '../integrations/payment-provider';
 import { PaymentApiService } from '../data-access/payment-api.service';
 import { PAYMENT_PROVIDER } from '../integrations/payment-provider';
@@ -887,5 +887,103 @@ describe('PaymentState refreshStatus (Sub-Phase 9.8 backend truth)', () => {
 
     expect(state.lifecycle()).toBe('pending');
     expect(state.statusError()?.code).toBe('UnknownError');
+  });
+});
+
+describe('PaymentState loadOrder (Sub-Phase 9.10 order summary)', () => {
+  const ORDER_BODY = {
+    orderId: ORDER_ID,
+    orderNumber: 'ORD-ABC123DEF456',
+    status: 'Pending' as const,
+    subtotal: { amount: 59.98, currency: 'USD' },
+    shippingCost: { amount: 0, currency: 'USD' },
+    discount: { amount: 0, currency: 'USD' },
+    grandTotal: { amount: 59.98, currency: 'USD' },
+    itemCount: 2,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    shippingAddress: {
+      recipientName: 'Ada Lovelace',
+      line1: '1 Flux St',
+      line2: null,
+      city: 'Berlin',
+      region: 'BE',
+      postalCode: '10115',
+      countryCode: 'DE',
+    },
+    billingAddress: {
+      recipientName: 'Ada Lovelace',
+      line1: '1 Flux St',
+      line2: null,
+      city: 'Berlin',
+      region: 'BE',
+      postalCode: '10115',
+      countryCode: 'DE',
+    },
+    lineItems: [],
+  };
+
+  function setupOrder(
+    flow: () => Observable<ApiResponseWithData<OrderDetailsResponse>> = () =>
+      of({ isSuccess: true, message: 'ok', data: ORDER_BODY }),
+  ): { state: PaymentState; getOrderDetails: ReturnType<typeof vi.fn> } {
+    TestBed.resetTestingModule();
+    const getOrderDetails = vi.fn(flow);
+    TestBed.configureTestingModule({
+      providers: [
+        PaymentState,
+        {
+          provide: PaymentApiService,
+          useValue: { initializePayment: () => EMPTY, getOrderDetails },
+        },
+        { provide: PAYMENT_PROVIDER, useValue: { confirmPayment: () => EMPTY } },
+      ],
+    });
+    return { state: TestBed.inject(PaymentState), getOrderDetails };
+  }
+
+  it('loads backend order facts for display without touching the payment flow', () => {
+    const { state, getOrderDetails } = setupOrder();
+    state.loadOrder(ORDER_ID);
+
+    expect(getOrderDetails).toHaveBeenCalledTimes(1);
+    expect(getOrderDetails).toHaveBeenCalledWith(ORDER_ID);
+    expect(state.orderDetails()?.orderNumber).toBe('ORD-ABC123DEF456');
+    expect(state.isOrderLoading()).toBe(false);
+    expect(state.lifecycle()).toBe('idle');
+    expect(state.statusError()).toBeNull();
+  });
+
+  it('dedupes repeat loads for the loaded order', () => {
+    const { state, getOrderDetails } = setupOrder();
+    state.loadOrder(ORDER_ID);
+    state.loadOrder(ORDER_ID);
+    expect(getOrderDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears stale facts when a different order enters', () => {
+    const { state } = setupOrder();
+    state.loadOrder(ORDER_ID);
+    expect(state.orderDetails()).not.toBeNull();
+
+    state.beginInitialization('other-order');
+    expect(state.orderDetails()).toBeNull();
+  });
+
+  it('hides the summary on read failure without failing the payment flow', () => {
+    const { state } = setupOrder(() => throwError(() => new Error('down')));
+    state.loadOrder(ORDER_ID);
+
+    expect(state.orderDetails()).toBeNull();
+    expect(state.isOrderLoading()).toBe(false);
+    expect(state.lifecycle()).toBe('idle');
+    expect(state.statusError()).toBeNull();
+  });
+
+  it('resets order facts with the feature', () => {
+    const { state } = setupOrder();
+    state.loadOrder(ORDER_ID);
+    state.reset();
+    expect(state.orderDetails()).toBeNull();
+    expect(state.isOrderLoading()).toBe(false);
   });
 });
