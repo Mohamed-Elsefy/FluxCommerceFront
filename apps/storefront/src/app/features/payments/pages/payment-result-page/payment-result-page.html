@@ -2,7 +2,79 @@
   <h1 class="payment-result-page-title">Payment result</h1>
   @if (params !== null) {
     <p class="payment-result-page-order">Order {{ params.orderId }}</p>
-    <payment-status [status]="null" />
+    @switch (lifecycle()) {
+      @case ('succeeded') {
+        <section class="payment-result-success" role="status" aria-label="Payment successful">
+          <h2 class="payment-result-heading">Payment successful</h2>
+          <p class="payment-result-detail">Order reference: {{ params.orderId }}</p>
+          @if (paymentStatus() !== null) {
+            <p class="payment-result-verified">Verified status: {{ paymentStatus() }}</p>
+          }
+        </section>
+      }
+      @case ('failed') {
+        <section class="payment-result-failure" role="alert" aria-label="Payment failed">
+          <h2 class="payment-result-heading">Payment failed</h2>
+          @if (errorMessage() !== null) {
+            <p class="payment-result-detail">{{ errorMessage() }}</p>
+          }
+          <p class="payment-result-actions">
+            <a class="payment-result-link" [routerLink]="retryPath()">Try again</a>
+            <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+          </p>
+        </section>
+      }
+      @case ('cancelled') {
+        <section class="payment-result-cancelled" role="status" aria-label="Payment cancelled">
+          <h2 class="payment-result-heading">Payment cancelled</h2>
+          <p class="payment-result-detail">No charge was made.</p>
+          <p class="payment-result-actions">
+            <a class="payment-result-link" [routerLink]="retryPath()">Try again</a>
+            <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+          </p>
+        </section>
+      }
+      @case ('pending') {
+        <section class="payment-result-pending" role="status" aria-label="Payment pending">
+          <h2 class="payment-result-heading">Payment pending</h2>
+          <p class="payment-result-detail">Your payment is being verified.</p>
+          <p class="payment-result-actions">
+            <button class="payment-result-check" type="button" (click)="onCheckStatus()">
+              Check status
+            </button>
+            <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+          </p>
+        </section>
+      }
+      @case ('processing') {
+        @if (confirmationOutcome() === 'unknown') {
+          <section class="payment-result-unknown" role="alert" aria-label="Payment status unknown">
+            <h2 class="payment-result-heading">Payment status unknown</h2>
+            <p class="payment-result-detail">
+              We could not confirm your payment. Check the backend status before trying again — do
+              not resubmit.
+            </p>
+            <p class="payment-result-actions">
+              <button class="payment-result-check" type="button" (click)="onCheckStatus()">
+                Check status
+              </button>
+              <a class="payment-result-link" routerLink="/checkout">Back to checkout</a>
+            </p>
+          </section>
+        } @else {
+          <p class="payment-result-waiting">No payment result yet.</p>
+          <p class="payment-result-actions">
+            <a class="payment-result-link" [routerLink]="retryPath()">Back to payment</a>
+          </p>
+        }
+      }
+      @default {
+        <p class="payment-result-waiting">No payment result yet.</p>
+        <p class="payment-result-actions">
+          <a class="payment-result-link" [routerLink]="retryPath()">Back to payment</a>
+        </p>
+      }
+    }
   } @else {
     <p class="payment-result-page-missing">Order reference is missing.</p>
   }

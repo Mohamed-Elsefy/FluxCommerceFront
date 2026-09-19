@@ -5,9 +5,12 @@
  * the shared `ErrorState` primitive, and emits WHEN retry is pressed.
  * The owning page decides WHEN (from the feature state error slot,
  * Sub-Phase 9.4), WHAT message to show (page-localized from the
- * normalized failure, never backend text), and WHAT retry does
- * (state-aware retry, Sub-Phase 9.9). No API access, no HTTP, no state
- * writes, no error classification lives here (`ARCHITECTURE.md` §8).
+ * normalized failure, never backend text), WHAT retry does
+ * (state-aware retry, Sub-Phase 9.9), and WHETHER retry is offered at
+ * all (`showRetry` — Sub-Phase 9.9 gates the affordance by the recovery
+ * table so dead-end states never dangle a no-op button). No API access,
+ * no HTTP, no state writes, no error classification lives here
+ * (`ARCHITECTURE.md` §8).
  *
  * SSR-safe: static markup from inputs only, no browser APIs. RTL safe:
  * logical properties only, no direction branching.
@@ -31,6 +34,8 @@ import { ErrorState } from '@flux/ui';
 export class PaymentErrorComponent {
   /** Display message (page-localized, required content — `null` renders nothing). */
   @Input() message: string | null = null;
+  /** Whether the retry affordance renders (page-owned, from the §9.9 recovery table). */
+  @Input() showRetry = true;
   /** Emitted on retry click — the page performs the state-aware retry (9.9). */
   @Output() readonly retry = new EventEmitter<void>();
 }

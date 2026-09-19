@@ -45,4 +45,13 @@ describe('PaymentErrorComponent', () => {
     (element.querySelector('button.retry') as HTMLButtonElement)?.click();
     expect(emitted).toBe(1);
   });
+
+  it('hides the retry affordance when the page withholds recovery', () => {
+    const { fixture, element } = setup();
+    fixture.componentRef.setInput('message', 'Checking payment status…');
+    fixture.componentRef.setInput('showRetry', false);
+    fixture.detectChanges();
+    expect(element.querySelector('flux-error-state')).not.toBeNull();
+    expect(element.querySelector('button.retry')).toBeNull();
+  });
 });

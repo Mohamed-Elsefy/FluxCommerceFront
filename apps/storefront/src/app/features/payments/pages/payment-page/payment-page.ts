@@ -13,13 +13,13 @@
  * Data flow (`ARCHITECTURE.md` §10):
  *
  * ```text
- * PaymentPage (this file — orchestration only)
+ * PaymentPage (this file — live-flow orchestration + outcome routing)
  *     ↓ PaymentState (state/ — lifecycle + context, provided at route)
  *     ↓ PaymentApiService (data-access — initializePayment transport)
  *     ↓ ApiClient (@flux/api — the ONLY HttpClient user)
  *     ↓ Backend Payments API
  *
- * PaymentPage (provider setup, once ready)
+ * PaymentPage (provider setup, once ready; outcome routing, once resolved)
  *     ↓ PAYMENT_PROVIDER (abstraction — never the concrete adapter)
  *     ↓ StripePaymentProvider (integrations/ — route-provided)
  *     ↓ Stripe.js / Elements
@@ -54,10 +54,9 @@
  * properties only, no direction branching.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 9.8 — no result polling or outcome handling.
- * - 9.9 — no failure-category handling (retry re-enters initialization
- *   only).
- * - 9.10 — no localized copy, no navigation.
+ * - 9.9 — no polling loops, no failure-category handling, no recovery
+ *   algorithms (retry re-enters initialization only).
+ * - 9.10 — no localized copy beyond placeholders.
  */
 
 import {
@@ -73,7 +72,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { PaymentErrorComponent } from '../../components/payment-error/payment-error';
@@ -82,7 +81,7 @@ import { PaymentLoadingComponent } from '../../components/payment-loading/paymen
 import { PaymentStatusComponent } from '../../components/payment-status/payment-status';
 import { PAYMENT_PROVIDER } from '../../integrations/payment-provider';
 import { STRIPE_PUBLISHABLE_KEY } from '../../integrations/stripe-payment-provider';
-import { readPaymentRouteParams } from '../../models/payment.models';
+import { paymentRecoveryFor, readPaymentRouteParams } from '../../models/payment.models';
 import { PaymentState } from '../../state/payment-state';
 
 @Component({
@@ -99,6 +98,7 @@ import { PaymentState } from '../../state/payment-state';
 })
 export class PaymentPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly state = inject(PaymentState);
   private readonly provider = inject(PAYMENT_PROVIDER);
   private readonly publishableKey = inject(STRIPE_PUBLISHABLE_KEY);
@@ -119,6 +119,16 @@ export class PaymentPage implements OnInit, OnDestroy {
   protected readonly errorMessage = computed(() => this.state.statusError()?.message ?? null);
   /** Submit stays gated until initialization provides intent context. */
   protected readonly submitDisabled = computed(() => this.state.lifecycle() !== 'ready');
+  /**
+   * Whether the error shell offers retry (Sub-Phase 9.9 recovery
+   * table — retry only where re-entry is legal; pending check-errors
+   * display without a dead-end button).
+   */
+  protected readonly canRetry = computed(
+    () =>
+      paymentRecoveryFor(this.state.lifecycle(), this.state.confirmationOutcome()) ===
+      'retry-initialization',
+  );
 
   /** Elements mount container (always rendered, populated once ready). */
   private readonly mountPoint = viewChild<ElementRef<HTMLElement>>('paymentMount');
@@ -154,6 +164,32 @@ export class PaymentPage implements OnInit, OnDestroy {
       }
       this.preparedPaymentId = paymentId;
       void this.setupProvider(clientSecret, mount.nativeElement);
+    });
+
+    // Outcome routing — resolved, waiting, and unknown outcomes belong
+    // to the result route (`/payment/:orderId/result`), which presents
+    // them with backend verification (Sub-Phases 9.8–9.9). This page owns
+    // the live flow only: terminal (`succeeded`, `failed`, `cancelled`),
+    // waiting (`pending`), and outstanding-unknown (`processing` with an
+    // `unknown` provider outcome — the call settled unread, so leaving
+    // is safe) navigate out exactly once per entry. Genuinely in-flight
+    // confirmations (`processing` without an outcome) never navigate.
+    effect(() => {
+      if (!this.isBrowser) {
+        return;
+      }
+      const stage = this.state.lifecycle();
+      const terminal = stage === 'succeeded' || stage === 'failed' || stage === 'cancelled';
+      const waiting = stage === 'pending';
+      const unknown = stage === 'processing' && this.state.confirmationOutcome() === 'unknown';
+      if (!terminal && !waiting && !unknown) {
+        return;
+      }
+      const params = this.params;
+      if (params === null) {
+        return;
+      }
+      void this.router.navigate(['/payment', params.orderId, 'result']);
     });
   }
 

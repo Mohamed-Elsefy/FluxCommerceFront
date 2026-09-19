@@ -1,12 +1,13 @@
 /**
  * Model tests for the Sub-Phase 9.2 `payment.models` (Payment Feature
- * Foundation).
+ * Foundation) plus the Sub-Phase 9.9 recovery decision tables.
  *
- * Covers the routing shapes only: the `:orderId` param contract, the
- * structural order-id guard, param-map reading (missing/blank ids stay
- * blocked, never fabricated), and the entry/result path builders. No API,
- * no state, no provider behavior is asserted here — those arrive in
- * Sub-Phases 9.3+.
+ * Covers the routing shapes (param contract, guards, path builders)
+ * and the pure 9.9 classifiers: failure-kind distinction
+ * (initialization vs. confirmation) and the recovery action table
+ * (retry-initialization vs. check-status vs. none). No API, no state,
+ * no provider behavior is asserted here — execution lives in state and
+ * pages.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -14,8 +15,10 @@ import { convertToParamMap } from '@angular/router';
 import {
   PAYMENT_ORDER_ID_PARAM,
   PAYMENT_RESULT_PATH_SUFFIX,
+  classifyPaymentFailure,
   isValidPaymentOrderId,
   paymentPath,
+  paymentRecoveryFor,
   paymentResultPath,
   readPaymentRouteParams,
 } from './payment.models';
@@ -67,5 +70,52 @@ describe('payment path builders', () => {
 
   it('builds the payment result path under the entry', () => {
     expect(paymentResultPath(ORDER_ID)).toBe(`/payment/${ORDER_ID}/result`);
+  });
+});
+
+describe('classifyPaymentFailure', () => {
+  it('classifies failed outcomes without a provider verdict as initialization failures', () => {
+    expect(classifyPaymentFailure('failed', null)).toBe('initialization-failure');
+    expect(classifyPaymentFailure('failed', undefined)).toBe('initialization-failure');
+  });
+
+  it('classifies failed outcomes with a provider verdict as confirmation failures', () => {
+    expect(classifyPaymentFailure('failed', 'failed')).toBe('confirmation-failure');
+    expect(classifyPaymentFailure('failed', 'succeeded')).toBe('confirmation-failure');
+    expect(classifyPaymentFailure('failed', 'unknown')).toBe('confirmation-failure');
+  });
+
+  it('returns null outside the failed stage', () => {
+    expect(classifyPaymentFailure('idle', null)).toBeNull();
+    expect(classifyPaymentFailure('processing', 'unknown')).toBeNull();
+    expect(classifyPaymentFailure('succeeded', 'succeeded')).toBeNull();
+    expect(classifyPaymentFailure(null, null)).toBeNull();
+    expect(classifyPaymentFailure(undefined, undefined)).toBeNull();
+  });
+});
+
+describe('paymentRecoveryFor', () => {
+  it('offers initialization retry for failed and cancelled flows', () => {
+    expect(paymentRecoveryFor('failed', null)).toBe('retry-initialization');
+    expect(paymentRecoveryFor('failed', 'failed')).toBe('retry-initialization');
+    expect(paymentRecoveryFor('cancelled', 'cancelled')).toBe('retry-initialization');
+    expect(paymentRecoveryFor('cancelled', null)).toBe('retry-initialization');
+  });
+
+  it('offers status checks for pending and unknown outcomes', () => {
+    expect(paymentRecoveryFor('pending', null)).toBe('check-status');
+    expect(paymentRecoveryFor('pending', 'pending')).toBe('check-status');
+    expect(paymentRecoveryFor('processing', 'unknown')).toBe('check-status');
+  });
+
+  it('offers no recovery for active, in-flight, and resolved stages', () => {
+    expect(paymentRecoveryFor('idle', null)).toBe('none');
+    expect(paymentRecoveryFor('initializing', null)).toBe('none');
+    expect(paymentRecoveryFor('ready', null)).toBe('none');
+    expect(paymentRecoveryFor('processing', null)).toBe('none');
+    expect(paymentRecoveryFor('processing', 'pending')).toBe('none');
+    expect(paymentRecoveryFor('succeeded', 'succeeded')).toBe('none');
+    expect(paymentRecoveryFor(null, null)).toBe('none');
+    expect(paymentRecoveryFor('Refunding', 'unknown')).toBe('none');
   });
 });

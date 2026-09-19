@@ -1,10 +1,10 @@
 /**
- * Storefront Payments feature models for Sub-Phase 9.2 — Payment Feature
- * Foundation.
+ * Storefront Payments feature models for Sub-Phases 9.2 (feature
+ * foundation) and 9.9 (recovery decision tables).
  *
- * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §9.2 (feature structure and
- * routing readiness only — no API execution, no state implementation, no
- * provider integration, no UI behavior).
+ * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.2/9.9 (routing shapes
+ * plus the pure failure/recovery classifiers — no API execution, no
+ * state implementation, no provider integration, no UI behavior).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §6 (payment
  * endpoints), `docs/frontend-contract/PAYMENT_INTEGRATION_NOTES.md` (the
@@ -25,10 +25,13 @@
  * - 9.3 — no API client/service, no `HttpClient`, no envelope mapping.
  * - 9.4 — no `@Injectable()` store, no signals/computeds, no lifecycle.
  * - 9.5 — no Stripe SDK, no Elements, no provider abstraction.
- * - 9.6+ — no initialization, confirmation, result polling, or retry.
+ * - 9.6+ — no initialization, confirmation, result polling, or retry
+ *   execution (the §9.9 tables classify recovery — execution lives in
+ *   state and pages).
  */
 
 import type { ParamMap } from '@angular/router';
+import type { ProviderConfirmationOutcome } from '@flux/models';
 
 /**
  * Route parameter naming the order being paid
@@ -109,4 +112,71 @@ export function paymentResultPath(orderId: string): string {
  */
 export interface ConfirmPaymentRequest {
   readonly orderId: string;
+}
+
+/**
+ * Distinguished payment failure categories (Sub-Phase 9.9 — the §9.9
+ * decision table, stage-first, never message text):
+ * - `initialization-failure` — failed before any provider verdict
+ *   exists (no `confirmationOutcome` recorded): setup, transport, and
+ *   contract-blocked errors. Safe retry = fresh `initializePayment`
+ *   (idempotent server-side by order).
+ * - `confirmation-failure` — failed WITH a provider verdict recorded
+ *   (decline, provider error, backend override): the attempt completed
+ *   and must never resume — safe retry = fresh `initializePayment` for
+ *   a NEW attempt (the backend dedupes by order, so no duplicate
+ *   charge is possible).
+ */
+export type PaymentFailureKind = 'initialization-failure' | 'confirmation-failure';
+
+/**
+ * Classifies a `failed` lifecycle by whether a provider verdict
+ * exists. Returns `null` outside `failed` (nothing to classify).
+ * Pure — throws nothing.
+ */
+export function classifyPaymentFailure(
+  stage: string | null | undefined,
+  outcome: ProviderConfirmationOutcome | null | undefined,
+): PaymentFailureKind | null {
+  if (stage !== 'failed') {
+    return null;
+  }
+  return outcome === null || outcome === undefined
+    ? 'initialization-failure'
+    : 'confirmation-failure';
+}
+
+/**
+ * Recovery actions the UX offers (Sub-Phase 9.9 — deliberate,
+ * state-aware, duplicate-safe):
+ * - `retry-initialization` — explicit fresh `initializePayment`
+ *   (`failed`/`cancelled` only — the machine gate drops everything
+ *   else, so re-entry can never double-fire).
+ * - `check-status` — explicit single-shot `refreshStatus` FIRST, with
+ *   every other user action locked meanwhile (`pending`, plus
+ *   `processing` holding an `unknown` outcome — sent-but-unread must
+ *   resolve through backend truth, never a blind retry).
+ * - `none` — active flow stages and resolved success offer no recovery
+ *   action.
+ */
+export type PaymentRecovery = 'retry-initialization' | 'check-status' | 'none';
+
+/**
+ * Resolves the recovery action for a lifecycle stage and provider
+ * outcome. Pure — throws nothing.
+ */
+export function paymentRecoveryFor(
+  stage: string | null | undefined,
+  outcome: ProviderConfirmationOutcome | null | undefined,
+): PaymentRecovery {
+  if (stage === 'failed' || stage === 'cancelled') {
+    return 'retry-initialization';
+  }
+  if (stage === 'pending') {
+    return 'check-status';
+  }
+  if (stage === 'processing' && outcome === 'unknown') {
+    return 'check-status';
+  }
+  return 'none';
 }

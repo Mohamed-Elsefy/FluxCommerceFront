@@ -23,5 +23,6 @@ export const environment: AppEnvironment = {
  */
 export const stripeEnvironment = {
   scriptUrl: 'https://js.stripe.com/v3/',
-  publishableKey: 'pk_test_51TkOLj05d5HmC2JPeXjUoGecsh3nv5vqPOqbCK5cDPcyM5VEzuoOxHfjAenQ7iKJiBhQsXH3RrwouMnfJ9wkWK4700ia1UKSfl',
+  publishableKey:
+    'pk_test_51TkOLj05d5HmC2JPeXjUoGecsh3nv5vqPOqbCK5cDPcyM5VEzuoOxHfjAenQ7iKJiBhQsXH3RrwouMnfJ9wkWK4700ia1UKSfl',
 } as const;

@@ -13,3 +13,30 @@
 .payment-result-page-order {
   color: var(--color-text-muted);
 }
+
+.payment-result-success,
+.payment-result-failure,
+.payment-result-cancelled,
+.payment-result-pending,
+.payment-result-unknown {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.payment-result-heading,
+.payment-result-detail,
+.payment-result-verified,
+.payment-result-waiting {
+  margin: 0;
+}
+
+.payment-result-verified {
+  color: var(--color-text-muted);
+}
+
+.payment-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin: 0;
+}

@@ -1,22 +1,25 @@
 /**
- * Page tests for the Sub-Phase 9.6 `PaymentPage` orchestration.
+ * Page tests for the Sub-Phase 9.6 `PaymentPage` orchestration plus the
+ * Sub-Phase 9.9 recovery affordances (retry gating by the recovery
+ * table, outstanding-unknown routing).
  *
- * Covers the initialization wiring only: entry validation (missing
- * `:orderId` never attempts), the state-driven initialization flow
- * (blocked failure surfaces with retry; success reaches `ready` and
- * prepares the provider exactly once per intent), in-memory secret
- * handling, duplicate prevention, retry, submit gating, server-platform
- * silence, and teardown. The `PaymentApiService` (blocked short-circuit
- * vs. success envelope) and the `PaymentProvider` are both stubbed at
- * their seams — this spec owns the page orchestration between them.
- * Confirmation actions arrive in Sub-Phase 9.7.
+ * Covers the initialization wiring: entry validation (missing `:orderId`
+ * never attempts), the state-driven initialization flow (blocked failure
+ * surfaces with retry; success reaches `ready` and prepares the provider
+ * exactly once per intent), in-memory secret handling, duplicate
+ * prevention, retry, submit gating, server-platform silence, teardown,
+ * and outcome routing (terminal, waiting, and outstanding-unknown
+ * stages navigate to the result route; genuinely in-flight flows never
+ * do). The `PaymentApiService` and the `PaymentProvider` are both
+ * stubbed at their seams — this spec owns the page orchestration
+ * between them.
  */
 
 import { PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi, type Mock } from 'vitest';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { NEVER, Observable, of, throwError } from 'rxjs';
+import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
+import { EMPTY, NEVER, Observable, of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { PaymentApiService } from '../../data-access/payment-api.service';
 import { PAYMENT_PROVIDER } from '../../integrations/payment-provider';
@@ -75,17 +78,23 @@ function setup(options: {
   orderId?: string | null;
   platform?: string;
   apiFlow?: () => Observable<unknown>;
+  statusFlow?: () => Observable<unknown>;
   provider?: ProviderStub;
 }): {
   fixture: ComponentFixture<PaymentPage>;
   element: HTMLElement;
-  api: { initializePayment: ReturnType<typeof vi.fn> };
+  api: { initializePayment: ReturnType<typeof vi.fn>; getPaymentStatus: ReturnType<typeof vi.fn> };
   provider: ProviderStub;
+  navigate: ReturnType<typeof vi.fn>;
   state: PaymentState;
 } {
   TestBed.resetTestingModule();
-  const api = { initializePayment: vi.fn(options.apiFlow ?? BLOCKED) };
+  const api = {
+    initializePayment: vi.fn(options.apiFlow ?? BLOCKED),
+    getPaymentStatus: vi.fn(options.statusFlow ?? (() => EMPTY)),
+  };
   const provider = options.provider ?? providerStub();
+  const navigate = vi.fn(async () => true);
   TestBed.configureTestingModule({
     providers: [
       PaymentState,
@@ -93,6 +102,7 @@ function setup(options: {
       { provide: PAYMENT_PROVIDER, useValue: provider satisfies PaymentProvider },
       { provide: STRIPE_PUBLISHABLE_KEY, useValue: PUBLISHABLE_KEY },
       { provide: PLATFORM_ID, useValue: options.platform ?? 'browser' },
+      { provide: Router, useValue: { navigate } },
       {
         provide: ActivatedRoute,
         useValue: {
@@ -113,6 +123,7 @@ function setup(options: {
     element: fixture.nativeElement as HTMLElement,
     api,
     provider,
+    navigate,
     state: TestBed.inject(PaymentState),
   };
 }
@@ -231,6 +242,84 @@ describe('PaymentPage submission (Sub-Phase 9.7)', () => {
 
     expect(state.lifecycle()).toBe('succeeded');
     expect(state.confirmationOutcome()).toBe('succeeded');
+  });
+});
+
+describe('PaymentPage outcome routing (Sub-Phase 9.8)', () => {
+  it('routes terminal failure to the result route', () => {
+    const { navigate } = setup({ orderId: ORDER_ID });
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(['/payment', ORDER_ID, 'result']);
+  });
+
+  it('routes provider success to the result route', async () => {
+    const succeeding = providerStub();
+    succeeding.confirmPayment.mockResolvedValue({ outcome: 'succeeded', message: null });
+    const { element, fixture, navigate } = setup({
+      orderId: ORDER_ID,
+      apiFlow: SUCCESS,
+      provider: succeeding,
+    });
+
+    submitButton(element)?.click();
+    await settleAsync();
+    fixture.detectChanges();
+    await settleAsync();
+
+    expect(navigate).toHaveBeenCalledWith(['/payment', ORDER_ID, 'result']);
+  });
+
+  it('never routes while the flow is active or unentered', () => {
+    const active = setup({ orderId: ORDER_ID, apiFlow: () => NEVER });
+    expect(active.navigate).not.toHaveBeenCalled();
+
+    const missing = setup({ orderId: null });
+    expect(missing.navigate).not.toHaveBeenCalled();
+
+    const server = setup({ orderId: ORDER_ID, platform: 'server' });
+    expect(server.navigate).not.toHaveBeenCalled();
+  });
+
+  it('routes outstanding-unknown outcomes to the result route', async () => {
+    // Default provider stub resolves `unknown`: the call settled
+    // unread, so leaving the live page for verification is safe.
+    const { fixture, navigate, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    submitButton(fixture.nativeElement as HTMLElement)?.click();
+    await settleAsync();
+    fixture.detectChanges();
+    await settleAsync();
+
+    expect(state.lifecycle()).toBe('processing');
+    expect(state.confirmationOutcome()).toBe('unknown');
+    expect(navigate).toHaveBeenCalledWith(['/payment', ORDER_ID, 'result']);
+  });
+});
+
+describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
+  it('offers retry on terminal failure', () => {
+    const { element } = setup({ orderId: ORDER_ID });
+    expect(element.textContent).toContain('no request was sent');
+    expect(retryButton(element)).not.toBeNull();
+  });
+
+  it('withholds retry for pending check errors (message shown, no dead-end button)', () => {
+    const { element, fixture, state } = setup({
+      orderId: ORDER_ID,
+      apiFlow: SUCCESS,
+      statusFlow: () =>
+        throwError(
+          () => new ApiError({ status: 0, code: 'NetworkError', message: 'Unreachable.' }),
+        ),
+    });
+    expect(state.lifecycle()).toBe('ready');
+    expect(state.beginProcessing()).toBe(true);
+    expect(state.markPending()).toBe(true);
+    state.refreshStatus();
+    fixture.detectChanges();
+
+    expect(state.lifecycle()).toBe('pending');
+    expect(element.textContent).toContain('Unreachable.');
+    expect(retryButton(element)).toBeNull();
   });
 });
 

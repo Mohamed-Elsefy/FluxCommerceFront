@@ -1,9 +1,11 @@
 /**
  * Feature-owned Payment state for Sub-Phases 9.4 (lifecycle model),
- * 9.6 (initialization execution), and 9.7 (confirmation execution).
+ * 9.6 (initialization execution), 9.7 (confirmation execution), and 9.8
+ * (backend-truth verification reads).
  *
- * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.4/9.6/9.7 (state model,
- * initialization, and confirmation — no provider internals, no UI).
+ * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.4/9.6–9.8 (state model,
+ * initialization, confirmation, and single-shot status verification —
+ * no provider internals, no UI, no polling).
  *
  * Source of truth: `docs/phases/PHASE_9_PAYMENTS.md` §§9.4/9.7
  * (lifecycle diagram, outcome mapping), the Sub-Phase 9.1 audit module
@@ -58,9 +60,8 @@
  * Explicitly out of scope (later work, must not appear here):
  * - 9.5 impl — no Stripe SDK, no Elements, no loader (the page drives
  *   provider setup around this state — never the reverse).
- * - 9.8 — no result polling, no status reads, no outcome handling.
- * - 9.9 — no failure-category handling (retry re-enters initialization
- *   only).
+ * - 9.9 — no polling loops, no failure-category handling, no recovery
+ *   algorithms (`refreshStatus` is single-shot by design).
  * - 9.10 — no localized copy, no navigation.
  */
 
@@ -116,8 +117,10 @@ export type PaymentLifecycle =
  * §9.4 alternative transitions, plus disciplined re-entry edges
  * (`failed → initializing`, `cancelled → initializing`) for the §9.9
  * safe-retry paths — re-entry PERMISSION lives here, retry EXECUTION
- * lives in 9.6/9.9. Terminal success resets only (`succeeded` has no
- * outgoing edge — a paid order must never re-enter the machine).
+ * lives in 9.6/9.9 — plus the §9.8 backend-truth override edges
+ * (`pending → cancelled`, `succeeded → failed`, `succeeded → cancelled`):
+ * a provider-reported outcome is never final proof, so an authoritative
+ * backend verdict always wins, even out of a terminal stage.
  */
 export const PAYMENT_LIFECYCLE_TRANSITIONS: Record<PaymentLifecycle, readonly PaymentLifecycle[]> =
   {
@@ -125,9 +128,9 @@ export const PAYMENT_LIFECYCLE_TRANSITIONS: Record<PaymentLifecycle, readonly Pa
     initializing: ['ready', 'failed'],
     ready: ['processing', 'failed'],
     processing: ['succeeded', 'failed', 'pending', 'cancelled'],
-    succeeded: [],
+    succeeded: ['failed', 'cancelled'],
     failed: ['initializing'],
-    pending: ['succeeded', 'failed'],
+    pending: ['succeeded', 'failed', 'cancelled'],
     cancelled: ['initializing'],
   };
 
@@ -477,9 +480,9 @@ export class PaymentState {
 
   /**
    * Records a terminal failure (`initializing|ready|processing|pending
-   * → failed`) with the normalized error. Backend facts and intent
-   * context are preserved for diagnosis and safe retry (9.9); use
-   * `reset` to wipe.
+   * → failed`, plus the §9.8 backend-truth override from `succeeded`)
+   * with the normalized error. Backend facts and intent context are
+   * preserved for diagnosis and safe retry (9.9); use `reset` to wipe.
    */
   markFailed(error: ApiError): boolean {
     if (!canTransitionPaymentLifecycle(this.lifecycleStore(), 'failed')) {
@@ -505,7 +508,8 @@ export class PaymentState {
   }
 
   /**
-   * Records cancellation (`processing → cancelled`). Terminal — re-entry
+   * Records cancellation (`processing|pending → cancelled`, plus the
+   * §9.8 backend-truth override from `succeeded`). Terminal — re-entry
    * requires `beginInitialization` anew (fresh intent context, never the
    * cancelled attempt's secret).
    */
@@ -515,6 +519,106 @@ export class PaymentState {
     }
     this.lifecycleStore.set('cancelled');
     return true;
+  }
+
+  /**
+   * Reads the authoritative backend payment status once (Sub-Phase 9.8 —
+   * backend truth before final presentation).
+   *
+   * Single-shot by design: one explicit read per call, no timers, no
+   * intervals, no automatic retries (polling and recovery algorithms
+   * belong to 9.9). The owning page triggers it on result entry (for
+   * `succeeded`/`pending` claims) and from the pending manual-check
+   * affordance.
+   *
+   * Guards (call ignored, no HTTP): no `paymentId` yet, or the
+   * lifecycle is outside `pending|processing|succeeded` (nothing
+   * outstanding or already terminally resolved by the backend).
+   *
+   * Resolution (`resolveBackendStatus`): `Succeeded`/`Failed`/
+   * `Cancelled` verdicts override the lifecycle — including OUT of
+   * `succeeded` (provider-reported success is never final proof);
+   * `Processing`/`Pending`/`Refunded` update the facts and hold the
+   * stage. A successful read clears a previous check error; a failed
+   * read records the error and HOLDS the stage (transport loss is not
+   * payment failure — 9.9 owns recovery, the caller simply re-invokes).
+   * A dataless envelope is a contract violation surfacing as `error`.
+   */
+  refreshStatus(): Subscription {
+    const paymentId = this.paymentIdStore();
+    const stage = this.lifecycleStore();
+    if (
+      paymentId === null ||
+      (stage !== 'pending' && stage !== 'processing' && stage !== 'succeeded')
+    ) {
+      return Subscription.EMPTY;
+    }
+    return this.paymentApi.getPaymentStatus(paymentId).subscribe({
+      next: (envelope) => {
+        const data = envelope.data;
+        if (data === null || data === undefined) {
+          this.statusErrorStore.set(
+            new ApiError({
+              status: 200,
+              code: UNKNOWN_ERROR_CODE,
+              message: 'The server returned an empty response.',
+            }),
+          );
+          return;
+        }
+        this.statusErrorStore.set(null);
+        this.resolveBackendStatus(data.status);
+      },
+      error: (error: unknown) => {
+        this.statusErrorStore.set(
+          isApiError(error)
+            ? error
+            : new ApiError({
+                status: 0,
+                code: UNKNOWN_ERROR_CODE,
+                message: 'Payment status check failed.',
+              }),
+        );
+      },
+    });
+  }
+
+  /**
+   * Applies an authoritative backend verdict to lifecycle and facts
+   * (the §9.8 enforcement point — backend truth always wins):
+   *
+   * - `Succeeded` → `markSucceeded` (confirms the provider claim, or
+   *   resolves a pending/processing wait).
+   * - `Failed` → `markFailed` with the `Payment.Failed` backend verdict
+   *   (overrides even provider-reported success — client confirmation
+   *   is never final proof).
+   * - `Cancelled` → `markCancelled` (terminal — re-entry needs a fresh
+   *   initialization).
+   * - `Processing` / `Pending` / `Refunded` → facts recorded, stage
+   *   held (the wait continues; 9.9 owns further resolution).
+   */
+  resolveBackendStatus(status: PaymentStatus): void {
+    if (status === 'Succeeded') {
+      this.markSucceeded(status);
+      return;
+    }
+    if (status === 'Failed') {
+      this.paymentStatusStore.set(status);
+      this.markFailed(
+        new ApiError({
+          status: 200,
+          code: 'Payment.Failed',
+          message: 'The backend reports the payment as failed.',
+        }),
+      );
+      return;
+    }
+    if (status === 'Cancelled') {
+      this.paymentStatusStore.set(status);
+      this.markCancelled();
+      return;
+    }
+    this.paymentStatusStore.set(status);
   }
 
   /**

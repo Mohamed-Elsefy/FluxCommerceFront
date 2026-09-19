@@ -5,7 +5,7 @@
     <payment-form [disabled]="submitDisabled()" (formSubmit)="onFormSubmit()" />
     <div #paymentMount class="payment-page-mount"></div>
     <payment-status [status]="paymentStatus()" />
-    <payment-error [message]="errorMessage()" (retry)="onRetry()" />
+    <payment-error [message]="errorMessage()" [showRetry]="canRetry()" (retry)="onRetry()" />
     @if (lifecycle() === 'initializing') {
       <payment-loading />
     }

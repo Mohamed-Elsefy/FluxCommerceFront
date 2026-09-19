@@ -15,7 +15,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { EMPTY, NEVER, of, throwError, type Observable } from 'rxjs';
 import { ApiError, type ApiResponseWithData } from '@flux/api';
-import type { PaymentInitializationResult } from '@flux/models';
+import type { Payment, PaymentInitializationResult } from '@flux/models';
 import type { ProviderConfirmationResult } from '../integrations/payment-provider';
 import { PaymentApiService } from '../data-access/payment-api.service';
 import { PAYMENT_PROVIDER } from '../integrations/payment-provider';
@@ -91,20 +91,20 @@ describe('PaymentState initial shape', () => {
 });
 
 describe('canTransitionPaymentLifecycle', () => {
-  it('declares the §9.4 transition table', () => {
+  it('declares the §9.4 transition table plus the §9.8 backend-truth overrides', () => {
     expect(PAYMENT_LIFECYCLE_TRANSITIONS).toEqual({
       idle: ['initializing'],
       initializing: ['ready', 'failed'],
       ready: ['processing', 'failed'],
       processing: ['succeeded', 'failed', 'pending', 'cancelled'],
-      succeeded: [],
+      succeeded: ['failed', 'cancelled'],
       failed: ['initializing'],
-      pending: ['succeeded', 'failed'],
+      pending: ['succeeded', 'failed', 'cancelled'],
       cancelled: ['initializing'],
     });
   });
 
-  it('accepts every §9.4 valid edge', () => {
+  it('accepts every §9.4 valid edge plus the §9.8 backend-truth overrides', () => {
     const edges: Array<[PaymentLifecycle, PaymentLifecycle]> = [
       ['idle', 'initializing'],
       ['initializing', 'ready'],
@@ -117,6 +117,9 @@ describe('canTransitionPaymentLifecycle', () => {
       ['processing', 'cancelled'],
       ['pending', 'succeeded'],
       ['pending', 'failed'],
+      ['pending', 'cancelled'],
+      ['succeeded', 'failed'],
+      ['succeeded', 'cancelled'],
       ['failed', 'initializing'],
       ['cancelled', 'initializing'],
     ];
@@ -125,7 +128,7 @@ describe('canTransitionPaymentLifecycle', () => {
     }
   });
 
-  it('rejects skips, reversals, and terminal exits', () => {
+  it('rejects skips, reversals, and remaining terminal exits', () => {
     const rejected: Array<[PaymentLifecycle, PaymentLifecycle]> = [
       ['idle', 'processing'],
       ['idle', 'ready'],
@@ -137,11 +140,14 @@ describe('canTransitionPaymentLifecycle', () => {
       ['processing', 'ready'],
       ['processing', 'initializing'],
       ['succeeded', 'processing'],
-      ['succeeded', 'failed'],
+      ['succeeded', 'pending'],
+      ['succeeded', 'initializing'],
       ['pending', 'processing'],
-      ['pending', 'cancelled'],
+      ['pending', 'initializing'],
       ['failed', 'processing'],
+      ['failed', 'succeeded'],
       ['cancelled', 'processing'],
+      ['cancelled', 'succeeded'],
     ];
     for (const [from, to] of rejected) {
       expect(canTransitionPaymentLifecycle(from, to)).toBe(false);
@@ -352,7 +358,7 @@ describe('PaymentState markFailed', () => {
     expect(state.paymentId()).toBe(PAYMENT_ID);
   });
 
-  it('rejects failure from idle, succeeded, failed, and cancelled', () => {
+  it('rejects failure from idle, failed, and cancelled (succeeded allows the §9.8 override)', () => {
     const idle = setup();
     expect(idle.markFailed(failure())).toBe(false);
     expect(idle.lifecycle()).toBe('idle');
@@ -362,8 +368,8 @@ describe('PaymentState markFailed', () => {
     toReady(succeeded);
     succeeded.beginProcessing();
     succeeded.markSucceeded('Succeeded');
-    expect(succeeded.markFailed(failure())).toBe(false);
-    expect(succeeded.statusError()).toBeNull();
+    expect(succeeded.markFailed(failure())).toBe(true);
+    expect(succeeded.lifecycle()).toBe('failed');
 
     const failed = setup();
     failed.beginInitialization(ORDER_ID);
@@ -735,5 +741,151 @@ describe('PaymentState confirmPayment (Sub-Phase 9.7 execution)', () => {
 
     state.initializePayment(ORDER_ID);
     expect(state.lifecycle()).toBe('ready');
+  });
+});
+
+describe('PaymentState refreshStatus (Sub-Phase 9.8 backend truth)', () => {
+  function setupPending(
+    statusFlow: () => Observable<ApiResponseWithData<Payment>> = () =>
+      of({ isSuccess: true, message: 'ok', data: payment('Succeeded') }),
+  ): {
+    state: PaymentState;
+    getPaymentStatus: ReturnType<typeof vi.fn>;
+  } {
+    TestBed.resetTestingModule();
+    const getPaymentStatus = vi.fn(statusFlow);
+    TestBed.configureTestingModule({
+      providers: [
+        PaymentState,
+        {
+          provide: PaymentApiService,
+          useValue: {
+            initializePayment: () =>
+              of({
+                isSuccess: true,
+                message: 'ok',
+                data: {
+                  paymentId: PAYMENT_ID,
+                  orderId: ORDER_ID,
+                  clientSecret: CLIENT_SECRET,
+                  paymentReference: 'pi_123',
+                  status: 'Pending' as const,
+                },
+              }),
+            getPaymentStatus,
+          },
+        },
+        { provide: PAYMENT_PROVIDER, useValue: { confirmPayment: () => EMPTY } },
+      ],
+    });
+    const state = TestBed.inject(PaymentState);
+    state.initializePayment(ORDER_ID);
+    expect(state.lifecycle()).toBe('ready');
+    state.beginProcessing();
+    state.markPending();
+    expect(state.lifecycle()).toBe('pending');
+    return { state, getPaymentStatus };
+  }
+
+  function payment(status: Payment['status']): Payment {
+    return {
+      id: PAYMENT_ID,
+      orderId: ORDER_ID,
+      customerId: '33333333-3333-4333-8333-333333333333',
+      amount: 59.98,
+      currency: 'USD',
+      status,
+      providerPaymentIntentId: 'pi_123',
+      provider: 'stripe',
+      createdAtUtc: '2026-09-04T10:00:00Z',
+      updatedAtUtc: '2026-09-04T10:01:00Z',
+      version: 3,
+    };
+  }
+
+  it('resolves pending to succeeded on the authoritative verdict', () => {
+    const { state, getPaymentStatus } = setupPending();
+    state.refreshStatus();
+
+    expect(getPaymentStatus).toHaveBeenCalledTimes(1);
+    expect(getPaymentStatus).toHaveBeenCalledWith(PAYMENT_ID);
+    expect(state.lifecycle()).toBe('succeeded');
+    expect(state.paymentStatus()).toBe('Succeeded');
+    expect(state.statusError()).toBeNull();
+  });
+
+  it('overrides provider-reported success when the backend reports failure', () => {
+    const { state } = setupPending(() =>
+      of({ isSuccess: true, message: 'ok', data: payment('Failed') }),
+    );
+    state.markSucceeded('Succeeded');
+    expect(state.lifecycle()).toBe('succeeded');
+
+    state.refreshStatus();
+
+    expect(state.lifecycle()).toBe('failed');
+    expect(state.statusError()?.code).toBe('Payment.Failed');
+    expect(state.paymentStatus()).toBe('Failed');
+  });
+
+  it('resolves pending to cancelled on the backend verdict (new §9.8 edge)', () => {
+    const { state } = setupPending(() =>
+      of({ isSuccess: true, message: 'ok', data: payment('Cancelled') }),
+    );
+    state.refreshStatus();
+
+    expect(state.lifecycle()).toBe('cancelled');
+    expect(state.paymentStatus()).toBe('Cancelled');
+    expect(state.isTerminal()).toBe(true);
+  });
+
+  it('records in-flight facts and holds the stage', () => {
+    const waiting = setupPending(() =>
+      of({ isSuccess: true, message: 'ok', data: payment('Processing') }),
+    );
+    waiting.state.refreshStatus();
+    expect(waiting.state.lifecycle()).toBe('pending');
+    expect(waiting.state.paymentStatus()).toBe('Processing');
+
+    const refunded = setupPending(() =>
+      of({ isSuccess: true, message: 'ok', data: payment('Refunded') }),
+    );
+    refunded.state.refreshStatus();
+    expect(refunded.state.lifecycle()).toBe('pending');
+    expect(refunded.state.paymentStatus()).toBe('Refunded');
+  });
+
+  it('ignores reads without a payment id or outside pending/processing/succeeded', () => {
+    const { state, getPaymentStatus } = setupPending();
+    state.reset();
+    state.refreshStatus();
+    expect(getPaymentStatus).not.toHaveBeenCalled();
+
+    state.initializePayment(ORDER_ID);
+    expect(state.lifecycle()).toBe('ready');
+    state.refreshStatus();
+    expect(getPaymentStatus).not.toHaveBeenCalled();
+  });
+
+  it('records check errors and holds the stage for manual re-check', () => {
+    const { state, getPaymentStatus } = setupPending(() =>
+      throwError(() => new ApiError({ status: 0, code: 'NetworkError', message: 'Unreachable.' })),
+    );
+    state.refreshStatus();
+
+    expect(state.lifecycle()).toBe('pending');
+    expect(state.statusError()?.code).toBe('NetworkError');
+
+    // Manual re-check (no automatic recovery — 9.9 owns algorithms).
+    state.refreshStatus();
+    expect(getPaymentStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a dataless envelope as a contract violation and holds the stage', () => {
+    const { state } = setupPending(() => of({ isSuccess: true, message: 'ok', data: null }));
+    state.refreshStatus();
+
+    expect(state.lifecycle()).toBe('pending');
+    expect(state.statusError()?.code).toBe('UnknownError');
   });
 });
