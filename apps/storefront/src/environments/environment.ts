@@ -16,8 +16,9 @@ export const environment: AppEnvironment = {
  * Public values only: the Stripe.js CDN script URL and the environment
  * publishable key (the ONLY Stripe key the SPA may hold — never the
  * secret key, never a client secret; see `docs/adr/021` and the §9.1
- * `SPA_STRIPE_KEY_SLOT` pin). The publishable key below is an inert
- * placeholder — replace it with the environment key per deployment.
+ * `SPA_STRIPE_KEY_SLOT` pin). Publishable keys are public by design;
+ * the value below is the shared Stripe test key — replace it with the
+ * environment key per deployment.
  * Consumed through the payments route providers (never imported by
  * shared libraries).
  */

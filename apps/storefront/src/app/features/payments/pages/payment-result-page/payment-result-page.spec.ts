@@ -150,6 +150,17 @@ describe('PaymentResultPage entry', () => {
     expect(element.querySelector('.payment-result-success')).not.toBeNull();
     expect(getPaymentStatus).not.toHaveBeenCalled();
   });
+
+  it('renders no secrets on the server (Sub-Phase 9.11 SSR sweep)', () => {
+    const { element } = setup({
+      orderId: ORDER_ID,
+      platform: 'server',
+      enter: toSucceeded,
+    });
+    const text = element.textContent ?? '';
+    expect(text).not.toContain('pi_');
+    expect(text).not.toContain('secret');
+  });
 });
 
 describe('PaymentResultPage success', () => {

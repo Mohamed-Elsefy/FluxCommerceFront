@@ -16,9 +16,9 @@ export const environment: AppEnvironment = {
 /**
  * Storefront production Stripe configuration (Phase 9 — Payments).
  * Same contract as development: public script URL plus the environment
- * publishable key only (never the secret key — see `environment.ts`).
- * Replace the placeholder with the production environment key per
- * deployment.
+ * publishable key only (never the secret key — see `environment.ts`;
+ * publishable keys are public by design). Replace the test key with
+ * the production environment key per deployment.
  */
 export const stripeEnvironment = {
   scriptUrl: 'https://js.stripe.com/v3/',

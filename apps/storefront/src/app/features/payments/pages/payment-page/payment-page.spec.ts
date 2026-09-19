@@ -222,6 +222,14 @@ describe('PaymentPage entry', () => {
     expect(api.initializePayment).not.toHaveBeenCalled();
     expect(provider.initialize).not.toHaveBeenCalled();
   });
+
+  it('renders no secrets on the server (Sub-Phase 9.11 SSR sweep)', () => {
+    const { element } = setup({ orderId: ORDER_ID, platform: 'server' });
+    const text = element.textContent ?? '';
+    expect(text).not.toContain(CLIENT_SECRET);
+    expect(text).not.toContain('pi_');
+    expect(text).not.toContain('secret');
+  });
 });
 
 describe('PaymentPage initialization flow', () => {
@@ -430,6 +438,21 @@ describe('PaymentPage provider setup', () => {
     expect(provider.initialize).toHaveBeenCalledWith({ publishableKey: PUBLISHABLE_KEY });
     expect(provider.createElements).toHaveBeenCalledTimes(1);
     expect(provider.createElements).toHaveBeenCalledWith(CLIENT_SECRET);
+    expect(provider.mountPaymentElement).toHaveBeenCalledTimes(1);
+  });
+
+  it('never double-prepares across re-renders (Sub-Phase 9.11 hydration guard)', async () => {
+    const { fixture, provider } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    await fixture.whenStable();
+    await settleAsync();
+
+    fixture.detectChanges();
+    await settleAsync();
+    fixture.detectChanges();
+    await settleAsync();
+
+    expect(provider.initialize).toHaveBeenCalledTimes(1);
+    expect(provider.createElements).toHaveBeenCalledTimes(1);
     expect(provider.mountPaymentElement).toHaveBeenCalledTimes(1);
   });
 
