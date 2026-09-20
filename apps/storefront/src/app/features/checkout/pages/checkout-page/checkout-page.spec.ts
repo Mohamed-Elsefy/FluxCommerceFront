@@ -338,7 +338,7 @@ describe('CheckoutPage submit flow', () => {
     );
   });
 
-  it('exposes the created order id for the Phase 9 handoff without navigating', () => {
+  it('exposes the created order id for the Phase 9 handoff with a payment link', () => {
     const { element, fixture, checkout } = setup();
     fillSection(element, fixture, 'shipping');
     fillSection(element, fixture, 'billing');
@@ -346,6 +346,9 @@ describe('CheckoutPage submit flow', () => {
 
     expect(checkout.result()?.orderId).toBe(ORDER_ID);
     expect(element.querySelector('.checkout-page-success')?.textContent).toContain('Pending');
+    const link = element.querySelector('.checkout-page-continue a');
+    expect(link?.textContent).toContain('Continue to payment');
+    expect(link?.getAttribute('href')).toBe(`/payment/${ORDER_ID}`);
   });
 
   it('prevents invalid submits with flagged fields and no API call', () => {

@@ -1,0 +1,7 @@
+<section class="payment-status" role="status" aria-label="Payment status">
+  @if (status !== null) {
+    <p class="payment-status-value">{{ status }}</p>
+  } @else {
+    <p class="payment-status-waiting">{{ waitingLabel }}</p>
+  }
+</section>

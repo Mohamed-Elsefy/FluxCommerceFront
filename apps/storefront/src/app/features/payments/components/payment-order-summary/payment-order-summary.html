@@ -1,0 +1,39 @@
+@if (view !== null) {
+  <section class="payment-order-summary" aria-label="Order summary">
+    <h2 class="payment-order-summary-title">{{ labels.title }}</h2>
+    <p class="payment-order-summary-number">{{ labels.orderNumber }}: {{ view.orderNumber }}</p>
+    <p class="payment-order-summary-items">{{ labels.items }}: {{ view.itemCount }}</p>
+    <ul class="payment-order-summary-lines">
+      @for (line of view.lines; track line.sku) {
+        <li class="payment-order-summary-line">
+          <span class="payment-order-summary-product">{{ line.productName }}</span>
+          <span class="payment-order-summary-sku">{{ labels.sku }}: {{ line.sku }}</span>
+          <span class="payment-order-summary-quantity">
+            {{ labels.quantity }}: {{ line.quantity }}
+          </span>
+          <span class="payment-order-summary-unit-price">
+            {{ labels.unitPrice }}: {{ line.unitPriceText }}
+          </span>
+        </li>
+      }
+    </ul>
+    <dl class="payment-order-summary-totals">
+      <div class="payment-order-summary-total">
+        <dt>{{ labels.subtotal }}</dt>
+        <dd>{{ view.totals.subtotalText }}</dd>
+      </div>
+      <div class="payment-order-summary-total">
+        <dt>{{ labels.shippingCost }}</dt>
+        <dd>{{ view.totals.shippingCostText }}</dd>
+      </div>
+      <div class="payment-order-summary-total">
+        <dt>{{ labels.discount }}</dt>
+        <dd>{{ view.totals.discountText }}</dd>
+      </div>
+      <div class="payment-order-summary-total">
+        <dt>{{ labels.grandTotal }}</dt>
+        <dd>{{ view.totals.grandTotalText }}</dd>
+      </div>
+    </dl>
+  </section>
+}

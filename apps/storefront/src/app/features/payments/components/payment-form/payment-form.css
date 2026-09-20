@@ -1,0 +1,19 @@
+.payment-form {
+  display: grid;
+  gap: var(--spacing-md);
+  padding-inline: var(--container-padding-inline);
+}
+
+.payment-form-title {
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+.payment-form-placeholder {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.payment-form-submit {
+  justify-self: start;
+}

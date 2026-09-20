@@ -1,0 +1,14 @@
+.payment-status {
+  display: grid;
+  gap: var(--spacing-sm);
+  padding-inline: var(--container-padding-inline);
+}
+
+.payment-status-value,
+.payment-status-waiting {
+  margin: 0;
+}
+
+.payment-status-waiting {
+  color: var(--color-text-muted);
+}

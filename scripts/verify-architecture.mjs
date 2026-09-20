@@ -1244,6 +1244,43 @@ check(
   scripts['test:unit'] !== undefined && scripts['test:e2e'] !== undefined,
 );
 
+// ------------------------------------------------- Phase 9.11: payments security & SSR
+console.log('Phase 9.11');
+const scannedSources = [...appSources, ...libSources, ...e2eSources];
+const paymentsSources = collectTs('apps/storefront/src/app/features/payments');
+const paymentsProdSources = paymentsSources.filter((path) => !path.endsWith('.spec.ts'));
+check(
+  '9.11: no Stripe secret keys anywhere in app/library/e2e sources',
+  !scannedSources.some((path) => /sk_test|sk_live|whsec_/.test(readCode(path))),
+  `${scannedSources.length} file(s) scanned`,
+);
+check(
+  '9.11: payments feature ships no console output',
+  !paymentsSources.some((path) => /console\./.test(readCode(path))),
+  `${paymentsSources.length} file(s) scanned`,
+);
+check(
+  '9.11: payments feature persists nothing (no storage APIs in shipped code)',
+  !paymentsProdSources.some((path) => /localStorage|sessionStorage|IndexedDB/.test(readCode(path))),
+  `${paymentsProdSources.length} file(s) scanned`,
+);
+check(
+  '9.11: browser-only APIs in payments stay behind platform guards',
+  paymentsProdSources.every((path) => {
+    const code = readCode(path);
+    return !/(\bdocument\b|\bwindow\b)/.test(code) || code.includes('isPlatformBrowser');
+  }),
+  `${paymentsProdSources.length} file(s) scanned`,
+);
+const paymentServerRoutes = exists('apps/storefront/src/app/app.routes.server.ts')
+  ? readFileSync(join(root, 'apps/storefront/src/app/app.routes.server.ts'), 'utf8')
+  : '';
+check(
+  '9.11: payment param routes render on demand (no prerender)',
+  paymentServerRoutes.includes('payment/:orderId') &&
+    paymentServerRoutes.includes('RenderMode.Server'),
+);
+
 // ----------------------------------------------------------------- Summary
 console.log(`\n${count - failures.length}/${count} checks passed.`);
 if (failures.length > 0) {

@@ -1,0 +1,20 @@
+.payment-page {
+  display: grid;
+  gap: var(--spacing-lg);
+  padding-inline: var(--container-padding-inline);
+}
+
+.payment-page-title,
+.payment-page-order,
+.payment-page-missing {
+  margin: 0;
+}
+
+.payment-page-order {
+  color: var(--color-text-muted);
+}
+
+.payment-page-mount {
+  display: block;
+  min-inline-size: 0;
+}

@@ -1,0 +1,164 @@
+/**
+ * Storefront Payments feature models for Sub-Phases 9.2 (feature
+ * foundation) and 9.9 (recovery decision tables).
+ *
+ * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.2/9.9 (routing shapes
+ * plus the pure failure/recovery classifiers — no API execution, no
+ * state implementation, no provider integration, no UI behavior).
+ *
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §6 (payment
+ * endpoints), `docs/frontend-contract/PAYMENT_INTEGRATION_NOTES.md` (the
+ * order-poll proxy), and the Sub-Phase 9.1 audit module
+ * (`@flux/models` `payment-contract`: `Payment`, `PaymentOrder`,
+ * `PaymentStatus`).
+ *
+ * Ownership (`ARCHITECTURE.md` §5 — feature-based architecture):
+ * - Canonical wire mirrors stay in `@flux/models` — this module owns
+ *   only the feature-local routing shapes: the `:orderId` route params,
+ *   the entry/result path builders, and structural guards. Pure types +
+ *   pure functions, no Angular runtime, no HTTP.
+ * - Route paths served (mounted at `payment` in `app.routes.ts`, see
+ *   `./payments.routes`): `/payment/:orderId` (payment page) and
+ *   `/payment/:orderId/result` (payment result page), per §9.10.
+ *
+ * Explicitly out of scope (later work, must not appear here):
+ * - 9.3 — no API client/service, no `HttpClient`, no envelope mapping.
+ * - 9.4 — no `@Injectable()` store, no signals/computeds, no lifecycle.
+ * - 9.5 — no Stripe SDK, no Elements, no provider abstraction.
+ * - 9.6+ — no initialization, confirmation, result polling, or retry
+ *   execution (the §9.9 tables classify recovery — execution lives in
+ *   state and pages).
+ */
+
+import type { ParamMap } from '@angular/router';
+import type { ProviderConfirmationOutcome } from '@flux/models';
+
+/**
+ * Route parameter naming the order being paid
+ * (`/payment/:orderId`, `/payment/:orderId/result`).
+ */
+export const PAYMENT_ORDER_ID_PARAM = 'orderId' as const;
+
+/**
+ * Child path serving the payment result
+ * (`/payment/:orderId/result`).
+ */
+export const PAYMENT_RESULT_PATH_SUFFIX = 'result' as const;
+
+/**
+ * Payment route params: the created order being paid for. The `orderId`
+ * is the Phase 8 → Phase 9 handoff (`CheckoutResponse.orderId`) — the
+ * only order context the payment entry requires.
+ */
+export interface PaymentRouteParams {
+  readonly orderId: string;
+}
+
+/**
+ * Whether `value` is a usable order id: a non-blank string. Structural
+ * pre-check only — order existence and ownership stay backend-owned
+ * (`GET /orders/{id}` masks foreign ids as `404`). Pure — throws
+ * nothing.
+ */
+export function isValidPaymentOrderId(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+/**
+ * Reads payment route params out of a route `ParamMap`. Returns `null`
+ * for a missing or blank `:orderId` (nothing to initialize — entry stays
+ * blocked, never a fabricated id). Pure — throws nothing, performs no
+ * HTTP.
+ */
+export function readPaymentRouteParams(
+  paramMap: ParamMap | null | undefined,
+): PaymentRouteParams | null {
+  const orderId = paramMap?.get(PAYMENT_ORDER_ID_PARAM) ?? null;
+  if (!isValidPaymentOrderId(orderId)) {
+    return null;
+  }
+  return { orderId };
+}
+
+/**
+ * Builds the payment entry path for a created order
+ * (`/payment/:orderId`). Pure — throws nothing.
+ */
+export function paymentPath(orderId: string): string {
+  return `/payment/${orderId}`;
+}
+
+/**
+ * Builds the payment result path for a created order
+ * (`/payment/:orderId/result`). Pure — throws nothing.
+ */
+export function paymentResultPath(orderId: string): string {
+  return `/payment/${orderId}/${PAYMENT_RESULT_PATH_SUFFIX}`;
+}
+
+/**
+ * Distinguished payment failure categories (Sub-Phase 9.9 — the §9.9
+ * decision table, stage-first, never message text):
+ * - `initialization-failure` — failed before any provider verdict
+ *   exists (no `confirmationOutcome` recorded): setup, transport, and
+ *   contract-blocked errors. Safe retry = fresh `initializePayment`
+ *   (idempotent server-side by order).
+ * - `confirmation-failure` — failed WITH a provider verdict recorded
+ *   (decline, provider error, backend override): the attempt completed
+ *   and must never resume — safe retry = fresh `initializePayment` for
+ *   a NEW attempt (the backend dedupes by order, so no duplicate
+ *   charge is possible).
+ */
+export type PaymentFailureKind = 'initialization-failure' | 'confirmation-failure';
+
+/**
+ * Classifies a `failed` lifecycle by whether a provider verdict
+ * exists. Returns `null` outside `failed` (nothing to classify).
+ * Pure — throws nothing.
+ */
+export function classifyPaymentFailure(
+  stage: string | null | undefined,
+  outcome: ProviderConfirmationOutcome | null | undefined,
+): PaymentFailureKind | null {
+  if (stage !== 'failed') {
+    return null;
+  }
+  return outcome === null || outcome === undefined
+    ? 'initialization-failure'
+    : 'confirmation-failure';
+}
+
+/**
+ * Recovery actions the UX offers (Sub-Phase 9.9 — deliberate,
+ * state-aware, duplicate-safe):
+ * - `retry-initialization` — explicit fresh `initializePayment`
+ *   (`failed`/`cancelled` only — the machine gate drops everything
+ *   else, so re-entry can never double-fire).
+ * - `check-status` — explicit single-shot `refreshStatus` FIRST, with
+ *   every other user action locked meanwhile (`pending`, plus
+ *   `processing` holding an `unknown` outcome — sent-but-unread must
+ *   resolve through backend truth, never a blind retry).
+ * - `none` — active flow stages and resolved success offer no recovery
+ *   action.
+ */
+export type PaymentRecovery = 'retry-initialization' | 'check-status' | 'none';
+
+/**
+ * Resolves the recovery action for a lifecycle stage and provider
+ * outcome. Pure — throws nothing.
+ */
+export function paymentRecoveryFor(
+  stage: string | null | undefined,
+  outcome: ProviderConfirmationOutcome | null | undefined,
+): PaymentRecovery {
+  if (stage === 'failed' || stage === 'cancelled') {
+    return 'retry-initialization';
+  }
+  if (stage === 'pending') {
+    return 'check-status';
+  }
+  if (stage === 'processing' && outcome === 'unknown') {
+    return 'check-status';
+  }
+  return 'none';
+}

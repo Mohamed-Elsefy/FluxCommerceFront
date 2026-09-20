@@ -53,6 +53,15 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/checkout/checkout.routes').then((m) => m.checkoutRoutes),
       },
+      {
+        // Sub-Phase 9.2 — payments feature boundary serving
+        // /payment/:orderId and /payment/:orderId/result (lazy,
+        // auth-guarded at the feature boundary; skeleton pages only —
+        // data access, state, and provider wiring arrive in 9.3–9.5+).
+        path: 'payment',
+        loadChildren: () =>
+          import('./features/payments/payments.routes').then((m) => m.paymentsRoutes),
+      },
     ],
   },
   {

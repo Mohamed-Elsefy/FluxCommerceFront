@@ -234,6 +234,10 @@ export class CheckoutPage implements OnInit {
       emptyMessage: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageEmptyMessage),
       backToCart: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageBackToCart),
       successTitle: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageSuccessTitle),
+      continueToPayment: translateCheckoutKey(
+        culture,
+        CHECKOUT_TRANSLATION_KEYS.pageContinueToPayment,
+      ),
       loadErrorTitle: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageLoadErrorTitle),
       orderNumber: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageOrderNumber),
       orderStatus: translateCheckoutKey(culture, CHECKOUT_TRANSLATION_KEYS.pageOrderStatus),

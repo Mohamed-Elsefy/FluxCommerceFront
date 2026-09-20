@@ -1,0 +1,28 @@
+<article class="payment-page" aria-label="Payment">
+  <h1 class="payment-page-title">{{ copy().title }}</h1>
+  @if (params !== null) {
+    <p class="payment-page-order">{{ copy().orderLabel(params.orderId) }}</p>
+    <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
+    <payment-form
+      [title]="copy().formTitle"
+      [placeholder]="copy().formPlaceholder"
+      [submitLabel]="copy().submit"
+      [disabled]="submitDisabled()"
+      (formSubmit)="onFormSubmit()"
+    />
+    <div #paymentMount class="payment-page-mount"></div>
+    <payment-status [status]="paymentStatus()" [waitingLabel]="copy().statusWaiting" />
+    <payment-error
+      [title]="errorTitle()"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      [showRetry]="canRetry()"
+      (retry)="onRetry()"
+    />
+    @if (lifecycle() === 'initializing') {
+      <payment-loading [label]="copy().loadingLabel" />
+    }
+  } @else {
+    <p class="payment-page-missing">{{ copy().missingReference }}</p>
+  }
+</article>

@@ -207,6 +207,21 @@ cart store exists and no cycle is possible. Contract gaps stay
 honest: no email/phone/method controls exist because the wire carries
 none, and money renders backend-issued or not at all.
 
+As built in Phase 9 (see `docs/adr/021–022` and
+`docs/completed/PHASE_9_COMPLETION_REPORT.md`), Payments extends the
+pattern across the provider boundary without shared business
+libraries: `apps/storefront/.../features/payments/` owns the guarded
+8-stage lifecycle (`PaymentState`, route-provided), the thin
+`PaymentApiService` (real status/order reads, contract-blocked
+init/confirm short-circuits — no fabricated endpoints), the
+`PaymentProvider` abstraction with the token-bound
+`StripePaymentProvider` behind it (no npm Stripe dependency, no SDK
+shapes outside the adapter), feature-owned models/i18n, and the
+`paymentsRoutes` lazy boundary mounted at `payment`. Backend gaps
+stay honest: initialization and confirmation cannot execute until
+the backend lands the intent path, so both short-circuit with a
+normalized, branchable error instead of hallucinating traffic.
+
 ---
 
 ## 6. Shared Libraries
@@ -522,6 +537,19 @@ data; the page bridges them through explicit seams (`initialize`,
 effects, and failure locks (`clearSubmissionError` for the edit path,
 same-key `retrySubmission` for transport retries) keep every
 re-attempt explicit.
+
+As built in Phase 9 (see `docs/adr/021–022` and
+`docs/completed/PHASE_9_COMPLETION_REPORT.md`), the same shape also
+covers provider-mediated workflows without new machinery:
+route-provided `PaymentState` (lifecycle + intent context + backend
+facts + order display slots, all plain signals and computeds, still
+no `providedIn`, still no global store). The lifecycle is a
+table-driven machine (`canTransitionPaymentLifecycle` fails closed;
+every action returns acceptance), the provider is driven around the
+state — never inside it — and backend verdicts override provider
+claims through explicit edges (`pending → cancelled`,
+`succeeded → failed/cancelled`), so client-side confirmation can
+never present as final proof.
 
 ---
 
@@ -928,10 +956,23 @@ complete: the `/checkout` lazy route (auth-guarded) serves the
 `CheckoutPage`, which composes the typed address form, the
 backend-facts-only order summary, and the `createOrder` submission
 against the snapshotted cart — storing the created order verbatim as
-the Phase 9 handoff. The payment side is explicitly deferred:
-no Stripe SDK, card surface, client secret, or payment navigation
-exists in the checkout touchpoints (E2E-pinned), and order polling
-belongs to Phase 10.
+the Phase 9 handoff.
+
+As built in Phase 9 (see
+`docs/completed/PHASE_9_COMPLETION_REPORT.md` and
+`docs/adr/021–022`), the payment side is complete: the `payment`
+lazy boundary serves `PaymentPage` (`/payment/:orderId` — live flow:
+init, provider setup, confirmation, outcome routing) and
+`PaymentResultPage` (`/payment/:orderId/result` — outcome hub with
+backend verification), driven by the route-provided `PaymentState`
+(guarded 8-stage lifecycle, `Initialized ≠ Succeeded`, backend-truth
+overrides), the thin `PaymentApiService` (real status read plus
+contract-blocked init/confirm short-circuits — no fabricated
+endpoints), and the isolated `PaymentProvider`/`StripePaymentProvider`
+boundary (no npm Stripe dependency, platform-guarded browser touches,
+publishable key + script URL from app environments). Checkout links
+into payment via `Continue to payment`; order polling belongs to
+Phase 10.
 
 ---
 
