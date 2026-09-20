@@ -37,6 +37,10 @@ describe('resolvePaymentErrorMessage', () => {
       'ProviderSetupFailed',
       'Payment.Failed',
       'Payment.NotFound',
+      'Payment.NotReady',
+      'Payment.NotPayable',
+      'Payment.ProviderUnavailable',
+      'Payment.OrderIdRequired',
     ];
     for (const code of codes) {
       for (const culture of CULTURES) {

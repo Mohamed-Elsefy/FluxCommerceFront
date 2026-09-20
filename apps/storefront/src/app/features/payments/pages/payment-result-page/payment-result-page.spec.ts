@@ -336,16 +336,16 @@ describe('PaymentResultPage UI pass (Sub-Phase 9.10)', () => {
     expect(text).toContain('Verified status: Succeeded');
   });
 
-  it('localizes blocked failures instead of leaking technical text', () => {
+  it('localizes saga-lag failures instead of leaking technical text', () => {
     const { element } = setup({
       orderId: ORDER_ID,
       enter: (state) => {
         expect(state.beginInitialization(ORDER_ID)).toBe(true);
         state.markFailed(
           new ApiError({
-            status: 0,
-            code: 'PaymentContractBlocked',
-            message: 'Payment initializePayment has no backend HTTP contract.',
+            status: 409,
+            code: 'Payment.NotReady',
+            message: 'Intent not created yet by the saga.',
           }),
         );
       },
@@ -353,7 +353,7 @@ describe('PaymentResultPage UI pass (Sub-Phase 9.10)', () => {
 
     const text = element.textContent ?? '';
     expect(text).toContain('Payment is currently unavailable');
-    expect(text).not.toContain('no backend HTTP contract');
+    expect(text).not.toContain('Intent not created yet');
   });
 
   it('maintains the order summary on the failure block', () => {
@@ -364,9 +364,9 @@ describe('PaymentResultPage UI pass (Sub-Phase 9.10)', () => {
         expect(state.beginInitialization(ORDER_ID)).toBe(true);
         state.markFailed(
           new ApiError({
-            status: 0,
-            code: 'PaymentContractBlocked',
-            message: 'Payment initializePayment has no backend HTTP contract.',
+            status: 409,
+            code: 'Payment.NotReady',
+            message: 'Intent not created yet by the saga.',
           }),
         );
         state.loadOrder(ORDER_ID);

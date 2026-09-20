@@ -97,24 +97,6 @@ export function paymentResultPath(orderId: string): string {
 }
 
 /**
- * Future backend confirmation correlation payload — the typed surface
- * for `PaymentApiService.confirmPayment` (Sub-Phase 9.3).
- *
- * - `paymentId` travels as the method argument, never duplicated here.
- * - Carries NO card data (Stripe Elements owns it inside the §9.5
- *   boundary), NO client secret (the provider boundary owns it in
- *   9.5/9.7 — the API service must never see secrets), and NO amounts
- *   (backend-authoritative).
- * - No HTTP endpoint consumes this shape today (the §9.1 blocker:
- *   confirmation executes provider-side via Stripe.js with backend
- *   verification arriving through the webhook) — the service
- *   short-circuits without sending until the backend lands a path.
- */
-export interface ConfirmPaymentRequest {
-  readonly orderId: string;
-}
-
-/**
  * Distinguished payment failure categories (Sub-Phase 9.9 — the §9.9
  * decision table, stage-first, never message text):
  * - `initialization-failure` — failed before any provider verdict

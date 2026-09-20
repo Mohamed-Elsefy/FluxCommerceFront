@@ -38,9 +38,9 @@ const BLOCKED = () =>
   throwError(
     () =>
       new ApiError({
-        status: 0,
-        code: 'PaymentContractBlocked',
-        message: 'Payment initializePayment has no backend HTTP contract; no request was sent.',
+        status: 409,
+        code: 'Payment.NotReady',
+        message: 'Intent not created yet by the saga.',
       }),
   );
 

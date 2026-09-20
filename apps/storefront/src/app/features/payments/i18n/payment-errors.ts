@@ -18,18 +18,21 @@
  * - `PaymentDeclined` with displayable provider text → the provider
  *   text verbatim (Stripe decline copy is user-facing by nature).
  * - Other payment-stable codes → the feature `payment.errors.*` key
- *   (`PaymentContractBlocked`, `ProviderSetupFailed`, `Payment.Failed`,
- *   `Payment.NotFound`, declined fallback).
+ *   (`PaymentContractBlocked` legacy, `ProviderSetupFailed`,
+ *   `Payment.Failed`, `Payment.NotFound`, declined fallback, plus the
+ *   by-order reads: `Payment.NotReady`/`Payment.ProviderUnavailable` →
+ *   retry copy, `Payment.NotPayable` → terminal copy,
+ *   `Payment.OrderIdRequired` → retry copy).
  * - Anything else (unknown codes, codeless statuses, nullish errors) →
  *   the shared base resolver (`errors.*` by status, generic fallback).
  *   `null` error input resolves to `null` (nothing to display — the
  *   shells hide), NOT to generic copy.
  *
  * Security rule (the §9.10 guardrail): technical diagnostics
- * (`PaymentContractBlocked` internals, setup failures, transport
- * details) NEVER reach the user — they resolve to generic localized
- * copy. Identifiers and secrets never appear in any branch (asserted in
- * spec via leakage sweeps).
+ * (setup failures, transport details, saga-lag internals) NEVER reach
+ * the user — they resolve to generic localized copy. Identifiers and
+ * secrets never appear in any branch (asserted in spec via leakage
+ * sweeps).
  *
  * Pure functions, no DOM or storage access: safe for SSR.
  */
@@ -45,6 +48,10 @@ const PAYMENT_ERROR_TRANSLATION_KEYS: Readonly<Record<string, string>> = {
   'Payment.Failed': PAYMENT_TRANSLATION_KEYS.errorVerificationFailed,
   'Payment.NotFound': PAYMENT_TRANSLATION_KEYS.errorNotFound,
   PaymentDeclined: PAYMENT_TRANSLATION_KEYS.errorDeclinedFallback,
+  'Payment.NotReady': PAYMENT_TRANSLATION_KEYS.errorUnavailable,
+  'Payment.NotPayable': PAYMENT_TRANSLATION_KEYS.errorVerificationFailed,
+  'Payment.ProviderUnavailable': PAYMENT_TRANSLATION_KEYS.errorUnavailable,
+  'Payment.OrderIdRequired': PAYMENT_TRANSLATION_KEYS.errorUnavailable,
 };
 
 /**

@@ -16,19 +16,16 @@
  * Audited backend surface (the complete HTTP contract today):
  * - `GET /api/payments/{paymentId}` → `ApiResponse<PaymentResponse>`
  *   (anonymous object server-side; `status` is a STRING). Authenticated +
- *   ownership (foreign ids mask as `404`). This is the ONLY payment
- *   endpoint the SPA may call.
+ *   ownership (foreign ids mask as `404`).
+ * - `GET /api/payments/by-order/{orderId}` →
+ *   `ApiResponse<PaymentInitializationResponse>` (owner JWT; live
+ *   client secret re-fetched per call, single intent per order).
  * - `POST /api/payments/webhook` → raw body + `Stripe-Signature`, `200`
  *   empty on processed AND duplicate, `400` empty on bad signature. Never
  *   called by the SPA; never replicated.
- * - No client-secret HTTP endpoint exists today (blocker — see
- *   `PAYMENT_INIT_HTTP_AVAILABLE`). The intent result
- *   (`PaymentIntentResult{StripePaymentIntentId,Status,ClientSecret}`) is
- *   an application-layer model returned to the saga consumer only; the
- *   duplicate-intent path returns `ClientSecret: null` by design (single
- *   intent per `OrderId`). The initialization shapes below are therefore
- *   documented as the FUTURE contract the SPA will consume once the
- *   backend exposes it — they are never posted to today.
+ * - The initialization shapes below are the LIVE contract the SPA
+ *   consumes through `GET /api/payments/by-order/{orderId}`
+ *   (see `PAYMENT_INIT_HTTP_AVAILABLE`).
  *
  * Ownership (`ARCHITECTURE.md` §5 — feature-based architecture):
  * - Canonical wire mirrors stay the single declaration site:
@@ -115,9 +112,10 @@ export interface PaymentInitializationRequest {
 }
 
 /**
- * Payment initialization output the SPA expects once the backend exposes
- * a client-secret path (e.g. `GET /api/payments/by-order/{orderId}` or an
- * `OrderDetails` extension — backend decision, not SPA's). Maps the
+ * Payment initialization output the SPA consumes through
+ * `GET /api/payments/by-order/{orderId}`
+ * (`PaymentInitializationResponse{PaymentId,OrderId,ClientSecret,
+ * PaymentReference,Status}` on the wire, camelCase). Maps the
  * backend-internal `PaymentIntentResult`:
  * - `paymentId` — the `Payment` identity for status queries.
  * - `clientSecret` — runtime-only Stripe confirmation secret (see the
@@ -137,20 +135,18 @@ export interface PaymentInitializationResult {
 }
 
 /**
- * Whether an HTTP path returns the client secret today: `false`. Pinned
- * so Sub-Phases 9.2+ cannot wire `stripe.confirmCardPayment` against a
- * missing endpoint. The SPA must not work around this by calling Stripe
- * directly (no intent id/secret) or by expecting `SecretKey`.
+ * Whether an HTTP path returns the client secret today: `true` via
+ * `GET /api/payments/by-order/{orderId}` (owner JWT; live secret
+ * re-fetched per call, single intent per order).
  */
-export const PAYMENT_INIT_HTTP_AVAILABLE = false as const;
+export const PAYMENT_INIT_HTTP_AVAILABLE = true as const;
 
 /**
- * Whether payment initialization over HTTP is available. Always `false`
- * in the current contract — callers must use the order-poll proxy
- * (`GET /orders/{id}`) until the backend lands the endpoint. Pure —
- * throws nothing.
+ * Whether payment initialization over HTTP is available. Always `true`
+ * in the current contract — callers fetch the live secret through
+ * `GET /api/payments/by-order/{orderId}`. Pure — throws nothing.
  */
-export function isPaymentInitializationAvailable(): false {
+export function isPaymentInitializationAvailable(): true {
   return PAYMENT_INIT_HTTP_AVAILABLE;
 }
 
@@ -177,8 +173,8 @@ export function isValidPaymentInitializationRequest(
 /**
  * Payment status query input: the payment identity. The `paymentId` is
  * NOT returned by checkout and `OrderDetails` carries no payment fields —
- * status polling is only possible when the id is known (initialization
- * result once §9.6 lands; until then the order-poll proxy applies).
+ * it arrives via the by-order initialization read
+ * (`GET /api/payments/by-order/{orderId}`).
  */
 export interface PaymentStatusQuery {
   readonly paymentId: Guid;
@@ -186,6 +182,9 @@ export interface PaymentStatusQuery {
 
 /** Route template of the SPA-callable payment read. */
 export const PAYMENT_STATUS_PATH = '/api/payments/{paymentId}' as const;
+
+/** Route template of the SPA-callable by-order initialization read. */
+export const PAYMENT_BY_ORDER_PATH = '/api/payments/by-order/{orderId}' as const;
 
 /**
  * Structural pre-check for a status query: a non-blank `paymentId`.
@@ -563,16 +562,19 @@ export function isBackendPaymentResponsibility(
 }
 
 /**
- * SPA-callable payment endpoints (path templates). Exactly one entry:
- * the status read. The webhook is Stripe→API only and initialization has
- * no HTTP path — neither appears here by design.
+ * SPA-callable payment endpoints (path templates). Two entries: the
+ * status read and the by-order initialization read. The webhook is
+ * Stripe→API only and never appears here by design.
  */
-export const SPA_CALLABLE_PAYMENT_ENDPOINTS = ['/api/payments/{paymentId}'] as const;
+export const SPA_CALLABLE_PAYMENT_ENDPOINTS = [
+  '/api/payments/{paymentId}',
+  '/api/payments/by-order/{orderId}',
+] as const;
 
 /**
  * Whether the SPA may call the given payment path template. `true` only
- * for the status read — the webhook and any intent-creation path return
- * `false`. Pure — throws nothing.
+ * for the status read and the by-order initialization read — the webhook
+ * returns `false`. Pure — throws nothing.
  */
 export function isSpaCallablePaymentEndpoint(path: string | null | undefined): boolean {
   return (

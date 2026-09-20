@@ -297,13 +297,15 @@ export class PaymentState {
    * Flow: `beginInitialization(orderId)` moves `idle|failed|cancelled →
    * initializing` (rejected calls return `Subscription.EMPTY` with no
    * HTTP — this is the duplicate-initialization guard: an active or
-   * resolved flow never re-fires); the service call then resolves to
+   * resolved flow never re-fires); the service call
+   * (`GET /api/payments/by-order/{orderId}`) then resolves to
    * `markReady` (intent context stored in-memory only) or rejects to
-   * `markFailed` (normalized `ApiError` — today the §9.1 contract
-   * blocker, `PaymentContractBlocked`, until the backend lands the
-   * intent path). A dataless envelope is a contract violation surfacing
-   * as `error`. Non-`ApiError` throwables are normalized, never
-   * re-thrown. The caller owns teardown (unsubscribe on destroy).
+   * `markFailed` (normalized `ApiError` — e.g. `409 Payment.NotReady`
+   * on saga lag for manual retry, `409 Payment.NotPayable` on terminal
+   * payments, `404`/`401`/`500` passthrough). A dataless envelope is a
+   * contract violation surfacing as `error`. Non-`ApiError` throwables
+   * are normalized, never re-thrown. The caller owns teardown
+   * (unsubscribe on destroy).
    *
    * Provider setup and Elements mounting are NOT here — the owning page
    * drives the `PaymentProvider` around this state once `ready` (9.6

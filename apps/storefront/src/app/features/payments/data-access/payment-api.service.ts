@@ -6,8 +6,10 @@
  * — no state implementation, no provider integration, no UI).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §6
- * (`GET /api/payments/{id}` → `ApiResponse<PaymentResponse>`; the
- * webhook is Stripe→API only and never called here),
+ * (`GET /api/payments/{id}` → `ApiResponse<PaymentResponse>`;
+ * `GET /api/payments/by-order/{orderId}` →
+ * `ApiResponse<PaymentInitializationResponse>`; the webhook is
+ * Stripe→API only and never called here),
  * `docs/frontend-contract/DTO_REFERENCE.md` §6, and the Sub-Phase 9.1
  * audit module (`@flux/models` `payment-contract`: `Payment`,
  * `PaymentInitializationRequest`, `PaymentInitializationResult`).
@@ -24,17 +26,17 @@
  * Contract fidelity rules enforced here (same convention as
  * `CheckoutApiService`, Phase 8.2, and `ProductDetailsApiService`,
  * Phase 6):
- * - Request/response types come from `@flux/models` plus the §9.2
- *   `ConfirmPaymentRequest` (`../models`) — no local re-declarations,
- *   so no contract drift is possible.
+ * - Request/response types come from `@flux/models` — no local
+ *   re-declarations, so no contract drift is possible.
  * - The route template comes from `PAYMENTS_ENDPOINTS` with the id as
  *   `pathParams` (interpolated by `ApiClient`) — no scattered string
  *   literals.
  * - The service never unwraps `ApiResponse.data`, never catches or
  *   remaps errors, and never attaches tokens: the envelope stays intact
  *   for feature state (9.4) to map, failures (`401` anonymous, `404`
- *   unknown-or-foreign payment id, `400` validation) flow untouched
- *   through the Observable error channel to the Phase 1 error
+ *   unknown-or-foreign id, `400` validation, `409 Payment.NotReady` /
+ *   `Payment.NotPayable`, `500 Payment.ProviderUnavailable`) flow
+ *   untouched through the Observable error channel to the Phase 1 error
  *   normalizer, and `Authorization` stays owned by the interceptor
  *   pipeline.
  * - The service performs no business logic: no status derivation, no
@@ -43,24 +45,21 @@
  *   `cancelOnAbort` completes pre-aborted/in-flight aborts silently —
  *   never as errors). The service forwards the signal; lifecycle
  *   ownership belongs to the 9.4 caller.
- * - Contract-honest blocking: `initializePayment` and `confirmPayment`
- *   have NO backend HTTP path today (the §9.1 blocker,
- *   `PAYMENT_INIT_HTTP_AVAILABLE = false`; confirmation executes
- *   provider-side via Stripe.js in 9.5/9.7 with backend verification
- *   through the webhook). Both short-circuit with a normalized
- *   `ApiError` (`paymentContractBlockedError`) WITHOUT issuing any HTTP
- *   — inventing an endpoint would violate Rule 5 (backend contracts are
- *   the source of truth). The 9.4 state layer branches on the blocked
- *   code; the real calls land here once the backend exposes them.
+ * - Initialization reads the live secret through
+ *   `GET /api/payments/by-order/{orderId}` (owner JWT, single intent per
+ *   order, secret re-fetched per call). Card confirmation itself stays
+ *   provider-side via Stripe.js (9.5/9.7) with backend verification
+ *   through the webhook — there is deliberately NO backend confirm
+ *   endpoint, so this service exposes no `confirmPayment` method.
  *
  * Security guardrails (this sub-phase's core constraint):
  * - No Stripe-specific details cross this service: it never imports the
  *   §9.1 provider types (`PaymentConfirmationInput`,
  *   `ProviderConfirmationOutcome`), never accepts a client secret, and
- *   never shapes card data.
+ *   never shapes card data. The secret arrives inside the typed
+ *   initialization envelope only, straight into feature state memory.
  * - No sensitive values are logged: this file contains no `console`
- *   calls, and the blocked error carries no identifiers (no order/payment
- *   id echo — see the spec's leakage pins).
+ *   calls.
  *
  * Explicitly out of scope (later work, must not appear here):
  * - 9.4 — no feature state, no signals, no lifecycle store.
@@ -70,10 +69,9 @@
  */
 
 import { inject, Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import type { Observable } from 'rxjs';
 import {
   ApiClient,
-  ApiError,
   ORDERS_ENDPOINTS,
   PAYMENTS_ENDPOINTS,
   type ApiRequestOptions,
@@ -85,40 +83,14 @@ import type {
   PaymentInitializationRequest,
   PaymentInitializationResult,
 } from '@flux/models';
-import type { ConfirmPaymentRequest } from '../models/payment.models';
 
 /**
- * Client-synthesized code for operations with no backend HTTP contract
- * yet. A stable PascalCase single (like `NetworkError`) that can never
- * collide with dotted backend codes; the 9.4 state layer branches on it
- * to select the order-poll proxy instead of the missing calls.
- */
-export const PAYMENT_CONTRACT_BLOCKED_CODE = 'PaymentContractBlocked';
-
-/** Operations currently blocked on the missing backend HTTP contract. */
-export type BlockedPaymentOperation = 'initializePayment' | 'confirmPayment';
-
-/**
- * Builds the normalized failure for a contract-blocked operation:
- * `status 0` (no response — nothing was sent), the blocked code, and a
- * technical English diagnostic naming the operation (never user-facing
- * copy, never identifiers). Pure — performs no HTTP and throws nothing
- * (the error travels through the Observable error channel).
- */
-export function paymentContractBlockedError(operation: BlockedPaymentOperation): ApiError {
-  return new ApiError({
-    status: 0,
-    code: PAYMENT_CONTRACT_BLOCKED_CODE,
-    message: `Payment ${operation} has no backend HTTP contract; no request was sent.`,
-  });
-}
-
-/**
- * Thin typed façade over the payment contract. `getPaymentStatus` maps
- * 1:1 to its endpoint (same params, same envelope);
- * `initializePayment`/`confirmPayment` expose the §9.1 typed shapes and
- * short-circuit until the backend lands their paths. There is no mapping
- * here because feature state owns envelope handling.
+ * Thin typed façade over the payment contract. `getPaymentStatus` and
+ * `initializePayment` map 1:1 to their endpoints (same params, same
+ * envelope). Card confirmation has no backend endpoint by design
+ * (provider-side via Stripe.js) — there is intentionally no
+ * `confirmPayment` method here. There is no mapping here because feature
+ * state owns envelope handling.
  */
 @Injectable({ providedIn: 'root' })
 export class PaymentApiService {
@@ -149,38 +121,36 @@ export class PaymentApiService {
   }
 
   /**
-   * Typed initialization surface (`PaymentInitializationRequest
-   * { orderId }` → `PaymentInitializationResult { paymentId, orderId,
-   * clientSecret, paymentReference, status }`).
+   * `GET /api/payments/by-order/{orderId}` — authenticated (JWT via the
+   * interceptor pipeline) + ownership (foreign ids mask as `404` with a
+   * server-side warning log — never probe ids on this path).
    *
-   * Contract-blocked: no HTTP endpoint serializes the intent result
-   * today, so this short-circuits with `paymentContractBlockedError`
-   * and issues ZERO HTTP calls (test-pinned). No `options` are accepted
-   * on purpose — there is nothing to cancel, correlate, or localize
-   * until the backend lands the path.
+   * Read-only: never creates a Stripe intent (saga owns creation). The
+   * live secret is re-fetched per call — retries reuse the single intent
+   * per order. `options.signal` aborts the call silently (Phase 1
+   * `cancelOnAbort`); any other `options` (correlation, culture, extra
+   * path params) merge alongside the order id.
+   *
+   * Success: `200 ApiResponse<PaymentInitializationResult>` (`paymentId`
+   * for status polling, runtime-only `clientSecret`, `paymentReference`
+   * `pi_*` for support, `status` — expect `Pending`, never success).
+   * Failures: `401` anonymous, `404` unknown-or-foreign id, `400`
+   * `Payment.OrderIdRequired`, `409 Payment.NotReady` (saga lag —
+   * manual retry), `409 Payment.NotPayable` (terminal payment),
+   * `500 Payment.ProviderUnavailable` — all propagate untouched through
+   * the error channel for feature state (9.4) to map.
    */
   initializePayment(
     request: PaymentInitializationRequest,
+    options: ApiRequestOptions = {},
   ): Observable<ApiResponseWithData<PaymentInitializationResult>> {
-    void request;
-    return throwError(() => paymentContractBlockedError('initializePayment'));
-  }
-
-  /**
-   * Typed confirmation surface (`paymentId` + `ConfirmPaymentRequest
-   * { orderId }`).
-   *
-   * Contract-blocked like `initializePayment`: confirmation executes
-   * provider-side via Stripe.js (9.5/9.7) with backend verification
-   * through the webhook, so this short-circuits with
-   * `paymentContractBlockedError` and issues ZERO HTTP calls
-   * (test-pinned). The payload deliberately carries no card data and no
-   * client secret — those never cross the API service.
-   */
-  confirmPayment(paymentId: string, payload: ConfirmPaymentRequest): Observable<never> {
-    void paymentId;
-    void payload;
-    return throwError(() => paymentContractBlockedError('confirmPayment'));
+    return this.api.get<ApiResponseWithData<PaymentInitializationResult>>(
+      PAYMENTS_ENDPOINTS.byOrder.path,
+      {
+        ...options,
+        pathParams: { orderId: request.orderId, ...(options.pathParams ?? {}) },
+      },
+    );
   }
 
   /**

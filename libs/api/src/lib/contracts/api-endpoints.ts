@@ -277,6 +277,7 @@ export const INVENTORY_ENDPOINTS = {
  */
 export const PAYMENTS_ENDPOINTS = {
   getPayment: { path: '/api/payments/{paymentId}', method: 'GET', auth: 'authenticated' },
+  byOrder: { path: '/api/payments/by-order/{orderId}', method: 'GET', auth: 'authenticated' },
   stripeWebhook: { path: '/api/payments/webhook', method: 'POST', auth: 'anonymous' },
 } as const satisfies Record<string, EndpointDefinition>;
 

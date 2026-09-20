@@ -497,13 +497,13 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
   }
 
   const success = () => of({ isSuccess: true, message: 'ok', data: INIT_RESULT });
-  const blocked = () =>
+  const notReady = () =>
     throwError(
       () =>
         new ApiError({
-          status: 0,
-          code: 'PaymentContractBlocked',
-          message: 'Payment initializePayment has no backend HTTP contract; no request was sent.',
+          status: 409,
+          code: 'Payment.NotReady',
+          message: 'Intent not created yet by the saga.',
         }),
     );
 
@@ -534,15 +534,15 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
     expect(globalThis.location.href).not.toContain(CLIENT_SECRET);
   });
 
-  it('records the contract-blocked failure without losing the order', () => {
-    const { state, initializePayment } = setupWithApi(blocked);
+  it('records the saga-lag failure without losing the order (manual retry)', () => {
+    const { state, initializePayment } = setupWithApi(notReady);
     state.initializePayment(ORDER_ID);
 
     expect(initializePayment).toHaveBeenCalledTimes(1);
     expect(state.lifecycle()).toBe('failed');
     expect(state.orderId()).toBe(ORDER_ID);
     expect(state.statusError()).toBeInstanceOf(ApiError);
-    expect(state.statusError()?.code).toBe('PaymentContractBlocked');
+    expect(state.statusError()?.code).toBe('Payment.NotReady');
   });
 
   it('treats a dataless envelope as a contract violation', () => {
@@ -571,7 +571,7 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
   });
 
   it('retries from failed with a fresh attempt', () => {
-    const { state, initializePayment } = setupWithApi(blocked);
+    const { state, initializePayment } = setupWithApi(notReady);
     state.initializePayment(ORDER_ID);
     expect(state.lifecycle()).toBe('failed');
 

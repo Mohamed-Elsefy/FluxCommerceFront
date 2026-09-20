@@ -90,10 +90,10 @@ function order(overrides: Partial<PaymentOrder> = {}): PaymentOrder {
   };
 }
 
-describe('payment initialization contract (blocked HTTP path)', () => {
-  it('pins the client-secret HTTP path as unavailable', () => {
-    expect(PAYMENT_INIT_HTTP_AVAILABLE).toBe(false);
-    expect(isPaymentInitializationAvailable()).toBe(false);
+describe('payment initialization contract (live by-order HTTP path)', () => {
+  it('pins the client-secret HTTP path as available', () => {
+    expect(PAYMENT_INIT_HTTP_AVAILABLE).toBe(true);
+    expect(isPaymentInitializationAvailable()).toBe(true);
   });
 
   it('accepts a well-formed initialization request shape', () => {
@@ -362,9 +362,13 @@ describe('responsibility boundary (Frontend UX vs. Backend Truth)', () => {
     expect(isBackendPaymentResponsibility(undefined)).toBe(false);
   });
 
-  it('exposes exactly one SPA-callable payment endpoint', () => {
-    expect([...SPA_CALLABLE_PAYMENT_ENDPOINTS]).toEqual(['/api/payments/{paymentId}']);
+  it('exposes exactly two SPA-callable payment endpoints', () => {
+    expect([...SPA_CALLABLE_PAYMENT_ENDPOINTS]).toEqual([
+      '/api/payments/{paymentId}',
+      '/api/payments/by-order/{orderId}',
+    ]);
     expect(isSpaCallablePaymentEndpoint('/api/payments/{paymentId}')).toBe(true);
+    expect(isSpaCallablePaymentEndpoint('/api/payments/by-order/{orderId}')).toBe(true);
     expect(isSpaCallablePaymentEndpoint('/api/payments/webhook')).toBe(false);
     expect(isSpaCallablePaymentEndpoint(null)).toBe(false);
     expect(isSpaCallablePaymentEndpoint(undefined)).toBe(false);
