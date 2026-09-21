@@ -225,7 +225,7 @@ describe('StripePaymentProvider confirmPayment', () => {
     expect(sdk.confirmPayment).toHaveBeenCalledTimes(1);
     expect(sdk.confirmPayment).toHaveBeenCalledWith({
       elements: expect.anything(),
-      confirmParams: undefined,
+      redirect: 'if_required',
     });
     expect(result).toEqual({ outcome: 'succeeded', message: null });
   });

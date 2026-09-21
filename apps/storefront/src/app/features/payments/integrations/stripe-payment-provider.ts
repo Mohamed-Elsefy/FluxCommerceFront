@@ -125,6 +125,7 @@ interface StripeLike {
   confirmPayment(options: {
     elements: StripeElementsLike;
     confirmParams?: { return_url?: string };
+    redirect?: 'if_required' | 'always';
   }): Promise<StripeConfirmPaymentResultLike>;
 }
 
@@ -322,11 +323,16 @@ export class StripePaymentProvider implements PaymentProvider {
     this.requireBrowser('confirmPayment');
     const stripe = this.requireStripe('confirmPayment');
     const elements = this.requireElements('confirmPayment');
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams:
-        options.returnUrl === undefined ? undefined : { return_url: options.returnUrl },
-    });
+    // In-place card confirmation has no return URL. Newer Stripe.js builds
+    // reject a missing `confirmParams.return_url` unless the call opts out
+    // of automatic redirects, so request `if_required` (redirect only for
+    // 3-DS / redirect methods). With an explicit returnUrl keep the default
+    // redirect behaviour.
+    const result = await stripe.confirmPayment(
+      options.returnUrl === undefined
+        ? { elements, redirect: 'if_required' as const }
+        : { elements, confirmParams: { return_url: options.returnUrl } },
+    );
     return toProviderConfirmationResult(result);
   }
 

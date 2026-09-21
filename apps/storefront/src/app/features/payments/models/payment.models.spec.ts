@@ -12,10 +12,14 @@
 
 import { describe, expect, it } from 'vitest';
 import { convertToParamMap } from '@angular/router';
+import { ApiError } from '@flux/api';
 import {
+  INIT_POLL_INTERVAL_MS,
+  INIT_POLL_MAX_ATTEMPTS,
   PAYMENT_ORDER_ID_PARAM,
   PAYMENT_RESULT_PATH_SUFFIX,
   classifyPaymentFailure,
+  isRetryableInitializationFailure,
   isValidPaymentOrderId,
   paymentPath,
   paymentRecoveryFor,
@@ -117,5 +121,55 @@ describe('paymentRecoveryFor', () => {
     expect(paymentRecoveryFor('succeeded', 'succeeded')).toBe('none');
     expect(paymentRecoveryFor(null, null)).toBe('none');
     expect(paymentRecoveryFor('Refunding', 'unknown')).toBe('none');
+  });
+});
+
+describe('initialization readiness-poll budget', () => {
+  it('pins a fixed interval with a bounded attempt cap', () => {
+    expect(INIT_POLL_INTERVAL_MS).toBe(2000);
+    expect(INIT_POLL_MAX_ATTEMPTS).toBe(15);
+  });
+});
+
+describe('isRetryableInitializationFailure', () => {
+  function failure(status: number, code?: string): ApiError {
+    return new ApiError({ status, code: code ?? 'X', message: 'x' });
+  }
+
+  it('retries transport loss, throttling, and overload statuses', () => {
+    expect(isRetryableInitializationFailure(failure(0))).toBe(true);
+    expect(isRetryableInitializationFailure(failure(408))).toBe(true);
+    expect(isRetryableInitializationFailure(failure(429))).toBe(true);
+    expect(isRetryableInitializationFailure(failure(500, 'Payment.ProviderUnavailable'))).toBe(
+      true,
+    );
+    expect(isRetryableInitializationFailure(failure(502))).toBe(true);
+    expect(isRetryableInitializationFailure(failure(503))).toBe(true);
+  });
+
+  it('retries saga-lag 404s of any code, including codeless and masked reads', () => {
+    expect(isRetryableInitializationFailure(failure(404, 'Payment.NotFound'))).toBe(true);
+    expect(isRetryableInitializationFailure(new ApiError({ status: 404, message: 'x' }))).toBe(
+      true,
+    );
+  });
+
+  it('retries 409 only for the NotReady saga-lag code', () => {
+    expect(isRetryableInitializationFailure(failure(409, 'Payment.NotReady'))).toBe(true);
+    expect(isRetryableInitializationFailure(failure(409, 'Payment.NotPayable'))).toBe(false);
+    expect(isRetryableInitializationFailure(failure(409, 'Anything.Else'))).toBe(false);
+  });
+
+  it('treats backend decisions as terminal', () => {
+    expect(isRetryableInitializationFailure(failure(400, 'Payment.OrderIdRequired'))).toBe(false);
+    expect(isRetryableInitializationFailure(failure(401))).toBe(false);
+    expect(isRetryableInitializationFailure(failure(403))).toBe(false);
+  });
+
+  it('treats non-ApiError throwables as terminal (never spin on a bug)', () => {
+    expect(isRetryableInitializationFailure(new Error('boom'))).toBe(false);
+    expect(isRetryableInitializationFailure(null)).toBe(false);
+    expect(isRetryableInitializationFailure(undefined)).toBe(false);
+    expect(isRetryableInitializationFailure('404')).toBe(false);
   });
 });

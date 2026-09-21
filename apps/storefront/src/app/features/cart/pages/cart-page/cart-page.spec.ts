@@ -305,6 +305,55 @@ describe('CartPage guest bootstrap (Sub-Phase 7.5)', () => {
   });
 });
 
+describe('CartPage remount freshness', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  it('refetches the cart when the page remounts without an auth change', async () => {
+    // First mount settles with two lines through the stored identity.
+    // The ngOnInit microtask stays queued (synchronous harness), so the
+    // effect owns the single initial fetch.
+    let latest = guestCart();
+    const first = setup({ getGuestCart: () => of(cartEnvelope(latest)) }, 'en', {
+      storedGuestCartId: GUEST_ID,
+    });
+    expect(first.calls.filter((call) => call.method === 'getGuestCart')).toHaveLength(1);
+    expect(first.element.querySelectorAll('.cart-items-line')).toHaveLength(2);
+
+    // Flush the first mount's deferred entry sync and baseline: it is a
+    // no-op against the in-flight effect request in production (guard),
+    // settled instantly in this harness.
+    await Promise.resolve();
+    const settledCalls = first.calls.filter((call) => call.method === 'getGuestCart').length;
+
+    // The backend cart changes elsewhere (e.g. an add on a product
+    // route): the same TestBed injector is reused, so the feature
+    // services persist and no auth transition refires their effect.
+    // Flushing the remount microtask must produce exactly one refetch
+    // with the new lines rendered.
+    latest = guestCart({
+      items: [
+        ...guestCart().items,
+        line({ variantId: VARIANT_B, sku: 'CAP-RED', productName: 'Cap', quantity: 1 }),
+      ],
+    });
+    first.fixture.destroy();
+
+    const second = TestBed.createComponent(CartPage);
+    second.detectChanges();
+    await Promise.resolve();
+    second.detectChanges();
+    const element = second.nativeElement as HTMLElement;
+
+    const refetches =
+      first.calls.filter((call) => call.method === 'getGuestCart').length - settledCalls;
+    expect(refetches).toBe(1);
+    expect(element.querySelectorAll('.cart-items-line')).toHaveLength(3);
+    expect(element.textContent).toContain('CAP-RED');
+  });
+});
+
 describe('CartPage authenticated session (Sub-Phases 7.6–7.7)', () => {
   afterEach(() => {
     TestBed.resetTestingModule();

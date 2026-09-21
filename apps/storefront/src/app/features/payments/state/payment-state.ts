@@ -60,13 +60,26 @@
  * Explicitly out of scope (later work, must not appear here):
  * - 9.5 impl — no Stripe SDK, no Elements, no loader (the page drives
  *   provider setup around this state — never the reverse).
- * - 9.9 — no polling loops, no failure-category handling, no recovery
- *   algorithms (`refreshStatus` is single-shot by design).
+ * - 9.9 — no verification polling loops, no failure-category handling
+ *   beyond the init classifier, no recovery algorithms
+ *   (`refreshStatus` is single-shot by design; the ONLY loop allowed is
+ *   the bounded `by-order` readiness poll inside `initializePayment`).
  * - 9.10 — no localized copy, no navigation.
  */
 
 import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
-import { from, Subscription } from 'rxjs';
+import {
+  catchError,
+  EMPTY,
+  EmptyError,
+  exhaustMap,
+  first,
+  from,
+  Subscription,
+  take,
+  throwError,
+  timer,
+} from 'rxjs';
 import { ApiError, isApiError, UNKNOWN_ERROR_CODE, type ApiResponseWithData } from '@flux/api';
 import type {
   OrderDetailsResponse,
@@ -75,6 +88,11 @@ import type {
   ProviderConfirmationOutcome,
 } from '@flux/models';
 import { PaymentApiService } from '../data-access/payment-api.service';
+import {
+  INIT_POLL_INTERVAL_MS,
+  INIT_POLL_MAX_ATTEMPTS,
+  isRetryableInitializationFailure,
+} from '../models/payment.models';
 import {
   PAYMENT_PROVIDER,
   type ConfirmPaymentOptions,
@@ -292,20 +310,29 @@ export class PaymentState {
 
   /**
    * Executes payment initialization for the named order (Sub-Phase 9.6 —
-   * the 9.4 `beginInitialization` gate plus the §9.3 service call).
+   * the 9.4 `beginInitialization` gate plus the §9.3 service call, with a
+   * bounded readiness poll).
    *
    * Flow: `beginInitialization(orderId)` moves `idle|failed|cancelled →
    * initializing` (rejected calls return `Subscription.EMPTY` with no
    * HTTP — this is the duplicate-initialization guard: an active or
-   * resolved flow never re-fires); the service call
-   * (`GET /api/payments/by-order/{orderId}`) then resolves to
-   * `markReady` (intent context stored in-memory only) or rejects to
-   * `markFailed` (normalized `ApiError` — e.g. `409 Payment.NotReady`
-   * on saga lag for manual retry, `409 Payment.NotPayable` on terminal
-   * payments, `404`/`401`/`500` passthrough). A dataless envelope is a
-   * contract violation surfacing as `error`. Non-`ApiError` throwables
-   * are normalized, never re-thrown. The caller owns teardown
-   * (unsubscribe on destroy).
+   * resolved flow never re-fires, including while a poll is running);
+   * then `GET /api/payments/by-order/{orderId}` is attempted immediately
+   * and retried on a fixed interval (single request in flight via
+   * `exhaustMap`) while failures stay retryable per
+   * `isRetryableInitializationFailure` (`404` saga lag of any code,
+   * `409 Payment.NotReady`, transport loss, overload).
+   *
+   * Resolution: the first envelope carrying intent data resolves to
+   * `markReady` (intent context stored in-memory only); a terminal
+   * failure (`401`, `400`, `409 Payment.NotPayable`, …) rejects to
+   * `markFailed` at once; budget exhaustion (`INIT_POLL_MAX_ATTEMPTS`
+   * ticks with no intent) rejects with the LAST observed failure, so the
+   * manual retry affordance (`failed → initializing`) stays meaningful.
+   * Dataless `200` envelopes are skipped as poll ticks (the next tick
+   * re-reads). Non-`ApiError` throwables are normalized, never re-thrown.
+   * The caller owns teardown (unsubscribe on destroy stops the timer —
+   * no state writes after teardown).
    *
    * Provider setup and Elements mounting are NOT here — the owning page
    * drives the `PaymentProvider` around this state once `ready` (9.6
@@ -315,37 +342,58 @@ export class PaymentState {
     if (!this.beginInitialization(orderId)) {
       return Subscription.EMPTY;
     }
-    return this.paymentApi.initializePayment({ orderId }).subscribe({
-      next: (envelope: ApiResponseWithData<PaymentInitializationResult>) => {
-        const data = envelope.data;
-        if (data === null || data === undefined) {
-          this.markFailed(
-            new ApiError({
-              status: 200,
-              code: UNKNOWN_ERROR_CODE,
-              message: 'The server returned an empty response.',
+    let lastError: unknown = null;
+    return timer(0, INIT_POLL_INTERVAL_MS)
+      .pipe(
+        take(INIT_POLL_MAX_ATTEMPTS),
+        exhaustMap(() =>
+          this.paymentApi.initializePayment({ orderId }).pipe(
+            catchError((error: unknown) => {
+              lastError = error;
+              return isRetryableInitializationFailure(error) ? EMPTY : throwError(() => error);
             }),
-          );
-          return;
-        }
-        this.markReady({
-          paymentId: data.paymentId,
-          clientSecret: data.clientSecret,
-          paymentStatus: data.status,
-        });
-      },
-      error: (error: unknown) => {
-        this.markFailed(
-          isApiError(error)
-            ? error
-            : new ApiError({
-                status: 0,
+          ),
+        ),
+        first(
+          (envelope: ApiResponseWithData<PaymentInitializationResult>) =>
+            envelope.data !== null && envelope.data !== undefined,
+        ),
+      )
+      .subscribe({
+        next: (envelope: ApiResponseWithData<PaymentInitializationResult>) => {
+          const data = envelope.data;
+          if (data === null || data === undefined) {
+            this.markFailed(
+              new ApiError({
+                status: 200,
                 code: UNKNOWN_ERROR_CODE,
-                message: 'Payment initialization failed.',
+                message: 'The server returned an empty response.',
               }),
-        );
-      },
-    });
+            );
+            return;
+          }
+          this.markReady({
+            paymentId: data.paymentId,
+            clientSecret: data.clientSecret,
+            paymentStatus: data.status,
+          });
+        },
+        error: (error: unknown) => {
+          // `first()` with no matching envelope raises `EmptyError` when
+          // the budget runs out — report the last observed failure
+          // instead (it carries the real backend code for i18n + retry).
+          const terminal = error instanceof EmptyError ? lastError : error;
+          this.markFailed(
+            isApiError(terminal)
+              ? terminal
+              : new ApiError({
+                  status: 0,
+                  code: UNKNOWN_ERROR_CODE,
+                  message: 'Payment initialization failed.',
+                }),
+          );
+        },
+      });
   }
 
   /**
