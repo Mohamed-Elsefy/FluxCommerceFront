@@ -34,13 +34,23 @@ const PAYMENT_ID = '4fa85f64-5717-4562-b3fc-2c963f66afa6';
 const CLIENT_SECRET = 'pi_123_secret_abc';
 const PUBLISHABLE_KEY = 'pk_test_123';
 
-const BLOCKED = () =>
+const NOT_READY = () =>
   throwError(
     () =>
       new ApiError({
         status: 409,
         code: 'Payment.NotReady',
         message: 'Intent not created yet by the saga.',
+      }),
+  );
+
+const TERMINAL = () =>
+  throwError(
+    () =>
+      new ApiError({
+        status: 400,
+        code: 'Payment.OrderIdRequired',
+        message: 'Order id is required.',
       }),
   );
 
@@ -139,7 +149,7 @@ function setup(options: {
 } {
   TestBed.resetTestingModule();
   const api = {
-    initializePayment: vi.fn(options.apiFlow ?? BLOCKED),
+    initializePayment: vi.fn(options.apiFlow ?? NOT_READY),
     getPaymentStatus: vi.fn(options.statusFlow ?? (() => EMPTY)),
     getOrderDetails: vi.fn(options.orderFlow ?? (() => EMPTY)),
   };
@@ -233,32 +243,56 @@ describe('PaymentPage entry', () => {
 });
 
 describe('PaymentPage initialization flow', () => {
-  it('initializes on entry and surfaces the blocked failure with retry', () => {
-    const { element, api, state } = setup({ orderId: ORDER_ID });
+  it('initializes on entry and surfaces terminal failures with retry', async () => {
+    const { element, api, fixture, state } = setup({ orderId: ORDER_ID, apiFlow: TERMINAL });
+    await settleAsync();
+    fixture.detectChanges();
+
     expect(api.initializePayment).toHaveBeenCalledTimes(1);
     expect(api.initializePayment).toHaveBeenCalledWith({ orderId: ORDER_ID });
     expect(state.lifecycle()).toBe('failed');
     expect(element.textContent).toContain('Payment is currently unavailable');
-    expect(element.textContent).not.toContain('no request was sent');
+    expect(element.textContent).not.toContain('OrderIdRequired');
     expect(retryButton(element)).not.toBeNull();
   });
 
-  it('retries initialization through the error shell', () => {
-    const { element, api } = setup({ orderId: ORDER_ID });
+  it('stays on the payment page while the readiness poll is outstanding', async () => {
+    // Regression pin for the saga-lag bounce: retryable failures must
+    // NOT route to the result hub while poll ticks remain.
+    const { element, api, fixture, navigate, state } = setup({ orderId: ORDER_ID });
+    await settleAsync();
+    fixture.detectChanges();
+
+    expect(api.initializePayment).toHaveBeenCalledTimes(1);
+    expect(state.lifecycle()).toBe('initializing');
+    expect(navigate).not.toHaveBeenCalled();
+    expect(element.querySelector('payment-loading')).not.toBeNull();
+    expect(retryButton(element)).toBeNull();
+  });
+
+  it('retries initialization through the error shell', async () => {
+    const { element, api, fixture } = setup({ orderId: ORDER_ID, apiFlow: TERMINAL });
+    await settleAsync();
+    fixture.detectChanges();
+
     retryButton(element)?.click();
+    await settleAsync();
     expect(api.initializePayment).toHaveBeenCalledTimes(2);
   });
 
-  it('holds a single active attempt with the loading shell (no retry surface yet)', () => {
+  it('holds a single active attempt with the loading shell (no retry surface yet)', async () => {
     const { element, api, state } = setup({ orderId: ORDER_ID, apiFlow: () => NEVER });
+    await settleAsync();
     expect(api.initializePayment).toHaveBeenCalledTimes(1);
     expect(state.lifecycle()).toBe('initializing');
     expect(element.querySelector('payment-loading')).not.toBeNull();
     expect(retryButton(element)).toBeNull();
   });
 
-  it('reaches ready on success with the submit gate released', () => {
-    const { element, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+  it('reaches ready on success with the submit gate released', async () => {
+    const { element, fixture, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    await settleAsync();
+    fixture.detectChanges();
     expect(state.lifecycle()).toBe('ready');
     expect(submitButton(element)?.disabled).toBe(false);
   });
@@ -271,7 +305,9 @@ describe('PaymentPage initialization flow', () => {
 
 describe('PaymentPage submission (Sub-Phase 9.7)', () => {
   it('confirms through the state on submit and locks duplicates', async () => {
-    const { element, provider, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    const { element, fixture, provider, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    await settleAsync();
+    fixture.detectChanges();
     expect(state.lifecycle()).toBe('ready');
 
     submitButton(element)?.click();
@@ -289,6 +325,8 @@ describe('PaymentPage submission (Sub-Phase 9.7)', () => {
 
   it('disables the submit control while confirmation is outstanding', async () => {
     const { element, fixture, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    await settleAsync();
+    fixture.detectChanges();
     expect(state.lifecycle()).toBe('ready');
 
     submitButton(element)?.click();
@@ -301,6 +339,8 @@ describe('PaymentPage submission (Sub-Phase 9.7)', () => {
 
   it('disables the submit control while confirmation is outstanding', async () => {
     const { element, fixture, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    await settleAsync();
+    fixture.detectChanges();
     expect(state.lifecycle()).toBe('ready');
 
     submitButton(element)?.click();
@@ -314,11 +354,13 @@ describe('PaymentPage submission (Sub-Phase 9.7)', () => {
   it('maps provider success into the success stage', async () => {
     const succeeding = providerStub();
     succeeding.confirmPayment.mockResolvedValue({ outcome: 'succeeded', message: null });
-    const { element, state } = setup({
+    const { element, fixture, state } = setup({
       orderId: ORDER_ID,
       apiFlow: SUCCESS,
       provider: succeeding,
     });
+    await settleAsync();
+    fixture.detectChanges();
 
     submitButton(element)?.click();
     await settleAsync();
@@ -329,8 +371,12 @@ describe('PaymentPage submission (Sub-Phase 9.7)', () => {
 });
 
 describe('PaymentPage outcome routing (Sub-Phase 9.8)', () => {
-  it('routes terminal failure to the result route', () => {
-    const { navigate } = setup({ orderId: ORDER_ID });
+  it('routes terminal failure to the result route', async () => {
+    const { fixture, navigate } = setup({ orderId: ORDER_ID, apiFlow: TERMINAL });
+    await settleAsync();
+    fixture.detectChanges();
+    await settleAsync();
+
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(['/payment', ORDER_ID, 'result']);
   });
@@ -343,6 +389,8 @@ describe('PaymentPage outcome routing (Sub-Phase 9.8)', () => {
       apiFlow: SUCCESS,
       provider: succeeding,
     });
+    await settleAsync();
+    fixture.detectChanges();
 
     submitButton(element)?.click();
     await settleAsync();
@@ -367,6 +415,8 @@ describe('PaymentPage outcome routing (Sub-Phase 9.8)', () => {
     // Default provider stub resolves `unknown`: the call settled
     // unread, so leaving the live page for verification is safe.
     const { fixture, navigate, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
+    await settleAsync();
+    fixture.detectChanges();
     submitButton(fixture.nativeElement as HTMLElement)?.click();
     await settleAsync();
     fixture.detectChanges();
@@ -379,14 +429,17 @@ describe('PaymentPage outcome routing (Sub-Phase 9.8)', () => {
 });
 
 describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
-  it('offers retry on terminal failure with localized copy', () => {
-    const { element } = setup({ orderId: ORDER_ID });
+  it('offers retry on terminal failure with localized copy', async () => {
+    const { element, fixture } = setup({ orderId: ORDER_ID, apiFlow: TERMINAL });
+    await settleAsync();
+    fixture.detectChanges();
+
     expect(element.textContent).toContain('Payment is currently unavailable');
-    expect(element.textContent).not.toContain('no request was sent');
+    expect(element.textContent).not.toContain('OrderIdRequired');
     expect(retryButton(element)).not.toBeNull();
   });
 
-  it('withholds retry for pending check errors (message shown, no dead-end button)', () => {
+  it('withholds retry for pending check errors (message shown, no dead-end button)', async () => {
     const { element, fixture, state } = setup({
       orderId: ORDER_ID,
       apiFlow: SUCCESS,
@@ -395,6 +448,7 @@ describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
           () => new ApiError({ status: 0, code: 'NetworkError', message: 'Unreachable.' }),
         ),
     });
+    await settleAsync();
     expect(state.lifecycle()).toBe('ready');
     expect(state.beginProcessing()).toBe(true);
     expect(state.markPending()).toBe(true);
@@ -409,8 +463,9 @@ describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
 });
 
 describe('PaymentPage UI pass (Sub-Phase 9.10)', () => {
-  it('renders localized shells with the document title', () => {
+  it('renders localized shells with the document title', async () => {
     const { element } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS, orderFlow: ORDER_SUCCESS });
+    await settleAsync();
     expect(TestBed.inject(Title).getTitle()).toBe('Payment | FluxCommerce');
 
     const text = element.textContent ?? '';
@@ -419,12 +474,13 @@ describe('PaymentPage UI pass (Sub-Phase 9.10)', () => {
     expect(submitButton(element)?.textContent?.trim()).toBe('Pay');
   });
 
-  it('renders the backend order summary without secrets or technical text', () => {
+  it('renders the backend order summary without secrets or technical text', async () => {
     const { element, api } = setup({
       orderId: ORDER_ID,
       apiFlow: SUCCESS,
       orderFlow: ORDER_SUCCESS,
     });
+    await settleAsync();
     expect(api.getOrderDetails).toHaveBeenCalledTimes(1);
     expect(api.getOrderDetails).toHaveBeenCalledWith(ORDER_ID);
 
@@ -435,16 +491,17 @@ describe('PaymentPage UI pass (Sub-Phase 9.10)', () => {
     expect(text).toContain('ORD-ABC123DEF456');
     expect(text).toContain('Tee');
     expect(text).not.toContain(CLIENT_SECRET);
-    expect(text).not.toContain('no request was sent');
+    expect(text).not.toContain('OrderIdRequired');
     expect(text).not.toContain('pi_');
   });
 
-  it('hides the summary when the order read fails without failing payment', () => {
+  it('hides the summary when the order read fails without failing payment', async () => {
     const { element, state } = setup({
       orderId: ORDER_ID,
       apiFlow: SUCCESS,
       orderFlow: () => throwError(() => new Error('down')),
     });
+    await settleAsync();
     expect(state.lifecycle()).toBe('ready');
     expect(element.querySelector('payment-order-summary')).not.toBeNull();
     expect(element.textContent).not.toContain('ORD-ABC123DEF456');
@@ -455,6 +512,8 @@ describe('PaymentPage provider setup', () => {
   it('prepares the provider once per intent after ready', async () => {
     const { fixture, provider, state } = setup({ orderId: ORDER_ID, apiFlow: SUCCESS });
     await fixture.whenStable();
+    await settleAsync();
+    fixture.detectChanges();
     await settleAsync();
 
     expect(state.lifecycle()).toBe('ready');
@@ -502,6 +561,8 @@ describe('PaymentPage provider setup', () => {
       provider: failing,
     });
     await fixture.whenStable();
+    await settleAsync();
+    fixture.detectChanges();
     await settleAsync();
 
     expect(state.lifecycle()).toBe('failed');

@@ -101,8 +101,8 @@ export function paymentResultPath(orderId: string): string {
  * decision table, stage-first, never message text):
  * - `initialization-failure` — failed before any provider verdict
  *   exists (no `confirmationOutcome` recorded): setup, transport, and
- *   contract-blocked errors. Safe retry = fresh `initializePayment`
- *   (idempotent server-side by order).
+ *   initialization errors (including exhausted readiness polls). Safe
+ *   retry = fresh `initializePayment` (idempotent server-side by order).
  * - `confirmation-failure` — failed WITH a provider verdict recorded
  *   (decline, provider error, backend override): the attempt completed
  *   and must never resume — safe retry = fresh `initializePayment` for
@@ -161,4 +161,63 @@ export function paymentRecoveryFor(
     return 'check-status';
   }
   return 'none';
+}
+
+/**
+ * Bounded readiness-poll budget for `PaymentState.initializePayment`.
+ * The backend creates the payment intent asynchronously after checkout
+ * (eventual consistency), so the first `by-order` reads may legitimately
+ * miss. Attempts start immediately, repeat on a fixed interval, and stop
+ * at the cap — exhaustion records the last failure (manual retry stays
+ * available through the `failed → initializing` edge).
+ */
+export const INIT_POLL_INTERVAL_MS = 2000 as const;
+
+/** Maximum `by-order` attempts per `initializePayment` entry (see above). */
+export const INIT_POLL_MAX_ATTEMPTS = 15 as const;
+
+/**
+ * Whether an initialization failure is worth another `by-order` tick
+ * inside the poll budget (status-first, never message text):
+ * - retryable — transient or not-yet states: transport loss (`status
+ *   0`), rate/overload (`408`/`429`/`5xx`), saga lag (`404` of any code,
+ *   including codeless and masked-ownership reads), and `409` ONLY with
+ *   code `Payment.NotReady`.
+ * - terminal — backend decisions that a retry cannot change: `400`
+ *   validation, `401`/`403` auth, any other `409` (notably
+ *   `Payment.NotPayable`), and non-`ApiError` throwables (programming
+ *   errors — never spin the budget on a bug).
+ *
+ * Pure — throws nothing, performs no HTTP.
+ */
+export function isRetryableInitializationFailure(error: unknown): boolean {
+  if (!isRecord(error)) {
+    return false;
+  }
+  const status = readStatus(error);
+  if (status === 0 || status === 408 || status === 429 || status >= 500) {
+    return true;
+  }
+  if (status === 404) {
+    return true;
+  }
+  if (status === 409) {
+    return readCode(error) === 'Payment.NotReady';
+  }
+  return false;
+}
+
+/** Whether the value is a non-null object (failure-shape probe). */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/** Best-effort numeric `status` read off a failure shape (`NaN` when absent). */
+function readStatus(failure: Record<string, unknown>): number {
+  return typeof failure['status'] === 'number' ? failure['status'] : NaN;
+}
+
+/** Best-effort string `code` read off a failure shape (`null` when absent). */
+function readCode(failure: Record<string, unknown>): string | null {
+  return typeof failure['code'] === 'string' ? failure['code'] : null;
 }

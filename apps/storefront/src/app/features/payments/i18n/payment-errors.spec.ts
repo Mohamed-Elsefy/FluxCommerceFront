@@ -71,6 +71,25 @@ describe('resolvePaymentErrorMessage', () => {
     expect(resolvePaymentErrorMessage(failure, 'en')).toBeTypeOf('string');
   });
 
+  it('maps codeless 404s to the payment not-found copy (by-order wire reality)', () => {
+    for (const culture of CULTURES) {
+      const message = resolvePaymentErrorMessage(
+        new ApiError({ status: 404, message: 'Payment not found.' }),
+        culture,
+      );
+      expect(message, culture).toBeTypeOf('string');
+      expect(message?.length ?? 0, culture).toBeGreaterThan(0);
+    }
+    // Localized per culture (feature copy, not the generic fallback):
+    // every culture resolves, and non-English cultures differ from English.
+    expect(resolvePaymentErrorMessage(new ApiError({ status: 404, message: 'x' }), 'fr')).not.toBe(
+      resolvePaymentErrorMessage(new ApiError({ status: 404, message: 'x' }), 'en'),
+    );
+    expect(resolvePaymentErrorMessage(new ApiError({ status: 404, message: 'x' }), 'ar')).not.toBe(
+      resolvePaymentErrorMessage(new ApiError({ status: 404, message: 'x' }), 'en'),
+    );
+  });
+
   it('leaks no identifiers, secrets, or technical internals', () => {
     const orderId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
     const secret = 'pi_123_secret_abc';
@@ -82,6 +101,7 @@ describe('resolvePaymentErrorMessage', () => {
       }),
       new ApiError({ status: 0, code: 'ProviderSetupFailed', message: `secret ${secret} failed` }),
       new ApiError({ status: 404, code: 'Payment.NotFound', message: orderId }),
+      new ApiError({ status: 404, message: `missing ${orderId}` }),
     ];
     for (const failure of failures) {
       for (const culture of CULTURES) {

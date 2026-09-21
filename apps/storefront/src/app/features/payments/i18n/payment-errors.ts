@@ -23,10 +23,14 @@
  *   by-order reads: `Payment.NotReady`/`Payment.ProviderUnavailable` →
  *   retry copy, `Payment.NotPayable` → terminal copy,
  *   `Payment.OrderIdRequired` → retry copy).
- * - Anything else (unknown codes, codeless statuses, nullish errors) →
- *   the shared base resolver (`errors.*` by status, generic fallback).
- *   `null` error input resolves to `null` (nothing to display — the
- *   shells hide), NOT to generic copy.
+ * - Codeless `404`s (the common wire reality on `by-order`/`payments`
+ *   reads — business responses carry no `extensions.code`) → the
+ *   feature `notFound` copy (accurate for unknown and masked-ownership
+ *   ids alike; never backend text).
+ * - Anything else (unknown codes, other codeless statuses, nullish
+ *   errors) → the shared base resolver (`errors.*` by status, generic
+ *   fallback). `null` error input resolves to `null` (nothing to
+ *   display — the shells hide), NOT to generic copy.
  *
  * Security rule (the §9.10 guardrail): technical diagnostics
  * (setup failures, transport details, saga-lag internals) NEVER reach
@@ -77,6 +81,9 @@ export function resolvePaymentErrorMessage(
     typeof error.code === 'string' ? PAYMENT_ERROR_TRANSLATION_KEYS[error.code] : undefined;
   if (key !== undefined) {
     return translatePaymentKey(culture, key);
+  }
+  if (error.status === 404) {
+    return translatePaymentKey(culture, PAYMENT_TRANSLATION_KEYS.errorNotFound);
   }
   return resolveApiErrorMessage(error, culture);
 }

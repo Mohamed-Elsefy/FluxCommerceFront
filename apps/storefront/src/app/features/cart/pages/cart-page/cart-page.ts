@@ -20,14 +20,19 @@
  * ```
  *
  * Page contract:
- * - First render flows through the session lifecycle (owned by the
- *   service constructor effect): restoration pending → standby;
- *   anonymous → guest create/load/recover; authenticated → establish
- *   the backend cart (GET-first, single-shot get-or-create fallback).
- *   Synchronization is browser-only — the server renders the standby
- *   state and the client establishes identity after hydration. The page
- *   never reads `localStorage`, never inspects auth state itself, and
- *   never triggers merges.
+ * - Every entry (`ngOnInit`) queues a deferred re-synchronization: it
+ *   meets the one-at-a-time guard (no-op) while the effect-owned first
+ *   sync is still in flight, so first mounts fetch exactly once — while
+ *   a remount under an unchanged session (whose effect never refires)
+ *   refetches instead of showing the previous visit's settled lines.
+ *   First sync otherwise flows through the session lifecycle:
+ *   restoration pending → standby; anonymous → guest
+ *   create/load/recover; authenticated → establish the backend cart
+ *   (GET-first, single-shot get-or-create fallback). Synchronization is
+ *   browser-only — the server renders the standby state and the client
+ *   establishes identity after hydration. The page never reads
+ *   `localStorage`, never inspects auth state itself, and never triggers
+ *   merges.
  * - Quantity, remove, and clear intents forward to feature state
  *   (validated there — invalid values are ignored; routing follows the
  *   established identity, guest or authenticated).
@@ -324,10 +329,16 @@ export class CartPage implements OnInit {
   }
 
   ngOnInit(): void {
-    // First render flows through the session lifecycle owned by the
-    // service constructor effect (standby → guest/authenticated) — no
-    // explicit call here, so init cannot double-fire. Server pass stays
-    // standby (browser-only inside the service).
+    // Deferred entry sync: the session-lifecycle constructor effect owns
+    // the initial synchronization, and this queued call meets its
+    // one-at-a-time guard (no-op) while that request is still in flight
+    // — so first mounts fetch exactly once. On a remount under an
+    // unchanged session the effect never refires, and this call
+    // refetches instead of showing the previous visit's settled lines.
+    // Browser-only; the service no-ops server-side regardless.
+    if (this.isBrowser) {
+      queueMicrotask(() => this.authCart.synchronize());
+    }
     this.title.setTitle(`${this.copy().title} | FluxCommerce`);
   }
 

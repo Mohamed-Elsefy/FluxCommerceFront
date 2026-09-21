@@ -12,13 +12,14 @@
  */
 
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMPTY, NEVER, of, throwError, type Observable } from 'rxjs';
 import { ApiError, type ApiResponseWithData } from '@flux/api';
 import type { OrderDetailsResponse, Payment, PaymentInitializationResult } from '@flux/models';
 import type { ProviderConfirmationResult } from '../integrations/payment-provider';
 import { PaymentApiService } from '../data-access/payment-api.service';
 import { PAYMENT_PROVIDER } from '../integrations/payment-provider';
+import { INIT_POLL_INTERVAL_MS, INIT_POLL_MAX_ATTEMPTS } from '../models/payment.models';
 import {
   canTransitionPaymentLifecycle,
   PAYMENT_DECLINED_CODE,
@@ -496,7 +497,27 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
     return { state: TestBed.inject(PaymentState), initializePayment };
   }
 
+  /**
+   * Serves scripted `by-order` outcomes in call order (repeating the
+   * last step when the poll outruns the script). Cold observables are
+   * safe to re-subscribe — each tick gets a fresh execution.
+   */
+  function initializePaymentSequence(
+    steps: Array<Observable<ApiResponseWithData<PaymentInitializationResult>>>,
+  ): () => Observable<ApiResponseWithData<PaymentInitializationResult>> {
+    let index = 0;
+    return () => {
+      const step = steps[Math.min(index, steps.length - 1)];
+      index += 1;
+      return step;
+    };
+  }
+
   const success = () => of({ isSuccess: true, message: 'ok', data: INIT_RESULT });
+  const notFound = () =>
+    throwError(
+      () => new ApiError({ status: 404, code: 'Payment.NotFound', message: 'Payment not found.' }),
+    );
   const notReady = () =>
     throwError(
       () =>
@@ -506,10 +527,24 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
           message: 'Intent not created yet by the saga.',
         }),
     );
+  const unauthorized = () =>
+    throwError(
+      () => new ApiError({ status: 401, code: 'Payment.Unauthorized', message: 'Denied.' }),
+    );
+
+  // Readiness polling runs on timers: virtualize time for this block so
+  // the budget (interval × attempts) executes deterministically.
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('initializes through the service and records intent context in memory', () => {
     const { state, initializePayment } = setupWithApi(success);
     state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
 
     expect(initializePayment).toHaveBeenCalledTimes(1);
     expect(initializePayment).toHaveBeenCalledWith({ orderId: ORDER_ID });
@@ -520,6 +555,16 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
     expect(state.statusError()).toBeNull();
   });
 
+  it('stops polling after the first intent (zero surplus requests)', () => {
+    const { state, initializePayment } = setupWithApi(success);
+    state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
+    expect(state.lifecycle()).toBe('ready');
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS * INIT_POLL_MAX_ATTEMPTS);
+    expect(initializePayment).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the secret in memory only (no persistent sinks, no URL echo)', () => {
     // Isolate our writes: the shared runner environment may carry
     // entries from other specs.
@@ -527,6 +572,7 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
     globalThis.sessionStorage.clear();
     const { state } = setupWithApi(success);
     state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
 
     expect(state.clientSecret()).toBe(CLIENT_SECRET);
     expect(globalThis.localStorage.length).toBe(0);
@@ -534,35 +580,120 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
     expect(globalThis.location.href).not.toContain(CLIENT_SECRET);
   });
 
-  it('records the saga-lag failure without losing the order (manual retry)', () => {
-    const { state, initializePayment } = setupWithApi(notReady);
+  it('polls through saga lag instead of failing on the first 404', () => {
+    const { state, initializePayment } = setupWithApi(
+      initializePaymentSequence([notFound(), notFound(), success()]),
+    );
     state.initializePayment(ORDER_ID);
 
+    vi.advanceTimersByTime(0);
+    expect(state.lifecycle()).toBe('initializing');
     expect(initializePayment).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS);
+    expect(state.lifecycle()).toBe('initializing');
+    expect(initializePayment).toHaveBeenCalledTimes(2);
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS);
+    expect(state.lifecycle()).toBe('ready');
+    expect(state.paymentId()).toBe(PAYMENT_ID);
+    expect(state.statusError()).toBeNull();
+    expect(initializePayment).toHaveBeenCalledTimes(3);
+  });
+
+  it('polls through NotReady 409s the same way', () => {
+    const { state, initializePayment } = setupWithApi(
+      initializePaymentSequence([notReady(), success()]),
+    );
+    state.initializePayment(ORDER_ID);
+
+    vi.advanceTimersByTime(0);
+    expect(state.lifecycle()).toBe('initializing');
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS);
+    expect(state.lifecycle()).toBe('ready');
+    expect(initializePayment).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails terminal errors at once with no further ticks', () => {
+    const { state, initializePayment } = setupWithApi(unauthorized);
+    state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
+
     expect(state.lifecycle()).toBe('failed');
     expect(state.orderId()).toBe(ORDER_ID);
     expect(state.statusError()).toBeInstanceOf(ApiError);
-    expect(state.statusError()?.code).toBe('Payment.NotReady');
+    expect(state.statusError()?.code).toBe('Payment.Unauthorized');
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS * INIT_POLL_MAX_ATTEMPTS);
+    expect(initializePayment).toHaveBeenCalledTimes(1);
   });
 
-  it('treats a dataless envelope as a contract violation', () => {
-    const { state } = setupWithApi(() => of({ isSuccess: true, message: 'ok', data: null }));
+  it('reports the last failure when the budget runs out (manual retry stays)', () => {
+    const { state, initializePayment } = setupWithApi(notFound);
     state.initializePayment(ORDER_ID);
 
+    // Ticks fire at t=0, interval, …: after MAX-1 ticks the poll is
+    // still outstanding…
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS * (INIT_POLL_MAX_ATTEMPTS - 2));
+    expect(state.lifecycle()).toBe('initializing');
+    expect(initializePayment).toHaveBeenCalledTimes(INIT_POLL_MAX_ATTEMPTS - 1);
+
+    // …and the final tick exhausts the budget with the last failure.
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS);
     expect(state.lifecycle()).toBe('failed');
-    expect(state.statusError()?.code).toBe('UnknownError');
+    expect(state.orderId()).toBe(ORDER_ID);
+    expect(state.statusError()).toBeInstanceOf(ApiError);
+    expect(state.statusError()?.code).toBe('Payment.NotFound');
+    expect(initializePayment).toHaveBeenCalledTimes(INIT_POLL_MAX_ATTEMPTS);
+
+    // No further ticks after exhaustion.
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS * INIT_POLL_MAX_ATTEMPTS);
+    expect(initializePayment).toHaveBeenCalledTimes(INIT_POLL_MAX_ATTEMPTS);
+  });
+
+  it('skips dataless envelopes as poll ticks and reads again', () => {
+    const { state, initializePayment } = setupWithApi(
+      initializePaymentSequence([of({ isSuccess: true, message: 'ok', data: null }), success()]),
+    );
+    state.initializePayment(ORDER_ID);
+
+    vi.advanceTimersByTime(0);
+    expect(state.lifecycle()).toBe('initializing');
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS);
+    expect(state.lifecycle()).toBe('ready');
+    expect(initializePayment).toHaveBeenCalledTimes(2);
   });
 
   it('normalizes non-ApiError throwables instead of re-throwing', () => {
     const { state } = setupWithApi(() => throwError(() => new Error('boom')));
-    expect(() => state.initializePayment(ORDER_ID)).not.toThrow();
+    expect(() => {
+      state.initializePayment(ORDER_ID);
+      vi.advanceTimersByTime(0);
+    }).not.toThrow();
     expect(state.lifecycle()).toBe('failed');
     expect(state.statusError()).toBeInstanceOf(ApiError);
   });
 
-  it('drops duplicate attempts while a request is active (no second call)', () => {
+  it('stops polling on unsubscribe (no writes after teardown)', () => {
+    const { state, initializePayment } = setupWithApi(notFound);
+    const sub = state.initializePayment(ORDER_ID);
+
+    vi.advanceTimersByTime(0);
+    expect(initializePayment).toHaveBeenCalledTimes(1);
+    sub.unsubscribe();
+
+    vi.advanceTimersByTime(INIT_POLL_INTERVAL_MS * INIT_POLL_MAX_ATTEMPTS);
+    expect(initializePayment).toHaveBeenCalledTimes(1);
+    expect(state.lifecycle()).toBe('initializing');
+    expect(state.statusError()).toBeNull();
+  });
+
+  it('drops duplicate attempts while a poll is active (no second stream)', () => {
     const { state, initializePayment } = setupWithApi(() => NEVER);
     state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
     expect(state.lifecycle()).toBe('initializing');
 
     state.initializePayment(ORDER_ID);
@@ -571,11 +702,13 @@ describe('PaymentState initializePayment (Sub-Phase 9.6 execution)', () => {
   });
 
   it('retries from failed with a fresh attempt', () => {
-    const { state, initializePayment } = setupWithApi(notReady);
+    const { state, initializePayment } = setupWithApi(unauthorized);
     state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
     expect(state.lifecycle()).toBe('failed');
 
     state.initializePayment(ORDER_ID);
+    vi.advanceTimersByTime(0);
     expect(initializePayment).toHaveBeenCalledTimes(2);
     expect(state.lifecycle()).toBe('failed');
   });
@@ -614,7 +747,16 @@ describe('PaymentState confirmPayment (Sub-Phase 9.7 execution)', () => {
       ],
     });
     const state = TestBed.inject(PaymentState);
-    state.initializePayment(ORDER_ID);
+    // Synchronous setup (these suites own confirmation, not the async
+    // readiness poll): enter and record the intent directly.
+    expect(state.beginInitialization(ORDER_ID)).toBe(true);
+    expect(
+      state.markReady({
+        paymentId: READY_RESULT.paymentId,
+        clientSecret: READY_RESULT.clientSecret,
+        paymentStatus: READY_RESULT.status,
+      }),
+    ).toBe(true);
     expect(state.lifecycle()).toBe('ready');
     return { state, confirmPayment };
   }
@@ -739,7 +881,14 @@ describe('PaymentState confirmPayment (Sub-Phase 9.7 execution)', () => {
     expect(confirmPayment).not.toHaveBeenCalled();
     expect(state.lifecycle()).toBe('idle');
 
-    state.initializePayment(ORDER_ID);
+    expect(state.beginInitialization(ORDER_ID)).toBe(true);
+    expect(
+      state.markReady({
+        paymentId: PAYMENT_ID,
+        clientSecret: CLIENT_SECRET,
+        paymentStatus: 'Pending',
+      }),
+    ).toBe(true);
     expect(state.lifecycle()).toBe('ready');
   });
 });
@@ -779,8 +928,16 @@ describe('PaymentState refreshStatus (Sub-Phase 9.8 backend truth)', () => {
       ],
     });
     const state = TestBed.inject(PaymentState);
-    state.initializePayment(ORDER_ID);
-    expect(state.lifecycle()).toBe('ready');
+    // Synchronous setup (these suites own verification, not the async
+    // readiness poll): enter, record the intent, and move to pending.
+    expect(state.beginInitialization(ORDER_ID)).toBe(true);
+    expect(
+      state.markReady({
+        paymentId: PAYMENT_ID,
+        clientSecret: CLIENT_SECRET,
+        paymentStatus: 'Pending',
+      }),
+    ).toBe(true);
     state.beginProcessing();
     state.markPending();
     expect(state.lifecycle()).toBe('pending');
@@ -861,7 +1018,14 @@ describe('PaymentState refreshStatus (Sub-Phase 9.8 backend truth)', () => {
     state.refreshStatus();
     expect(getPaymentStatus).not.toHaveBeenCalled();
 
-    state.initializePayment(ORDER_ID);
+    expect(state.beginInitialization(ORDER_ID)).toBe(true);
+    expect(
+      state.markReady({
+        paymentId: PAYMENT_ID,
+        clientSecret: CLIENT_SECRET,
+        paymentStatus: 'Pending',
+      }),
+    ).toBe(true);
     expect(state.lifecycle()).toBe('ready');
     state.refreshStatus();
     expect(getPaymentStatus).not.toHaveBeenCalled();

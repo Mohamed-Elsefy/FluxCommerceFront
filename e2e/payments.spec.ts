@@ -19,17 +19,16 @@
  * /payment/:orderId/result (fallback for unresolved flows)
  * ```
  *
- * Contract-honest scope (the §9.1 blocker, pinned throughout): the
- * backend exposes NO client-secret endpoint, so `initializePayment`
- * short-circuits without HTTP and the initialized/ready/processing
- * stages are unreachable against the real service. The executable
- * suites below verify everything reachable today — entry seam, backend
- * order summary, initialization-failure handling with safe retry,
- * result fallback routing, and the security surface (no Stripe/iframe/
- * secret leakage). The backend-gated journeys (success, failed-retry
- * success, pending, cancelled, unknown) ship as SKIPPED suites with
- * their enable conditions: remove `.skip` once the backend lands the
- * intent endpoint and `PaymentApiService` executes HTTP.
+ * Contract scope: transport is mocked at the network boundary
+ * (`page.route`) with a small STATEFUL mock backend (caller cart,
+ * programmable checkout verdict, order reads, by-order initialization
+ * reads with programmable saga lag, payment status reads). The Stripe.js
+ * CDN is blocked (`request.abort`), so provider setup deterministically
+ * fails fast — executable suites cover everything up to the provider
+ * seam (entry, initialization incl. readiness polling, failure handling
+ * with safe retry, result routing, security surface). Suites needing a
+ * live provider (Elements mount, real confirmation) stay SKIPPED with
+ * their enable condition below.
  *
  * Backend-authoritative rule (pinned throughout): every price, count,
  * and total asserted below comes from a mock response — the suite
@@ -81,6 +80,9 @@ interface PaymentsBackend {
   orderSeq: number;
   orderReads: string[];
   paymentReads: PaymentStatusCall[];
+  byOrderCalls: string[];
+  /** Saga-lag simulation: this many leading by-order reads fail 404 first. */
+  initFailuresRemaining: number;
 }
 
 function teeLine(overrides: Partial<MockLine> = {}): MockLine {
@@ -116,6 +118,8 @@ function createBackend(): PaymentsBackend {
     orderSeq: 0,
     orderReads: [],
     paymentReads: [],
+    byOrderCalls: [],
+    initFailuresRemaining: 0,
   };
 }
 
@@ -205,8 +209,37 @@ async function mockPaymentsApi(page: Page, backend: PaymentsBackend): Promise<vo
   await page.route(
     (url) => url.origin === API_ORIGIN && url.pathname.startsWith('/api/payments/'),
     async (route) => {
-      const paymentId = route.request().url().split('/api/payments/')[1] ?? 'unknown';
-      backend.paymentReads.push({ paymentId });
+      const suffix = route.request().url().split('/api/payments/')[1] ?? 'unknown';
+      if (suffix.startsWith('by-order/')) {
+        const orderId = suffix.slice('by-order/'.length);
+        backend.byOrderCalls.push(orderId);
+        if (backend.initFailuresRemaining > 0) {
+          backend.initFailuresRemaining -= 1;
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/problem+json',
+            body: JSON.stringify({
+              type: 'about:blank',
+              title: 'Not Found',
+              status: 404,
+              detail: 'Payment not found.',
+              extensions: {},
+            }),
+          });
+          return;
+        }
+        await route.fulfill({
+          json: envelope({
+            paymentId: `pay-e2e-${orderId}`,
+            orderId,
+            clientSecret: 'pi_e2e_secret_abc',
+            paymentReference: 'pi_e2e_123',
+            status: 'Pending',
+          }),
+        });
+        return;
+      }
+      backend.paymentReads.push({ paymentId: suffix });
       await route.fulfill({
         status: 404,
         contentType: 'application/problem+json',
@@ -220,6 +253,11 @@ async function mockPaymentsApi(page: Page, backend: PaymentsBackend): Promise<vo
       });
     },
   );
+
+  // The provider seam is not executable in E2E (no live Stripe intent
+  // behind the mocked secret): block the CDN so setup fails fast and
+  // deterministically instead of depending on real-network timing.
+  await page.route('https://js.stripe.com/**', (route) => route.abort());
 }
 
 const ACTIVE_USER = {
@@ -322,8 +360,9 @@ async function checkoutToPayment(page: Page, backend: PaymentsBackend): Promise<
   await expect(page.getByText('ORD-E2E-000001')).toBeVisible();
   expect(backend.orderCalls).toHaveLength(1);
 
-  // Initialization has no backend path yet (§9.1 blocker), so the
-  // payment page records the failure and routes to the result hub.
+  // Initialization reads the mocked by-order intent (200), then provider
+  // setup fails fast (Stripe CDN blocked in E2E) and the page routes to
+  // the result hub with the setup failure.
   await page.getByRole('link', { name: 'Continue to payment' }).click();
   await expect(page).toHaveURL(/\/payment\/order-e2e-1\/result$/);
   return 'order-e2e-1';
@@ -336,14 +375,14 @@ test.beforeEach(async ({ page }) => {
   await mockPaymentsApi(page, backend);
 });
 
-test('enters payment from checkout and lands on the verified failure result', async ({ page }) => {
+test('enters payment from checkout and lands on the setup-failure result', async ({ page }) => {
   await mockSession(page);
   const orderId = await checkoutToPayment(page, backend);
 
   // Failed block: localized message (never technical internals),
   // backend-issued order summary (lines, counts, totals — never locally
   // computed), and safe navigation options.
-  await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+  await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
   await expect(page.getByText('ORD-E2E-000001')).toBeVisible();
   await expect(page.getByText('TEE-BLK-M')).toBeVisible();
   await expect(page.getByText('$59.98').first()).toBeVisible();
@@ -356,20 +395,47 @@ test('enters payment from checkout and lands on the verified failure result', as
     '/checkout',
   );
   expect(backend.orderReads).toContain(orderId);
+  expect(backend.byOrderCalls).toContain(orderId);
+});
+
+test('polls through saga lag instead of failing on the first 404', async ({ page }) => {
+  await mockSession(page);
+  backend.initFailuresRemaining = 2;
+  await page.goto('/checkout');
+  await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
+  await fillAddress(page, 'Shipping address');
+  await fillAddress(page, 'Billing address');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByText('ORD-E2E-000001')).toBeVisible();
+  await page.getByRole('link', { name: 'Continue to payment' }).click();
+
+  // The readiness poll absorbs the lag ticks: the page must NOT bounce
+  // to the result route while retries are outstanding.
+  await expect(page).toHaveURL(/\/payment\/order-e2e-1$/);
+  await expect
+    .poll(() => backend.byOrderCalls.length, { timeout: 15000 })
+    .toBeGreaterThanOrEqual(2);
+  await expect(page).toHaveURL(/\/payment\/order-e2e-1$/);
+
+  // The third tick reads the intent; provider setup then fails fast
+  // (CDN blocked) and routes to the result hub.
+  await expect(page).toHaveURL(/\/payment\/order-e2e-1\/result$/, { timeout: 30000 });
+  await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
+  expect(backend.byOrderCalls.length).toBeGreaterThanOrEqual(3);
+  expect(backend.orderCalls).toHaveLength(1);
 });
 
 test('retries initialization failures safely without duplicates or crashes', async ({ page }) => {
   await mockSession(page);
   await checkoutToPayment(page, backend);
 
-  await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+  await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
   await page.getByRole('link', { name: 'Try again' }).click();
 
-  // Re-entry attempts initialization again (still blocked — no intent
-  // endpoint) and routes back to the single failure presentation: one
-  // error message, no duplicate order, no crash.
+  // Re-entry attempts initialization again and routes back to the single
+  // failure presentation: one error message, no duplicate order, no crash.
   await expect(page).toHaveURL(/\/payment\/order-e2e-1\/result$/);
-  await expect(page.getByText('Payment is currently unavailable')).toHaveCount(1);
+  await expect(page.getByText('Payment setup failed. Please try again.')).toHaveCount(1);
   expect(backend.orderCalls).toHaveLength(1);
 });
 
@@ -391,7 +457,7 @@ test('renders the unresolved result fallback with navigation and zero verificati
 test('exposes no secrets or provider surfaces in the payment UI', async ({ page }) => {
   await mockSession(page);
   await checkoutToPayment(page, backend);
-  await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+  await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
 
   // No Stripe Elements surface of any kind (no SDK executes in E2E).
   await expect(page.locator('text=/stripe/i')).toHaveCount(0);
@@ -409,19 +475,20 @@ test('exposes no secrets or provider surfaces in the payment UI', async ({ page 
 });
 
 /**
- * Backend-gated journeys (blocked: no client-secret endpoint — §9.1).
- * Each suite below drives its executable prefix, then skips before the
- * backend-gated remainder. Enable condition per suite: the backend lands
- * the intent endpoint AND `PaymentApiService.initializePayment` executes
- * HTTP (remove `.skip` and point the remainder at the landed contract).
+ * Provider-gated journeys (blocked: no live provider in E2E — the Stripe
+ * CDN is aborted and the mocked secret backs no real intent). Each suite
+ * below drives its executable prefix, then skips before the
+ * provider-gated remainder. Enable condition per suite: a runnable
+ * provider seam in E2E (e.g. a stubbed `STRIPE_JS_LOADER` or a fulfilled
+ * Elements mount) plus status mocks for the remainder.
  */
-test.describe.skip('successful payment journey (blocked: no intent endpoint)', () => {
+test.describe.skip('successful payment journey (blocked: no live provider)', () => {
   test('checkout → order → payment → stripe success → verified result', async ({ page }) => {
     await mockSession(page);
     await checkoutToPayment(page, backend);
-    await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+    await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
 
-    // REMAINDER (runs once initialization succeeds for real):
+    // REMAINDER (runs once a provider seam is runnable in E2E):
     // 1. submit the mounted payment element,
     // 2. mock `GET /api/payments/{id}` → `{ status: 'Succeeded', ... }`,
     // 3. expect the result route success block with the order reference
@@ -431,9 +498,9 @@ test.describe.skip('successful payment journey (blocked: no intent endpoint)', (
   test('failed payment with safe retry to a successful second attempt', async ({ page }) => {
     await mockSession(page);
     await checkoutToPayment(page, backend);
-    await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+    await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
 
-    // REMAINDER (runs once initialization succeeds for real):
+    // REMAINDER (runs once a provider seam is runnable in E2E):
     // 1. decline the payment (provider failure → failed block),
     // 2. follow "Try again" back to `/payment/:orderId` (fresh intent),
     // 3. confirm again with success and expect the success block.
@@ -442,9 +509,9 @@ test.describe.skip('successful payment journey (blocked: no intent endpoint)', (
   test('pending payment with status verification', async ({ page }) => {
     await mockSession(page);
     await checkoutToPayment(page, backend);
-    await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+    await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
 
-    // REMAINDER (runs once initialization succeeds for real):
+    // REMAINDER (runs once a provider seam is runnable in E2E):
     // 1. confirm into a `pending` provider outcome (pending block),
     // 2. mock `GET /api/payments/{id}` → `{ status: 'Processing', ... }`,
     // 3. press "Check status" and expect the pending block to persist
@@ -454,9 +521,9 @@ test.describe.skip('successful payment journey (blocked: no intent endpoint)', (
   test('cancelled payment with return and re-attempt options', async ({ page }) => {
     await mockSession(page);
     await checkoutToPayment(page, backend);
-    await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+    await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
 
-    // REMAINDER (runs once initialization succeeds for real):
+    // REMAINDER (runs once a provider seam is runnable in E2E):
     // 1. cancel the payment (cancelled block),
     // 2. expect "Try again" (`/payment/:orderId`) and "Back to checkout"
     //    (`/checkout`) navigation options.
@@ -465,9 +532,9 @@ test.describe.skip('successful payment journey (blocked: no intent endpoint)', (
   test('unknown outcome resolves through backend status, never blind retry', async ({ page }) => {
     await mockSession(page);
     await checkoutToPayment(page, backend);
-    await expect(page.getByText('Payment is currently unavailable')).toBeVisible();
+    await expect(page.getByText('Payment setup failed. Please try again.')).toBeVisible();
 
-    // REMAINDER (runs once initialization succeeds for real):
+    // REMAINDER (runs once a provider seam is runnable in E2E):
     // 1. force an `unknown` provider outcome (unknown block, NO retry
     //    button anywhere on the route),
     // 2. mock `GET /api/payments/{id}` → terminal verdict,
