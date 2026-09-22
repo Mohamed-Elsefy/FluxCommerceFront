@@ -222,6 +222,27 @@ stay honest: initialization and confirmation cannot execute until
 the backend lands the intent path, so both short-circuit with a
 normalized, branchable error instead of hallucinating traffic.
 
+As built in Phase 10 (see
+`docs/completed/PHASE_10_COMPLETION_REPORT.md`), Orders extends the
+pattern across the whole post-purchase area without shared business
+libraries: `apps/storefront/.../features/orders/` owns the
+`accountRoutes` lazy boundary mounted at `account` (guarded shell
+with route-provided `AccountState` over `GET /auth/me`, profile page
+with loading/error/loaded states, read-only by contract), the
+`ordersRoutes` sub-boundary (`OrdersListPage` with route-provided
+`OrdersListState` over the paged `GET /orders` contract;
+`OrderDetailsPage` with route-provided `OrderDetailsState` over
+`GET /orders/{orderId}` plus the bounded `timer` + `take` +
+`exhaustMap` post-payment sync loop), feature-owned
+order/payment status badges with independent localized mappings and
+unknown-value fallbacks, and feature-owned models/i18n. Backend gaps
+stay honest: no order-history timeline exists (no history contract —
+`ORDERS_HISTORY_SUPPORTED` pins the gap), no per-order payment
+status renders (no payment fields on any order payload), no tax rows
+or thumbnails render (no such contract fields), and no totals math
+or status derivation exists anywhere (backend values render
+verbatim).
+
 ---
 
 ## 6. Shared Libraries
@@ -972,7 +993,11 @@ endpoints), and the isolated `PaymentProvider`/`StripePaymentProvider`
 boundary (no npm Stripe dependency, platform-guarded browser touches,
 publishable key + script URL from app environments). Checkout links
 into payment via `Continue to payment`; order polling belongs to
-Phase 10.
+Phase 10 — complete (see
+`docs/completed/PHASE_10_COMPLETION_REPORT.md`): the `account`
+boundary serves the profile, the paged orders list, and the order
+details with its bounded post-payment sync loop, and the payment
+result links onward to the customer order.
 
 ---
 
