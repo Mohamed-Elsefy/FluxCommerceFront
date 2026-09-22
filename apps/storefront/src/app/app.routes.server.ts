@@ -24,6 +24,15 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server,
   },
   {
+    // Sub-Phase 10.4 — order-detail URLs are data-driven (one per
+    // order, no build-time backend) and authenticated, so they render
+    // on demand instead of prerendering. The server renders the loading
+    // shell at request time; the live order loads client-side after
+    // hydration (same seam as the §10.2 profile page).
+    path: 'account/orders/:orderId',
+    renderMode: RenderMode.Server,
+  },
+  {
     path: '**',
     renderMode: RenderMode.Prerender,
   },

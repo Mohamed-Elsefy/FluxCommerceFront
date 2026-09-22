@@ -1,10 +1,14 @@
 /**
- * Orders feature-state boundaries for Sub-Phase 10.1 — Orders Contract
- * Audit & Feature Foundation.
+ * Orders feature-state boundaries for Sub-Phases 10.1–10.4 — Orders
+ * Contract Audit & Feature Foundation through Order Details.
  *
- * Scope: `docs/phases/PHASE_10_ORDERS_CUSTOMER_ACCOUNT.md` §10.1
- * (boundaries only — no `@Injectable()` store, no signals, no effects,
- * no polling implementation).
+ * Scope: boundary shapes only — no `@Injectable()` store, no signals,
+ * no effects, no polling implementation in this file. The §10.3 list
+ * slot is implemented by `./orders-list-state` (`OrdersListState`,
+ * route-provided via `ordersRoutes`) and the §10.4 details slot by
+ * `./order-details-state` (`OrderDetailsState`, route-provided on the
+ * `:orderId` entry); the shapes below remain the documented
+ * data-access/state seam targets.
  *
  * Intended dependency flow (`ARCHITECTURE.md` §10), established here as
  * the contract that later sub-phases implement:
@@ -31,8 +35,6 @@
  *   required (bounded, cancellable, no overlapping requests).
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 10.3 — no list resource slots, no pagination behavior.
- * - 10.4 — no details resource slots, no cancel orchestration.
  * - 10.5 — no badge/label mapping state.
  * - 10.6 — no polling loops or sync state.
  */
@@ -41,9 +43,10 @@ import type { PagedResult } from '@flux/api';
 import type { Order, OrderSummary, OrdersQuery } from '../models/orders.models';
 
 /**
- * Intended orders-list state shape (§10.3 implements it): the settled
- * page plus the effective query that produced it. Declared here so the
- * data-access/state seam has one typed target; no runtime lives here.
+ * Intended orders-list state shape (§10.3 implements it in
+ * `./orders-list-state`): the settled page plus the effective query
+ * that produced it. Declared here so the data-access/state seam has one
+ * typed target; no runtime lives here.
  */
 export interface OrdersListStateShape {
   readonly page: PagedResult<OrderSummary> | null;
@@ -51,9 +54,10 @@ export interface OrdersListStateShape {
 }
 
 /**
- * Intended order-details state shape (§10.4 implements it): the settled
- * order plus the requested id. Declared here so the data-access/state
- * seam has one typed target; no runtime lives here.
+ * Intended order-details state shape (§10.4 implements it in
+ * `./order-details-state`): the settled order plus the requested id.
+ * Declared here so the data-access/state seam has one typed target; no
+ * runtime lives here.
  */
 export interface OrderDetailsStateShape {
   readonly order: Order | null;
