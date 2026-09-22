@@ -1,0 +1,20 @@
+<section class="account-shell" aria-labelledby="account-title">
+  <div class="account-shell-head">
+    <div class="account-shell-heading">
+      <h1 id="account-title">{{ copy().title }}</h1>
+      @if (signedInAs() !== null) {
+        <p class="account-shell-user">{{ signedInAs() }}</p>
+      }
+    </div>
+    <button
+      type="button"
+      class="account-shell-logout"
+      (click)="logout()"
+      [disabled]="isLoggingOut()"
+    >
+      {{ isLoggingOut() ? copy().loggingOut : copy().logout }}
+    </button>
+  </div>
+  <account-nav [items]="copy().navItems" [label]="copy().navLabel" />
+  <router-outlet />
+</section>

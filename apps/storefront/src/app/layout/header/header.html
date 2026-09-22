@@ -4,7 +4,7 @@
       <a class="brand" routerLink="/" aria-label="FluxCommerce home">FluxCommerce</a>
       <storefront-nav class="desktop-nav" [items]="mainNav" label="Main" />
       <div class="actions">
-        <auth-nav />
+        <auth-nav [accountRoute]="'/account'" />
         <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
         <button
           #menuToggle

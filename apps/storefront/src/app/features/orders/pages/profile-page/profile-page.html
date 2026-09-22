@@ -1,0 +1,49 @@
+<section class="profile-page" aria-labelledby="profile-page-title">
+  <h1 id="profile-page-title" tabindex="-1">{{ copy().title }}</h1>
+
+  @if (showLoading()) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (showError()) {
+    <flux-error-state
+      [title]="copy().loadErrorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="onRetry()"
+    ></flux-error-state>
+  } @else if (view() !== null) {
+    <dl class="profile-page-details">
+      <div>
+        <dt>{{ copy().fieldName }}</dt>
+        <dd>{{ view()?.displayName }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldEmail }}</dt>
+        <dd>{{ view()?.email }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldEmailVerified }}</dt>
+        <dd>{{ view()?.emailVerified ? copy().verifiedYes : copy().verifiedNo }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldPhone }}</dt>
+        <dd>{{ phoneText() }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldRoles }}</dt>
+        <dd>{{ rolesText() }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldLanguage }}</dt>
+        <dd>{{ view()?.preferredLanguage }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldTimezone }}</dt>
+        <dd>{{ view()?.timeZone }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldMemberSince }}</dt>
+        <dd>{{ memberSinceText() }}</dd>
+      </div>
+    </dl>
+  }
+</section>
