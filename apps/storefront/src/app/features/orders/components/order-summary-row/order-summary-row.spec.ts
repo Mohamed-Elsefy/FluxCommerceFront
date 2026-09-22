@@ -15,6 +15,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { CultureService } from '@flux/i18n';
 import {
   OrderSummaryRow,
   toOrderRowView,
@@ -50,6 +51,7 @@ function setup(view: OrderRowView): {
   const fixture = TestBed.createComponent(OrderSummaryRow);
   fixture.componentRef.setInput('view', view);
   fixture.componentRef.setInput('labels', LABELS);
+  TestBed.inject(CultureService).setCulture('en');
   fixture.detectChanges();
   return { fixture, element: fixture.nativeElement as HTMLElement };
 }
@@ -84,11 +86,12 @@ describe('OrderSummaryRow', () => {
     expect(link?.getAttribute('href')).toBe('/account/orders/11111111-1111-4111-8111-111111111111');
   });
 
-  it('renders status verbatim as plain text (never a badge)', () => {
+  it('renders status through the order badge (localized, never plain text)', () => {
     const { element } = setup(toOrderRowView(summary({ status: 'Pending' }), 'en'));
+    const badge = element.querySelector('orders-order-status-badge span.status-badge');
 
-    expect(element.textContent).toContain('Pending');
-    expect(element.querySelector('[class*="badge"]')).toBeNull();
+    expect(badge?.textContent?.trim()).toBe('Pending');
+    expect(badge?.className).toContain('tone-info');
   });
 
   it('renders no payment status (no such contract field)', () => {

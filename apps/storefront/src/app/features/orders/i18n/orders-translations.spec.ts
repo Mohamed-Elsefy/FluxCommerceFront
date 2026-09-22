@@ -40,7 +40,37 @@ describe('orders translation parity', () => {
       expect(translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsTitle)).not.toBe(
         translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.detailsTitle),
       );
+      expect(translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderConfirmed)).not.toBe(
+        translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusOrderConfirmed),
+      );
+      expect(translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusPaymentSucceeded)).not.toBe(
+        translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentSucceeded),
+      );
     }
+  });
+
+  it('resolves every backend status value to a localized label in English', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusOrderPending)).toBe('Pending');
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusOrderCancelled)).toBe(
+      'Cancelled',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusOrderConfirmed)).toBe(
+      'Confirmed',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentPending)).toBe('Pending');
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentProcessing)).toBe(
+      'Processing',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentSucceeded)).toBe(
+      'Succeeded',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentFailed)).toBe('Failed');
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentCancelled)).toBe(
+      'Cancelled',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPaymentRefunded)).toBe(
+      'Refunded',
+    );
   });
 
   it('interpolates params into slot templates', () => {

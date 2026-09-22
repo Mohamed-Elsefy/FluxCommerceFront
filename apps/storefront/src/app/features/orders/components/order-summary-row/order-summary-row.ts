@@ -1,11 +1,12 @@
 /**
- * Order summary row component for Sub-Phase 10.3 — Orders List.
+ * Order summary row component for Sub-Phases 10.3 (Orders List) and
+ * 10.5 (Order & Payment Status Experience).
  *
  * Presentation only: renders HOW one customer order reads (order number
- * linked to the details route, backend-issued date, status, item count,
- * and total). The owning page decides WHEN and WHAT — the row arrives
- * preformatted (date and money formatted for the active culture at the
- * page via `formatDate`/`formatCurrency`; labels page-localized),
+ * linked to the details route, backend-issued date, status badge, item
+ * count, and total). The owning page decides WHEN and WHAT — the row
+ * arrives preformatted (date and money formatted for the active culture
+ * at the page via `formatCurrency`/`formatDate`; labels page-localized),
  * projected from `OrderSummary` through `toOrderRowView` below.
  * Dynamic sync flows through inputs: new page data means a new view
  * object, never an in-place mutation. No API access, no HTTP, no state
@@ -16,9 +17,9 @@
  * - The order number, date, item count, and total echo the backend
  *   summary verbatim. The total is display text only — never an input
  *   to math, never recomputed from lines.
- * - `statusText` is the backend `OrderStatus` string verbatim: plain
- *   text, deliberately NOT a badge — status badges and localized
- *   status mapping belong to §10.5.
+ * - Status renders through the §10.5 `OrderStatusBadge` (localized
+ *   label, tone, unknown-value fallback) — never derived, never mapped
+ *   across concepts.
  * - NO payment status renders here: neither `OrderSummaryResponse` nor
  *   `OrderDetailsResponse` carries payment fields (payment truth lives
  *   behind `GET /api/payments/{id}`, whose `paymentId` the checkout
@@ -43,6 +44,7 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatCurrency, formatDate, type Culture } from '@flux/i18n';
 import { orderDetailsPath, type OrderSummary } from '../../models/orders.models';
+import { OrderStatusBadge } from '../order-status-badge/order-status-badge';
 
 /** One orders-list row: backend facts only, date and total preformatted. */
 export interface OrderRowView {
@@ -54,7 +56,7 @@ export interface OrderRowView {
   readonly orderNumber: string;
   /** Culture-formatted creation date (display only). */
   readonly dateText: string;
-  /** Backend `OrderStatus` string verbatim (plain text, never a badge). */
+  /** Backend `OrderStatus` string verbatim (feeds the §10.5 status badge). */
   readonly statusText: string;
   /** Backend line count (`itemCount`, structural — never money). */
   readonly itemCount: number;
@@ -90,7 +92,7 @@ export function toOrderRowView(summary: OrderSummary, culture: Culture): OrderRo
 
 @Component({
   selector: 'orders-order-summary-row',
-  imports: [RouterLink],
+  imports: [RouterLink, OrderStatusBadge],
   templateUrl: './order-summary-row.html',
   styleUrl: './order-summary-row.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -50,7 +50,7 @@
       </div>
       <div>
         <dt>{{ copy().fieldStatus }}</dt>
-        <dd>{{ details.statusText }}</dd>
+        <dd><orders-order-status-badge [status]="details.statusText" /></dd>
       </div>
       <div>
         <dt>{{ copy().fieldCustomer }}</dt>

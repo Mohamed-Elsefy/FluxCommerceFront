@@ -74,6 +74,17 @@ export const ORDERS_TRANSLATION_KEYS = {
   detailsFieldShipping: 'orders.details.fields.shipping',
   detailsFieldGrandTotal: 'orders.details.fields.grandTotal',
   detailsItemsEmpty: 'orders.details.itemsEmpty',
+  statusOrderPending: 'orders.status.order.pending',
+  statusOrderCancelled: 'orders.status.order.cancelled',
+  statusOrderConfirmed: 'orders.status.order.confirmed',
+  statusOrderUnknown: 'orders.status.order.unknown',
+  statusPaymentPending: 'orders.status.payment.pending',
+  statusPaymentProcessing: 'orders.status.payment.processing',
+  statusPaymentSucceeded: 'orders.status.payment.succeeded',
+  statusPaymentFailed: 'orders.status.payment.failed',
+  statusPaymentCancelled: 'orders.status.payment.cancelled',
+  statusPaymentRefunded: 'orders.status.payment.refunded',
+  statusPaymentUnknown: 'orders.status.payment.unknown',
 } as const;
 
 /** English (`en`) orders list vocabulary. Also the deterministic fallback source. */
@@ -135,6 +146,23 @@ const EN_ORDERS: TranslationDictionary = {
         grandTotal: 'Grand total',
       },
       itemsEmpty: 'No items on this order.',
+    },
+    status: {
+      order: {
+        pending: 'Pending',
+        cancelled: 'Cancelled',
+        confirmed: 'Confirmed',
+        unknown: 'Unknown order status',
+      },
+      payment: {
+        pending: 'Pending',
+        processing: 'Processing',
+        succeeded: 'Succeeded',
+        failed: 'Failed',
+        cancelled: 'Cancelled',
+        refunded: 'Refunded',
+        unknown: 'Unknown payment status',
+      },
     },
   },
 };
@@ -199,6 +227,23 @@ const FR_ORDERS: TranslationDictionary = {
       },
       itemsEmpty: 'Aucun article sur cette commande.',
     },
+    status: {
+      order: {
+        pending: 'En attente',
+        cancelled: 'Annulée',
+        confirmed: 'Confirmée',
+        unknown: 'Statut de commande inconnu',
+      },
+      payment: {
+        pending: 'En attente',
+        processing: 'En cours',
+        succeeded: 'Réussi',
+        failed: 'Échoué',
+        cancelled: 'Annulé',
+        refunded: 'Remboursé',
+        unknown: 'Statut de paiement inconnu',
+      },
+    },
   },
 };
 
@@ -261,6 +306,23 @@ const DE_ORDERS: TranslationDictionary = {
         grandTotal: 'Gesamtsumme',
       },
       itemsEmpty: 'Keine Artikel auf dieser Bestellung.',
+    },
+    status: {
+      order: {
+        pending: 'Ausstehend',
+        cancelled: 'Storniert',
+        confirmed: 'Bestätigt',
+        unknown: 'Unbekannter Bestellstatus',
+      },
+      payment: {
+        pending: 'Ausstehend',
+        processing: 'In Bearbeitung',
+        succeeded: 'Erfolgreich',
+        failed: 'Fehlgeschlagen',
+        cancelled: 'Storniert',
+        refunded: 'Erstattet',
+        unknown: 'Unbekannter Zahlungsstatus',
+      },
     },
   },
 };
@@ -325,6 +387,23 @@ const ES_ORDERS: TranslationDictionary = {
       },
       itemsEmpty: 'Este pedido no tiene artículos.',
     },
+    status: {
+      order: {
+        pending: 'Pendiente',
+        cancelled: 'Cancelado',
+        confirmed: 'Confirmado',
+        unknown: 'Estado del pedido desconocido',
+      },
+      payment: {
+        pending: 'Pendiente',
+        processing: 'En proceso',
+        succeeded: 'Exitoso',
+        failed: 'Fallido',
+        cancelled: 'Cancelado',
+        refunded: 'Reembolsado',
+        unknown: 'Estado del pago desconocido',
+      },
+    },
   },
 };
 
@@ -387,6 +466,23 @@ const AR_ORDERS: TranslationDictionary = {
         grandTotal: 'الإجمالي العام',
       },
       itemsEmpty: 'لا توجد منتجات على هذا الطلب.',
+    },
+    status: {
+      order: {
+        pending: 'قيد الانتظار',
+        cancelled: 'ملغي',
+        confirmed: 'مؤكد',
+        unknown: 'حالة طلب غير معروفة',
+      },
+      payment: {
+        pending: 'قيد الانتظار',
+        processing: 'قيد المعالجة',
+        succeeded: 'ناجح',
+        failed: 'فشل',
+        cancelled: 'ملغي',
+        refunded: 'مسترد',
+        unknown: 'حالة دفع غير معروفة',
+      },
     },
   },
 };

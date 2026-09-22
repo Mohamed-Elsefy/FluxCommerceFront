@@ -1,5 +1,6 @@
 /**
- * Customer order details page for Sub-Phase 10.4 — Order Details.
+ * Customer order details page for Sub-Phases 10.4 (Order Details) and
+ * 10.5 (Order & Payment Status Experience).
  *
  * Smart page (route-level composition): reads `:orderId` from the
  * route, drives the feature-scoped `OrderDetailsState` (provided by
@@ -33,10 +34,12 @@
  *   generic error view with retry (`OrderDetailsState.retry()`).
  * - Success renders backend data verbatim (dates and money formatted
  *   for the active culture — display only): header facts, both address
- *   echoes, backend line items, and backend totals rows. Status is plain
- *   text, not a badge (§10.5); no payment status, tax row, thumbnails,
- *   or contact details render anywhere (no such contract fields —
- *   §10.4 gaps, documented not approximated).
+ *   echoes, backend line items, and backend totals rows. Status renders
+ *   through the §10.5 `OrderStatusBadge` (localized label, tone,
+ *   unknown-value fallback) — never derived, never mapped across
+ *   concepts; no payment status, tax row, thumbnails, or contact details
+ *   render anywhere (no such contract fields — §10.4 gaps, documented
+ *   not approximated).
  *
  * Copy is localized per the active `CultureService.culture()` through
  * the feature-owned orders bundle; retry through
@@ -53,7 +56,6 @@
  * addresses use native `address` elements.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 10.5 — no status badges or localized status labels.
  * - 10.6 — no history timeline or post-payment polling.
  */
 
@@ -81,6 +83,7 @@ import { toOrderDetailsView } from '../../models/order-details.models';
 import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-translations';
 import { OrderDetailsState } from '../../state/order-details-state';
 import { OrderAddressBlock } from '../../components/order-address-block/order-address-block';
+import { OrderStatusBadge } from '../../components/order-status-badge/order-status-badge';
 import {
   OrderItemsList,
   type OrderItemsLabels,
@@ -91,7 +94,14 @@ const LOGIN_PATH = '/login';
 
 @Component({
   selector: 'order-details-page',
-  imports: [RouterLink, LoadingIndicator, ErrorState, OrderAddressBlock, OrderItemsList],
+  imports: [
+    RouterLink,
+    LoadingIndicator,
+    ErrorState,
+    OrderAddressBlock,
+    OrderItemsList,
+    OrderStatusBadge,
+  ],
   templateUrl: './order-details-page.html',
   styleUrl: './order-details-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

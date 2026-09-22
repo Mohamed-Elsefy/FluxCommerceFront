@@ -19,9 +19,9 @@
  *   summed, or reconstructed — line totals render the backend
  *   `lineTotal`, totals rows render the backend `subtotal`/`discount`/
  *   `shippingCost`/`grandTotal`.
- * - `statusText` is the backend `OrderStatus` string verbatim: plain
- *   text, deliberately NOT a badge — status badges and localized status
- *   mapping belong to §10.5.
+ * - `statusText` is the backend `OrderStatus` string verbatim and feeds
+ *   the §10.5 `OrderStatusBadge` (localized label, tone, unknown-value
+ *   fallback) — never derived, never mapped across concepts.
  * - NO payment status exists in this view: `OrderDetailsResponse`
  *   carries no payment fields (payment truth lives behind
  *   `GET /api/payments/{id}`, whose `paymentId` the checkout contract
@@ -90,7 +90,7 @@ export interface OrderDetailsView {
   readonly orderNumber: string;
   /** Culture-formatted creation date (display only). */
   readonly dateText: string;
-  /** Backend `OrderStatus` string verbatim (plain text, never a badge). */
+  /** Backend `OrderStatus` string verbatim (feeds the §10.5 status badge). */
   readonly statusText: string;
   /**
    * Customer name: the shipping address `recipientName` — the only
