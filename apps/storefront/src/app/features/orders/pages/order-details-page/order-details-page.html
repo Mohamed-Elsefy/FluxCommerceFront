@@ -35,6 +35,15 @@
       (retry)="onRetry()"
     ></flux-error-state>
   } @else if (showDetails() && view(); as details) {
+    @if (showSyncing()) {
+      <p class="order-details-page-sync" role="status">{{ copy().syncPolling }}</p>
+    }
+    @if (showSyncExhausted()) {
+      <div class="order-details-page-sync">
+        <p role="status">{{ copy().syncExhausted }}</p>
+        <button type="button" (click)="onSyncRecheck()">{{ copy().syncRecheck }}</button>
+      </div>
+    }
     <dl class="order-details-page-facts">
       <div>
         <dt>{{ copy().fieldOrderNumber }}</dt>

@@ -1,6 +1,6 @@
 /**
  * Customer order details page for Sub-Phases 10.4 (Order Details) and
- * 10.5 (Order & Payment Status Experience).
+ * 10.6 (Order History & Post-Payment Synchronization).
  *
  * Smart page (route-level composition): reads `:orderId` from the
  * route, drives the feature-scoped `OrderDetailsState` (provided by
@@ -40,6 +40,13 @@
  *   concepts; no payment status, tax row, thumbnails, or contact details
  *   render anywhere (no such contract fields — §10.4 gaps, documented
  *   not approximated).
+ * - Post-payment synchronization (§10.6.2): a settled non-terminal
+ *   order opens the state's bounded sync loop (browser only —
+ *   pending/processing indicator while open, early stop on terminal
+ *   status, exhaustion note with manual recheck, teardown on
+ *   destroy/navigation). No history timeline renders: the backend
+ *   exposes no history contract (`ORDERS_HISTORY_SUPPORTED` is false —
+ *   §10.6.1, documented not approximated).
  *
  * Copy is localized per the active `CultureService.culture()` through
  * the feature-owned orders bundle; retry through
@@ -56,7 +63,8 @@
  * addresses use native `address` elements.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 10.6 — no history timeline or post-payment polling.
+ * - 10.6.1 history — no timeline (no backend history contract).
+ * - 10.7 — no routing or guard changes.
  */
 
 import {
@@ -66,7 +74,10 @@ import {
   computed,
   effect,
   inject,
+  PLATFORM_ID,
+  untracked,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -76,6 +87,7 @@ import {
   isOrdersAccessDeniedFailure,
   isOrdersAuthFailure,
   isOrdersNotFoundFailure,
+  isTerminalOrder,
   ordersPath,
   readOrdersRouteParams,
 } from '../../models/orders.models';
@@ -111,6 +123,7 @@ export class OrderDetailsPage {
   private readonly route = inject(ActivatedRoute);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   constructor() {
     // The route `:orderId` is the single funnel: initial value included,
@@ -131,10 +144,37 @@ export class OrderDetailsPage {
         this.state.loadOrder(this.snapshotOrderId());
       }
     });
+    // Post-payment synchronization (§10.6.2): while a settled order is
+    // still non-terminal, keep a bounded sync loop open — and only in
+    // the browser (timers never run on the server). The loop stops
+    // itself on terminal status; effect cleanup stops it on
+    // destroy/navigation (cancel polling when leaving the flow) and
+    // restarts it when a fresh non-terminal order settles. The state
+    // dedupes overlapping triggers to a single loop.
+    effect((onCleanup) => {
+      if (!this.isBrowser) {
+        return;
+      }
+      if (this.needsSync()) {
+        untracked(() => this.state.startSync());
+        onCleanup(() => this.state.stopSync());
+      }
+    });
     effect(() => {
       this.title.setTitle(this.heading());
     });
   }
+
+  /**
+   * Whether the settled order still needs synchronization: success with
+   * a non-terminal backend status. The single reactive trigger for the
+   * sync effect above — ticks refresh the order object without
+   * restarting the loop because this boolean stays `true` throughout.
+   */
+  private readonly needsSync = computed(() => {
+    const order = this.state.order();
+    return this.state.isSuccess() && order !== null && !isTerminalOrder(order.status);
+  });
 
   /** Localized page copy for the active culture. */
   readonly copy = computed(() => {
@@ -185,6 +225,9 @@ export class OrderDetailsPage {
       fieldShipping: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsFieldShipping),
       fieldGrandTotal: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsFieldGrandTotal),
       itemsEmpty: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsItemsEmpty),
+      syncPolling: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.syncPolling),
+      syncExhausted: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.syncExhausted),
+      syncRecheck: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.syncRecheck),
     };
   });
 
@@ -249,6 +292,14 @@ export class OrderDetailsPage {
   /** Whether the settled backend order is on screen. */
   readonly showDetails = computed(() => this.state.isSuccess() && this.view() !== null);
 
+  /** Whether a bounded sync loop is waiting for the final status. */
+  readonly showSyncing = computed(() => this.showDetails() && this.state.isSyncing());
+
+  /** Whether sync exhausted its budget on a still non-terminal order. */
+  readonly showSyncExhausted = computed(
+    () => this.showDetails() && !this.state.isSyncing() && this.state.syncExhausted(),
+  );
+
   /** Localized failure message (status-first, never backend text). */
   readonly errorMessage = computed(() =>
     resolveApiErrorMessage(this.state.error(), this.cultures.culture()),
@@ -263,6 +314,11 @@ export class OrderDetailsPage {
   /** Retries the failed order load (forced fresh request). */
   onRetry(): void {
     this.state.retry();
+  }
+
+  /** Manually rechecks a still non-terminal order after sync exhaustion. */
+  onSyncRecheck(): void {
+    this.state.startSync();
   }
 
   /** Snapshot `:orderId` for the post-hydration trigger. */

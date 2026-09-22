@@ -36,6 +36,40 @@
   color: var(--color-primary);
 }
 
+.order-details-page-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-info);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-info);
+  font-size: var(--font-size-sm);
+}
+
+.order-details-page-sync p {
+  margin: 0;
+}
+
+.order-details-page-sync button {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-info);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-info);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.order-details-page-sync button:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: var(--spacing-sm);
+}
+
 .order-details-page-facts,
 .order-details-page-totals {
   display: flex;

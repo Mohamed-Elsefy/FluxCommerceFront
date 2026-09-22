@@ -85,6 +85,9 @@ export const ORDERS_TRANSLATION_KEYS = {
   statusPaymentCancelled: 'orders.status.payment.cancelled',
   statusPaymentRefunded: 'orders.status.payment.refunded',
   statusPaymentUnknown: 'orders.status.payment.unknown',
+  syncPolling: 'orders.sync.polling',
+  syncExhausted: 'orders.sync.exhausted',
+  syncRecheck: 'orders.sync.recheck',
 } as const;
 
 /** English (`en`) orders list vocabulary. Also the deterministic fallback source. */
@@ -146,6 +149,11 @@ const EN_ORDERS: TranslationDictionary = {
         grandTotal: 'Grand total',
       },
       itemsEmpty: 'No items on this order.',
+    },
+    sync: {
+      polling: 'Waiting for the final order status…',
+      exhausted: 'Still processing — the final status is taking longer than expected.',
+      recheck: 'Check again',
     },
     status: {
       order: {
@@ -227,6 +235,11 @@ const FR_ORDERS: TranslationDictionary = {
       },
       itemsEmpty: 'Aucun article sur cette commande.',
     },
+    sync: {
+      polling: 'Attente du statut final de la commande…',
+      exhausted: 'Toujours en cours — le statut final tarde à arriver.',
+      recheck: 'Vérifier à nouveau',
+    },
     status: {
       order: {
         pending: 'En attente',
@@ -306,6 +319,11 @@ const DE_ORDERS: TranslationDictionary = {
         grandTotal: 'Gesamtsumme',
       },
       itemsEmpty: 'Keine Artikel auf dieser Bestellung.',
+    },
+    sync: {
+      polling: 'Warte auf den endgültigen Bestellstatus…',
+      exhausted: 'Wird noch verarbeitet — der endgültige Status dauert länger als erwartet.',
+      recheck: 'Erneut prüfen',
     },
     status: {
       order: {
@@ -387,6 +405,11 @@ const ES_ORDERS: TranslationDictionary = {
       },
       itemsEmpty: 'Este pedido no tiene artículos.',
     },
+    sync: {
+      polling: 'Esperando el estado final del pedido…',
+      exhausted: 'Sigue en proceso — el estado final está tardando más de lo esperado.',
+      recheck: 'Comprobar de nuevo',
+    },
     status: {
       order: {
         pending: 'Pendiente',
@@ -466,6 +489,11 @@ const AR_ORDERS: TranslationDictionary = {
         grandTotal: 'الإجمالي العام',
       },
       itemsEmpty: 'لا توجد منتجات على هذا الطلب.',
+    },
+    sync: {
+      polling: 'بانتظار الحالة النهائية للطلب…',
+      exhausted: 'ما زال قيد المعالجة — الحالة النهائية تستغرق وقتًا أطول من المتوقع.',
+      recheck: 'تحقق مرة أخرى',
     },
     status: {
       order: {

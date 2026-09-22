@@ -1,14 +1,18 @@
 /**
- * Page tests for the Sub-Phase 10.4 `OrderDetailsPage`.
+ * Page tests for the Sub-Phases 10.4 (Order Details) and 10.6 (Order
+ * History & Post-Payment Synchronization) `OrderDetailsPage`.
  *
  * Covers page orchestration only (projection lives in
  * `order-details.models.spec.ts`, resource rules in
- * `order-details-state.spec.ts`, transport in
+ * `order-details-state.spec.ts`, sync-loop rules in
+ * `order-details-sync.spec.ts`, transport in
  * `orders-api.service.spec.ts`): the loading shell before the order
  * settles, success rendering of backend facts/addresses/items/totals,
  * distinct `404`/`403`/`401`/generic-error handling with their
- * recoveries, blank-id behavior, the single-request guarantee, and
- * localized copy with the document title.
+ * recoveries, blank-id behavior, the single-request guarantee,
+ * browser-only auto-sync with pending/exhausted UI, destroy
+ * cancellation, history absence, and localized copy with the document
+ * title.
  *
  * The real `OrderDetailsState` and `CultureService` are wired to a
  * stubbed `OrdersApiService` transport and a stubbed `:orderId` route,
@@ -16,9 +20,9 @@
  * path without HTTP.
  *
  * Backend-authority pins: the settled order echoes the stubbed backend
- * payload (no math performed here); status renders verbatim; no
- * payment status, tax row, thumbnails, or contact details render
- * anywhere (no such contract fields).
+ * payload (no math performed here); status renders through the §10.5
+ * badge; no payment status, tax row, thumbnails, contact details, or
+ * history timeline render anywhere (no such contract fields).
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -261,5 +265,77 @@ describe('OrderDetailsPage generic errors', () => {
     expect(textOf(fixture, 'h1')).toBe('Order ORD-ABC123DEF456');
 
     TestBed.inject(CultureService).setCulture('en');
+  });
+});
+
+describe('OrderDetailsPage post-payment synchronization', () => {
+  it('shows the pending indicator while a non-terminal order syncs', async () => {
+    const { fixture } = await setup(() => of(envelope(order({ status: 'Pending' }))));
+
+    const sync = fixture.nativeElement.querySelector('.order-details-page-sync');
+    expect(sync).not.toBeNull();
+    expect(sync?.textContent?.trim()).toBe('Waiting for the final order status…');
+  });
+
+  it('shows no sync indicator for terminal orders', async () => {
+    const { fixture } = await setup();
+
+    expect(fixture.nativeElement.querySelector('.order-details-page-sync')).toBeNull();
+  });
+
+  it('renders no history timeline (no backend history contract)', async () => {
+    const { fixture } = await setup();
+
+    expect(fixture.nativeElement.querySelector('[class*="timeline"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[class*="history"]')).toBeNull();
+  });
+
+  it('exhausts the budget with a manual recheck and stops on destroy', async () => {
+    vi.useFakeTimers();
+    try {
+      const api = { getOrderById: vi.fn(() => of(envelope(order({ status: 'Pending' })))) };
+      const paramMap = convertToParamMap({ orderId: ORDER_A });
+
+      await TestBed.configureTestingModule({
+        imports: [OrderDetailsPage],
+        providers: [
+          provideRouter([]),
+          CultureService,
+          OrderDetailsState,
+          { provide: OrdersApiService, useValue: api },
+          {
+            provide: ActivatedRoute,
+            useValue: { paramMap: of(paramMap), snapshot: { paramMap } },
+          },
+        ],
+      }).compileComponents();
+
+      const fixture = TestBed.createComponent(OrderDetailsPage);
+      TestBed.inject(CultureService).setCulture('en');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      vi.advanceTimersByTime(2000 * 30);
+      fixture.detectChanges();
+
+      const exhausted = fixture.nativeElement.querySelector('.order-details-page-sync');
+      expect(exhausted?.textContent).toContain('Still processing');
+      const recheck = exhausted?.querySelector('button') as HTMLButtonElement | null;
+      expect(recheck?.textContent?.trim()).toBe('Check again');
+
+      const calls = vi.mocked(api.getOrderById).mock.calls.length;
+      recheck?.click();
+      fixture.detectChanges();
+      vi.advanceTimersByTime(0);
+      expect(vi.mocked(api.getOrderById).mock.calls.length).toBeGreaterThan(calls);
+
+      fixture.destroy();
+      const afterDestroy = vi.mocked(api.getOrderById).mock.calls.length;
+      vi.advanceTimersByTime(2000 * 30);
+      expect(vi.mocked(api.getOrderById).mock.calls.length).toBe(afterDestroy);
+    } finally {
+      vi.useRealTimers();
+      TestBed.inject(CultureService).setCulture('en');
+    }
   });
 });

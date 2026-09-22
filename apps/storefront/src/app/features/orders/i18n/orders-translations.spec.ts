@@ -98,3 +98,26 @@ describe('translateOrdersKey fallback', () => {
     expect(translateOrdersKey('fr', 'orders.list.missing')).toBe('orders.list.missing');
   });
 });
+
+describe('translateOrdersKey sync copy', () => {
+  it('resolves the sync affordances in English', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.syncPolling)).toBe(
+      'Waiting for the final order status…',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.syncExhausted)).toBe(
+      'Still processing — the final status is taking longer than expected.',
+    );
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.syncRecheck)).toBe('Check again');
+  });
+
+  it('localizes the sync affordances (non-English cultures differ)', () => {
+    for (const culture of ['fr', 'de', 'es', 'ar'] as const) {
+      expect(translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.syncPolling)).not.toBe(
+        translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.syncPolling),
+      );
+      expect(translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.syncRecheck)).not.toBe(
+        translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.syncRecheck),
+      );
+    }
+  });
+});

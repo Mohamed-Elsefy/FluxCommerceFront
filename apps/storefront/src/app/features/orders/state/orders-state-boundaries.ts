@@ -1,14 +1,15 @@
 /**
- * Orders feature-state boundaries for Sub-Phases 10.1–10.4 — Orders
- * Contract Audit & Feature Foundation through Order Details.
+ * Orders feature-state boundaries for Sub-Phases 10.1–10.6 — Orders
+ * Contract Audit & Feature Foundation through Order History &
+ * Post-Payment Synchronization.
  *
  * Scope: boundary shapes only — no `@Injectable()` store, no signals,
  * no effects, no polling implementation in this file. The §10.3 list
  * slot is implemented by `./orders-list-state` (`OrdersListState`,
  * route-provided via `ordersRoutes`) and the §10.4 details slot by
  * `./order-details-state` (`OrderDetailsState`, route-provided on the
- * `:orderId` entry); the shapes below remain the documented
- * data-access/state seam targets.
+ * `:orderId` entry, extended in §10.6 with the bounded sync loop); the
+ * shapes below remain the documented data-access/state seam targets.
  *
  * Intended dependency flow (`ARCHITECTURE.md` §10), established here as
  * the contract that later sub-phases implement:
@@ -36,7 +37,8 @@
  *
  * Explicitly out of scope (later work, must not appear here):
  * - 10.5 — no badge/label mapping state.
- * - 10.6 — no polling loops or sync state.
+ * - 10.6.1 history — no timeline state (no backend history contract).
+ * - 10.7 — no routing or guard changes.
  */
 
 import type { PagedResult } from '@flux/api';
