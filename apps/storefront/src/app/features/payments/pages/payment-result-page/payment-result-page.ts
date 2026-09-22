@@ -9,10 +9,14 @@
  * route-provided `PaymentState` (shared with the payment page — same
  * route subtree, same instance):
  *
- * - `succeeded` — success presentation with the order reference and the
- *   backend-verified status. Never shown on provider claims alone:
- *   entry triggers a backend verification read first (`refreshStatus`),
- *   and only the backend-resolved stage renders.
+ * - `succeeded` — success presentation with the order reference, the
+ *   backend-verified status, and the onward link to the customer order
+ *   (`/account/orders/:orderId` — the §10.7 Payment Result → Order
+ *   Details seam, inline destination exactly like the §9.10
+ *   checkout → payment link: no cross-feature imports). Never shown on
+ *   provider claims alone: entry triggers a backend verification read
+ *   first (`refreshStatus`), and only the backend-resolved stage
+ *   renders.
  * - `failed` — localized failure message with retry (back to the
  *   payment route, whose entry re-initializes) and return-to-checkout
  *   navigation.
@@ -144,6 +148,7 @@ export class PaymentResultPage implements OnInit {
       tryAgain: t(keys.resultTryAgain),
       backToCheckout: t(keys.resultBackToCheckout),
       backToPayment: t(keys.resultBackToPayment),
+      viewOrder: t(keys.resultViewOrder),
       waitingMessage: t(keys.resultWaitingMessage),
       checkStatus: t(keys.resultCheckStatus),
       summaryLabels: {

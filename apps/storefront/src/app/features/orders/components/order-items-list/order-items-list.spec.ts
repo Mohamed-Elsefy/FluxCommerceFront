@@ -95,4 +95,25 @@ describe('OrderItemsList', () => {
     expect(element.querySelector('table')).toBeNull();
     expect(element.textContent?.trim()).toBe('No items on this order.');
   });
+
+  it('wraps the table in a scroll container on narrow viewports', () => {
+    const { element } = setup();
+    const wrapper = element.querySelector('.items-scroll');
+
+    expect(wrapper).not.toBeNull();
+    expect(wrapper?.querySelector('table.items-table')).not.toBeNull();
+  });
+
+  it('renders identical rows under RTL direction', () => {
+    document.documentElement.dir = 'rtl';
+    try {
+      const { element } = setup();
+      const rows = [...element.querySelectorAll('tbody tr')];
+
+      expect(rows).toHaveLength(2);
+      expect(rows[0]?.textContent).toContain('TEE-BLK-M');
+    } finally {
+      document.documentElement.dir = 'ltr';
+    }
+  });
 });

@@ -15,8 +15,9 @@ import { OrdersListState } from './state/orders-list-state';
  * providers: the list page gets its own `OrdersListState` instance and
  * each details entry its own `OrderDetailsState` instance (never global
  * stores — neither has `providedIn`, both register here only). Entry
- * protection stays on the account parent (`authGuard`); ownership of
- * every order read stays backend-enforced (foreign ids mask as `404`).
+ * protection stays on the account parent (`authGuard` — UX protection
+ * only, never the security boundary); ownership of every order read
+ * stays backend-enforced (foreign ids mask as `404`).
  *
  * Architectural flow (`ARCHITECTURE.md` §10):
  *

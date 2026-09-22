@@ -173,6 +173,13 @@ describe('PaymentResultPage success', () => {
     expect(element.textContent).toContain(ORDER_ID);
     expect(element.textContent).toContain('Verified status: Succeeded');
   });
+
+  it('links onward to the customer order details (§10.7 Payment Result → Order)', () => {
+    const { element } = setup({ orderId: ORDER_ID, enter: toSucceeded });
+
+    expect(element.querySelector('.payment-result-success')).not.toBeNull();
+    expect(links(element)).toContain(`/account/orders/${ORDER_ID}`);
+  });
 });
 
 describe('PaymentResultPage failure', () => {

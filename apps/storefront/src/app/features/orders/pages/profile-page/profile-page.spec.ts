@@ -200,3 +200,42 @@ describe('ProfilePage errors', () => {
     expect(fixture.nativeElement.querySelector('dl')).not.toBeNull();
   });
 });
+
+describe('ProfilePage focus management', () => {
+  it('moves focus to the heading on entry', async () => {
+    const { fixture } = await setup();
+
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+  });
+
+  it('moves focus to the error banner once per failure', async () => {
+    const identity = { getCurrentUser: vi.fn() };
+    vi.mocked(identity.getCurrentUser).mockReturnValue(
+      throwError(() => new ApiError({ status: 500, message: 'Server fault.' })),
+    );
+
+    await TestBed.configureTestingModule({
+      imports: [ProfilePage],
+      providers: [
+        provideRouter([]),
+        CultureService,
+        AccountState,
+        { provide: IdentityApiService, useValue: identity },
+        { provide: AuthService, useValue: { updateCurrentUser: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ProfilePage);
+    TestBed.inject(CultureService).setCulture('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const banner = fixture.nativeElement.querySelector('[data-error-focus]');
+    expect(banner).not.toBeNull();
+    expect(document.activeElement).toBe(banner);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(banner);
+  });
+});

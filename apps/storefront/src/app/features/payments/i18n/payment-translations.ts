@@ -53,6 +53,7 @@ export const PAYMENT_TRANSLATION_KEYS = {
   resultBackToPayment: 'payment.result.backToPayment',
   resultWaitingMessage: 'payment.result.waitingMessage',
   resultCheckStatus: 'payment.result.checkStatus',
+  resultViewOrder: 'payment.result.viewOrder',
   errorUnavailable: 'payment.errors.unavailable',
   errorSetupFailed: 'payment.errors.setupFailed',
   errorDeclinedFallback: 'payment.errors.declinedFallback',
@@ -107,6 +108,7 @@ const EN_PAYMENT: TranslationDictionary = {
       backToPayment: 'Back to payment',
       waitingMessage: 'No payment result yet.',
       checkStatus: 'Check status',
+      viewOrder: 'View order',
     },
     errors: {
       unavailable: 'Payment is currently unavailable. Please try again.',
@@ -167,6 +169,7 @@ const FR_PAYMENT: TranslationDictionary = {
       backToPayment: 'Retour au paiement',
       waitingMessage: 'Aucun résultat de paiement pour le moment.',
       checkStatus: 'Vérifier le statut',
+      viewOrder: 'Voir la commande',
     },
     errors: {
       unavailable: 'Le paiement est momentanément indisponible. Veuillez réessayer.',
@@ -227,6 +230,7 @@ const DE_PAYMENT: TranslationDictionary = {
       backToPayment: 'Zurück zur Zahlung',
       waitingMessage: 'Noch kein Zahlungsergebnis.',
       checkStatus: 'Status prüfen',
+      viewOrder: 'Bestellung ansehen',
     },
     errors: {
       unavailable: 'Die Zahlung ist derzeit nicht verfügbar. Bitte versuchen Sie es erneut.',
@@ -287,6 +291,7 @@ const ES_PAYMENT: TranslationDictionary = {
       backToPayment: 'Volver al pago',
       waitingMessage: 'Aún no hay resultado del pago.',
       checkStatus: 'Comprobar estado',
+      viewOrder: 'Ver el pedido',
     },
     errors: {
       unavailable: 'El pago no está disponible en este momento. Inténtelo de nuevo.',
@@ -347,6 +352,7 @@ const AR_PAYMENT: TranslationDictionary = {
       backToPayment: 'العودة إلى الدفع',
       waitingMessage: 'لا توجد نتيجة دفع بعد.',
       checkStatus: 'التحقق من الحالة',
+      viewOrder: 'عرض الطلب',
     },
     errors: {
       unavailable: 'الدفع غير متاح حاليًا. حاول مرة أخرى.',

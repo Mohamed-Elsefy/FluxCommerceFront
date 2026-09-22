@@ -1,3 +1,7 @@
+.items-scroll {
+  overflow-x: auto;
+}
+
 .items-table {
   inline-size: 100%;
   border-collapse: collapse;

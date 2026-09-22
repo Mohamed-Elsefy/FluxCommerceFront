@@ -36,6 +36,11 @@
   color: var(--color-primary);
 }
 
+.order-details-page-notice a:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: var(--spacing-sm);
+}
+
 .order-details-page-sync {
   display: flex;
   flex-wrap: wrap;

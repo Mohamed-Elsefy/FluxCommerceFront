@@ -4,12 +4,14 @@
   @if (showLoading()) {
     <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
   } @else if (showError()) {
-    <flux-error-state
-      [title]="copy().loadErrorTitle"
-      [message]="errorMessage()"
-      [retryLabel]="copy().retry"
-      (retry)="onRetry()"
-    ></flux-error-state>
+    <div data-error-focus tabindex="-1">
+      <flux-error-state
+        [title]="copy().loadErrorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onRetry()"
+      ></flux-error-state>
+    </div>
   } @else if (showEmpty()) {
     <flux-empty-state
       [title]="copy().emptyTitle"

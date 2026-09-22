@@ -1,5 +1,6 @@
 /**
- * Customer profile page for Sub-Phase 10.2 — Customer Account & Profile.
+ * Customer profile page for Sub-Phases 10.2 (Customer Account &
+ * Profile) and 10.8 (Localization, RTL, Responsive & Accessibility).
  *
  * Smart page (route-level composition): drives the feature-scoped
  * `AccountState` (provided by the parent `accountRoutes` entry — never
@@ -42,8 +43,11 @@
  * load trigger is browser-guarded via `afterNextRender`. RTL safe:
  * logical properties only, no direction branching.
  *
- * Accessibility: labelled section heading; loading and error states
- * expose the shared primitives' live semantics; the profile renders as
+ * Accessibility (§10.8): labelled section heading with entry focus
+ * (browser-only, so route changes announce); load failures move focus
+ * to the error banner once per failure (checkout §8.8 pattern);
+ * loading and error states expose the shared primitives' live
+ * semantics (`role="status"` / `role="alert"`); the profile renders as
  * a definition list (term/description relationships for free).
  *
  * Explicitly out of scope (later work, must not appear here):
@@ -53,13 +57,18 @@
 
 import {
   afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   OnInit,
+  PLATFORM_ID,
+  untracked,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Title } from '@angular/platform-browser';
 import { CultureService, formatDate, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
@@ -78,6 +87,14 @@ export class ProfilePage implements OnInit {
   private readonly state = inject(AccountState);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
+  private readonly host = inject(ElementRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  /**
+   * Failures already moved to the error banner (once-per-failure focus
+   * record — plain field, never rendered).
+   */
+  private focusedError: unknown = null;
 
   constructor() {
     // Post-hydration entry: `ngOnInit` ran on the server there, so the
@@ -90,9 +107,28 @@ export class ProfilePage implements OnInit {
       if (this.state.status() === 'idle') {
         this.state.loadProfile();
       }
+      // Entry focus skips settled failures so the error banner (focused
+      // by the after-render effect below) wins deterministically.
+      if (!this.showError()) {
+        this.focusHeading();
+      }
     });
     effect(() => {
       this.title.setTitle(this.copy().title);
+    });
+    // Load-failure focus management (§10.8 — the checkout §8.8
+    // pattern): once per failure, move focus to the error banner so
+    // keyboard and screen-reader users land on the recovery action. An
+    // after-render effect (not a plain effect): the banner must exist
+    // in the DOM before focusing. Browser-only; no-op for repeats.
+    afterRenderEffect(() => {
+      const failed = this.showError();
+      const error = this.state.error();
+      untracked(() => {
+        if (failed) {
+          this.focusError(error);
+        }
+      });
     });
   }
 
@@ -166,5 +202,36 @@ export class ProfilePage implements OnInit {
   /** Retries the failed profile load (forced fresh request). */
   onRetry(): void {
     this.state.retry();
+  }
+
+  /**
+   * Moves keyboard/screen-reader focus to the page heading on entry so
+   * route changes announce. Browser-only (SSR never focuses).
+   */
+  private focusHeading(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    const target = this.host.nativeElement.querySelector('h1');
+    if (target instanceof HTMLElement) {
+      target.focus();
+    }
+  }
+
+  /**
+   * Moves focus to the load-error banner for a new failure. Records the
+   * failure only once focus actually moves: a missing banner leaves the
+   * error unrecorded so a later render retries. Browser-only (SSR never
+   * focuses); no-op for repeats. Plain field (never rendered).
+   */
+  private focusError(error: unknown): void {
+    if (!this.isBrowser || error === null || error === this.focusedError) {
+      return;
+    }
+    const target = this.host.nativeElement.querySelector('[data-error-focus]');
+    if (target instanceof HTMLElement) {
+      this.focusedError = error;
+      target.focus();
+    }
   }
 }

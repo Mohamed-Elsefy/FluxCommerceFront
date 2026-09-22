@@ -17,8 +17,9 @@
  *   (`productName`, `sku`, quantities, and prices only).
  *
  * A data table carries the column relationships for assistive
- * technology (`th scope="col"`); an empty item list renders the
- * page-owned note instead of an empty table.
+ * technology (`th scope="col"`); on narrow viewports the table scrolls
+ * inside its container instead of overflowing the page. An empty item
+ * list renders the page-owned note instead of an empty table.
  *
  * SSR/hydration safe: static markup from inputs only, no browser APIs.
  * RTL safe: logical properties only, no direction branching.

@@ -272,3 +272,63 @@ describe('OrdersListPage errors', () => {
     TestBed.inject(CultureService).setCulture('en');
   });
 });
+
+describe('OrdersListPage focus management', () => {
+  it('moves focus to the heading on entry', async () => {
+    const { fixture } = await setup();
+
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+  });
+
+  it('moves focus to the error banner once per failure', async () => {
+    const api = { getOrders: vi.fn() };
+    vi.mocked(api.getOrders).mockReturnValue(
+      throwError(() => new ApiError({ status: 500, message: 'Server fault.' })),
+    );
+
+    await TestBed.configureTestingModule({
+      imports: [OrdersListPage],
+      providers: [
+        provideRouter([]),
+        CultureService,
+        OrdersListState,
+        { provide: OrdersApiService, useValue: api },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(OrdersListPage);
+    TestBed.inject(CultureService).setCulture('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const banner = fixture.nativeElement.querySelector('[data-error-focus]');
+    expect(banner).not.toBeNull();
+    expect(document.activeElement).toBe(banner);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(banner);
+
+    TestBed.inject(CultureService).setCulture('en');
+  });
+});
+
+describe('OrdersListPage direction integrity', () => {
+  it('renders identical content under RTL direction', async () => {
+    document.documentElement.dir = 'rtl';
+    try {
+      const { fixture } = await setup();
+
+      const links = [
+        ...fixture.nativeElement.querySelectorAll('orders-order-summary-row a'),
+      ] as HTMLAnchorElement[];
+      expect(links.map((link) => link.getAttribute('href'))).toEqual([
+        `/account/orders/${ORDER_A}`,
+      ]);
+      expect(fixture.nativeElement.textContent).toContain('ORD-ABC123DEF456');
+    } finally {
+      document.documentElement.dir = 'ltr';
+      TestBed.inject(CultureService).setCulture('en');
+    }
+  });
+});

@@ -268,6 +268,81 @@ describe('OrderDetailsPage generic errors', () => {
   });
 });
 
+describe('OrderDetailsPage focus management', () => {
+  it('moves focus to the heading on entry', async () => {
+    const { fixture } = await setup();
+
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+  });
+
+  it('moves focus to the generic-error banner once per failure', async () => {
+    const api = { getOrderById: vi.fn() };
+    vi.mocked(api.getOrderById).mockReturnValue(
+      throwError(() => new ApiError({ status: 500, message: 'Server fault.' })),
+    );
+    const paramMap = convertToParamMap({ orderId: ORDER_A });
+
+    await TestBed.configureTestingModule({
+      imports: [OrderDetailsPage],
+      providers: [
+        provideRouter([]),
+        CultureService,
+        OrderDetailsState,
+        { provide: OrdersApiService, useValue: api },
+        { provide: ActivatedRoute, useValue: { paramMap: of(paramMap), snapshot: { paramMap } } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(OrderDetailsPage);
+    TestBed.inject(CultureService).setCulture('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const banner = fixture.nativeElement.querySelector('[data-error-focus]');
+    expect(banner).not.toBeNull();
+    expect(document.activeElement).toBe(banner);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(banner);
+
+    TestBed.inject(CultureService).setCulture('en');
+  });
+
+  it('keeps focus on the heading for stable access views (no error banner)', async () => {
+    const { fixture } = await setup(() =>
+      throwError(() => new ApiError({ status: 404, message: 'Unknown or foreign order.' })),
+    );
+
+    expect(fixture.nativeElement.querySelector('[data-error-focus]')).toBeNull();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+  });
+});
+
+describe('OrderDetailsPage sync and direction integrity', () => {
+  it('announces polling through a live region', async () => {
+    const { fixture } = await setup(() => of(envelope(order({ status: 'Pending' }))));
+
+    const sync = fixture.nativeElement.querySelector('.order-details-page-sync');
+    expect(sync).not.toBeNull();
+    expect(sync?.getAttribute('role')).toBe('status');
+  });
+
+  it('renders identical content under RTL direction', async () => {
+    document.documentElement.dir = 'rtl';
+    try {
+      const { fixture } = await setup();
+
+      expect(fixture.nativeElement.textContent).toContain('ORD-ABC123DEF456');
+      expect(fixture.nativeElement.querySelector('orders-items-list table')).not.toBeNull();
+      expect(fixture.nativeElement.querySelectorAll('orders-address-block')).toHaveLength(2);
+    } finally {
+      document.documentElement.dir = 'ltr';
+      TestBed.inject(CultureService).setCulture('en');
+    }
+  });
+});
+
 describe('OrderDetailsPage post-payment synchronization', () => {
   it('shows the pending indicator while a non-terminal order syncs', async () => {
     const { fixture } = await setup(() => of(envelope(order({ status: 'Pending' }))));
