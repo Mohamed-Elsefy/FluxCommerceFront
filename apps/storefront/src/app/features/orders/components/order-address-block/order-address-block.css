@@ -1,0 +1,25 @@
+.address-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.address-block h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.address-block-recipient {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.address-block address {
+  display: flex;
+  flex-direction: column;
+  font-style: normal;
+}

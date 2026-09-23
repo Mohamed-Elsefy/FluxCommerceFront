@@ -1,0 +1,53 @@
+.account-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-block: var(--spacing-lg);
+  padding-inline: var(--container-padding-inline);
+}
+
+.account-shell-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.account-shell-heading h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.account-shell-user {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.account-shell-logout {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.account-shell-logout:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.account-shell-logout:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.account-shell-logout:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: var(--spacing-sm);
+}

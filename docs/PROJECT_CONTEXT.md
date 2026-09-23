@@ -1035,6 +1035,9 @@ exists outside its owning layer.
 
 # 31. Phase 10 — Orders & Customer Account
 
+Status: **Complete** (2026-09-22) — see
+`docs/completed/PHASE_10_COMPLETION_REPORT.md`.
+
 Scope:
 
 - Account
@@ -1051,6 +1054,26 @@ Deliverable:
 ```text
 Complete customer account experience
 ```
+
+All Phase 10 acceptance criteria are satisfied (audited orders
+contracts with payment/history gaps pinned instead of fabricated;
+lazy `account` boundary with guarded shell, route-provided
+`AccountState` over `GET /auth/me`, and read-only profile; paged
+orders list with response-effective pager over `GET /orders`; order
+details over `GET /orders/{id}` with `401`/`403`/`404`/generic
+handling; independent localized order/payment status badges with
+unknown-value fallbacks; bounded post-payment sync loop (immediate +
+2s ticks, 30-tick budget, terminal stop, teardown on destroy) with
+pending/exhausted UI and no history timeline (no backend history
+contract); deep-linkable lazy routes with `authGuard` return-URL
+redirects and backend-authoritative ownership; 5-culture
+`account.*`/`orders.*`/`payment.result.viewOrder` localization with
+RTL-safe logical CSS, responsive layouts, and focus-managed
+accessibility; HTTP-level integration specs plus orders E2E journeys
+(5 green, 1 provider-gated-skipped); architecture audit 102/102).
+The baseline is ready for **Phase 11 — Storefront Production
+Readiness**. No admin functionality, no totals math, and no status
+derivation exist anywhere in the customer account area.
 
 ---
 

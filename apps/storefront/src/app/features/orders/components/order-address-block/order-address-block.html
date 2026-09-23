@@ -1,0 +1,9 @@
+<section class="address-block" [attr.aria-label]="title">
+  <h2>{{ title }}</h2>
+  <p class="address-block-recipient">{{ address.recipientName }}</p>
+  <address>
+    @for (line of address.lines; track line) {
+      <span>{{ line }}</span>
+    }
+  </address>
+</section>

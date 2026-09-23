@@ -13,6 +13,11 @@
             </p>
           }
           <payment-order-summary [view]="orderSummaryView()" [labels]="copy().summaryLabels" />
+          <p class="payment-result-actions">
+            <a class="payment-result-link" [routerLink]="['/account/orders', params.orderId]">{{
+              copy().viewOrder
+            }}</a>
+          </p>
         </section>
       }
       @case ('failed') {

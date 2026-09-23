@@ -62,6 +62,14 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/payments/payments.routes').then((m) => m.paymentsRoutes),
       },
+      {
+        // Sub-Phase 10.2 — customer account area serving /account
+        // (lazy, auth-guarded at the feature boundary with the
+        // route-provided AccountState; the profile page is live —
+        // the orders route table stays empty until Sub-Phase 10.3).
+        path: 'account',
+        loadChildren: () => import('./features/orders/account.routes').then((m) => m.accountRoutes),
+      },
     ],
   },
   {

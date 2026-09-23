@@ -1,0 +1,11 @@
+<nav class="account-nav" [attr.aria-label]="label">
+  <ul>
+    @for (item of items; track item.route) {
+      <li>
+        <a [routerLink]="item.route" routerLinkActive="active" ariaCurrentWhenActive="page">{{
+          item.label
+        }}</a>
+      </li>
+    }
+  </ul>
+</nav>

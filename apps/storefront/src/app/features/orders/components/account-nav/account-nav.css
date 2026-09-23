@@ -1,0 +1,33 @@
+.account-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-nav a {
+  display: inline-block;
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.account-nav a:hover {
+  border-color: var(--color-primary);
+}
+
+.account-nav a.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.account-nav a:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: var(--spacing-sm);
+}
