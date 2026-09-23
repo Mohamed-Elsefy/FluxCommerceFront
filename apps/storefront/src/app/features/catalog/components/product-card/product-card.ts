@@ -20,6 +20,12 @@
  * empty otherwise because the adjacent name already labels the link.
  * Native `loading="lazy"` defers offscreen images without JavaScript.
  *
+ * Image robustness (11.5): a broken URL swaps to the same reserved-space
+ * fallback box as the imageless case (tracked through the native `error`
+ * event into gallery-local-style component state), so broken images never
+ * render a broken-icon and never collapse the reserved 4/3 layout space.
+ * `decoding="async"` keeps image decode off the critical path.
+ *
  * Explicitly out of scope (Phase 6, must not appear here): variant/SKU
  * selection, quantity pickers, and add-to-cart actions.
  *
@@ -27,7 +33,7 @@
  * RTL safe: logical properties only, no direction branching.
  */
 
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { ProductListItem } from '../../models/catalog.models';
 
@@ -41,4 +47,23 @@ import type { ProductListItem } from '../../models/catalog.models';
 export class ProductCard {
   /** Storefront search hit to render (backend `CatalogProductListItem`). */
   @Input({ required: true }) product!: ProductListItem;
+
+  /** Whether the primary image proved broken (fallback rendering). */
+  protected readonly imageFailed = signal(false);
+
+  /**
+   * Renderable primary image (`null` when imageless or broken — both map
+   * to the same reserved-space fallback box). Plain method (not a
+   * computed): `@Input`s are not signals, so freshness comes from change
+   * detection re-evaluation instead (same pattern as the gallery's
+   * `activeImage`).
+   */
+  protected displayImage(): ProductListItem['primaryImage'] {
+    return this.imageFailed() ? null : (this.product.primaryImage ?? null);
+  }
+
+  /** Swaps a broken primary image to the reserved-space fallback box. */
+  protected onImageError(): void {
+    this.imageFailed.set(true);
+  }
 }

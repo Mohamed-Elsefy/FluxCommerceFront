@@ -10,6 +10,8 @@
             [src]="active.imageUrl"
             [alt]="imageName(active)"
             loading="eager"
+            fetchpriority="high"
+            decoding="async"
             (error)="onImageError(active.id)"
           />
         } @else {
@@ -35,6 +37,7 @@
                   [src]="image.imageUrl"
                   alt=""
                   loading="lazy"
+                  decoding="async"
                   (error)="onImageError(image.id)"
                 />
               } @else {

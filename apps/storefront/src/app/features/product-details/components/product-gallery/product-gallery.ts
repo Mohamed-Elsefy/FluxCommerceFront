@@ -19,6 +19,13 @@
  * `<img>` (tracked per image id through the native `error` event — no
  * polling, no timers).
  *
+ * Loading strategy (11.5): the main image is above-the-fold content —
+ * `loading="eager"` plus `fetchpriority="high"` so it is never delayed —
+ * while thumbnails stay `loading="lazy"`. Every image decodes
+ * asynchronously (`decoding="async"`). Layout space is reserved up front
+ * (4/3 main box, fixed thumbnail boxes), so late image arrivals never
+ * shift the layout.
+ *
  * Accessibility: thumbnails are native buttons (Tab/Enter/Space free) with
  * `aria-pressed` selection state and per-image `aria-label`s; the main
  * image honors backend `altText` with product-name and localized fallbacks;

@@ -1,6 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  OnInit,
+} from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { CultureService } from '@flux/i18n';
+import { FALLBACK_SOCIAL_IMAGE, setCanonicalUrl } from '@flux/utils';
 import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-translations';
 
 /**
@@ -20,6 +30,13 @@ import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-transla
  * through the home-owned bundle (same ownership pattern as the catalog
  * bundle — short entry strings are duplicated, never imported across
  * features). The brand heading stays as-is (proper noun, not UI copy).
+ *
+ * SEO (11.3): the only SEO-sensitive metadata owned here is the home
+ * title, description, social tags, and canonical (`/`). `Title`/`Meta`
+ * apply in `ngOnInit` (server + client) and refresh in an effect on
+ * culture changes; the description reuses the discovery subtitle so no
+ * new translation keys are needed. Authenticated/private pages stay
+ * outside this strategy by design.
  */
 @Component({
   selector: 'app-home-page',
@@ -27,8 +44,11 @@ import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-transla
   templateUrl: './home-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomePage {
+export class HomePage implements OnInit {
   private readonly cultures = inject(CultureService);
+  private readonly title = inject(Title);
+  private readonly meta = inject(Meta);
+  private readonly document = inject(DOCUMENT);
 
   /** Localized discovery entry copy for the active culture. */
   protected readonly copy = computed(() => {
@@ -42,4 +62,48 @@ export class HomePage {
       cartLink: translateHomeKey(culture, HOME_TRANSLATION_KEYS.cartLink),
     };
   });
+
+  constructor() {
+    // Dynamic metadata (11.3): tracks the culture; `Title`/`Meta` write
+    // the document only (no signals touched inside, so no dependency
+    // besides the tracked reads above). Effects never run on the server —
+    // `ngOnInit` covers the SSR pass.
+    effect(() => {
+      this.applyMetadata();
+    });
+  }
+
+  ngOnInit(): void {
+    // Runs on server and client alike: metadata applies during SSR (an
+    // SSR-safe write into the prerendered `<head>`).
+    this.applyMetadata();
+  }
+
+  /**
+   * Applies home metadata (11.3 title/description strategy): the document
+   * title follows the `{label} | FluxCommerce` workspace convention, the
+   * description reuses the localized discovery subtitle, and the canonical
+   * is the home path. `Title`/`Meta` update tags in place, and
+   * `setCanonicalUrl` keeps a single canonical tag, so re-runs never
+   * duplicate metadata.
+   *
+   * Social (11.4): `og:url` mirrors the canonical; `og:image` is the
+   * bundled fallback (the home surface has no single product image);
+   * `twitter:card` mirrors the OpenGraph tags for X previews.
+   */
+  private applyMetadata(): void {
+    const copy = this.copy();
+    const title = `${copy.title} | FluxCommerce`;
+    this.title.setTitle(title);
+    this.meta.updateTag({ name: 'description', content: copy.subtitle });
+    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:description', content: copy.subtitle });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.meta.updateTag({ property: 'og:url', content: '/' });
+    this.meta.updateTag({ property: 'og:image', content: FALLBACK_SOCIAL_IMAGE });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:description', content: copy.subtitle });
+    setCanonicalUrl(this.document, '/');
+  }
 }

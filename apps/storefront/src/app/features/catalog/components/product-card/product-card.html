@@ -1,11 +1,13 @@
 <article class="product-card">
   <a [routerLink]="['/catalog/products', product.id]">
-    @if (product.primaryImage; as image) {
+    @if (displayImage(); as image) {
       <img
         class="product-image"
         [src]="image.imageUrl"
         [attr.alt]="image.altText ?? ''"
         loading="lazy"
+        decoding="async"
+        (error)="onImageError()"
       />
     } @else {
       <div class="product-image-fallback" aria-hidden="true"></div>

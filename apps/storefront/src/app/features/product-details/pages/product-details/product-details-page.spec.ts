@@ -25,6 +25,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, computed, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -39,6 +40,7 @@ import {
   type ResourceState,
 } from '@flux/api';
 import { CultureService, formatCurrency } from '@flux/i18n';
+import { CANONICAL_LINK_SELECTOR, FALLBACK_SOCIAL_IMAGE } from '@flux/utils';
 import { AuthService } from '@flux/auth';
 import { VariantStatus, type ProductResponse } from '@flux/models';
 import { GuestCartService } from '../../../cart/state/guest-cart.service';
@@ -969,6 +971,10 @@ describe('ProductDetailsPage metadata (6.9 SSR & SEO)', () => {
     ogTitle: string | null;
     ogDescription: string | null;
     ogType: string | null;
+    ogUrl: string | null;
+    ogImage: string | null;
+    twitterCard: string | null;
+    canonical: string | null;
   } {
     const meta = TestBed.inject(Meta);
     return {
@@ -977,11 +983,19 @@ describe('ProductDetailsPage metadata (6.9 SSR & SEO)', () => {
       ogTitle: meta.getTag("property='og:title'")?.getAttribute('content') ?? null,
       ogDescription: meta.getTag("property='og:description'")?.getAttribute('content') ?? null,
       ogType: meta.getTag("property='og:type'")?.getAttribute('content') ?? null,
+      ogUrl: meta.getTag("property='og:url'")?.getAttribute('content') ?? null,
+      ogImage: meta.getTag("property='og:image'")?.getAttribute('content') ?? null,
+      twitterCard: meta.getTag("name='twitter:card'")?.getAttribute('content') ?? null,
+      canonical:
+        TestBed.inject(DOCUMENT)
+          .head.querySelector(CANONICAL_LINK_SELECTOR)
+          ?.getAttribute('href') ?? null,
     };
   }
 
   function metadataSetup(options: {
     snapshot?: ResourceState<ProductDetails>;
+    imagesSnapshot?: ResourceState<ProductImage[]>;
     productId?: string | null;
     platform?: 'browser' | 'server';
   }) {
@@ -1003,6 +1017,10 @@ describe('ProductDetailsPage metadata (6.9 SSR & SEO)', () => {
       ogTitle: 'Tee | FluxCommerce',
       ogDescription: 'A comfortable cotton tee.',
       ogType: 'website',
+      ogUrl: `/catalog/products/${PRODUCT_ID}`,
+      ogImage: FALLBACK_SOCIAL_IMAGE,
+      twitterCard: 'summary_large_image',
+      canonical: `/catalog/products/${PRODUCT_ID}`,
     });
   });
 
@@ -1046,5 +1064,78 @@ describe('ProductDetailsPage metadata (6.9 SSR & SEO)', () => {
     expect(element.querySelector('h1')?.textContent).toBe('Product details');
     expect(metaOf(fixture).title).toBe('Product details | FluxCommerce');
     expect(metaOf(fixture).ogType).toBe('website');
+    expect(metaOf(fixture).canonical).toBe(`/catalog/products/${PRODUCT_ID}`);
+  });
+
+  it('falls back to the catalog canonical for invalid ids (11.3)', () => {
+    const { fixture } = metadataSetup({ productId: null });
+
+    expect(metaOf(fixture).canonical).toBe('/catalog');
+    expect(metaOf(fixture).ogUrl).toBe('/catalog');
+    expect(metaOf(fixture).ogImage).toBe(FALLBACK_SOCIAL_IMAGE);
+    expect(TestBed.inject(DOCUMENT).head.querySelectorAll(CANONICAL_LINK_SELECTOR).length).toBe(1);
+  });
+
+  it('uses the backend-primary image for og:image on success (11.4)', () => {
+    const { fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      imagesSnapshot: successResource([
+        {
+          id: 'd4d4d4d4-4444-4444-8444-444444444444',
+          productId: PRODUCT_ID,
+          imageUrl: '/images/tee-back.jpg',
+          altText: null,
+          displayOrder: 1,
+          isPrimary: false,
+          metadata: null,
+          createdAtUtc: '2026-09-04T10:00:00Z',
+        },
+        {
+          id: 'c3c3c3c3-3333-4333-8333-333333333333',
+          productId: PRODUCT_ID,
+          imageUrl: '/images/tee-front.jpg',
+          altText: 'Tee front view',
+          displayOrder: 0,
+          isPrimary: true,
+          metadata: null,
+          createdAtUtc: '2026-09-04T10:00:00Z',
+        },
+      ]),
+    });
+
+    expect(metaOf(fixture).ogImage).toBe('/images/tee-front.jpg');
+  });
+
+  it('falls back to the bundled social image when the product has no usable images (11.4)', () => {
+    const { fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      imagesSnapshot: emptyResource<ProductImage[]>([]),
+    });
+
+    expect(metaOf(fixture).ogImage).toBe(FALLBACK_SOCIAL_IMAGE);
+  });
+
+  it('never presents product imagery for failed lookups (11.4)', () => {
+    const { fixture } = metadataSetup({
+      productId: PRODUCT_ID,
+      snapshot: errorResource(new ApiError({ status: 404, message: 'Not found.' })),
+      imagesSnapshot: successResource([
+        {
+          id: 'c3c3c3c3-3333-4333-8333-333333333333',
+          productId: PRODUCT_ID,
+          imageUrl: '/images/tee-front.jpg',
+          altText: null,
+          displayOrder: 0,
+          isPrimary: true,
+          metadata: null,
+          createdAtUtc: '2026-09-04T10:00:00Z',
+        },
+      ]),
+    });
+
+    expect(metaOf(fixture).title).toBe('Product not found | FluxCommerce');
+    expect(metaOf(fixture).ogImage).toBe(FALLBACK_SOCIAL_IMAGE);
   });
 });

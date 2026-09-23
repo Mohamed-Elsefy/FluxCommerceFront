@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { DOCUMENT } from '@angular/common';
 import { provideRouter } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { describe, expect, it } from 'vitest';
 import { CultureService } from '@flux/i18n';
+import { CANONICAL_LINK_SELECTOR, FALLBACK_SOCIAL_IMAGE } from '@flux/utils';
 import { HomePage } from './home-page';
 
 function setup(culture: 'en' | 'fr' | 'ar' = 'en'): HTMLElement {
@@ -60,5 +63,41 @@ describe('HomePage', () => {
     expect(
       arabic.querySelector('section[aria-labelledby="cart-title"] a')?.textContent?.trim(),
     ).toBe('عرض سلة التسوق');
+  });
+});
+
+describe('HomePage metadata (11.3 SEO)', () => {
+  function metaContent(selector: string): string | null {
+    return TestBed.inject(Meta).getTag(selector)?.getAttribute('content') ?? null;
+  }
+
+  function canonicalHref(): string | null {
+    return (
+      TestBed.inject(DOCUMENT).head.querySelector(CANONICAL_LINK_SELECTOR)?.getAttribute('href') ??
+      null
+    );
+  }
+
+  it('sets the home title, description, and canonical on init', () => {
+    setup();
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Discover products | FluxCommerce');
+    expect(metaContent('name="description"')).toBe('Browse the catalog through its categories.');
+    expect(metaContent('property="og:title"')).toBe('Discover products | FluxCommerce');
+    expect(metaContent('property="og:type"')).toBe('website');
+    expect(metaContent('property="og:url"')).toBe('/');
+    expect(metaContent('property="og:image"')).toBe(FALLBACK_SOCIAL_IMAGE);
+    expect(metaContent('name="twitter:card"')).toBe('summary_large_image');
+    expect(metaContent('name="twitter:title"')).toBe('Discover products | FluxCommerce');
+    expect(canonicalHref()).toBe('/');
+  });
+
+  it('localizes metadata per active culture without duplicating tags', () => {
+    setup('fr');
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Découvrir des produits | FluxCommerce');
+    expect(metaContent('name="description"')).toBe('Parcourez le catalogue par catégories.');
+    expect(canonicalHref()).toBe('/');
+    expect(TestBed.inject(DOCUMENT).head.querySelectorAll(CANONICAL_LINK_SELECTOR).length).toBe(1);
   });
 });

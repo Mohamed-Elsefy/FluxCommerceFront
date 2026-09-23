@@ -13,6 +13,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,6 +28,7 @@ import {
   type ResourceState,
 } from '@flux/api';
 import { CultureService } from '@flux/i18n';
+import { CANONICAL_LINK_SELECTOR, FALLBACK_SOCIAL_IMAGE } from '@flux/utils';
 import type { CategoryResponse } from '@flux/models';
 import { CatalogApiService } from '../../data-access/catalog-api.service';
 import { CatalogState } from '../../state/catalog-state';
@@ -1039,6 +1041,13 @@ describe('CategoriesPage metadata (5.10 SSR/SEO)', () => {
     return TestBed.inject(Meta).getTag(selector)?.getAttribute('content') ?? null;
   }
 
+  function canonicalHref(): string | null {
+    return (
+      TestBed.inject(DOCUMENT).head.querySelector(CANONICAL_LINK_SELECTOR)?.getAttribute('href') ??
+      null
+    );
+  }
+
   it('sets base catalog metadata on the default route', () => {
     setup({ snapshot: successResource(categoryList()) });
 
@@ -1049,6 +1058,11 @@ describe('CategoriesPage metadata (5.10 SSR/SEO)', () => {
       'Browse the catalog through its categories.',
     );
     expect(metaContent('property="og:type"')).toBe('website');
+    expect(metaContent('property="og:url"')).toBe('/catalog?pageNumber=1&pageSize=20');
+    expect(metaContent('property="og:image"')).toBe(FALLBACK_SOCIAL_IMAGE);
+    expect(metaContent('name="twitter:card"')).toBe('summary_large_image');
+    expect(metaContent('name="twitter:title"')).toBe('Catalog | FluxCommerce');
+    expect(canonicalHref()).toBe('/catalog?pageNumber=1&pageSize=20');
   });
 
   it('names the selected category with its backend description', () => {
@@ -1090,5 +1104,13 @@ describe('CategoriesPage metadata (5.10 SSR/SEO)', () => {
     expect(TestBed.inject(Title).getTitle()).toBe('Catalog | FluxCommerce');
     expect(metaContent('name="description"')).toBe('Browse the catalog through its categories.');
     expect(metaContent('property="og:type"')).toBe('website');
+    expect(canonicalHref()).toBe('/catalog?pageNumber=1&pageSize=20');
+  });
+
+  it('points the canonical at the addressable listing URL for a category scope', () => {
+    setup({ snapshot: successResource(categoryList()), categoryId });
+
+    expect(canonicalHref()).toBe(`/catalog?categoryId=${categoryId}&pageNumber=1&pageSize=20`);
+    expect(TestBed.inject(DOCUMENT).head.querySelectorAll(CANONICAL_LINK_SELECTOR).length).toBe(1);
   });
 });
