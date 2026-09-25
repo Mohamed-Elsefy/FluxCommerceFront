@@ -20,6 +20,7 @@
       [decreaseLabel]="labels.decrease"
       [increaseLabel]="labels.increase"
       [invalidMessage]="labels.invalidQuantity"
+      [errorId]="'cart-quantity-' + view.item.variantId + '-error'"
       [disabled]="disabled"
       (quantityChange)="quantityChange.emit($event)"
     ></cart-quantity-control>

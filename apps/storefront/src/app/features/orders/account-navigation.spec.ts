@@ -202,11 +202,14 @@ describe('Account deep links with a session', () => {
 
     expect(location.path()).toBe('/account/profile');
     expect(fixture.nativeElement.querySelector('account-shell')).not.toBeNull();
-    const headings = [...fixture.nativeElement.querySelectorAll('h1')].map((heading) =>
+    // 11.8: exactly one h1 per view — the shell owns it, the page uses h2.
+    const h1s = [...fixture.nativeElement.querySelectorAll('h1')].map((heading) =>
       heading.textContent?.trim(),
     );
-    expect(headings).toContain('My account');
-    expect(headings).toContain('Profile');
+    expect(h1s).toEqual(['My account']);
+    expect(fixture.nativeElement.querySelector('#profile-page-title')?.textContent?.trim()).toBe(
+      'Profile',
+    );
     TestBed.inject(CultureService).setCulture('en');
   });
 

@@ -17,7 +17,7 @@
       [disabled]="disabled"
       [attr.aria-label]="label"
       [attr.aria-invalid]="showInvalid()"
-      [attr.aria-describedby]="showInvalid() ? 'cart-quantity-input-error' : null"
+      [attr.aria-describedby]="showInvalid() ? errorId : null"
       (input)="onInput($event)"
       (blur)="onBlur($event)"
     />
@@ -32,7 +32,7 @@
     </button>
   </div>
   @if (showInvalid()) {
-    <p id="cart-quantity-input-error" class="quantity-control-error" role="alert">
+    <p [id]="errorId" class="quantity-control-error" role="alert">
       {{ invalidMessage }}
     </p>
   }
