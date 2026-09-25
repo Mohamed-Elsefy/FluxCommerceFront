@@ -21,11 +21,12 @@
  * flight and an error state with retry when a navigation fails (e.g. a
  * lazy chunk that cannot load). Both derive from router events only; on
  * the server no events fire, so SSR renders the plain outlet every time.
- * Copy is shell-hardcoded English, matching the existing shell chrome
- * (skip link, brand) — feature copy stays feature-owned and localized.
+ * The skip link resolves through the layout bundle; the pending/failure
+ * chrome stays shell-hardcoded English with the rest of the transient
+ * shell states.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationCancel,
@@ -36,8 +37,10 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
+import { CultureService } from '@flux/i18n';
 import { StorefrontFooter } from '../footer/footer';
 import { StorefrontHeader } from '../header/header';
+import { LAYOUT_TRANSLATION_KEYS, translateLayoutKey } from '../layout-translations';
 
 @Component({
   selector: 'app-layout',
@@ -48,6 +51,12 @@ import { StorefrontHeader } from '../header/header';
 })
 export class AppLayout {
   private readonly router = inject(Router);
+  private readonly cultures = inject(CultureService);
+
+  /** Localized skip-link label for the active culture. */
+  protected readonly skipLabel = computed(() =>
+    translateLayoutKey(this.cultures.culture(), LAYOUT_TRANSLATION_KEYS.skipLink),
+  );
 
   /** Whether a navigation (including its lazy chunk fetch) is in flight. */
   protected readonly navigating = signal(false);

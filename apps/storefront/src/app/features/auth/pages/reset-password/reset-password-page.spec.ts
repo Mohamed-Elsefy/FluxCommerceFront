@@ -10,6 +10,7 @@ import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
+import { CultureService } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { ResetPasswordPage } from './reset-password-page';
 
@@ -44,6 +45,7 @@ describe('ResetPasswordPage', () => {
   let resetResult: () => ReturnType<AuthDataAccess['resetPassword']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     resetCalls = [];
     resetResult = () => of(undefined);
     const dataAccessStub = {
@@ -75,6 +77,21 @@ describe('ResetPasswordPage', () => {
     expect(resetCalls).toHaveLength(0);
     const heading = (fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent;
     expect(heading).toContain('Reset link incomplete');
+  });
+
+  it('renders localized copy without key leakage', async () => {
+    const { fixture } = await navigate('/reset-password?token=reset-token-1');
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Choisir un nouveau mot de passe');
+      expect(element.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('blocks confirmation drift without calling the API', async () => {

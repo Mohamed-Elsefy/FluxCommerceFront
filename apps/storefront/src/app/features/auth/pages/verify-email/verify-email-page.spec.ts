@@ -10,6 +10,7 @@ import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
+import { CultureService } from '@flux/i18n';
 import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
 import { VerifyEmailPage } from './verify-email-page';
 
@@ -43,6 +44,7 @@ describe('VerifyEmailPage', () => {
   let verifyResult: () => ReturnType<AuthDataAccess['verifyEmail']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     verifyCalls = [];
     verifyResult = () => of(RESULT);
     const dataAccessStub = {
@@ -93,5 +95,19 @@ describe('VerifyEmailPage', () => {
       (anchor as HTMLAnchorElement).getAttribute('href'),
     );
     expect(links).toContain('/resend-verification');
+  });
+
+  it('renders localized copy without key leakage', async () => {
+    const fixture = await navigate('/verify-email');
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+
+      expect(heading(fixture)).toBe('Lien incomplet');
+      expect(fixture.nativeElement.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

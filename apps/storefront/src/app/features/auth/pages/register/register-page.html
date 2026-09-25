@@ -1,30 +1,25 @@
 @if (result() !== null) {
   <section aria-labelledby="register-done-title" aria-live="polite">
-    <h1 id="register-done-title">Check your inbox</h1>
-    @if (result()?.isEmailVerified === true) {
-      <p>Your account for {{ result()?.email }} is ready. You can now sign in.</p>
-    } @else {
+    <h1 id="register-done-title">{{ copy().doneTitle }}</h1>
+    <p>{{ doneCopy().message }}</p>
+    @if (result()?.isEmailVerified !== true) {
       <p>
-        We created your account for {{ result()?.email }}. Verify your email within 24 hours using
-        the link we just sent, then sign in.
-      </p>
-      <p>
-        Didn't get the email?
-        <a routerLink="/resend-verification">Resend verification email</a>
+        {{ copy().resendPrompt }}
+        <a routerLink="/resend-verification">{{ copy().resendLink }}</a>
       </p>
     }
     <p>
-      <a routerLink="/login">Back to sign in</a>
+      <a routerLink="/login">{{ copy().backToLogin }}</a>
     </p>
   </section>
 } @else {
   <section aria-labelledby="register-title">
-    <h1 id="register-title">Create an account</h1>
-    <p>Shop faster with order history and saved details.</p>
+    <h1 id="register-title">{{ copy().title }}</h1>
+    <p>{{ copy().subtitle }}</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div>
-        <label for="register-email">Email</label>
+        <label for="register-email">{{ copy().emailLabel }}</label>
         <input
           id="register-email"
           type="email"
@@ -40,7 +35,7 @@
       </div>
 
       <div>
-        <label for="register-password">Password</label>
+        <label for="register-password">{{ copy().passwordLabel }}</label>
         <input
           id="register-password"
           type="password"
@@ -56,7 +51,7 @@
       </div>
 
       <div>
-        <label for="register-first-name">First name</label>
+        <label for="register-first-name">{{ copy().firstNameLabel }}</label>
         <input
           id="register-first-name"
           type="text"
@@ -72,7 +67,7 @@
       </div>
 
       <div>
-        <label for="register-last-name">Last name</label>
+        <label for="register-last-name">{{ copy().lastNameLabel }}</label>
         <input
           id="register-last-name"
           type="text"
@@ -89,22 +84,22 @@
 
       @if (formError() !== null) {
         <flux-error-state
-          title="Registration failed"
+          [title]="copy().errorTitle"
           [message]="formError()"
           [showRetry]="false"
         ></flux-error-state>
       }
 
       @if (isSubmitting()) {
-        <flux-loading-indicator label="Creating your account" size="sm"></flux-loading-indicator>
+        <flux-loading-indicator [label]="copy().submitting" size="sm"></flux-loading-indicator>
       }
 
-      <button type="submit" [disabled]="isSubmitting()">Create account</button>
+      <button type="submit" [disabled]="isSubmitting()">{{ copy().submit }}</button>
     </form>
 
     <p>
-      Already have an account?
-      <a routerLink="/login">Sign in</a>
+      {{ copy().haveAccount }}
+      <a routerLink="/login">{{ copy().signInLink }}</a>
     </p>
   </section>
 }

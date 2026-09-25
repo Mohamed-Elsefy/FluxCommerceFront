@@ -5,6 +5,7 @@ import { provideRouter, Router } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { AppLayout } from './app-layout';
 
 @Component({ selector: 'app-stub-a', template: '<p>stub a</p>' })
@@ -54,6 +55,21 @@ describe('AppLayout', () => {
 
     const order = [...element.children].map((child) => child.tagName.toLowerCase());
     expect(order).toEqual(['a', 'storefront-header', 'main', 'storefront-footer']);
+  });
+
+  it('localizes the skip link per active culture', () => {
+    const { element, fixture } = setup();
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('es');
+    try {
+      fixture.detectChanges();
+
+      expect(element.querySelector('a.skip-link')?.textContent).toBe(
+        'Saltar al contenido principal',
+      );
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('shows no pending or failure chrome when idle', () => {

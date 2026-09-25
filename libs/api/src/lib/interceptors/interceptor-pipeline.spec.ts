@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -212,6 +213,13 @@ describe('interceptor pipeline (token provider installed)', () => {
     client.get<void>('/auth/me', { headers: { Authorization: 'Bearer explicit' } }).subscribe();
     const request = http.expectOne('https://localhost:7119/auth/me');
     expect(request.request.headers.get('Authorization')).toBe('Bearer explicit');
+    request.flush(null);
+  });
+
+  it('withholds the Bearer token from third-party absolute URLs (11.12)', () => {
+    TestBed.inject(HttpClient).get('https://cdn.example.com/lib.js').subscribe();
+    const request = http.expectOne('https://cdn.example.com/lib.js');
+    expect(request.request.headers.has('Authorization')).toBe(false);
     request.flush(null);
   });
 });

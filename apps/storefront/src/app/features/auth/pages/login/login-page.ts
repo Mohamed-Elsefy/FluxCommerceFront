@@ -8,7 +8,7 @@
  * Already-authenticated visits bounce to the return URL immediately.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
@@ -22,6 +22,7 @@ import {
 } from '../../data-access/auth-form-errors';
 import { authEmailValidators, loginPasswordValidators } from '../../data-access/auth-validators';
 import { FieldErrors } from '../../components/field-errors/field-errors';
+import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-translations';
 
 @Component({
   selector: 'app-login-page',
@@ -35,6 +36,23 @@ export class LoginPage {
   private readonly cultures = inject(CultureService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginTitle),
+      subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubtitle),
+      emailLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginEmailLabel),
+      passwordLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginPasswordLabel),
+      submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubmit),
+      submitting: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubmitting),
+      errorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginErrorTitle),
+      forgot: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginForgot),
+      newHere: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginNewHere),
+      registerLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginRegisterLink),
+    };
+  });
 
   readonly form = new FormGroup({
     email: new FormControl('', {

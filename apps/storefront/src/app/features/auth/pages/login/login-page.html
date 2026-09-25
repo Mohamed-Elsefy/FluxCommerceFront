@@ -1,10 +1,10 @@
 <section aria-labelledby="login-title">
-  <h1 id="login-title">Sign in</h1>
-  <p>Access your FluxCommerce account.</p>
+  <h1 id="login-title">{{ copy().title }}</h1>
+  <p>{{ copy().subtitle }}</p>
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <div>
-      <label for="login-email">Email</label>
+      <label for="login-email">{{ copy().emailLabel }}</label>
       <input
         id="login-email"
         type="email"
@@ -20,7 +20,7 @@
     </div>
 
     <div>
-      <label for="login-password">Password</label>
+      <label for="login-password">{{ copy().passwordLabel }}</label>
       <input
         id="login-password"
         type="password"
@@ -37,24 +37,24 @@
 
     @if (formError() !== null) {
       <flux-error-state
-        title="Sign-in failed"
+        [title]="copy().errorTitle"
         [message]="formError()"
         [showRetry]="false"
       ></flux-error-state>
     }
 
     @if (isSubmitting()) {
-      <flux-loading-indicator label="Signing in" size="sm"></flux-loading-indicator>
+      <flux-loading-indicator [label]="copy().submitting" size="sm"></flux-loading-indicator>
     }
 
-    <button type="submit" [disabled]="isSubmitting()">Sign in</button>
+    <button type="submit" [disabled]="isSubmitting()">{{ copy().submit }}</button>
   </form>
 
   <p>
-    <a routerLink="/forgot-password">Forgot your password?</a>
+    <a routerLink="/forgot-password">{{ copy().forgot }}</a>
   </p>
   <p>
-    New here?
-    <a routerLink="/register">Create an account</a>
+    {{ copy().newHere }}
+    <a routerLink="/register">{{ copy().registerLink }}</a>
   </p>
 </section>

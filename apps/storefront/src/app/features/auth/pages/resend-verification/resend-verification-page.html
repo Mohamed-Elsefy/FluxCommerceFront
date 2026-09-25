@@ -1,26 +1,23 @@
 @if (receipt() !== null) {
   <section aria-labelledby="resend-done-title" aria-live="polite">
-    <h1 id="resend-done-title">Verification email sent</h1>
+    <h1 id="resend-done-title">{{ copy().doneTitle }}</h1>
     @if (receipt()?.emailSent === true) {
-      <p>
-        If an unverified account exists for {{ sentTo() }}, a fresh link is on its way. Links expire
-        after 24 hours.
-      </p>
+      <p>{{ sentMessage() }}</p>
     } @else {
-      <p>That email is already verified. You can sign in directly.</p>
+      <p>{{ copy().verifiedMessage }}</p>
       <p>
-        <a routerLink="/login">Back to sign in</a>
+        <a routerLink="/login">{{ copy().backToLogin }}</a>
       </p>
     }
   </section>
 } @else {
   <section aria-labelledby="resend-title">
-    <h1 id="resend-title">Resend verification email</h1>
-    <p>Enter your account email and we will send a fresh verification link.</p>
+    <h1 id="resend-title">{{ copy().title }}</h1>
+    <p>{{ copy().subtitle }}</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div>
-        <label for="resend-email">Email</label>
+        <label for="resend-email">{{ copy().emailLabel }}</label>
         <input
           id="resend-email"
           type="email"
@@ -37,25 +34,22 @@
 
       @if (formError() !== null) {
         <flux-error-state
-          title="Could not send the email"
+          [title]="copy().errorTitle"
           [message]="formError()"
           [showRetry]="false"
         ></flux-error-state>
       }
 
       @if (isSubmitting()) {
-        <flux-loading-indicator
-          label="Sending verification email"
-          size="sm"
-        ></flux-loading-indicator>
+        <flux-loading-indicator [label]="copy().submitting" size="sm"></flux-loading-indicator>
       }
 
-      <button type="submit" [disabled]="isSubmitting()">Send verification email</button>
+      <button type="submit" [disabled]="isSubmitting()">{{ copy().submit }}</button>
     </form>
 
     <p>
-      Already verified?
-      <a routerLink="/login">Sign in</a>
+      {{ copy().verifiedPrompt }}
+      <a routerLink="/login">{{ copy().signInLink }}</a>
     </p>
   </section>
 }

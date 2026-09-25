@@ -59,6 +59,7 @@ describe('LoginPage', () => {
   let loginResult: () => ReturnType<AuthDataAccess['login']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     isAuthenticated = false;
     authStub = { isAuthenticated: () => isAuthenticated };
     loginCalls = [];
@@ -95,6 +96,21 @@ describe('LoginPage', () => {
     expect(loginCalls).toHaveLength(0);
     expect(page.form.invalid).toBe(true);
     expect(authStub.isAuthenticated()).toBe(false);
+  });
+
+  it('renders localized copy without key leakage', async () => {
+    const { fixture } = await navigate('/login');
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Se connecter');
+      expect(element.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('localizes form and field errors for the active culture (11.10)', async () => {

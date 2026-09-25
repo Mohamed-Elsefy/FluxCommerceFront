@@ -14,6 +14,7 @@ import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
 import { isApiError } from '@flux/api';
 import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
+import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-translations';
 
 type VerifyEmailState =
   | { readonly kind: 'verifying' }
@@ -45,6 +46,29 @@ export class VerifyEmailPage {
     const state = this.state();
     return state.kind === 'failed' ? state.message : null;
   });
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      verifying: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyVerifying),
+      missingTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyMissingTitle),
+      missingMessage: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyMissingMessage),
+      resendLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyResendLink),
+      doneTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyDoneTitle),
+      backToLogin: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyBackToLogin),
+      failedTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyFailedTitle),
+      failedErrorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyFailedErrorTitle),
+      expiredMessage: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.verifyExpiredMessage),
+    };
+  });
+
+  /** Localized success copy (email interpolated). */
+  protected readonly doneMessage = computed(() =>
+    translateAuthKey(this.cultures.culture(), AUTH_TRANSLATION_KEYS.verifyDoneMessage, {
+      email: this.verifiedResult()?.email ?? '',
+    }),
+  );
 
   constructor() {
     const token = this.route.snapshot.queryParamMap.get('token');

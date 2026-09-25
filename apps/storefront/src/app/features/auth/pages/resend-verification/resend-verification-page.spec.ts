@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
+import { CultureService } from '@flux/i18n';
 import type { ResendVerificationResponse } from '@flux/models';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { ResendVerificationPage } from './resend-verification-page';
@@ -23,6 +24,7 @@ describe('ResendVerificationPage', () => {
   let resendResult: () => ReturnType<AuthDataAccess['resendVerification']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     resendCalls = [];
     resendResult = () => of(RECEIPT);
     const dataAccessStub = {
@@ -50,6 +52,21 @@ describe('ResendVerificationPage', () => {
     expect(resendCalls).toHaveLength(0);
     expect(page.form.invalid).toBe(true);
     expect(page.receipt()).toBeNull();
+  });
+
+  it('renders localized copy without key leakage', () => {
+    const fixture = TestBed.createComponent(ResendVerificationPage);
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Renvoyer l’e-mail de vérification');
+      expect(element.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('confirms the send without distinguishing accounts', () => {

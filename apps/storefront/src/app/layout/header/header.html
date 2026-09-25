@@ -1,10 +1,27 @@
 <header class="header">
   <flux-container>
     <div class="bar">
-      <a class="brand" routerLink="/" aria-label="FluxCommerce home">FluxCommerce</a>
-      <storefront-nav class="desktop-nav" [items]="mainNav" label="Main" />
+      <a class="brand" routerLink="/" [attr.aria-label]="copy().brandLabel">FluxCommerce</a>
+      <storefront-nav class="desktop-nav" [items]="mainNav()" [label]="copy().navLabel" />
       <div class="actions">
-        <auth-nav [accountRoute]="'/account'" />
+        <a class="cart-link bar-cart-link" [routerLink]="cartNav().route">{{ cartNav().label }}</a>
+        <storefront-culture-switch
+          class="bar-culture-switch"
+          [cultures]="languages"
+          [selected]="cultures.culture()"
+          [label]="copy().switchLabel"
+          (cultureChange)="cultures.setCulture($event)"
+        />
+        <auth-nav
+          [accountRoute]="'/account'"
+          [checkingLabel]="copy().authChecking"
+          [navLabel]="copy().authNavLabel"
+          [loginLabel]="copy().authLogin"
+          [registerLabel]="copy().authRegister"
+          [accountLabel]="copy().authAccount"
+          [logoutLabel]="copy().authLogout"
+          [loggingOutLabel]="copy().authLoggingOut"
+        />
         <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
         <button
           #menuToggle
@@ -13,7 +30,7 @@
           (click)="toggleMenu()"
           [attr.aria-expanded]="menuOpen()"
           aria-controls="storefront-mobile-nav"
-          aria-label="Toggle navigation"
+          [attr.aria-label]="copy().menuLabel"
         >
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
@@ -26,10 +43,21 @@
     <flux-container class="mobile-panel">
       <storefront-nav
         id="storefront-mobile-nav"
-        [items]="mainNav"
-        label="Main"
+        [items]="mainNav()"
+        [label]="copy().navLabel"
         orientation="vertical"
       />
+      <div class="mobile-panel-row">
+        <a class="cart-link" [routerLink]="cartNav().route" (click)="closeMenu()">{{
+          cartNav().label
+        }}</a>
+        <storefront-culture-switch
+          [cultures]="languages"
+          [selected]="cultures.culture()"
+          [label]="copy().switchLabel"
+          (cultureChange)="cultures.setCulture($event)"
+        />
+      </div>
     </flux-container>
   }
 </header>

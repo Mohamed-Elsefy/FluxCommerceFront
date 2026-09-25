@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { AuthService } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
 import { RegisterPage } from './register-page';
 
@@ -33,6 +34,7 @@ describe('RegisterPage', () => {
   let registerResult: () => ReturnType<AuthDataAccess['register']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     authStub = { isAuthenticated: () => false };
     registerCalls = [];
     registerResult = () => of(RESULT);
@@ -89,6 +91,21 @@ describe('RegisterPage', () => {
     expect(authStub.isAuthenticated()).toBe(false);
     const heading = (fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent;
     expect(heading).toContain('Check your inbox');
+  });
+
+  it('renders localized copy without key leakage', () => {
+    const fixture = TestBed.createComponent(RegisterPage);
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Créer un compte');
+      expect(element.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('surfaces duplicate-email conflicts as form errors', () => {

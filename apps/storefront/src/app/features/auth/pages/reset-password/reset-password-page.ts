@@ -9,13 +9,14 @@
  * with a path back to the forgot-password entry point.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { isApiError } from '@flux/api';
 import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
+import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-translations';
 import {
   applyServerValidationErrors,
   clearServerValidationErrors,
@@ -56,6 +57,29 @@ export class ResetPasswordPage {
   readonly isSubmitting = signal(false);
   readonly formError = signal<string | null>(null);
   readonly done = signal(false);
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      missingTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetMissingTitle),
+      missingMessage: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetMissingMessage),
+      requestLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetRequestLink),
+      doneTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetDoneTitle),
+      doneMessage: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetDoneMessage),
+      backToLogin: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetBackToLogin),
+      title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetTitle),
+      subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetSubtitle),
+      newPasswordLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetNewPasswordLabel),
+      confirmPasswordLabel: translateAuthKey(
+        culture,
+        AUTH_TRANSLATION_KEYS.resetConfirmPasswordLabel,
+      ),
+      submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetSubmit),
+      submitting: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetSubmitting),
+      errorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetErrorTitle),
+    };
+  });
 
   submit(): void {
     const token = this.token();
