@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@flux/auth';
-import { stripeEnvironment } from '../../../environments/environment';
+import { stripeEnvironment } from '../../../environments/stripe-environment';
 import { PAYMENT_PROVIDER } from './integrations/payment-provider';
 import {
   STRIPE_JS_SCRIPT_URL,

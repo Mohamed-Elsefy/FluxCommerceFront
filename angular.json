@@ -95,6 +95,10 @@
                 {
                   "replace": "apps/storefront/src/environments/environment.ts",
                   "with": "apps/storefront/src/environments/environment.prod.ts"
+                },
+                {
+                  "replace": "apps/storefront/src/environments/stripe-environment.ts",
+                  "with": "apps/storefront/src/environments/stripe-environment.prod.ts"
                 }
               ]
             },
