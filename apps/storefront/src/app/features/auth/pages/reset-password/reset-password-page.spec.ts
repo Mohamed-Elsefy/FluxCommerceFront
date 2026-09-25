@@ -114,7 +114,7 @@ describe('ResetPasswordPage', () => {
     fillMatching(page);
     page.submit();
 
-    expect(page.formError()).toBe('Invalid reset token.');
+    expect(page.formError()).toBe('You are not authorized. Please sign in.');
     expect(page.done()).toBe(false);
     expect(page.isSubmitting()).toBe(false);
   });

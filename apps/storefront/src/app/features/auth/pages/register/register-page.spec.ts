@@ -103,7 +103,7 @@ describe('RegisterPage', () => {
     page.submit();
     fixture.detectChanges();
 
-    expect(page.formError()).toBe('An account with this email already exists.');
+    expect(page.formError()).toBe('An unexpected error occurred.');
     expect(page.result()).toBeNull();
     expect(page.isSubmitting()).toBe(false);
     expect(authStub.isAuthenticated()).toBe(false);

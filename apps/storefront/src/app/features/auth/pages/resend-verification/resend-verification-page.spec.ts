@@ -88,7 +88,7 @@ describe('ResendVerificationPage', () => {
     page.submit();
     fixture.detectChanges();
 
-    expect(page.formError()).toBe('Invalid email address.');
+    expect(page.formError()).toBe('An unexpected error occurred.');
     expect(page.receipt()).toBeNull();
     expect(page.isSubmitting()).toBe(false);
   });

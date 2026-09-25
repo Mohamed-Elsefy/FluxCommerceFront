@@ -13,6 +13,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
 import { isApiError } from '@flux/api';
+import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 
 type VerifyEmailState =
   | { readonly kind: 'verifying' }
@@ -28,6 +29,7 @@ type VerifyEmailState =
 })
 export class VerifyEmailPage {
   private readonly authDataAccess = inject(AuthDataAccess);
+  private readonly cultures = inject(CultureService);
   private readonly route = inject(ActivatedRoute);
 
   readonly state = signal<VerifyEmailState>({ kind: 'verifying' });
@@ -55,7 +57,11 @@ export class VerifyEmailPage {
       error: (error: unknown) => {
         this.state.set({
           kind: 'failed',
-          message: isApiError(error) ? error.message : 'Something went wrong. Please try again.',
+          // Localized through stable codes/statuses, never backend text (11.10).
+          message: resolveApiErrorMessage(
+            isApiError(error) ? error : null,
+            this.cultures.culture(),
+          ),
         });
       },
     });

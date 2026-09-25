@@ -68,7 +68,7 @@ describe('ForgotPasswordPage', () => {
     page.submit();
     fixture.detectChanges();
 
-    expect(page.formError()).toBe('Offline.');
+    expect(page.formError()).toBe('An unexpected error occurred.');
     expect(page.sentTo()).toBeNull();
     expect(page.isSubmitting()).toBe(false);
   });

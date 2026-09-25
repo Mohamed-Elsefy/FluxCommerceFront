@@ -14,6 +14,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { isApiError } from '@flux/api';
+import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
 import {
   applyServerValidationErrors,
@@ -33,6 +34,7 @@ import { FieldErrors } from '../../components/field-errors/field-errors';
 })
 export class ResetPasswordPage {
   private readonly authDataAccess = inject(AuthDataAccess);
+  private readonly cultures = inject(CultureService);
   private readonly route = inject(ActivatedRoute);
 
   readonly token = signal<string | null>(this.route.snapshot.queryParamMap.get('token'));
@@ -72,12 +74,11 @@ export class ResetPasswordPage {
       },
       error: (error: unknown) => {
         this.isSubmitting.set(false);
-        if (isApiError(error)) {
-          applyServerValidationErrors(this.form, error.validationErrors);
-          this.formError.set(error.message);
-        } else {
-          this.formError.set('Something went wrong. Please try again.');
+        const apiError = isApiError(error) ? error : null;
+        if (apiError !== null) {
+          applyServerValidationErrors(this.form, apiError.validationErrors);
         }
+        this.formError.set(resolveApiErrorMessage(apiError, this.cultures.culture()));
       },
     });
   }
