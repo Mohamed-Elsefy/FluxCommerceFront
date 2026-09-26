@@ -1045,8 +1045,8 @@ check(
     ),
 );
 check(
-  '3.12: no Dialog implementation exists yet (deferred by the 3.4 scope)',
-  ![...appSources, ...libSources]
+  '3.12: no Dialog implementation exists outside the admin portal (the 3.4 deferral stands everywhere except Sub-Phase 12.7)',
+  ![...collectTs('apps/storefront/src'), ...libSources]
     .filter((path) => !path.endsWith('.spec.ts'))
     .map((path) => path.split('/').pop() ?? '')
     .some((name) => /^(dialog|modal)/.test(name)),

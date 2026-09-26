@@ -1,7 +1,7 @@
 /**
  * Admin application shell for Sub-Phases 3.7 + 12.3.
  *
- * Composition only — Sidebar, Header, Main outlet:
+ * Composition only — Sidebar, Header, Main outlet, Notification host:
  *
  * ```text
  * Skip link
@@ -9,6 +9,8 @@
  * AdminSidebar ←→ AdminHeader (toggle) → drawer state lives here
  *    ↓
  * Main → Router Outlet (lazy pages; shell stays eager)
+ *    ↓
+ * Notification host (portal-wide toasts/alerts, 12.7)
  * ```
  *
  * The mobile drawer state is the only shell state (a local signal, closed
@@ -47,10 +49,11 @@ import { ADMIN_NAV_ITEMS, type AdminDestination } from '../../admin-navigation';
 import { ADMIN_LAYOUT_TRANSLATION_KEYS, translateAdminLayoutKey } from '../layout-translations';
 import { AdminHeader } from '../header/header';
 import { AdminSidebar, type AdminNavItem } from '../sidebar/sidebar';
+import { AdminNotificationHost } from '../../shared/notifications/notification-host/notification-host';
 
 @Component({
   selector: 'app-layout',
-  imports: [RouterOutlet, AdminHeader, AdminSidebar],
+  imports: [RouterOutlet, AdminHeader, AdminSidebar, AdminNotificationHost],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

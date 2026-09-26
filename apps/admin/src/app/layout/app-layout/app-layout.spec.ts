@@ -38,7 +38,13 @@ describe('AppLayout', () => {
     expect(element.querySelector('main#admin-main router-outlet')).not.toBeNull();
 
     const order = [...element.children].map((child) => child.tagName.toLowerCase());
-    expect(order).toEqual(['a', 'admin-sidebar', 'admin-header', 'main']);
+    expect(order).toEqual([
+      'a',
+      'admin-sidebar',
+      'admin-header',
+      'main',
+      'admin-notification-host',
+    ]);
   });
 
   it('opens the drawer from the header toggle and closes it from the overlay', () => {
