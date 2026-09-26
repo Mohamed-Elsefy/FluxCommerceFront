@@ -1,0 +1,10 @@
+<admin-form-field [label]="label" [control]="control" [fieldId]="fieldId" [hint]="hint">
+  <textarea
+    class="textarea"
+    [attr.id]="fieldId"
+    [rows]="rows"
+    [formControl]="control"
+    [attr.placeholder]="placeholder"
+    [attr.aria-invalid]="control.invalid"
+  ></textarea>
+</admin-form-field>

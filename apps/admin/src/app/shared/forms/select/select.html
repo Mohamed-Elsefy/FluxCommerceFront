@@ -1,0 +1,12 @@
+<admin-form-field [label]="label" [control]="control" [fieldId]="fieldId" [hint]="hint">
+  <select
+    class="select"
+    [attr.id]="fieldId"
+    [formControl]="control"
+    [attr.aria-invalid]="control.invalid"
+  >
+    @for (option of options; track option.value) {
+      <option [value]="option.value">{{ option.label }}</option>
+    }
+  </select>
+</admin-form-field>

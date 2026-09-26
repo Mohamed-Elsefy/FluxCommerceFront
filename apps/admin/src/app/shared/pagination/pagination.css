@@ -1,0 +1,30 @@
+.admin-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.admin-pagination button {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+
+.admin-pagination button:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.admin-pagination button[aria-current='page'] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.admin-pagination button:disabled {
+  color: var(--color-text-muted);
+}

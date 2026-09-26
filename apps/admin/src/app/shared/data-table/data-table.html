@@ -1,0 +1,41 @@
+<div class="data-table-scroll">
+  <table class="data-table" [attr.aria-busy]="loading">
+    @if (caption !== null) {
+      <caption>
+        {{
+          caption
+        }}
+      </caption>
+    }
+    <thead>
+      <tr>
+        @for (column of columns; track column.key) {
+          <th scope="col">{{ column.header }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading) {
+        <tr class="data-table-state">
+          <td [attr.colspan]="columns.length || 1">
+            <flux-loading-indicator [label]="loadingLabel" size="sm" />
+          </td>
+        </tr>
+      } @else if (rows.length === 0) {
+        <tr class="data-table-state">
+          <td [attr.colspan]="columns.length || 1">
+            <flux-empty-state [title]="emptyTitle" [message]="emptyMessage" />
+          </td>
+        </tr>
+      } @else {
+        @for (row of rows; track $index) {
+          <tr>
+            @for (column of columns; track column.key) {
+              <td>{{ cell(column, row) }}</td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

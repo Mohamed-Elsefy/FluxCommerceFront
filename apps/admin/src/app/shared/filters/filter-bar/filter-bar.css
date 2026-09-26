@@ -1,0 +1,37 @@
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-md);
+}
+
+.filter-bar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.filter-bar-controls > * {
+  flex: 1;
+  min-inline-size: 12rem;
+}
+
+.filter-bar-clear {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-md);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-bar-clear:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}
