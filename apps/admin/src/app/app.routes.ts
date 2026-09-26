@@ -33,16 +33,15 @@ import { AppLayout } from './layout/app-layout/app-layout';
  * - Guards wait out startup session restoration, so direct navigation and
  *   browser refresh resolve against the restored session, never against a
  *   premature anonymous verdict.
+ * Ordering rule (Angular matches top-down): the guarded shell comes before
+ * the bare `''` auth boundary. A leading `''` + `loadChildren` entry would
+ * swallow the empty URL (`/` matches the prefix while no child does, and
+ * the router settles on an empty outlet instead of backtracking), so `/`
+ * would render nothing and the guards would never redirect. The concrete
+ * shell children fail cleanly for non-shell URLs (`login`, `forbidden`),
+ * letting those fall through to their public entries below.
  */
 export const routes: Routes = [
-  {
-    path: '',
-    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.adminAuthRoutes),
-  },
-  {
-    path: 'forbidden',
-    loadComponent: () => import('./layout/forbidden-page').then((m) => m.ForbiddenPage),
-  },
   {
     path: '',
     component: AppLayout,
@@ -59,6 +58,14 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
       },
     ],
+  },
+  {
+    path: 'forbidden',
+    loadComponent: () => import('./layout/forbidden-page').then((m) => m.ForbiddenPage),
+  },
+  {
+    path: '',
+    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.adminAuthRoutes),
   },
   {
     path: '**',

@@ -1,7 +1,9 @@
-<a class="skip-link" href="#admin-main">Skip to main content</a>
+<a class="skip-link" href="#admin-main">{{ skipLink() }}</a>
 <admin-sidebar
   id="admin-drawer"
-  [items]="sidebarNav"
+  [items]="sidebarNav()"
+  [label]="sidebarLabel()"
+  [brand]="brandLabel()"
   [drawerOpen]="drawerOpen()"
   (navigated)="closeDrawer()"
 />

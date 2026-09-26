@@ -6,13 +6,30 @@
     (click)="menuToggle.emit()"
     [attr.aria-expanded]="drawerOpen"
     aria-controls="admin-drawer"
-    aria-label="Toggle navigation"
+    [attr.aria-label]="copy().menuLabel"
   >
     <span aria-hidden="true"></span>
     <span aria-hidden="true"></span>
     <span aria-hidden="true"></span>
   </button>
-  <p class="context">FluxCommerce Admin</p>
+  <p class="context">{{ copy().context }}</p>
+  <admin-culture-switch
+    [cultures]="languages"
+    [selected]="cultures.culture()"
+    [label]="copy().switchLabel"
+    (cultureChange)="onCultureChange($event)"
+  />
   <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
-  <auth-nav [loginRoute]="null" [registerRoute]="null" accountRoute="/dashboard" />
+  <auth-nav
+    [loginRoute]="null"
+    [registerRoute]="null"
+    accountRoute="/dashboard"
+    [checkingLabel]="copy().authChecking"
+    [navLabel]="copy().authNavLabel"
+    [loginLabel]="copy().authLogin"
+    [registerLabel]="copy().authRegister"
+    [accountLabel]="copy().authAccount"
+    [logoutLabel]="copy().authLogout"
+    [loggingOutLabel]="copy().authLoggingOut"
+  />
 </header>
