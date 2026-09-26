@@ -148,7 +148,7 @@ describe('OrderDetailsPage success', () => {
     const { fixture } = await setup();
     const text = fixture.nativeElement.textContent ?? '';
 
-    expect(textOf(fixture, 'h1')).toBe('Order ORD-ABC123DEF456');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Order ORD-ABC123DEF456');
     expect(text).toContain(ORDER_A);
     expect(text).toContain('Confirmed');
     expect(text).toContain('Ada Lovelace');
@@ -176,7 +176,7 @@ describe('OrderDetailsPage success', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(textOf(fixture, 'h1')).toBe('Commande ORD-ABC123DEF456');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Commande ORD-ABC123DEF456');
     expect(TestBed.inject(Title).getTitle()).toBe('Commande ORD-ABC123DEF456');
 
     TestBed.inject(CultureService).setCulture('en');
@@ -189,7 +189,7 @@ describe('OrderDetailsPage access failures', () => {
       throwError(() => new ApiError({ status: 404, message: 'Unknown or foreign order.' })),
     );
 
-    expect(textOf(fixture, 'h1')).toBe('Order not found');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Order not found');
     expect(textOf(fixture, '.order-details-page-notice')).toContain('another account');
     const back = fixture.nativeElement.querySelector(
       '.order-details-page-notice a',
@@ -203,7 +203,7 @@ describe('OrderDetailsPage access failures', () => {
       throwError(() => new ApiError({ status: 403, message: 'Denied.' })),
     );
 
-    expect(textOf(fixture, 'h1')).toBe('Access denied');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Access denied');
     expect(textOf(fixture, '.order-details-page-notice')).toContain('permission');
     const back = fixture.nativeElement.querySelector(
       '.order-details-page-notice a',
@@ -216,7 +216,7 @@ describe('OrderDetailsPage access failures', () => {
       throwError(() => new ApiError({ status: 401, message: 'Anonymous.' })),
     );
 
-    expect(textOf(fixture, 'h1')).toBe('Sign-in required');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Sign-in required');
     const links = [
       ...fixture.nativeElement.querySelectorAll('.order-details-page-notice a'),
     ] as HTMLAnchorElement[];
@@ -249,7 +249,7 @@ describe('OrderDetailsPage generic errors', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(textOf(fixture, 'h1')).toBe('Order unavailable');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Order unavailable');
     expect(fixture.nativeElement.querySelector('flux-error-state')).not.toBeNull();
 
     const retry = fixture.nativeElement.querySelector(
@@ -262,7 +262,7 @@ describe('OrderDetailsPage generic errors', () => {
 
     expect(api.getOrderById).toHaveBeenCalledTimes(2);
     expect(fixture.nativeElement.querySelector('flux-error-state')).toBeNull();
-    expect(textOf(fixture, 'h1')).toBe('Order ORD-ABC123DEF456');
+    expect(textOf(fixture, '#order-details-page-title')).toBe('Order ORD-ABC123DEF456');
 
     TestBed.inject(CultureService).setCulture('en');
   });
@@ -272,7 +272,11 @@ describe('OrderDetailsPage focus management', () => {
   it('moves focus to the heading on entry', async () => {
     const { fixture } = await setup();
 
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('#order-details-page-title'),
+    );
+    // 11.8: the page contributes no h1 — the account shell owns the section h1.
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(0);
   });
 
   it('moves focus to the generic-error banner once per failure', async () => {
@@ -315,7 +319,9 @@ describe('OrderDetailsPage focus management', () => {
     );
 
     expect(fixture.nativeElement.querySelector('[data-error-focus]')).toBeNull();
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('#order-details-page-title'),
+    );
   });
 });
 

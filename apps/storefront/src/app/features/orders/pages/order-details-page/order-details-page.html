@@ -1,5 +1,6 @@
 <section class="order-details-page" aria-labelledby="order-details-page-title">
-  <h1 id="order-details-page-title" tabindex="-1">{{ heading() }}</h1>
+  <!-- h2, not h1: the account shell owns the section h1 (11.8 — one h1 per view). -->
+  <h2 id="order-details-page-title" tabindex="-1">{{ heading() }}</h2>
 
   @if (showLoading()) {
     <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>

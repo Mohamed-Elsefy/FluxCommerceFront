@@ -17,9 +17,11 @@
  * `ThemeToggle` reflects `ThemeService` state and forwards activations to
  * it — this shell owns no theme logic.
  *
- * Integration notes (deliberately not built here):
- * - Cart entry docks here once the Phase 7 cart route exists; linking to a
- *   nonexistent route today would only produce 404s.
+ * Culture switching is composed here the same way: the shell-owned dumb
+ * `StorefrontCultureSwitch` reflects `CultureService` state and forwards
+ * selections to it. Quick-access links (Cart) and feature destinations
+ * (Catalog) dock here as plain routes — only routes that exist, never
+ * dead links.
  *
  * SSR/hydration safe: local toggle signal only, no browser APIs. RTL safe:
  * logical properties and direction-aware flex flow only.
@@ -28,6 +30,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   HostListener,
   inject,
@@ -36,20 +39,63 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthNav } from '@flux/auth';
+import { CultureService, SUPPORTED_CULTURE_METADATA } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
 import { Container, ThemeToggle } from '@flux/ui';
+import { StorefrontCultureSwitch } from '../culture-switch/culture-switch';
 import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
+import { CART_NAV_ITEM, MAIN_NAV_ITEMS } from '../../storefront-navigation';
+import { LAYOUT_TRANSLATION_KEYS, translateLayoutKey } from '../layout-translations';
 
 @Component({
   selector: 'storefront-header',
-  imports: [RouterLink, StorefrontNav, AuthNav, Container, ThemeToggle],
+  imports: [RouterLink, StorefrontNav, StorefrontCultureSwitch, AuthNav, Container, ThemeToggle],
   templateUrl: './header.html',
   styleUrl: './header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StorefrontHeader {
-  /** Main destinations — only routes that exist (business entries arrive with their phases). */
-  readonly mainNav: readonly StorefrontNavItem[] = [{ label: 'Home', route: '/' }];
+  /**
+   * Main destinations with localized labels for the active culture
+   * (routes stay app-composed; labels resolve through the layout
+   * bundle — never hardcoded, never duplicated).
+   */
+  protected readonly mainNav = computed(() =>
+    MAIN_NAV_ITEMS.map((item): StorefrontNavItem => ({
+      label: translateLayoutKey(this.cultures.culture(), item.labelKey),
+      route: item.route,
+    })),
+  );
+
+  /** Localized quick-access cart destination. */
+  protected readonly cartNav = computed((): StorefrontNavItem => ({
+    label: translateLayoutKey(this.cultures.culture(), CART_NAV_ITEM.labelKey),
+    route: CART_NAV_ITEM.route,
+  }));
+
+  /** Localized shell chrome for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      brandLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.brandLabel),
+      menuLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.menuLabel),
+      switchLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.switchLabel),
+      navLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.navMainLabel),
+      authChecking: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authChecking),
+      authNavLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authNavLabel),
+      authLogin: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authLogin),
+      authRegister: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authRegister),
+      authAccount: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authAccount),
+      authLogout: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authLogout),
+      authLoggingOut: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authLoggingOut),
+    };
+  });
+
+  /** Supported cultures offered by the language picker (single source of truth). */
+  protected readonly languages = SUPPORTED_CULTURE_METADATA;
+
+  /** Central culture state (read-only here; switched through the picker). */
+  protected readonly cultures = inject(CultureService);
 
   /** Central theme state (read-only here; toggled through the shared control). */
   protected readonly themes = inject(ThemeService);

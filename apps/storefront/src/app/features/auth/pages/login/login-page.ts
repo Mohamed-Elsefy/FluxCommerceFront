@@ -8,12 +8,13 @@
  * Already-authenticated visits bounce to the return URL immediately.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { AuthService } from '@flux/auth';
 import { isApiError } from '@flux/api';
+import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
 import {
   applyServerValidationErrors,
@@ -21,6 +22,7 @@ import {
 } from '../../data-access/auth-form-errors';
 import { authEmailValidators, loginPasswordValidators } from '../../data-access/auth-validators';
 import { FieldErrors } from '../../components/field-errors/field-errors';
+import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-translations';
 
 @Component({
   selector: 'app-login-page',
@@ -31,8 +33,26 @@ import { FieldErrors } from '../../components/field-errors/field-errors';
 export class LoginPage {
   private readonly authDataAccess = inject(AuthDataAccess);
   private readonly auth = inject(AuthService);
+  private readonly cultures = inject(CultureService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginTitle),
+      subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubtitle),
+      emailLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginEmailLabel),
+      passwordLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginPasswordLabel),
+      submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubmit),
+      submitting: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubmitting),
+      errorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginErrorTitle),
+      forgot: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginForgot),
+      newHere: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginNewHere),
+      registerLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginRegisterLink),
+    };
+  });
 
   readonly form = new FormGroup({
     email: new FormControl('', {
@@ -47,7 +67,10 @@ export class LoginPage {
 
   /** Request in flight: form disabled, spinner shown, double-submit blocked. */
   readonly isSubmitting = signal(false);
-  /** Form-level failure (backend localized `detail` verbatim). Null when clear. */
+  /**
+   * Form-level failure, localized through `resolveApiErrorMessage` (stable
+   * codes/statuses — never backend text, 11.10). Null when clear.
+   */
   readonly formError = signal<string | null>(null);
 
   constructor() {
@@ -71,12 +94,11 @@ export class LoginPage {
       },
       error: (error: unknown) => {
         this.isSubmitting.set(false);
-        if (isApiError(error)) {
-          applyServerValidationErrors(this.form, error.validationErrors);
-          this.formError.set(error.message);
-        } else {
-          this.formError.set('Something went wrong. Please try again.');
+        const apiError = isApiError(error) ? error : null;
+        if (apiError !== null) {
+          applyServerValidationErrors(this.form, apiError.validationErrors);
         }
+        this.formError.set(resolveApiErrorMessage(apiError, this.cultures.culture()));
       },
     });
   }

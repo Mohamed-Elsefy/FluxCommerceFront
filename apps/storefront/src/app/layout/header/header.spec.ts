@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
 import { StorefrontHeader } from './header';
 
@@ -33,8 +34,58 @@ describe('StorefrontHeader', () => {
     const { element } = setup();
 
     expect(element.querySelector('.brand')?.getAttribute('href')).toBe('/');
-    expect(element.querySelector('.desktop-nav .nav a')?.textContent?.trim()).toBe('Home');
+    const desktopLinks = [...element.querySelectorAll('.desktop-nav .nav a')].map((link) =>
+      link.textContent?.trim(),
+    );
+    expect(desktopLinks).toEqual(['Home', 'Catalog']);
     expect(element.querySelector('auth-nav')).not.toBeNull();
+  });
+
+  it('exposes the cart quick-access link to the existing cart route', () => {
+    const { element } = setup();
+    const cart = element.querySelector('a.cart-link');
+
+    expect(cart?.getAttribute('href')).toBe('/cart');
+    expect(cart?.textContent?.trim()).toBe('Cart');
+  });
+
+  it('wires the language picker to the central culture state', () => {
+    const { fixture, element } = setup();
+    const cultures = TestBed.inject(CultureService);
+    const select = element.querySelector('storefront-culture-switch select') as HTMLSelectElement;
+
+    expect(select.value).toBe('en');
+    expect(select.querySelectorAll('option')).toHaveLength(5);
+
+    select.value = 'ar';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(cultures.culture()).toBe('ar');
+    cultures.setCulture('en');
+  });
+
+  it('localizes navigation destinations and chrome per active culture', () => {
+    const { fixture, element } = setup();
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const desktopLinks = [...element.querySelectorAll('.desktop-nav .nav a')].map((link) =>
+        link.textContent?.trim(),
+      );
+
+      expect(desktopLinks).toEqual(['Accueil', 'Catalogue']);
+      expect(element.querySelector('a.cart-link')?.textContent?.trim()).toBe('Panier');
+      expect(element.querySelector('.brand')?.getAttribute('aria-label')).toBe(
+        'FluxCommerce accueil',
+      );
+      expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-label')).toBe(
+        'Basculer la navigation',
+      );
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('toggles the mobile navigation panel with accessible state', () => {
@@ -52,6 +103,19 @@ describe('StorefrontHeader', () => {
     expect(updated).not.toBeNull();
     expect(updated?.querySelector('.nav')?.getAttribute('data-orientation')).toBe('vertical');
     expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('offers cart and language quick access inside the mobile panel', () => {
+    const { fixture, element } = setup();
+
+    (element.querySelector('button.menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const panel = element.querySelector('.mobile-panel');
+    expect(panel?.querySelector('a.cart-link')?.getAttribute('href')).toBe('/cart');
+    expect(
+      panel?.querySelector('storefront-culture-switch select option')?.textContent?.trim(),
+    ).toBe('English');
   });
 
   it('dismisses the mobile panel on Escape and returns focus to the toggle', () => {

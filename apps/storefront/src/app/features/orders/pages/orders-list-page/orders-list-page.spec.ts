@@ -96,7 +96,7 @@ describe('OrdersListPage loading', () => {
     const { fixture } = await setup(() => pending.asObservable());
 
     expect(fixture.nativeElement.querySelector('flux-loading-indicator')).not.toBeNull();
-    expect(textOf(fixture, 'h1')).toBe('Orders');
+    expect(textOf(fixture, '#orders-list-page-title')).toBe('Orders');
 
     pending.next(envelope(page()));
     pending.complete();
@@ -160,7 +160,7 @@ describe('OrdersListPage success', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(textOf(fixture, 'h1')).toBe('Commandes');
+    expect(textOf(fixture, '#orders-list-page-title')).toBe('Commandes');
     expect(TestBed.inject(Title).getTitle()).toBe('Commandes');
 
     TestBed.inject(CultureService).setCulture('en');
@@ -277,7 +277,11 @@ describe('OrdersListPage focus management', () => {
   it('moves focus to the heading on entry', async () => {
     const { fixture } = await setup();
 
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('#orders-list-page-title'),
+    );
+    // 11.8: the page contributes no h1 — the account shell owns the section h1.
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(0);
   });
 
   it('moves focus to the error banner once per failure', async () => {

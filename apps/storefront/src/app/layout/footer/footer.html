@@ -3,10 +3,14 @@
     <div class="inner">
       <p class="brand">FluxCommerce</p>
       <div class="group">
-        <h2>Explore</h2>
-        <storefront-nav [items]="exploreNav" label="Explore" orientation="vertical" />
+        <h2>{{ copy().exploreHeading }}</h2>
+        <storefront-nav
+          [items]="exploreNav()"
+          [label]="copy().exploreLabel"
+          orientation="vertical"
+        />
       </div>
     </div>
-    <p class="legal">© {{ year }} FluxCommerce. All rights reserved.</p>
+    <p class="legal">{{ copy().legal }}</p>
   </flux-container>
 </footer>

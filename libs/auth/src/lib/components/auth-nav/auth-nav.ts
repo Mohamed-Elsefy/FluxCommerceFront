@@ -59,6 +59,27 @@ export class AuthNav {
    */
   @Input() accountRoute: string | null = null;
 
+  /**
+   * Display copy (owner-localized; English defaults preserve the
+   * standalone behavior). Labels stay inputs — never a translation
+   * dependency — so this shared widget never couples `libs/auth` to a
+   * localization library (`ARCHITECTURE.md` §6).
+   */
+  /** Session-check placeholder. */
+  @Input() checkingLabel = 'Checking session…';
+  /** Landmark name. */
+  @Input() navLabel = 'Account';
+  /** Login link text. */
+  @Input() loginLabel = 'Login';
+  /** Registration link text. */
+  @Input() registerLabel = 'Register';
+  /** Account link text. */
+  @Input() accountLabel = 'Account';
+  /** Logout action text. */
+  @Input() logoutLabel = 'Logout';
+  /** Logout progress text. */
+  @Input() loggingOutLabel = 'Signing out…';
+
   /** Logout request in flight: action disabled with progress copy. */
   readonly isLoggingOut = signal(false);
 

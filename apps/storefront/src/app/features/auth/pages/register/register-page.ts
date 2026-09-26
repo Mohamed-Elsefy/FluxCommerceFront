@@ -8,12 +8,14 @@
  * for confirmation) instead of redirecting or storing a session.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { isApiError } from '@flux/api';
+import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { AuthDataAccess, type RegistrationResult } from '../../data-access/auth-data-access';
+import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-translations';
 import {
   applyServerValidationErrors,
   clearServerValidationErrors,
@@ -33,6 +35,7 @@ import { FieldErrors } from '../../components/field-errors/field-errors';
 })
 export class RegisterPage {
   private readonly authDataAccess = inject(AuthDataAccess);
+  private readonly cultures = inject(CultureService);
 
   readonly form = new FormGroup({
     email: new FormControl('', {
@@ -55,8 +58,46 @@ export class RegisterPage {
 
   /** Request in flight: form disabled, spinner shown, double-submit blocked. */
   readonly isSubmitting = signal(false);
-  /** Form-level failure (backend localized `detail` verbatim). Null when clear. */
+  /** Form-level failure, localized through `resolveApiErrorMessage` (11.10). Null when clear. */
   readonly formError = signal<string | null>(null);
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerTitle),
+      subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerSubtitle),
+      emailLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerEmailLabel),
+      passwordLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerPasswordLabel),
+      firstNameLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerFirstNameLabel),
+      lastNameLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerLastNameLabel),
+      submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerSubmit),
+      submitting: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerSubmitting),
+      errorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerErrorTitle),
+      doneTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerDoneTitle),
+      resendPrompt: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerResendPrompt),
+      resendLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerResendLink),
+      backToLogin: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerBackToLogin),
+      haveAccount: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerHaveAccount),
+      signInLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerSignInLink),
+    };
+  });
+
+  /** Localized success panel copy (email interpolated). */
+  protected readonly doneCopy = computed(() => {
+    const culture = this.cultures.culture();
+    const email = this.result()?.email ?? '';
+    const verified = this.result()?.isEmailVerified === true;
+    return {
+      message: translateAuthKey(
+        culture,
+        verified
+          ? AUTH_TRANSLATION_KEYS.registerDoneVerified
+          : AUTH_TRANSLATION_KEYS.registerDonePending,
+        { email },
+      ),
+    };
+  });
   /** Successful registration outcome; when set, the form swaps to pending UI. */
   readonly result = signal<RegistrationResult | null>(null);
 
@@ -83,12 +124,11 @@ export class RegisterPage {
         },
         error: (error: unknown) => {
           this.isSubmitting.set(false);
-          if (isApiError(error)) {
-            applyServerValidationErrors(this.form, error.validationErrors);
-            this.formError.set(error.message);
-          } else {
-            this.formError.set('Something went wrong. Please try again.');
+          const apiError = isApiError(error) ? error : null;
+          if (apiError !== null) {
+            applyServerValidationErrors(this.form, apiError.validationErrors);
           }
+          this.formError.set(resolveApiErrorMessage(apiError, this.cultures.culture()));
         },
       });
   }

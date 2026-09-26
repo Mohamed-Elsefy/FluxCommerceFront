@@ -66,6 +66,15 @@ export class QuantityControl {
   /** Invalid-input note (page-localized, required). */
   @Input({ required: true }) invalidMessage!: string;
 
+  /**
+   * Unique error element id (page-projected, required): every cart line
+   * renders its own control, so a shared static id would duplicate
+   * `id`s across lines and misdirect `aria-describedby`. The owning
+   * line passes a variant-scoped id (SSR-safe: derived from backend
+   * data, identical on server and client).
+   */
+  @Input({ required: true }) errorId!: string;
+
   /** Freezes the control while a cart mutation is in flight. */
   @Input() disabled = false;
 

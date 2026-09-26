@@ -485,7 +485,18 @@ const storefrontShellFiles = [
 const storefrontLayoutSources = collectTs('apps/storefront/src/app/layout').filter(
   (path) => !path.endsWith('.spec.ts'),
 );
+// Translation dictionaries name business areas in prose (`Catalog`,
+// `Cart` labels) but import nothing — they are copy, not coupling.
+// The business-words check below targets code, so dictionaries stay
+// out of its input (import-shape coupling is covered separately by
+// the no-deep-imports and library-direction checks).
+const storefrontLayoutCodeSources = storefrontLayoutSources.filter(
+  (path) => !path.endsWith('-translations.ts'),
+);
 const storefrontLayoutCode = storefrontLayoutSources
+  .map((path) => stripComments(readFileSync(join(root, path), 'utf8')))
+  .join('\n');
+const storefrontLayoutBusinessCode = storefrontLayoutCodeSources
   .map((path) => stripComments(readFileSync(join(root, path), 'utf8')))
   .join('\n');
 const storefrontLayoutTemplates = storefrontLayoutSources
@@ -560,7 +571,7 @@ check(
 check(
   '3.6: no business features in the shell (no catalog/cart/checkout/orders)',
   !/\bcatalog\b|\bcart\b|\bcheckout\b|\borders?\b|\bpayments?\b|\binventory\b|\bproduct\b/i.test(
-    storefrontLayoutCode,
+    storefrontLayoutBusinessCode,
   ),
 );
 // Sub-Phase 3.7 — Admin Application Shell: Sidebar (destinations, active

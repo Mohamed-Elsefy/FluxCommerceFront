@@ -204,6 +204,19 @@ describe('ProductGallery accessibility and platform safety', () => {
     expect(element.querySelectorAll('.product-gallery-thumb')).toHaveLength(3);
   });
 
+  it('prioritizes the above-the-fold main image and defers the rest (11.5)', () => {
+    const { element } = setup({});
+    const main = element.querySelector('.product-gallery-main-image');
+
+    expect(main?.getAttribute('loading')).toBe('eager');
+    expect(main?.getAttribute('fetchpriority')).toBe('high');
+    expect(main?.getAttribute('decoding')).toBe('async');
+    for (const thumb of element.querySelectorAll('.product-gallery-thumb img')) {
+      expect(thumb.getAttribute('loading')).toBe('lazy');
+      expect(thumb.getAttribute('decoding')).toBe('async');
+    }
+  });
+
   it('localizes gallery chrome for the RTL culture with identical structure', () => {
     const { element } = setup({ culture: 'ar' });
 

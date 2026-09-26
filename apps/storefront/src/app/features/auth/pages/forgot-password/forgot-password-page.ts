@@ -7,12 +7,14 @@
  * the same confirmation shows for every syntactically valid email.
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { isApiError } from '@flux/api';
+import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
+import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-translations';
 import {
   applyServerValidationErrors,
   clearServerValidationErrors,
@@ -28,6 +30,7 @@ import { FieldErrors } from '../../components/field-errors/field-errors';
 })
 export class ForgotPasswordPage {
   private readonly authDataAccess = inject(AuthDataAccess);
+  private readonly cultures = inject(CultureService);
 
   readonly form = new FormGroup({
     email: new FormControl('', {
@@ -39,6 +42,30 @@ export class ForgotPasswordPage {
   readonly isSubmitting = signal(false);
   readonly formError = signal<string | null>(null);
   readonly sentTo = signal<string | null>(null);
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotTitle),
+      subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotSubtitle),
+      emailLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotEmailLabel),
+      submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotSubmit),
+      submitting: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotSubmitting),
+      errorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotErrorTitle),
+      doneTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotDoneTitle),
+      backToLogin: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotBackToLogin),
+      remembered: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotRemembered),
+      signInLink: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.forgotSignInLink),
+    };
+  });
+
+  /** Localized confirmation copy (email interpolated). */
+  protected readonly doneMessage = computed(() =>
+    translateAuthKey(this.cultures.culture(), AUTH_TRANSLATION_KEYS.forgotDoneMessage, {
+      email: this.sentTo() ?? '',
+    }),
+  );
 
   submit(): void {
     this.formError.set(null);
@@ -56,12 +83,11 @@ export class ForgotPasswordPage {
       },
       error: (error: unknown) => {
         this.isSubmitting.set(false);
-        if (isApiError(error)) {
-          applyServerValidationErrors(this.form, error.validationErrors);
-          this.formError.set(error.message);
-        } else {
-          this.formError.set('Something went wrong. Please try again.');
+        const apiError = isApiError(error) ? error : null;
+        if (apiError !== null) {
+          applyServerValidationErrors(this.form, apiError.validationErrors);
         }
+        this.formError.set(resolveApiErrorMessage(apiError, this.cultures.culture()));
       },
     });
   }

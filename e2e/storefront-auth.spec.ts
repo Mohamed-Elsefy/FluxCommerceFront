@@ -212,7 +212,9 @@ test.describe('storefront authentication lifecycle', () => {
     expect(stored).toBeNull();
   });
 
-  test('rejected credentials stay on the form with the backend message', async ({ page }) => {
+  test('rejected credentials stay on the form with a localized message (11.10)', async ({
+    page,
+  }) => {
     await page.route('**/auth/login', (route) =>
       route.fulfill({
         status: 401,
@@ -226,7 +228,8 @@ test.describe('storefront authentication lifecycle', () => {
     await fillField(page, 'Password', 'Wrong123!');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
-    await expect(page.getByText('Invalid email or password.')).toBeVisible();
+    // 11.10: form errors resolve through stable codes, never backend text.
+    await expect(page.getByText('You are not authorized. Please sign in.')).toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
   });
 });

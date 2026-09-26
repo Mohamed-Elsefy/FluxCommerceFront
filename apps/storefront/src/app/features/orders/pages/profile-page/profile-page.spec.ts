@@ -89,7 +89,7 @@ describe('ProfilePage loading', () => {
     const { fixture } = await setup(() => pending.asObservable());
 
     expect(fixture.nativeElement.querySelector('flux-loading-indicator')).not.toBeNull();
-    expect(textOf(fixture, 'h1')).toBe('Profile');
+    expect(textOf(fixture, '#profile-page-title')).toBe('Profile');
 
     pending.next(envelope(user()));
     pending.complete();
@@ -153,7 +153,7 @@ describe('ProfilePage loaded profile (read-only)', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(textOf(fixture, 'h1')).toBe('Profil');
+    expect(textOf(fixture, '#profile-page-title')).toBe('Profil');
     expect(TestBed.inject(Title).getTitle()).toBe('Profil');
 
     TestBed.inject(CultureService).setCulture('en');
@@ -205,7 +205,9 @@ describe('ProfilePage focus management', () => {
   it('moves focus to the heading on entry', async () => {
     const { fixture } = await setup();
 
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#profile-page-title'));
+    // 11.8: the page contributes no h1 — the account shell owns the section h1.
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(0);
   });
 
   it('moves focus to the error banner once per failure', async () => {

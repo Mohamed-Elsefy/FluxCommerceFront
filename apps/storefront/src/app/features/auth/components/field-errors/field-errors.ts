@@ -4,11 +4,26 @@
  * Presentational only: renders the validation messages of one form control
  * (client-side keys plus backend `server` messages applied via
  * `./data-access/auth-form-errors`). Messages appear once the control is
- * touched or dirty. Copy is minimal English — localization is Phase 4.
+ * touched or dirty. Client-side messages resolve through the Phase 4
+ * platform resolver (`resolveValidationMessage` over
+ * `common.validation.*`) for the active culture (11.10) — custom
+ * auth keys (`nonBlank`, `passwordComplexity`, `passwordMismatch`)
+ * resolve to the generic invalid message per the platform contract, and
+ * backend `server` messages pass through verbatim (backend-localized).
  */
 
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { AbstractControl } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  Input,
+  OnChanges,
+  OnDestroy,
+  inject,
+} from '@angular/core';
+import { AbstractControl, ValidationErrors } from '@angular/forms';
+import type { Subscription } from 'rxjs';
+import { CultureService, resolveValidationMessage } from '@flux/i18n';
 import { SERVER_ERROR_KEY } from '../../data-access/auth-form-errors';
 
 @Component({
@@ -17,11 +32,30 @@ import { SERVER_ERROR_KEY } from '../../data-access/auth-form-errors';
   styleUrl: './field-errors.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FieldErrors {
+export class FieldErrors implements OnChanges, OnDestroy {
   /** Control whose errors render; null renders nothing. */
   @Input() control: AbstractControl | null = null;
-  /** Human field name used in client-side messages. */
-  @Input() label = 'This field';
+
+  private readonly cultures = inject(CultureService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private controlEvents: Subscription | null = null;
+
+  /**
+   * Refreshes on every control event (value, status, touched, pristine,
+   * disable): `AbstractControl` mutations do not touch @Inputs, so an
+   * `OnPush` view would otherwise stay stale until an unrelated check
+   * (e.g. `markAllAsTouched()` on submit would never paint). Same
+   * convention as the checkout `FieldErrors`.
+   */
+  ngOnChanges(): void {
+    this.controlEvents?.unsubscribe();
+    this.controlEvents =
+      this.control?.events.subscribe(() => this.changeDetector.markForCheck()) ?? null;
+  }
+
+  ngOnDestroy(): void {
+    this.controlEvents?.unsubscribe();
+  }
 
   shouldShow(): boolean {
     const control = this.control;
@@ -40,30 +74,15 @@ export class FieldErrors {
       return [];
     }
     const messages: string[] = [];
-    const errors = control.errors;
-    if (errors['required'] !== undefined || errors['nonBlank'] !== undefined) {
-      messages.push(`${this.label} is required.`);
+    const { [SERVER_ERROR_KEY]: _server, ...clientErrors } = control.errors;
+    const localized = resolveValidationMessage(
+      clientErrors as ValidationErrors,
+      this.cultures.culture(),
+    );
+    if (localized !== null) {
+      messages.push(localized);
     }
-    if (errors['email'] !== undefined) {
-      messages.push('Enter a valid email address.');
-    }
-    if (errors['minlength'] !== undefined) {
-      const required = (errors['minlength'] as { requiredLength?: number }).requiredLength;
-      messages.push(`${this.label} must be at least ${required ?? '?'} characters.`);
-    }
-    if (errors['maxlength'] !== undefined) {
-      const required = (errors['maxlength'] as { requiredLength?: number }).requiredLength;
-      messages.push(`${this.label} must be no more than ${required ?? '?'} characters.`);
-    }
-    if (errors['passwordComplexity'] !== undefined) {
-      messages.push(
-        `${this.label} needs upper- and lower-case letters, a digit, and a special character.`,
-      );
-    }
-    if (errors['passwordMismatch'] !== undefined) {
-      messages.push('Passwords do not match.');
-    }
-    const server = errors[SERVER_ERROR_KEY];
+    const server = control.errors[SERVER_ERROR_KEY];
     if (Array.isArray(server)) {
       for (const message of server) {
         if (typeof message === 'string') {

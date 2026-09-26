@@ -12,9 +12,12 @@
  * flow only.
  */
 
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Container } from '@flux/ui';
+import { CultureService } from '@flux/i18n';
 import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
+import { EXPLORE_NAV_ITEMS } from '../../storefront-navigation';
+import { LAYOUT_TRANSLATION_KEYS, translateLayoutKey } from '../layout-translations';
 
 @Component({
   selector: 'storefront-footer',
@@ -24,9 +27,29 @@ import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation'
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StorefrontFooter {
-  /** Explore destinations — mirrors the header (only existing routes). */
-  readonly exploreNav: readonly StorefrontNavItem[] = [{ label: 'Home', route: '/' }];
+  private readonly cultures = inject(CultureService);
 
-  /** Copyright year (render-stable; see class docs). */
-  protected readonly year = new Date().getFullYear();
+  /**
+   * Explore destinations with localized labels for the active culture
+   * (routes stay app-composed; labels resolve through the layout
+   * bundle — never hardcoded, never duplicated).
+   */
+  readonly exploreNav = computed((): readonly StorefrontNavItem[] =>
+    EXPLORE_NAV_ITEMS.map((item) => ({
+      label: translateLayoutKey(this.cultures.culture(), item.labelKey),
+      route: item.route,
+    })),
+  );
+
+  /** Localized footer chrome for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      exploreHeading: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.exploreHeading),
+      exploreLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.navExploreLabel),
+      legal: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.legal, {
+        year: new Date().getFullYear(),
+      }),
+    };
+  });
 }

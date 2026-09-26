@@ -54,10 +54,23 @@ describe('ProductCard', () => {
     expect(image?.getAttribute('src')).toBe('/cdn/tee.jpg');
     expect(image?.getAttribute('alt')).toBe('Tee front view');
     expect(image?.getAttribute('loading')).toBe('lazy');
+    expect(image?.getAttribute('decoding')).toBe('async');
   });
 
   it('renders an imageless fallback without inventing image content', () => {
     const { element } = setup({ ...PRODUCT, primaryImage: null });
+
+    expect(element.querySelector('img')).toBeNull();
+    expect(element.querySelector('.product-image-fallback')).not.toBeNull();
+    expect(element.querySelector('h3')?.textContent).toBe('Tee');
+  });
+
+  it('swaps a broken image to the reserved-space fallback (11.5)', () => {
+    const { fixture, element } = setup(PRODUCT);
+
+    expect(element.querySelector('img')).not.toBeNull();
+    element.querySelector('img')?.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
 
     expect(element.querySelector('img')).toBeNull();
     expect(element.querySelector('.product-image-fallback')).not.toBeNull();

@@ -7,14 +7,17 @@
  */
 
 import { Location } from '@angular/common';
-import { Component } from '@angular/core';
-import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import { Component, DebugElement } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { AuthService, type CurrentUser } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
+import { FieldErrors } from '../../components/field-errors/field-errors';
 import { LoginPage } from './login-page';
 
 @Component({ template: '<router-outlet></router-outlet>', imports: [RouterOutlet] })
@@ -56,6 +59,7 @@ describe('LoginPage', () => {
   let loginResult: () => ReturnType<AuthDataAccess['login']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     isAuthenticated = false;
     authStub = { isAuthenticated: () => isAuthenticated };
     loginCalls = [];
@@ -94,6 +98,51 @@ describe('LoginPage', () => {
     expect(authStub.isAuthenticated()).toBe(false);
   });
 
+  it('renders localized copy without key leakage', async () => {
+    const { fixture } = await navigate('/login');
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Se connecter');
+      expect(element.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('localizes form and field errors for the active culture (11.10)', async () => {
+    TestBed.inject(CultureService).setCulture('fr');
+    try {
+      loginResult = () => throwError(() => new ApiError({ status: 401, message: 'Invalid.' }));
+      const { page, fixture } = await navigate('/login');
+      page.form.controls.email.setValue('ada@flux.local');
+      page.form.controls.password.setValue('');
+      fixture.nativeElement.querySelector('form')?.dispatchEvent(new Event('submit'));
+      fixture.detectChanges();
+
+      // Client-side validation resolves through common.validation.*.
+      const fieldErrors = fixture.debugElement
+        .queryAll(By.directive(FieldErrors))
+        .map((node: DebugElement) => node.componentInstance as FieldErrors);
+      expect(fieldErrors.length).toBeGreaterThan(0);
+      expect(fieldErrors.flatMap((instance: FieldErrors) => instance.messages())).toContain(
+        'Ce champ est obligatoire.',
+      );
+      expect(fixture.nativeElement.textContent).toContain('Ce champ est obligatoire.');
+      page.form.controls.password.setValue('Valid123!');
+      fixture.nativeElement.querySelector('form')?.dispatchEvent(new Event('submit'));
+      fixture.detectChanges();
+
+      // Form-level failures resolve through errors.* (never backend text).
+      expect(page.formError()).toBe("Vous n'êtes pas autorisé. Veuillez vous connecter.");
+    } finally {
+      TestBed.inject(CultureService).setCulture('en');
+    }
+  });
+
   it('bounces already-authenticated visits to the return URL', async () => {
     isAuthenticated = true;
     const router = TestBed.inject(Router);
@@ -125,7 +174,7 @@ describe('LoginPage', () => {
     page.form.controls.password.setValue('Wrong123!');
     page.submit();
 
-    expect(page.formError()).toBe('Invalid email or password.');
+    expect(page.formError()).toBe('You are not authorized. Please sign in.');
     expect(page.isSubmitting()).toBe(false);
     expect(authStub.isAuthenticated()).toBe(false);
     expect(TestBed.inject(Location).path()).toBe('/login');
@@ -147,6 +196,6 @@ describe('LoginPage', () => {
     page.submit();
 
     expect(page.form.controls.email.hasError('server')).toBe(true);
-    expect(page.formError()).toBe('One or more validation errors occurred.');
+    expect(page.formError()).toBe('Please correct the highlighted fields and try again.');
   });
 });

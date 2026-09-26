@@ -33,7 +33,79 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server,
   },
   {
-    path: '**',
+    // Sub-Phase 11.13 — explicit static routes (mirrors the 11.1
+    // baseline of 15 prerendered routes). A `** → Server` fallback
+    // disables the crawler that auto-discovers these, so they are
+    // declared explicitly instead of depending on crawl behavior.
+    // Partial paths (`catalog/products`, `payment`, `account/orders`)
+    // prerender their idle shells by design (no backend at build time);
+    // data-driven `:id` variants stay `Server` above.
+    path: '',
     renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'account',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'account/orders',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'account/profile',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'cart',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'catalog',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'catalog/products',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'checkout',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'forgot-password',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'login',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'payment',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'register',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'resend-verification',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'reset-password',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'verify-email',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    // Sub-Phase 11.11 — unknown URLs (no prerenderable enumeration
+    // exists for them) render on demand instead of prerendering, so
+    // direct navigation and SSR requests serve the localized
+    // `NotFoundPage` through the Angular pipeline instead of falling
+    // through to the raw Express fallback.
+    path: '**',
+    renderMode: RenderMode.Server,
   },
 ];

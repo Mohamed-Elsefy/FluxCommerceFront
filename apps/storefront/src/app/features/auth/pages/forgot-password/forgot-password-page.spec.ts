@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
+import { CultureService } from '@flux/i18n';
 import { AuthDataAccess } from '../../data-access/auth-data-access';
 import { ForgotPasswordPage } from './forgot-password-page';
 
@@ -17,6 +18,7 @@ describe('ForgotPasswordPage', () => {
   let forgotResult: () => ReturnType<AuthDataAccess['forgotPassword']>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     forgotCalls = [];
     forgotResult = () => of(undefined);
     const dataAccessStub = {
@@ -46,6 +48,21 @@ describe('ForgotPasswordPage', () => {
     expect(page.sentTo()).toBeNull();
   });
 
+  it('renders localized copy without key leakage', () => {
+    const fixture = TestBed.createComponent(ForgotPasswordPage);
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Réinitialiser le mot de passe');
+      expect(element.textContent).not.toContain('auth.');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
   it('confirms unconditionally on success', () => {
     const fixture = TestBed.createComponent(ForgotPasswordPage);
     const page = fixture.componentInstance;
@@ -68,7 +85,7 @@ describe('ForgotPasswordPage', () => {
     page.submit();
     fixture.detectChanges();
 
-    expect(page.formError()).toBe('Offline.');
+    expect(page.formError()).toBe('An unexpected error occurred.');
     expect(page.sentTo()).toBeNull();
     expect(page.isSubmitting()).toBe(false);
   });

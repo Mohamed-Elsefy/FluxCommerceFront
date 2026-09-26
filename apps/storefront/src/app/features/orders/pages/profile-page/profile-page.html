@@ -1,5 +1,6 @@
 <section class="profile-page" aria-labelledby="profile-page-title">
-  <h1 id="profile-page-title" tabindex="-1">{{ copy().title }}</h1>
+  <!-- h2, not h1: the account shell owns the section h1 (11.8 — one h1 per view). -->
+  <h2 id="profile-page-title" tabindex="-1">{{ copy().title }}</h2>
 
   @if (showLoading()) {
     <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>

@@ -102,8 +102,10 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
+import { DOCUMENT } from '@angular/common';
 import { map } from 'rxjs';
 import { CultureService, formatCurrency, resolveApiErrorMessage, translateKey } from '@flux/i18n';
+import { FALLBACK_SOCIAL_IMAGE, selectSocialImage, setCanonicalUrl } from '@flux/utils';
 import { AuthService } from '@flux/auth';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { AddToCart } from '../../components/add-to-cart/add-to-cart';
@@ -154,6 +156,7 @@ export class ProductDetailsPage implements OnInit {
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
+  private readonly document = inject(DOCUMENT);
 
   /** Tears down the in-flight details requests, if any (idempotent). */
   private detailsTeardown: (() => void) | undefined;
@@ -423,6 +426,18 @@ export class ProductDetailsPage implements OnInit {
    * backend provides none); not-found, error, invalid-id, and loading
    * states each map to their localized UX copy. `Title`/`Meta` are
    * SSR-safe Angular services.
+   *
+   * Canonical (11.3) is the addressable product URL for a valid route id;
+   * invalid/error states fall back to the catalog listing (the nearest
+   * indexable content) so failed lookups never present themselves as
+   * canonical product content. `setCanonicalUrl` keeps a single tag, so
+   * re-runs never duplicate it.
+   *
+   * Social (11.4): `og:url` mirrors the canonical; `og:image` is the
+   * backend-primary image (else the first usable image, else the bundled
+   * fallback) — but only while the product itself loaded successfully, so
+   * failed lookups never present product imagery as their own;
+   * `twitter:card` mirrors the OpenGraph tags for X previews.
    */
   private applyMetadata(): void {
     const copy = this.copy();
@@ -448,6 +463,18 @@ export class ProductDetailsPage implements OnInit {
     this.meta.updateTag({ property: 'og:title', content: title });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
+    const id = this.productId();
+    const canonical = id === null ? '/catalog' : `/catalog/products/${id}`;
+    this.meta.updateTag({ property: 'og:url', content: canonical });
+    const loaded = snapshot.isSuccess && snapshot.data !== null;
+    this.meta.updateTag({
+      property: 'og:image',
+      content: loaded ? selectSocialImage(this.images().data ?? []) : FALLBACK_SOCIAL_IMAGE,
+    });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:description', content: description });
+    setCanonicalUrl(this.document, canonical);
   }
 
   /** (Re)loads every details slot for the current route id; error retry re-enters here. */

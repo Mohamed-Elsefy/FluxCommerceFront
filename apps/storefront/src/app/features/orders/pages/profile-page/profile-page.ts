@@ -206,13 +206,14 @@ export class ProfilePage implements OnInit {
 
   /**
    * Moves keyboard/screen-reader focus to the page heading on entry so
-   * route changes announce. Browser-only (SSR never focuses).
+   * route changes announce. Browser-only (SSR never focuses). Targets
+   * the heading id (the page heading is an h2 under the shell h1).
    */
   private focusHeading(): void {
     if (!this.isBrowser) {
       return;
     }
-    const target = this.host.nativeElement.querySelector('h1');
+    const target = this.host.nativeElement.querySelector('#profile-page-title');
     if (target instanceof HTMLElement) {
       target.focus();
     }

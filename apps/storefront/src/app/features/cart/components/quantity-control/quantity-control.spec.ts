@@ -26,6 +26,7 @@ function setup(options: { quantity?: number; disabled?: boolean } = {}): {
   fixture.componentRef.setInput('decreaseLabel', 'Decrease quantity');
   fixture.componentRef.setInput('increaseLabel', 'Increase quantity');
   fixture.componentRef.setInput('invalidMessage', 'Enter a whole number of 1 or more.');
+  fixture.componentRef.setInput('errorId', 'cart-quantity-test-error');
   fixture.componentRef.setInput('disabled', options.disabled ?? false);
   fixture.componentInstance.quantityChange.subscribe((value: number) => emitted.push(value));
   fixture.detectChanges();
@@ -166,5 +167,14 @@ describe('QuantityControl accessibility', () => {
     expect(buttons(element)[1]?.getAttribute('aria-label')).toBe('Increase quantity');
     expect(input(element).getAttribute('aria-label')).toBe('Quantity');
     expect(input(element).getAttribute('inputmode')).toBe('numeric');
+  });
+
+  it('references the projected unique error id (11.8, no duplicate ids)', () => {
+    const { element, fixture } = setup({ quantity: 1 });
+
+    typeText(fixture, element, 'two');
+
+    expect(input(element).getAttribute('aria-describedby')).toBe('cart-quantity-test-error');
+    expect(element.querySelector('#cart-quantity-test-error')).not.toBeNull();
   });
 });

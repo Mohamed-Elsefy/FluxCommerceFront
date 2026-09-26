@@ -9,8 +9,9 @@
  * statically by `checkout-styles.spec.ts` plus the workspace audit),
  * no component branches on direction, and no per-direction markup
  * exists. Also pins the keyboard contract (natural DOM Tab order, no
- * positive tabindex) and the landmark roles (`form`, `alert`,
- * `status`) the scope requires.
+ * positive tabindex) and the landmark roles (`alert`, `status`) the
+ * scope requires — the native `form` carries its implicit role with no
+ * redundant `role` attribute (11.8).
  */
 
 import { Type } from '@angular/core';
@@ -180,10 +181,11 @@ describe('Checkout keyboard order and landmarks', () => {
     }
   });
 
-  it('exposes the form landmark role', () => {
+  it('uses the native form without a redundant role (11.8)', () => {
     const { element } = setUp(CheckoutFormComponent, CHECKOUT_FORM_INPUTS);
 
-    expect(element.querySelector('form')?.getAttribute('role')).toBe('form');
+    expect(element.querySelector('form')).not.toBeNull();
+    expect(element.querySelector('form')?.getAttribute('role')).toBeNull();
   });
 
   it('associates every address label with its control', () => {

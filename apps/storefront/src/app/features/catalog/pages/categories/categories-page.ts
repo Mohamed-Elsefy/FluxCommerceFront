@@ -86,12 +86,14 @@ import {
   PLATFORM_ID,
   untracked,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { debounceTime, distinctUntilChanged, map, Subject } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
+import { buildQueryString } from '@flux/api';
+import { FALLBACK_SOCIAL_IMAGE, setCanonicalUrl } from '@flux/utils';
 import {
   CatalogProductSortBy,
   CatalogProductSortDirection,
@@ -174,6 +176,7 @@ export class CategoriesPage implements OnInit {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
+  private readonly document = inject(DOCUMENT);
 
   /** Raw search keystrokes from the input (debounced below, never sent raw). */
   private readonly searchText = new Subject<string>();
@@ -546,6 +549,15 @@ export class CategoriesPage implements OnInit {
    * localized catalog title), then the category description (falling back
    * to the localized subtitle). `Title`/`Meta` are SSR-safe Angular
    * services — on the server they render into the prerendered `<head>`.
+   *
+   * Canonical (11.3) reflects the addressable listing URL: the catalog
+   * path plus the content-bearing query (category/search/filters/sort),
+   * so each distinct listing has its own canonical and re-runs never
+   * duplicate the tag (`setCanonicalUrl` updates in place).
+   *
+   * Social (11.4): `og:url` mirrors the canonical; `og:image` is the
+   * bundled fallback (a listing has no single representative image);
+   * `twitter:card` mirrors the OpenGraph tags for X previews.
    */
   private applyMetadata(): void {
     const culture = this.cultures.culture();
@@ -563,11 +575,18 @@ export class CategoriesPage implements OnInit {
       category?.description ??
       translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesSubtitle);
     const title = `${pageLabel} | FluxCommerce`;
+    const canonical = canonicalForQuery(query);
     this.title.setTitle(title);
     this.meta.updateTag({ name: 'description', content: description });
     this.meta.updateTag({ property: 'og:title', content: title });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.meta.updateTag({ property: 'og:url', content: canonical });
+    this.meta.updateTag({ property: 'og:image', content: FALLBACK_SOCIAL_IMAGE });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:description', content: description });
+    setCanonicalUrl(this.document, canonical);
   }
 
   /** (Re)loads the discovery set; discovery retry re-enters here. */
@@ -601,4 +620,16 @@ export class CategoriesPage implements OnInit {
     this.state.loadProducts(toBackendQuery(query), { signal: controller.signal });
     this.listingTeardown = () => controller.abort();
   }
+}
+
+/**
+ * Canonical listing URL (11.3) for a query state: the catalog path plus
+ * the route-schema query (same `toRouteQueryParams` funnel the page
+ * commits to the URL — no parallel query-building logic), serialized
+ * through the shared `buildQueryString`. Paging travels explicitly, so
+ * each page has its own deterministic canonical on server and client.
+ */
+function canonicalForQuery(query: CatalogQueryState): string {
+  const serialized = buildQueryString(toRouteQueryParams(query));
+  return serialized === '' ? '/catalog' : `/catalog?${serialized}`;
 }
