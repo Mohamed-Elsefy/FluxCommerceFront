@@ -88,7 +88,7 @@ test.describe('admin access control', () => {
 
     await expect(page).toHaveURL(/\/login\?returnUrl=%2Fdashboard$/);
     await expect(page.getByRole('heading', { name: 'Admin sign in' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Administration' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveCount(0);
   });
 
   test('anonymous visits to the portal root land on the admin login', async ({ page }) => {
@@ -114,7 +114,7 @@ test.describe('admin access control', () => {
     await mockMe(page, ['Admin']);
     await page.goto('/dashboard');
 
-    await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByText('Boss Admin')).toBeVisible();
   });
 
@@ -124,7 +124,7 @@ test.describe('admin access control', () => {
     await mockMe(page, ['SuperAdmin']);
     await page.goto('/dashboard');
 
-    await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByText('Boss Admin')).toBeVisible();
   });
 
@@ -133,10 +133,10 @@ test.describe('admin access control', () => {
     await mockRefresh(page, ['Admin']);
     await mockMe(page, ['Admin']);
     await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
@@ -153,7 +153,7 @@ test.describe('admin access control', () => {
 
     await expect(page).toHaveURL(/\/login\?returnUrl=%2Fdashboard$/);
     await expect(page.getByRole('heading', { name: 'Admin sign in' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Administration' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveCount(0);
   });
 
   test('logout from the dashboard restores the anonymous shell', async ({ page }) => {
@@ -164,7 +164,7 @@ test.describe('admin access control', () => {
       route.fulfill({ status: 200, contentType: 'application/json', body: ok(null) }),
     );
     await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Logout' }).click();
 

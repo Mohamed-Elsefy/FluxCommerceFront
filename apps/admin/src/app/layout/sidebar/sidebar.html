@@ -6,7 +6,7 @@
 </nav>
 
 <ng-template #entries let-list>
-  @for (item of list; track item) {
+  @for (item of list; track item.route ?? item.label) {
     <li>
       @if (item.route !== undefined) {
         <a

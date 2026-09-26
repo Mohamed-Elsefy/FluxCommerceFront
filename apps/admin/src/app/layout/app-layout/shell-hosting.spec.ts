@@ -95,7 +95,7 @@ describe('AdminShell hosting', () => {
     const element = await navigate(router, fixture, '/dashboard');
 
     expect(element.querySelector('app-layout')).not.toBeNull();
-    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Administration');
+    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Dashboard');
   });
 
   it('keeps the shell mounted while swapping nested features', async () => {
@@ -106,7 +106,7 @@ describe('AdminShell hosting', () => {
 
     element = await navigate(router, fixture, '/dashboard');
     expect(element.querySelector('app-layout')).not.toBeNull();
-    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Administration');
+    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Dashboard');
   });
 
   it('renders the login page outside the shell for anonymous visits', async () => {
