@@ -16,7 +16,7 @@
     type="button"
     class="overlay"
     (click)="closeDrawer()"
-    aria-label="Close navigation"
+    [attr.aria-label]="overlayLabel()"
   ></button>
 }
-<admin-notification-host />
+<admin-notification-host [label]="notificationsLabel()" [dismissLabel]="notificationsDismiss()" />

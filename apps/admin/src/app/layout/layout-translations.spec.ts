@@ -26,6 +26,36 @@ describe('translateAdminLayoutKey', () => {
     );
   });
 
+  it('resolves denial and not-found pages per culture', () => {
+    expect(translateAdminLayoutKey('en', ADMIN_LAYOUT_TRANSLATION_KEYS.forbiddenTitle)).toBe(
+      'Access denied',
+    );
+    expect(translateAdminLayoutKey('de', ADMIN_LAYOUT_TRANSLATION_KEYS.forbiddenTitle)).toBe(
+      'Zugriff verweigert',
+    );
+    expect(translateAdminLayoutKey('es', ADMIN_LAYOUT_TRANSLATION_KEYS.notFoundTitle)).toBe(
+      'Página no encontrada',
+    );
+    expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.notFoundBack)).toBe(
+      'عودة للرئيسية',
+    );
+    expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.forbiddenMessage)).toBe(
+      "Vous n'avez pas l'autorisation de voir cette page.",
+    );
+  });
+
+  it('resolves drawer and notification chrome per culture', () => {
+    expect(translateAdminLayoutKey('en', ADMIN_LAYOUT_TRANSLATION_KEYS.drawerCloseOverlay)).toBe(
+      'Close navigation',
+    );
+    expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.notificationsLabel)).toBe(
+      'الإشعارات',
+    );
+    expect(translateAdminLayoutKey('de', ADMIN_LAYOUT_TRANSLATION_KEYS.notificationsDismiss)).toBe(
+      'Schließen',
+    );
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateAdminLayoutKey('xx' as never, ADMIN_LAYOUT_TRANSLATION_KEYS.navHome)).toBe(
       'Home',

@@ -92,6 +92,30 @@ export class AppLayout {
     translateAdminLayoutKey(this.cultures.culture(), ADMIN_LAYOUT_TRANSLATION_KEYS.skipLink),
   );
 
+  /** Localized drawer-overlay label for the active culture. */
+  readonly overlayLabel = computed(() =>
+    translateAdminLayoutKey(
+      this.cultures.culture(),
+      ADMIN_LAYOUT_TRANSLATION_KEYS.drawerCloseOverlay,
+    ),
+  );
+
+  /** Localized notification-host copy for the active culture. */
+  readonly notificationsLabel = computed(() =>
+    translateAdminLayoutKey(
+      this.cultures.culture(),
+      ADMIN_LAYOUT_TRANSLATION_KEYS.notificationsLabel,
+    ),
+  );
+
+  /** Localized notification dismiss action for the active culture. */
+  readonly notificationsDismiss = computed(() =>
+    translateAdminLayoutKey(
+      this.cultures.culture(),
+      ADMIN_LAYOUT_TRANSLATION_KEYS.notificationsDismiss,
+    ),
+  );
+
   /** Mobile drawer visibility (local UI state; closed on server and client). */
   readonly drawerOpen = signal(false);
 

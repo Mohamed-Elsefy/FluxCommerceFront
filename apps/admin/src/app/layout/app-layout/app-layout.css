@@ -81,7 +81,7 @@ main {
     z-index: var(--z-index-dropdown);
     border: 0;
     padding: 0;
-    background: rgb(0 0 0 / 0.4);
+    background: var(--color-scrim);
     cursor: pointer;
   }
 }

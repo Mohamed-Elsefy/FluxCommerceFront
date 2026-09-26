@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { throwError, type Observable } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { AuthService, type CurrentUser } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { AdminAuthDataAccess } from '../../data-access/admin-auth-data-access';
 import { AdminLoginPage } from './login-page';
 
@@ -81,5 +82,22 @@ describe('AdminLoginPage', () => {
     TestBed.inject(AdminLoginPage);
 
     expect(navigateByUrl).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('renders localized copy for the active culture', () => {
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const fixture = TestBed.createComponent(AdminLoginPage);
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelector('h1')?.textContent).toBe('Connexion admin');
+      expect(element.querySelector('.admin-login-submit')?.textContent?.trim()).toBe(
+        'Se connecter',
+      );
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

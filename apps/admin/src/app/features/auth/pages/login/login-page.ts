@@ -7,15 +7,15 @@
  * session → current user → redirect (`?returnUrl=`, same-origin only,
  * default `/dashboard`).
  *
- * Minimal by design: English-only copy (full admin localization hardens in
- * §12.9), no registration/recovery links (the Admin portal has no such
- * routes), no role checks here — whether the session may enter the portal
- * stays with the route guards (`authGuard` + `roleGuard`,
+ * Minimal by design: no registration/recovery links (the Admin portal
+ * has no such routes), no role checks here — whether the session may
+ * enter the portal stays with the route guards (`authGuard` + `roleGuard`,
  * `Admin`/`SuperAdmin`) and backend authorization stays authoritative.
  * Already-authenticated visits bounce to the return URL immediately.
+ * Copy resolves through the feature-owned auth bundle (§12.9).
  */
 
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
@@ -23,6 +23,7 @@ import { AuthService } from '@flux/auth';
 import { isApiError } from '@flux/api';
 import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { AdminAuthDataAccess } from '../../data-access/admin-auth-data-access';
+import { ADMIN_AUTH_TRANSLATION_KEYS, translateAdminAuthKey } from '../../i18n/auth-translations';
 
 @Component({
   selector: 'app-admin-login-page',
@@ -53,6 +54,22 @@ export class AdminLoginPage {
   readonly isSubmitting = signal(false);
   /** Form-level failure, localized through `resolveApiErrorMessage`. Null when clear. */
   readonly formError = signal<string | null>(null);
+
+  /** Localized page copy for the active culture. */
+  protected readonly copy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      title: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginTitle),
+      subtitle: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSubtitle),
+      emailLabel: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginEmailLabel),
+      passwordLabel: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginPasswordLabel),
+      emailError: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginEmailError),
+      passwordError: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginPasswordError),
+      errorTitle: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginErrorTitle),
+      submit: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSubmit),
+      submitting: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSubmitting),
+    };
+  });
 
   constructor() {
     if (this.auth.isAuthenticated()) {

@@ -1292,6 +1292,43 @@ check(
     paymentServerRoutes.includes('RenderMode.Server'),
 );
 
+// ------------------------------------------------- Phase 12.8: admin state
+// Sub-Phase 12.8 — Admin State & Data Lifecycle: signals plus local and
+// feature-local state only. No store library (NgRx, SignalStore) and no
+// home-grown global admin store may enter apps/admin without demonstrated
+// complexity. The only root-provided admin services are the allowlisted
+// pair below: the notification center (genuinely cross-feature toasts,
+// commissioned by 12.7) and the stateless login orchestration (no owned
+// state — session state stays in `AuthService`). Any new global admin
+// state must extend the allowlist with justification, which forces the
+// conscious review 12.8 demands instead of silent store growth.
+console.log('Phase 12.8');
+const adminProdSources = adminSources.filter((path) => !path.endsWith('.spec.ts'));
+check(
+  '12.8: admin never imports a store library (no NgRx/SignalStore)',
+  !specifiersOf(adminProdSources).some(({ spec }) => spec.startsWith('@ngrx')),
+);
+const manifestDeps = {
+  ...readJson('package.json').dependencies,
+  ...readJson('package.json').devDependencies,
+};
+check(
+  '12.8: no store library in dependencies',
+  !Object.keys(manifestDeps).some((dep) => dep.startsWith('@ngrx')),
+);
+const adminRootStateAllowlist = new Set([
+  'apps/admin/src/app/shared/notifications/notification-service.ts',
+  'apps/admin/src/app/features/auth/data-access/admin-auth-data-access.ts',
+]);
+const rootProvided = adminProdSources.filter((path) =>
+  /providedIn\s*:\s*['"]root['"]/.test(stripComments(readFileSync(join(root, path), 'utf8'))),
+);
+check(
+  '12.8: no new global admin state (root-provided services stay allowlisted)',
+  rootProvided.every((path) => adminRootStateAllowlist.has(path)),
+  `${rootProvided.length} service(s)`,
+);
+
 // ----------------------------------------------------------------- Summary
 console.log(`\n${count - failures.length}/${count} checks passed.`);
 if (failures.length > 0) {

@@ -3,12 +3,13 @@
  * supported cultures (`en`/`fr`/`de`/`es`/`ar`).
  *
  * Covers the sidebar (landmark name, destinations), the header (context
- * title, drawer toggle, language picker), the skip link, and the account
- * area (`AuthNav` labels). Only destinations that exist have keys;
- * entries arrive with the phases that create their routes. Lookup runs
- * through the Phase 4 `translate` engine (deterministic target → `en` →
- * key-path fallback). Pure data + pure lookup: no Angular, DOM, or
- * storage access — SSR-safe.
+ * title, drawer toggle, language picker), the skip link, the account
+ * area (`AuthNav` labels), and the standalone denial/not-found pages.
+ * Only destinations that exist have keys; entries arrive with the
+ * phases that create their routes. Lookup runs through the Phase 4
+ * `translate` engine (deterministic target → `en` → key-path fallback).
+ * Pure data + pure lookup: no Angular, DOM, or storage access —
+ * SSR-safe.
  */
 
 import {
@@ -36,6 +37,15 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   authAccount: 'layout.auth.account',
   authLogout: 'layout.auth.logout',
   authLoggingOut: 'layout.auth.loggingOut',
+  forbiddenTitle: 'layout.forbidden.title',
+  forbiddenMessage: 'layout.forbidden.message',
+  forbiddenBack: 'layout.forbidden.back',
+  notFoundTitle: 'layout.notFound.title',
+  notFoundMessage: 'layout.notFound.message',
+  notFoundBack: 'layout.notFound.back',
+  drawerCloseOverlay: 'layout.drawer.closeOverlay',
+  notificationsLabel: 'layout.notifications.label',
+  notificationsDismiss: 'layout.notifications.dismiss',
 } as const;
 
 /** English (`en`) layout vocabulary. Also the deterministic fallback source. */
@@ -67,6 +77,23 @@ const EN_LAYOUT: TranslationDictionary = {
       account: 'Account',
       logout: 'Logout',
       loggingOut: 'Signing out…',
+    },
+    forbidden: {
+      title: 'Access denied',
+      message: 'You do not have permission to view this page.',
+      back: 'Back to home',
+    },
+    notFound: {
+      title: 'Page not found',
+      message: 'The page you requested does not exist.',
+      back: 'Back to home',
+    },
+    drawer: {
+      closeOverlay: 'Close navigation',
+    },
+    notifications: {
+      label: 'Notifications',
+      dismiss: 'Dismiss',
     },
   },
 };
@@ -101,6 +128,23 @@ const FR_LAYOUT: TranslationDictionary = {
       logout: 'Se déconnecter',
       loggingOut: 'Déconnexion…',
     },
+    forbidden: {
+      title: 'Accès refusé',
+      message: "Vous n'avez pas l'autorisation de voir cette page.",
+      back: "Retour à l'accueil",
+    },
+    notFound: {
+      title: 'Page introuvable',
+      message: "La page demandée n'existe pas.",
+      back: "Retour à l'accueil",
+    },
+    drawer: {
+      closeOverlay: 'Fermer la navigation',
+    },
+    notifications: {
+      label: 'Notifications',
+      dismiss: 'Ignorer',
+    },
   },
 };
 
@@ -133,6 +177,23 @@ const DE_LAYOUT: TranslationDictionary = {
       account: 'Konto',
       logout: 'Abmelden',
       loggingOut: 'Abmelden…',
+    },
+    forbidden: {
+      title: 'Zugriff verweigert',
+      message: 'Sie haben keine Berechtigung, diese Seite zu sehen.',
+      back: 'Zurück zur Startseite',
+    },
+    notFound: {
+      title: 'Seite nicht gefunden',
+      message: 'Die angeforderte Seite existiert nicht.',
+      back: 'Zurück zur Startseite',
+    },
+    drawer: {
+      closeOverlay: 'Navigation schließen',
+    },
+    notifications: {
+      label: 'Mitteilungen',
+      dismiss: 'Schließen',
     },
   },
 };
@@ -167,6 +228,23 @@ const ES_LAYOUT: TranslationDictionary = {
       logout: 'Cerrar sesión',
       loggingOut: 'Cerrando sesión…',
     },
+    forbidden: {
+      title: 'Acceso denegado',
+      message: 'No tienes permiso para ver esta página.',
+      back: 'Volver al inicio',
+    },
+    notFound: {
+      title: 'Página no encontrada',
+      message: 'La página solicitada no existe.',
+      back: 'Volver al inicio',
+    },
+    drawer: {
+      closeOverlay: 'Cerrar la navegación',
+    },
+    notifications: {
+      label: 'Notificaciones',
+      dismiss: 'Descartar',
+    },
   },
 };
 
@@ -199,6 +277,23 @@ const AR_LAYOUT: TranslationDictionary = {
       account: 'الحساب',
       logout: 'تسجيل الخروج',
       loggingOut: 'جارٍ تسجيل الخروج…',
+    },
+    forbidden: {
+      title: 'تم الرفض',
+      message: 'ليس لديك إذن لعرض هذه الصفحة.',
+      back: 'عودة للرئيسية',
+    },
+    notFound: {
+      title: 'الصفحة غير موجودة',
+      message: 'الصفحة المطلوبة غير موجودة.',
+      back: 'عودة للرئيسية',
+    },
+    drawer: {
+      closeOverlay: 'إغلاق التنقل',
+    },
+    notifications: {
+      label: 'الإشعارات',
+      dismiss: 'تجاهل',
     },
   },
 };
