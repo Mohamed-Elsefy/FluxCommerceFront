@@ -1,0 +1,54 @@
+<section class="admin-login" aria-labelledby="admin-login-title">
+  <h1 id="admin-login-title">Admin sign in</h1>
+  <p class="admin-login-subtitle">Sign in with an administrator account to continue.</p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="admin-login-field">
+      <label for="admin-login-email">Email</label>
+      <input
+        id="admin-login-email"
+        type="email"
+        formControlName="email"
+        autocomplete="username"
+        [attr.aria-invalid]="form.controls.email.invalid"
+        [attr.aria-describedby]="'admin-login-email-errors'"
+      />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <p class="admin-login-error" id="admin-login-email-errors" role="alert">
+          Enter a valid email address.
+        </p>
+      }
+    </div>
+
+    <div class="admin-login-field">
+      <label for="admin-login-password">Password</label>
+      <input
+        id="admin-login-password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        [attr.aria-invalid]="form.controls.password.invalid"
+        [attr.aria-describedby]="'admin-login-password-errors'"
+      />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <p class="admin-login-error" id="admin-login-password-errors" role="alert">
+          Enter your password (8 or more characters).
+        </p>
+      }
+    </div>
+
+    @if (formError() !== null) {
+      <flux-error-state
+        [title]="'Sign in failed'"
+        [message]="formError()"
+        [showRetry]="false"
+      ></flux-error-state>
+    }
+
+    @if (isSubmitting()) {
+      <flux-loading-indicator [label]="'Signing in'" size="sm"></flux-loading-indicator>
+    }
+
+    <button class="admin-login-submit" type="submit" [disabled]="isSubmitting()">Sign in</button>
+  </form>
+</section>
