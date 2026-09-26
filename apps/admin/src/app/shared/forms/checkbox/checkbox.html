@@ -1,0 +1,15 @@
+<div class="checkbox-field">
+  <label class="checkbox-label">
+    <input
+      type="checkbox"
+      class="checkbox"
+      [formControl]="control"
+      [attr.aria-invalid]="control.invalid"
+    />
+    <span>{{ label }}</span>
+  </label>
+  @if (hint !== null) {
+    <p class="checkbox-hint">{{ hint }}</p>
+  }
+  <admin-field-errors [control]="control" />
+</div>

@@ -1,0 +1,16 @@
+.form-field {
+  display: grid;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+}
+
+.form-field-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.form-field-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

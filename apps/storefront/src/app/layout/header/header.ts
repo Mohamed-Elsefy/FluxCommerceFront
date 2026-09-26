@@ -45,7 +45,10 @@ import { Container, ThemeToggle } from '@flux/ui';
 import { StorefrontCultureSwitch } from '../culture-switch/culture-switch';
 import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
 import { CART_NAV_ITEM, MAIN_NAV_ITEMS } from '../../storefront-navigation';
-import { LAYOUT_TRANSLATION_KEYS, translateLayoutKey } from '../layout-translations';
+import {
+  LAYOUT_TRANSLATION_KEYS,
+  translateLayoutKey,
+} from '../layout-translations/layout-translations';
 
 @Component({
   selector: 'storefront-header',

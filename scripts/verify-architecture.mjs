@@ -1045,8 +1045,8 @@ check(
     ),
 );
 check(
-  '3.12: no Dialog implementation exists yet (deferred by the 3.4 scope)',
-  ![...appSources, ...libSources]
+  '3.12: no Dialog implementation exists outside the admin portal (the 3.4 deferral stands everywhere except Sub-Phase 12.7)',
+  ![...collectTs('apps/storefront/src'), ...libSources]
     .filter((path) => !path.endsWith('.spec.ts'))
     .map((path) => path.split('/').pop() ?? '')
     .some((name) => /^(dialog|modal)/.test(name)),
@@ -1290,6 +1290,63 @@ check(
   '9.11: payment param routes render on demand (no prerender)',
   paymentServerRoutes.includes('payment/:orderId') &&
     paymentServerRoutes.includes('RenderMode.Server'),
+);
+
+// ------------------------------------------------- Phase 12.8: admin state
+// Sub-Phase 12.8 — Admin State & Data Lifecycle: signals plus local and
+// feature-local state only. No store library (NgRx, SignalStore) and no
+// home-grown global admin store may enter apps/admin without demonstrated
+// complexity. The only root-provided admin services are the allowlisted
+// pair below: the notification center (genuinely cross-feature toasts,
+// commissioned by 12.7) and the stateless login orchestration (no owned
+// state — session state stays in `AuthService`). Any new global admin
+// state must extend the allowlist with justification, which forces the
+// conscious review 12.8 demands instead of silent store growth.
+console.log('Phase 12.8');
+const adminProdSources = adminSources.filter((path) => !path.endsWith('.spec.ts'));
+check(
+  '12.8: admin never imports a store library (no NgRx/SignalStore)',
+  !specifiersOf(adminProdSources).some(({ spec }) => spec.startsWith('@ngrx')),
+);
+const manifestDeps = {
+  ...readJson('package.json').dependencies,
+  ...readJson('package.json').devDependencies,
+};
+check(
+  '12.8: no store library in dependencies',
+  !Object.keys(manifestDeps).some((dep) => dep.startsWith('@ngrx')),
+);
+const adminRootStateAllowlist = new Set([
+  'apps/admin/src/app/shared/notifications/notification-service.ts',
+  'apps/admin/src/app/features/auth/data-access/admin-auth-data-access.ts',
+]);
+const rootProvided = adminProdSources.filter((path) =>
+  /providedIn\s*:\s*['"]root['"]/.test(stripComments(readFileSync(join(root, path), 'utf8'))),
+);
+check(
+  '12.8: no new global admin state (root-provided services stay allowlisted)',
+  rootProvided.every((path) => adminRootStateAllowlist.has(path)),
+  `${rootProvided.length} service(s)`,
+);
+
+// ------------------------------------------------- Phase 12.11: cleanup
+// Sub-Phase 12.11 — Architecture Verification & Cleanup: no parallel
+// admin rebuilds of shared infrastructure. Transport (`AdminApiClient`)
+// and session (`AdminAuthService`) duplicates are forbidden outright —
+// features compose `ApiClient`/`IdentityApiService` and `AuthService`
+// through their own data-access instead. Admin-owned UI primitives
+// (`AdminPagination`, notification center, tables, dialogs, filters,
+// forms) are intentionally NOT flagged here: no shared equivalents
+// exist (`libs/ui` is a closed set, cross-app imports are forbidden),
+// so they extend rather than duplicate the infrastructure.
+console.log('Phase 12.11');
+const adminProdCode = adminProdSources
+  .map((path) => readFileSync(join(root, path), 'utf8'))
+  .map(stripComments)
+  .join('\n');
+check(
+  '12.11: no parallel admin transport/session rebuilds (AdminApiClient/AdminAuthService)',
+  !/AdminApiClient|AdminAuthService/.test(adminProdCode),
 );
 
 // ----------------------------------------------------------------- Summary

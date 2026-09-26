@@ -1,0 +1,36 @@
+@if (open) {
+  <div class="dialog-backdrop">
+    <button
+      type="button"
+      class="dialog-backdrop-dismiss"
+      (click)="closed.emit()"
+      [attr.aria-label]="backdropLabel"
+    ></button>
+    <div
+      class="dialog-panel"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="titleId"
+      tabindex="-1"
+      (keydown)="onKeydown($event)"
+    >
+      <div class="dialog-heading">
+        <h2 class="dialog-title" [id]="titleId">{{ title }}</h2>
+        <button
+          type="button"
+          class="dialog-close"
+          (click)="closed.emit()"
+          [attr.aria-label]="closeLabel"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="dialog-content">
+        <ng-content />
+      </div>
+      <div class="dialog-actions">
+        <ng-content select="[data-dialog-actions]" />
+      </div>
+    </div>
+  </div>
+}

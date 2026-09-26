@@ -1,0 +1,40 @@
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.form-actions-submit {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.form-actions-submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.form-actions-cancel {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+
+.form-actions-submit:focus-visible,
+.form-actions-cancel:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

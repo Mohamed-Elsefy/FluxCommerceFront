@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
 import { AdminHeader } from './header';
 
@@ -95,5 +96,39 @@ describe('AdminHeader', () => {
     expect(
       element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
     ).toBe('Switch to light theme');
+  });
+
+  it('offers language selection through the culture switch', () => {
+    const { fixture, element } = setup();
+    const cultures = TestBed.inject(CultureService);
+
+    const picker = element.querySelector('admin-culture-switch select') as HTMLSelectElement;
+    expect(picker).not.toBeNull();
+    expect([...picker.querySelectorAll('option')]).toHaveLength(5);
+
+    picker.value = 'ar';
+    picker.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(cultures.culture()).toBe('ar');
+    cultures.setCulture('en');
+  });
+
+  it('localizes header chrome and the account area for the active culture', () => {
+    const { fixture, element } = setup();
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      fixture.detectChanges();
+
+      expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-label')).toBe(
+        'Basculer la navigation',
+      );
+      expect(element.querySelector('admin-culture-switch .culture-switch-label')?.textContent).toBe(
+        'Langue',
+      );
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

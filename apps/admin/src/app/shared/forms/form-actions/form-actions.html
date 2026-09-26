@@ -1,0 +1,22 @@
+<div class="form-actions">
+  <button
+    type="button"
+    class="form-actions-submit"
+    [disabled]="locked()"
+    (click)="submitted.emit()"
+  >
+    @if (submitting && submittingLabel !== null) {
+      {{ submittingLabel }}
+    } @else {
+      {{ submitLabel }}
+    }
+  </button>
+  @if (cancelLabel !== null) {
+    <button type="button" class="form-actions-cancel" (click)="cancelled.emit()">
+      {{ cancelLabel }}
+    </button>
+  }
+  @if (submitting) {
+    <flux-loading-indicator [label]="submittingLabel ?? submitLabel" size="sm" />
+  }
+</div>

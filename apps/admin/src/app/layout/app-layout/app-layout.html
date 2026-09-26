@@ -1,7 +1,9 @@
-<a class="skip-link" href="#admin-main">Skip to main content</a>
+<a class="skip-link" href="#admin-main">{{ skipLink() }}</a>
 <admin-sidebar
   id="admin-drawer"
-  [items]="sidebarNav"
+  [items]="sidebarNav()"
+  [label]="sidebarLabel()"
+  [brand]="brandLabel()"
   [drawerOpen]="drawerOpen()"
   (navigated)="closeDrawer()"
 />
@@ -14,6 +16,7 @@
     type="button"
     class="overlay"
     (click)="closeDrawer()"
-    aria-label="Close navigation"
+    [attr.aria-label]="overlayLabel()"
   ></button>
 }
+<admin-notification-host [label]="notificationsLabel()" [dismissLabel]="notificationsDismiss()" />

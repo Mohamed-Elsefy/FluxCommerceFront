@@ -1,0 +1,56 @@
+<section class="admin-login" aria-labelledby="admin-login-title">
+  <h1 id="admin-login-title">{{ copy().title }}</h1>
+  <p class="admin-login-subtitle">{{ copy().subtitle }}</p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="admin-login-field">
+      <label for="admin-login-email">{{ copy().emailLabel }}</label>
+      <input
+        id="admin-login-email"
+        type="email"
+        formControlName="email"
+        autocomplete="username"
+        [attr.aria-invalid]="form.controls.email.invalid"
+        [attr.aria-describedby]="'admin-login-email-errors'"
+      />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <p class="admin-login-error" id="admin-login-email-errors" role="alert">
+          {{ copy().emailError }}
+        </p>
+      }
+    </div>
+
+    <div class="admin-login-field">
+      <label for="admin-login-password">{{ copy().passwordLabel }}</label>
+      <input
+        id="admin-login-password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        [attr.aria-invalid]="form.controls.password.invalid"
+        [attr.aria-describedby]="'admin-login-password-errors'"
+      />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <p class="admin-login-error" id="admin-login-password-errors" role="alert">
+          {{ copy().passwordError }}
+        </p>
+      }
+    </div>
+
+    @if (formError() !== null) {
+      <flux-error-state
+        [title]="copy().errorTitle"
+        [message]="formError()"
+        [showRetry]="false"
+      ></flux-error-state>
+    }
+
+    @if (isSubmitting()) {
+      <flux-loading-indicator [label]="copy().submitting" size="sm"></flux-loading-indicator>
+    }
+
+    <button class="admin-login-submit" type="submit" [disabled]="isSubmitting()">
+      {{ copy().submit }}
+    </button>
+  </form>
+</section>

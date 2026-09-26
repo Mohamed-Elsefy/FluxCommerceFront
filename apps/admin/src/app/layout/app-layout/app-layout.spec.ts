@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { provideAuthRecovery } from '@flux/auth';
+import { CultureService } from '@flux/i18n';
 import { AppLayout } from './app-layout';
 
 function setup(): { fixture: ComponentFixture<AppLayout>; element: HTMLElement } {
@@ -37,7 +38,13 @@ describe('AppLayout', () => {
     expect(element.querySelector('main#admin-main router-outlet')).not.toBeNull();
 
     const order = [...element.children].map((child) => child.tagName.toLowerCase());
-    expect(order).toEqual(['a', 'admin-sidebar', 'admin-header', 'main']);
+    expect(order).toEqual([
+      'a',
+      'admin-sidebar',
+      'admin-header',
+      'main',
+      'admin-notification-host',
+    ]);
   });
 
   it('opens the drawer from the header toggle and closes it from the overlay', () => {
@@ -82,5 +89,28 @@ describe('AppLayout', () => {
     const overlay = element.querySelector('.overlay');
     expect(overlay?.tagName.toLowerCase()).toBe('button');
     expect(overlay?.getAttribute('aria-label')).toBe('Close navigation');
+  });
+
+  it('localizes sidebar destinations and the skip link for the active culture', () => {
+    const { fixture, element } = setup();
+    TestBed.inject(CultureService).setCulture('fr');
+    fixture.detectChanges();
+
+    const labels = [...element.querySelectorAll('admin-sidebar .item-label')].map((node) =>
+      node.textContent?.trim(),
+    );
+    expect(labels).toEqual(['Accueil', 'Tableau de bord']);
+    expect(element.querySelector('a.skip-link')?.textContent).toBe('Aller au contenu principal');
+    TestBed.inject(CultureService).setCulture('en');
+  });
+
+  it('renders icon glyphs alongside localized destinations', () => {
+    const { element } = setup();
+
+    expect(
+      [...element.querySelectorAll('admin-sidebar flux-icon .icon')].map((node) =>
+        node.textContent?.trim(),
+      ),
+    ).toEqual(['⌂', '▦']);
   });
 });

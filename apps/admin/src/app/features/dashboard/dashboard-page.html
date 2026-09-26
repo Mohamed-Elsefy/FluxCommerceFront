@@ -1,2 +1,40 @@
-<h1>Administration</h1>
-<p>Protected entry point. Management modules arrive in later phases.</p>
+<section class="dashboard" aria-labelledby="dashboard-title">
+  <header class="dashboard-header">
+    <h1 id="dashboard-title">{{ copy().title }}</h1>
+    <p class="dashboard-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  @if (session() !== null) {
+    <flux-card>
+      <article class="dashboard-session" aria-labelledby="dashboard-session-heading">
+        <h2 id="dashboard-session-heading">{{ copy().sessionHeading }}</h2>
+        <dl class="dashboard-session-facts">
+          <div>
+            <dt>{{ copy().sessionName }}</dt>
+            <dd>{{ session()?.displayName }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().sessionEmail }}</dt>
+            <dd>{{ session()?.email }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().sessionRoles }}</dt>
+            <dd>{{ session()?.roles }}</dd>
+          </div>
+        </dl>
+      </article>
+    </flux-card>
+  }
+
+  <h2 class="dashboard-modules-heading">{{ copy().modulesHeading }}</h2>
+  <div class="dashboard-grid">
+    @for (module of copy().modules; track module.title) {
+      <app-dashboard-card
+        [title]="module.title"
+        [description]="module.description"
+        [badge]="copy().upcoming"
+        badgeVariant="info"
+      />
+    }
+  </div>
+</section>

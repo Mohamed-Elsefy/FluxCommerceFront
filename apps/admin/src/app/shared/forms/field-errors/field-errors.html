@@ -1,0 +1,7 @@
+@if (shouldShow()) {
+  <div class="field-errors" role="alert">
+    @for (message of messages(); track message) {
+      <p class="field-errors-message">{{ message }}</p>
+    }
+  </div>
+}

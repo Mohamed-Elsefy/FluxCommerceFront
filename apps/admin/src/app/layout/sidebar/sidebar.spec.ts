@@ -8,8 +8,14 @@ import { AdminSidebar, type AdminNavItem } from './sidebar';
 class BlankPage {}
 
 const ITEMS: readonly AdminNavItem[] = [
-  { label: 'Home', route: '/' },
-  { label: 'Dashboard', route: '/dashboard' },
+  { label: 'Home', route: '/', icon: '⌂' },
+  {
+    label: 'Sections',
+    children: [
+      { label: 'Dashboard', route: '/dashboard', icon: '▦' },
+      { label: 'Reports', route: '/reports' },
+    ],
+  },
 ];
 
 @Component({
@@ -17,12 +23,16 @@ const ITEMS: readonly AdminNavItem[] = [
   imports: [AdminSidebar],
   template: `<admin-sidebar
     [items]="items"
+    [label]="label"
+    [brand]="brand"
     [drawerOpen]="drawerOpen"
     (navigated)="onNavigated()"
   />`,
 })
 class SidebarHost {
   items: readonly AdminNavItem[] = ITEMS;
+  label = 'Admin';
+  brand = 'FluxCommerce Admin';
   drawerOpen = false;
   navigatedCount = 0;
 
@@ -44,16 +54,46 @@ function setup(
   return { fixture, element: fixture.nativeElement as HTMLElement };
 }
 
+function linkLabels(element: HTMLElement): (string | null | undefined)[] {
+  return [...element.querySelectorAll('.sidebar a .item-label')].map((node) =>
+    node.textContent?.trim(),
+  );
+}
+
 describe('AdminSidebar', () => {
-  it('renders one link per item with a closed drawer by default', () => {
+  it('renders one link per routed item with a closed drawer by default', () => {
     const { element } = setup();
 
-    const links = [...element.querySelectorAll('.sidebar a')].map((anchor) =>
-      anchor.textContent?.trim(),
-    );
-    expect(links).toEqual(['Home', 'Dashboard']);
+    expect(linkLabels(element)).toEqual(['Home', 'Dashboard', 'Reports']);
     expect(element.querySelector('.sidebar')?.getAttribute('aria-label')).toBe('Admin');
+    expect(element.querySelector('.sidebar .brand')?.textContent).toBe('FluxCommerce Admin');
     expect(element.querySelector('admin-sidebar')?.getAttribute('data-drawer')).toBe('closed');
+  });
+
+  it('renders group labels for nested sections without a route', () => {
+    const { element } = setup();
+
+    expect(element.querySelector('.sidebar .group')?.textContent).toBe('Sections');
+    expect(element.querySelectorAll('.sidebar ul.nested a')).toHaveLength(2);
+  });
+
+  it('renders decorative icons without stealing the accessible name', () => {
+    const { element } = setup();
+
+    const glyphs = [...element.querySelectorAll('.sidebar a flux-icon .icon')];
+    expect(glyphs).toHaveLength(2);
+    expect(glyphs.every((icon) => icon.getAttribute('aria-hidden') === 'true')).toBe(true);
+    expect(glyphs.map((icon) => icon.textContent?.trim())).toEqual(['⌂', '▦']);
+  });
+
+  it('localizes the landmark and brand through inputs', () => {
+    const { element } = setup((host) => {
+      host.label = 'الإدارة';
+      host.brand = 'إدارة FluxCommerce';
+    });
+
+    expect(element.querySelector('.sidebar')?.getAttribute('aria-label')).toBe('الإدارة');
+    expect(element.querySelector('.sidebar .brand')?.textContent).toBe('إدارة FluxCommerce');
   });
 
   it('reflects the drawer state through inputs only', () => {
@@ -83,7 +123,9 @@ describe('AdminSidebar', () => {
 
     const links = [...element.querySelectorAll('.sidebar a')];
     const active = links.filter((anchor) => anchor.classList.contains('active'));
-    expect(active.map((anchor) => anchor.textContent?.trim())).toEqual(['Dashboard']);
+    expect(
+      active.map((anchor) => anchor.querySelector('.item-label')?.textContent?.trim()),
+    ).toEqual(['Dashboard']);
     expect(active[0].getAttribute('aria-current')).toBe('page');
   });
 });

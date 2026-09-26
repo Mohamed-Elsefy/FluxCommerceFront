@@ -1,0 +1,10 @@
+<section class="filter-bar" [attr.aria-label]="label">
+  <div class="filter-bar-controls">
+    <ng-content />
+  </div>
+  @if (clearLabel !== null) {
+    <button type="button" class="filter-bar-clear" (click)="clear.emit()">
+      {{ clearLabel }}
+    </button>
+  }
+</section>

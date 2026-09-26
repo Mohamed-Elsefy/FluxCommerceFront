@@ -578,6 +578,11 @@ Order creation
 
 Admin E2E coverage is added as the Admin Portal is implemented.
 
+As built in Phase 12: admin access control (anonymous, customer,
+Admin/SuperAdmin, refresh, expiry, logout) and integrated journeys
+(login flow, navigation, deep links, mobile drawer, localization,
+RTL, theme) run green; see `docs/completed/PHASE_12_COMPLETION_REPORT.md`.
+
 A feature is not complete merely because it works manually.
 
 ---
@@ -1119,20 +1124,34 @@ Optimization** remains responsible for final system-wide verification.
 
 # 33. Phase 12 — Admin Portal Foundation
 
-Scope:
+Status: **Complete** (2026-09-26) — see
+`docs/completed/PHASE_12_COMPLETION_REPORT.md`.
 
-- Admin authentication
-- Authorization
-- Admin layout
-- Sidebar
-- Dashboard shell
-- Tables
-- Forms
-- Filters
-- Pagination
-- Dialogs
-- Notifications
-- Admin-specific UI
+Scope delivered:
+
+- Admin authentication (login over shared session infrastructure)
+- Authorization (`Admin`/`SuperAdmin` via existing guards, backend-authoritative)
+- Admin layout (eager shell: sidebar, header, outlet, notification host)
+- Sidebar (nested, icons, active state, drawer)
+- Dashboard foundation (session card, upcoming-module grid, no invented APIs)
+- Tables (`DataTable<T>`)
+- Forms (field-errors, field, text/textarea/select/checkbox, actions)
+- Filters (search, date-range, filter bar)
+- Pagination (`PagedResult`-driven pager)
+- Dialogs (accessible modal with focus trap)
+- Notifications (service → host toasts/alerts)
+- Admin-specific UI (admin-owned shared primitives; `libs/ui` stays closed — see `docs/adr/026`)
+
+All Phase 12 acceptance criteria are satisfied (protected routes,
+role model, shell + navigation, dashboard, table/pagination,
+filter/form primitives, dialog, notifications, Signals-only state,
+loading/empty/error discipline, 5-culture localization with RTL-safe
+rendering, theme integration, responsive behavior, unit/component
+specs, admin E2E journeys incl. login flow/RTL/theme/mobile,
+audit 106/106, both builds green). Decisions recorded in
+`docs/adr/026`. Known limitations and the Phase 13 handoff live in
+the completion report. The baseline is ready for **Phase 13 — Admin
+Catalog & Inventory**. No business features exist yet.
 
 ---
 
