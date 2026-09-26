@@ -1079,6 +1079,9 @@ derivation exist anywhere in the customer account area.
 
 # 32. Phase 11 — Storefront Production Readiness
 
+Status: **Complete** (2026-09-25) — see
+`docs/completed/PHASE_11_COMPLETION_REPORT.md`.
+
 Scope:
 
 - SSR verification
@@ -1100,6 +1103,17 @@ Deliverable:
 ```text
 Storefront v1 Production Ready
 ```
+
+All fifteen sub-phases (11.1–11.15) are done in dependency order.
+Storefront-wide verification: architecture audit 102/102, storefront
+unit/component 115 files / 1363 passed, libs 58 files / 397 passed,
+admin 8 files / 20 passed (untouched), production build green (15/15
+routes prerendered, initial ~361 kB raw / ~100 kB transfer), critical
+Playwright journeys green (provider-gated skips documented).
+Decisions recorded in `docs/adr/023–025`. Known limitations and the
+Phase 12 handoff live in the completion report. The baseline is ready
+for **Phase 12 — Admin Portal Foundation**; **Phase 15 — Final QA &
+Optimization** remains responsible for final system-wide verification.
 
 ---
 

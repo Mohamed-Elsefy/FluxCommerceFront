@@ -243,6 +243,14 @@ or thumbnails render (no such contract fields), and no totals math
 or status derivation exists anywhere (backend values render
 verbatim).
 
+As built in Phase 11 (see
+`docs/completed/PHASE_11_COMPLETION_REPORT.md` and `docs/adr/025`),
+no business features were added or moved: the shell gained only
+app-owned chrome (dumb `StorefrontCultureSwitch`, label-input
+`AuthNav`, destination tables composed outside the layout boundary,
+router-event pending/failure states in `AppLayout`) and the
+layout/auth translation bundles. Feature boundaries are unchanged.
+
 ---
 
 ## 6. Shared Libraries
@@ -813,6 +821,20 @@ suite), and no code branches on direction. As built in Phase 4
 `docs/adr/009-localization-infrastructure.md` and
 `docs/adr/010-culture-direction-coupling.md`).
 
+As built in Phase 11 (see `docs/adr/024–025`):
+
+- Public SEO/social metadata is page-owned (`title`/`description`/
+  canonical/`og:*`/`twitter:card`) with app-relative URLs, shared
+  idempotent helpers in `libs/utils`, and honest error-state fallbacks
+  (listing canonical, fallback image, `noindex` on route 404s). Private
+  pages expose no description, canonical, or social tags.
+- Shell chrome is localized through the app-owned `layout.*` bundle
+  (destinations as `{labelKey, route}` pairs composed outside the
+  layout boundary); auth pages through the feature-owned `auth.*`
+  bundle; validation and form-level failures through the Phase 4
+  platform resolvers. The dumb `StorefrontCultureSwitch` and label-input
+  `AuthNav` keep shells wired without coupling `libs/auth` to i18n.
+
 ---
 
 ## 16. Theming
@@ -1124,6 +1146,23 @@ Authenticated customer areas and the Admin Portal do not require the same SEO tr
 
 SSR implementation must avoid browser-only APIs during server rendering and must correctly handle hydration.
 
+As built in Phase 11 (see `docs/adr/023`):
+
+- The 15 static routes are declared explicitly as `RenderMode.Prerender`
+  (data-driven `:id` routes stay `RenderMode.Server`); the `**`
+  catch-all stays `RenderMode.Server` so unknown URLs render the
+  localized, non-indexable `NotFoundPage` through the pipeline instead
+  of a raw framework page. (A `Server` wildcard disables crawl-based
+  discovery, hence the explicit list — pinned at 15/15 by rebuild.)
+- `server.ts` guards `/api/*` with a generic JSON 404 (no same-origin
+  proxy exists) and serves one static, internals-free page for
+  terminal fallthrough (404) and unexpected failures (500, logged
+  server-side).
+- Host validation is deployment configuration (`allowedHosts: []`
+  deny-by-default; `NG_ALLOWED_HOSTS` at runtime).
+- Unknown URLs return HTTP 200 with `noindex`: Angular SSR exposes no
+  status-code seam for `**` routes (Phase 15 item).
+
 ---
 
 ## 24. Performance Principles
@@ -1146,6 +1185,16 @@ Primary principles:
 
 Performance optimization should be evidence-driven.
 
+As built in Phase 11 (§11.7): initial ~361 kB raw / ~100 kB transfer
+(inside budgets), largest lazy chunks 25–41 kB, 74/74 components
+`OnPush`, no duplicate-request paths (untracked effects, single-use
+`TransferState`, single-flight lifecycles). The single change was
+splitting payment-only Stripe constants into a lazy
+`stripe-environment` module (plus `fileReplacements`) after chunk
+analysis proved them initial-bundle residents. No new
+state-management, caching, or architectural abstractions were
+introduced.
+
 ---
 
 ## 25. Security Principles
@@ -1165,6 +1214,14 @@ Important principles:
 - Do not rely on hidden UI elements as authorization
 
 Payment-sensitive operations must follow the payment provider's recommended browser integration model.
+
+As built in Phase 11 (§11.12): bundle scanned secret-free, env files
+public-only, access token memory-only, `Authorization` scoped to
+backend URLs in the interceptor (absolute third-party URLs never
+receive it), zero `innerHTML`/sanitizer bypasses, anonymous SSR
+shells, code-resolved localized errors app-wide, generic server
+failure pages. Guards remain UX protection only; backend authorization
+stays authoritative.
 
 ---
 
