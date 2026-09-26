@@ -1329,6 +1329,26 @@ check(
   `${rootProvided.length} service(s)`,
 );
 
+// ------------------------------------------------- Phase 12.11: cleanup
+// Sub-Phase 12.11 — Architecture Verification & Cleanup: no parallel
+// admin rebuilds of shared infrastructure. Transport (`AdminApiClient`)
+// and session (`AdminAuthService`) duplicates are forbidden outright —
+// features compose `ApiClient`/`IdentityApiService` and `AuthService`
+// through their own data-access instead. Admin-owned UI primitives
+// (`AdminPagination`, notification center, tables, dialogs, filters,
+// forms) are intentionally NOT flagged here: no shared equivalents
+// exist (`libs/ui` is a closed set, cross-app imports are forbidden),
+// so they extend rather than duplicate the infrastructure.
+console.log('Phase 12.11');
+const adminProdCode = adminProdSources
+  .map((path) => readFileSync(join(root, path), 'utf8'))
+  .map(stripComments)
+  .join('\n');
+check(
+  '12.11: no parallel admin transport/session rebuilds (AdminApiClient/AdminAuthService)',
+  !/AdminApiClient|AdminAuthService/.test(adminProdCode),
+);
+
 // ----------------------------------------------------------------- Summary
 console.log(`\n${count - failures.length}/${count} checks passed.`);
 if (failures.length > 0) {

@@ -17,7 +17,10 @@ import { Container } from '@flux/ui';
 import { CultureService } from '@flux/i18n';
 import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
 import { EXPLORE_NAV_ITEMS } from '../../storefront-navigation';
-import { LAYOUT_TRANSLATION_KEYS, translateLayoutKey } from '../layout-translations';
+import {
+  LAYOUT_TRANSLATION_KEYS,
+  translateLayoutKey,
+} from '../layout-translations/layout-translations';
 
 @Component({
   selector: 'storefront-footer',

@@ -35,7 +35,10 @@ import { CultureService, SUPPORTED_CULTURE_METADATA, type Culture } from '@flux/
 import { ThemeService } from '@flux/theming';
 import { ThemeToggle } from '@flux/ui';
 import { AdminCultureSwitch } from '../culture-switch/culture-switch';
-import { ADMIN_LAYOUT_TRANSLATION_KEYS, translateAdminLayoutKey } from '../layout-translations';
+import {
+  ADMIN_LAYOUT_TRANSLATION_KEYS,
+  translateAdminLayoutKey,
+} from '../layout-translations/layout-translations';
 
 @Component({
   selector: 'admin-header',

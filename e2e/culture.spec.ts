@@ -62,10 +62,10 @@ async function seedCulture(page: Page, culture: string): Promise<void> {
   );
 }
 
-/** Home shell heading exists in both apps (`Storefront` / `Admin`). */
+/** Home shell heading exists in both apps (`Storefront` / `Admin`, including localized admin chrome). */
 async function gotoShell(page: Page): Promise<void> {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Storefront|Admin/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Storefront|Admin|الإدارة/ })).toBeVisible();
 }
 
 test.describe('culture lifecycle (Sub-Phase 4.8)', () => {

@@ -114,6 +114,14 @@ Users
 
 The Admin Portal is CSR-oriented because its pages are authenticated and are not primarily SEO-driven.
 
+As built in Phase 12 (see
+`docs/completed/PHASE_12_COMPLETION_REPORT.md`): the portal is a
+guarded eager shell (`AppLayout` with sidebar, header, main outlet,
+and the notification host) over lazy routes — public `/login` and
+`/forbidden` outside the shell, `Admin`/`SuperAdmin`-guarded nested
+features inside — with its own login page, dashboard foundation, and
+admin-owned shared primitives. No business features exist yet.
+
 ---
 
 ## 5. Feature-Based Architecture
@@ -250,6 +258,17 @@ app-owned chrome (dumb `StorefrontCultureSwitch`, label-input
 `AuthNav`, destination tables composed outside the layout boundary,
 router-event pending/failure states in `AppLayout`) and the
 layout/auth translation bundles. Feature boundaries are unchanged.
+
+As built in Phase 12 (see
+`docs/completed/PHASE_12_COMPLETION_REPORT.md` and `docs/adr/026`),
+admin reusable UI lives as **admin-app-owned shared components**
+(`apps/admin/src/app/shared/`: data-table, pagination, filters,
+forms, dialog, notifications) rather than in `libs/ui` (whose module
+set stays audit-pinned closed) or in features (Phases 13–14 share
+them). They follow the same dumb-component rules as `libs/ui`
+(inputs in, events out, token-only logical CSS, no business
+knowledge, no HTTP) while composing shared infrastructure
+(`PagedResult`/`totalPagesOf`, async UI, i18n resolvers).
 
 ---
 
@@ -580,6 +599,15 @@ claims through explicit edges (`pending → cancelled`,
 `succeeded → failed/cancelled`), so client-side confirmation can
 never present as final proof.
 
+As built in Phase 12 (see
+`docs/completed/PHASE_12_COMPLETION_REPORT.md`), the admin side adds
+no state machinery: shell chrome derives from signals and computeds
+(drawer visibility, localized destinations, copy), pages hold plain
+form/request signals, and the only root-provided admin services are
+the notification center (cross-feature toasts by design) and the
+stateless login orchestration. No NgRx, no SignalStore, no global
+admin store — pinned by dedicated audit guards.
+
 ---
 
 ## 10. API Communication
@@ -664,6 +692,13 @@ authenticated`) with readonly selectors; `initialized` is the single
 - Refresh tokens persist (versioned `localStorage` key, platform-guarded);
   access tokens stay in memory; passwords are never persisted. SSR always
   renders the anonymous/initializing shell and reconciles post-hydration.
+
+As built in Phase 12: the Admin Portal reuses this exact
+infrastructure with no separate auth system — its own login page
+drives the same login → session → profile flow, the shell guard
+chain admits only `Admin`/`SuperAdmin` (roles spread from the single
+`ADMIN_PORTAL_ROLES` source), and denials land on its own localized
+`/forbidden` page.
 
 Authorization must never rely only on hiding UI elements.
 
@@ -1112,6 +1147,14 @@ Order creation
 ```
 
 Admin E2E flows are added as the Admin Portal is implemented.
+
+As built in Phase 12: admin access-control journeys (anonymous →
+login, customer → forbidden, Admin/SuperAdmin → dashboard, refresh,
+expiry, logout) plus integrated journeys (login form flow, sidebar
+navigation with active state, deep links, mobile drawer, French
+chrome, RTL switch, theme persistence) run mocked-transport green;
+shared primitives gain E2E integration coverage as Phases 13–14
+mount them on real pages.
 
 ### Testing Principle
 

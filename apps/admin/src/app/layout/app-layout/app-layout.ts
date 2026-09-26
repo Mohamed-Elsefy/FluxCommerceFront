@@ -46,7 +46,10 @@ import {
 import { RouterOutlet } from '@angular/router';
 import { CultureService } from '@flux/i18n';
 import { ADMIN_NAV_ITEMS, type AdminDestination } from '../../admin-navigation';
-import { ADMIN_LAYOUT_TRANSLATION_KEYS, translateAdminLayoutKey } from '../layout-translations';
+import {
+  ADMIN_LAYOUT_TRANSLATION_KEYS,
+  translateAdminLayoutKey,
+} from '../layout-translations/layout-translations';
 import { AdminHeader } from '../header/header';
 import { AdminSidebar, type AdminNavItem } from '../sidebar/sidebar';
 import { AdminNotificationHost } from '../../shared/notifications/notification-host/notification-host';

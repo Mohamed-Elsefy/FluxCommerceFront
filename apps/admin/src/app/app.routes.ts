@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from '@flux/auth';
+import { ADMIN_PORTAL_ROLES } from './admin-navigation';
 import { AppLayout } from './layout/app-layout/app-layout';
 
 /**
@@ -46,7 +47,7 @@ export const routes: Routes = [
     path: '',
     component: AppLayout,
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['Admin', 'SuperAdmin'] },
+    data: { roles: [...ADMIN_PORTAL_ROLES] },
     children: [
       {
         path: '',
@@ -61,7 +62,7 @@ export const routes: Routes = [
   },
   {
     path: 'forbidden',
-    loadComponent: () => import('./layout/forbidden-page').then((m) => m.ForbiddenPage),
+    loadComponent: () => import('./layout/forbidden/forbidden-page').then((m) => m.ForbiddenPage),
   },
   {
     path: '',
@@ -69,6 +70,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    loadComponent: () => import('./layout/not-found-page').then((m) => m.NotFoundPage),
+    loadComponent: () => import('./layout/not-found/not-found-page').then((m) => m.NotFoundPage),
   },
 ];

@@ -728,32 +728,32 @@ Synchronize project documentation with the completed Admin foundation.
 
 Phase 12 is complete when:
 
-- [ ] Admin routes are protected by the existing authentication/authorization infrastructure.
-- [ ] Admin and SuperAdmin access works according to the existing role model.
-- [ ] Unauthorized users are redirected/blocked correctly.
-- [ ] Admin Shell is implemented.
-- [ ] Header and Sidebar are implemented.
-- [ ] Dashboard foundation is implemented.
-- [ ] Admin navigation is extensible.
-- [ ] Generic table capability is available.
-- [ ] Pagination is integrated with the existing API contract.
-- [ ] Generic filtering primitives are available where justified.
-- [ ] Generic form primitives are available where justified.
-- [ ] Accessible dialog infrastructure is available.
-- [ ] Global notification infrastructure is available.
-- [ ] Admin state follows the existing Signals/local-state approach.
-- [ ] Loading, empty, success, and error states are handled consistently.
-- [ ] Localization works correctly.
-- [ ] RTL/LTR works correctly.
-- [ ] Existing theme infrastructure is integrated.
-- [ ] Responsive behavior works across desktop, tablet, and mobile.
-- [ ] Unit/component tests are passing.
-- [ ] Critical Admin E2E scenarios are passing.
-- [ ] No unnecessary business logic has moved into shared UI.
-- [ ] No unnecessary Admin-specific duplicates of shared infrastructure exist.
-- [ ] Architecture boundaries remain valid.
-- [ ] Documentation is synchronized.
-- [ ] Phase completion report is created.
+- [x] Admin routes are protected by the existing authentication/authorization infrastructure.
+- [x] Admin and SuperAdmin access works according to the existing role model.
+- [x] Unauthorized users are redirected/blocked correctly.
+- [x] Admin Shell is implemented.
+- [x] Header and Sidebar are implemented.
+- [x] Dashboard foundation is implemented.
+- [x] Admin navigation is extensible.
+- [x] Generic table capability is available.
+- [x] Pagination is integrated with the existing API contract.
+- [x] Generic filtering primitives are available where justified.
+- [x] Generic form primitives are available where justified.
+- [x] Accessible dialog infrastructure is available.
+- [x] Global notification infrastructure is available.
+- [x] Admin state follows the existing Signals/local-state approach.
+- [x] Loading, empty, success, and error states are handled consistently.
+- [x] Localization works correctly.
+- [x] RTL/LTR works correctly.
+- [x] Existing theme infrastructure is integrated.
+- [x] Responsive behavior works across desktop, tablet, and mobile.
+- [x] Unit/component tests are passing.
+- [x] Critical Admin E2E scenarios are passing.
+- [x] No unnecessary business logic has moved into shared UI.
+- [x] No unnecessary Admin-specific duplicates of shared infrastructure exist.
+- [x] Architecture boundaries remain valid.
+- [x] Documentation is synchronized.
+- [x] Phase completion report is created.
 
 ---
 

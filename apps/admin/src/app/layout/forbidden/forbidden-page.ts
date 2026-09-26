@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CultureService } from '@flux/i18n';
-import { ADMIN_LAYOUT_TRANSLATION_KEYS, translateAdminLayoutKey } from './layout-translations';
+import {
+  ADMIN_LAYOUT_TRANSLATION_KEYS,
+  translateAdminLayoutKey,
+} from '../layout-translations/layout-translations';
 
 @Component({
   selector: 'app-forbidden-page',

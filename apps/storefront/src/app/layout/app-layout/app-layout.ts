@@ -40,7 +40,10 @@ import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { CultureService } from '@flux/i18n';
 import { StorefrontFooter } from '../footer/footer';
 import { StorefrontHeader } from '../header/header';
-import { LAYOUT_TRANSLATION_KEYS, translateLayoutKey } from '../layout-translations';
+import {
+  LAYOUT_TRANSLATION_KEYS,
+  translateLayoutKey,
+} from '../layout-translations/layout-translations';
 
 @Component({
   selector: 'app-layout',
