@@ -122,6 +122,20 @@ and the notification host) over lazy routes — public `/login` and
 features inside — with its own login page, dashboard foundation, and
 admin-owned shared primitives. No business features exist yet.
 
+As built in Phase 13 (see
+`docs/completed/PHASE_13_COMPLETION_REPORT.md` and
+`docs/adr/027–028`): the Catalog and Inventory areas are real
+business features — products (list/create/edit/details/lifecycle),
+variants (list/details/create/edit/delete), categories
+(list/details/create/edit/lifecycle over the flat parent model),
+images and specifications (inline management on product details:
+add/edit/delete, set-primary, reorder), stock (single-SKU lookup),
+reservations (single-id lookup), and adjustments (additive form +
+confirm + backend-returned result) — all under the guarded shell
+with nested sidebar destinations, all against the real backend
+contracts with contract-honest omissions (no invented lists,
+searches, sorts, uploads, thresholds, or lifecycles).
+
 ---
 
 ## 5. Feature-Based Architecture
@@ -269,6 +283,13 @@ them). They follow the same dumb-component rules as `libs/ui`
 (inputs in, events out, token-only logical CSS, no business
 knowledge, no HTTP) while composing shared infrastructure
 (`PagedResult`/`totalPagesOf`, async UI, i18n resolvers).
+
+As built in Phase 13 (see `docs/adr/028`): the shared table grew by
+extension, never by fork — per-column row links (deep-linkable
+anchors) plus a projected row-actions column (`actionsTemplate`
+with `$implicit: row` plus `index`, owner-localized header). Both
+are business-free and spec-pinned; features pass templates while
+the table reserves the cell.
 
 ---
 
@@ -607,6 +628,15 @@ form/request signals, and the only root-provided admin services are
 the notification center (cross-feature toasts by design) and the
 stateless login orchestration. No NgRx, no SignalStore, no global
 admin store — pinned by dedicated audit guards.
+
+As built in Phase 13 (see `docs/adr/028`): catalog and inventory
+state follows the same shape — route-provided `@Injectable()`
+services and `createResourceState` slots (overview, product/category/
+variant lists, details slots, stock/reservation lookups), explicit
+`load*` calls with `untracked` route-param effects and
+supersede-or-lock concurrency, envelopes unwrapped in state,
+dataless envelopes as contract violations. Adjustment submission
+stays page-local. The 12.8 root-provided allowlist is unchanged.
 
 ---
 
@@ -1155,6 +1185,14 @@ navigation with active state, deep links, mobile drawer, French
 chrome, RTL switch, theme persistence) run mocked-transport green;
 shared primitives gain E2E integration coverage as Phases 13–14
 mount them on real pages.
+
+As built in Phase 13: thirteen admin catalog/inventory journeys
+(product list/create/edit, variants, categories plus soft-delete,
+images/specs, unknown-product error, stock and reservation lookups,
+adjustment with updated-state verification, customer→forbidden,
+French chrome) run mocked-transport green in
+`e2e/admin-catalog.spec.ts`; the pre-existing admin suites were
+re-verified green with the extended navigation.
 
 ### Testing Principle
 

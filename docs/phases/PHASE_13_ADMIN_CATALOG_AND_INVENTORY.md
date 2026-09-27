@@ -680,38 +680,38 @@ functional, backend-integrated management for:
 
 ### Catalog
 
--   [ ] Products
--   [ ] Product Variants
--   [ ] Categories
--   [ ] Product Images
--   [ ] Product Specifications
+-   [x] Products
+-   [x] Product Variants
+-   [x] Categories
+-   [x] Product Images
+-   [x] Product Specifications
 
 ### Inventory
 
--   [ ] Stock
--   [ ] Inventory Status
--   [ ] Reservations
--   [ ] Inventory Adjustments
+-   [x] Stock
+-   [x] Inventory Status
+-   [x] Reservations
+-   [x] Inventory Adjustments
 
 ### Engineering Quality
 
--   [ ] Real backend contracts are used.
--   [ ] Authorization is enforced.
--   [ ] Loading/empty/error states are implemented.
--   [ ] Typed Reactive Forms are used where applicable.
--   [ ] Backend validation errors are displayed correctly.
--   [ ] Duplicate submissions are prevented.
--   [ ] Existing Phase 12 shared primitives are reused.
--   [ ] Feature boundaries remain clean.
--   [ ] Backend business rules are not duplicated.
--   [ ] Localization is supported.
--   [ ] RTL/LTR is supported.
--   [ ] Responsive behavior is verified.
--   [ ] Accessibility is verified.
--   [ ] Unit/component tests are complete.
--   [ ] Critical Playwright E2E scenarios are complete.
--   [ ] Architecture verification passes.
--   [ ] Documentation is updated.
+-   [x] Real backend contracts are used.
+-   [x] Authorization is enforced.
+-   [x] Loading/empty/error states are implemented.
+-   [x] Typed Reactive Forms are used where applicable.
+-   [x] Backend validation errors are displayed correctly.
+-   [x] Duplicate submissions are prevented.
+-   [x] Existing Phase 12 shared primitives are reused.
+-   [x] Feature boundaries remain clean.
+-   [x] Backend business rules are not duplicated.
+-   [x] Localization is supported.
+-   [x] RTL/LTR is supported.
+-   [x] Responsive behavior is verified.
+-   [x] Accessibility is verified.
+-   [x] Unit/component tests are complete.
+-   [x] Critical Playwright E2E scenarios are complete.
+-   [x] Architecture verification passes.
+-   [x] Documentation is updated.
 
 ------------------------------------------------------------------------
 
