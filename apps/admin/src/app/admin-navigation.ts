@@ -53,7 +53,12 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
       { labelKey: 'layout.nav.categories', route: '/catalog/categories' },
     ],
   },
-  { labelKey: 'layout.nav.inventory', route: '/inventory', icon: '▣' },
+  {
+    labelKey: 'layout.nav.inventory',
+    route: '/inventory',
+    icon: '▣',
+    children: [{ labelKey: 'layout.nav.stock', route: '/inventory/stock' }],
+  },
 ];
 
 /**

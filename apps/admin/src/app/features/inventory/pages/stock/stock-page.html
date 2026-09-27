@@ -1,0 +1,55 @@
+<section class="stock-page" aria-labelledby="stock-title">
+  <header class="stock-page-header">
+    <h1 id="stock-title">{{ copy().heading }}</h1>
+    <p class="stock-page-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  <form class="stock-page-lookup" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <admin-search-input
+      [control]="skuControl"
+      [label]="copy().skuLabel"
+      fieldId="stock-sku"
+      [placeholder]="copy().skuPlaceholder"
+      [clearLabel]="copy().skuClear"
+    />
+    <button type="submit" class="stock-page-submit">{{ copy().lookup }}</button>
+  </form>
+
+  @if (slot().status === 'idle') {
+    <flux-empty-state [title]="copy().idleTitle" [message]="copy().idleMessage" />
+  } @else if (slot().isLoading) {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (slot().data !== null) {
+    <flux-card>
+      <dl class="stock-page-facts">
+        <div>
+          <dt>{{ copy().factSku }}</dt>
+          <dd>{{ slot().data!.sku }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factOnHand }}</dt>
+          <dd>{{ slot().data!.onHandQuantity }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factReserved }}</dt>
+          <dd>{{ slot().data!.reservedQuantity }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factAvailable }}</dt>
+          <dd>{{ slot().data!.availableQuantity }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factUpdated }}</dt>
+          <dd>{{ slot().data!.updatedAtUtc }}</dd>
+        </div>
+      </dl>
+    </flux-card>
+  }
+</section>

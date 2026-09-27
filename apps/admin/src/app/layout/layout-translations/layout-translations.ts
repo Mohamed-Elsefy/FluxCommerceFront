@@ -28,6 +28,7 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navProducts: 'layout.nav.products',
   navCategories: 'layout.nav.categories',
   navInventory: 'layout.nav.inventory',
+  navStock: 'layout.nav.stock',
   navSidebarLabel: 'layout.nav.sidebarLabel',
   headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
@@ -62,6 +63,7 @@ const EN_LAYOUT: TranslationDictionary = {
       products: 'Products',
       categories: 'Categories',
       inventory: 'Inventory',
+      stock: 'Stock',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -116,6 +118,7 @@ const FR_LAYOUT: TranslationDictionary = {
       products: 'Produits',
       categories: 'Catégories',
       inventory: 'Inventaire',
+      stock: 'Stock',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -170,6 +173,7 @@ const DE_LAYOUT: TranslationDictionary = {
       products: 'Produkte',
       categories: 'Kategorien',
       inventory: 'Bestand',
+      stock: 'Bestand',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -224,6 +228,7 @@ const ES_LAYOUT: TranslationDictionary = {
       products: 'Productos',
       categories: 'Categorías',
       inventory: 'Inventario',
+      stock: 'Stock',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -278,6 +283,7 @@ const AR_LAYOUT: TranslationDictionary = {
       products: 'المنتجات',
       categories: 'الفئات',
       inventory: 'المخزون',
+      stock: 'المخزون',
       sidebarLabel: 'الإدارة',
     },
     header: {

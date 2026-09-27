@@ -18,6 +18,17 @@ describe('translateInventoryKey', () => {
     );
   });
 
+  it('resolves the stock slice copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.stockHeading)).toBe('Stock');
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.stockLookup)).toBe(
+      'Nachschlagen',
+    );
+    expect(translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.stockFactAvailable)).toBe(
+      'Disponible',
+    );
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.stockFactReserved)).toBe('محجوز');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateInventoryKey('xx' as never, INVENTORY_TRANSLATION_KEYS.title)).toBe(
       'Inventory',

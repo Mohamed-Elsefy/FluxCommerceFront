@@ -54,3 +54,19 @@ export type AdminStockPayload = AdminStockItem;
 
 /** Canonical reservation payload (backend-issued facts, display only). */
 export type AdminReservationPayload = AdminReservation;
+
+// ---------------------------------------------------------------------------
+// SKU input normalization (13.9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalizes raw SKU editor text for transport (trimmed + uppercased,
+ * mirroring the documented backend normalization so lookups are
+ * deterministic regardless of casing or padding). Transport hygiene
+ * only: the backend normalizes again idempotently and stays
+ * authoritative for shape rules (`^[A-Z0-9-_.]+$`, at most 64 chars)
+ * and existence. Pure — throws nothing.
+ */
+export function normalizeSkuInput(value: string | null | undefined): string {
+  return (value ?? '').trim().toUpperCase();
+}

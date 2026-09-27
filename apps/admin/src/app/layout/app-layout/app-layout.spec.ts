@@ -106,6 +106,7 @@ describe('AppLayout', () => {
       'Produits',
       'Catégories',
       'Inventaire',
+      'Stock',
     ]);
     expect(element.querySelector('a.skip-link')?.textContent).toBe('Aller au contenu principal');
     TestBed.inject(CultureService).setCulture('en');
