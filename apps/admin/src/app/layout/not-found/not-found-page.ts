@@ -8,7 +8,6 @@ import {
 
 @Component({
   selector: 'app-not-found-page',
-  imports: [RouterLink],
   templateUrl: './not-found-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

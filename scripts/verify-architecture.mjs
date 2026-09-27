@@ -661,10 +661,19 @@ check(
   '3.7: shell touches no browser APIs (SSR/hydration safe)',
   !/window\.|document\.|localStorage/.test(adminLayoutCode),
 );
+// Phase 13 evolution: sidebar-destination copy lives in the layout bundle
+// by the 12.3 convention (labels resolve through `layout.nav.*`), so the
+// word guard below scans layout code WITHOUT the translations dictionary —
+// copy text is not module coupling. Destinations themselves stay composed
+// outside the shell (`admin-navigation.ts`, covered by nav specs).
+const adminLayoutCodeWithoutCopy = adminLayoutSources
+  .filter((path) => !path.includes('/layout-translations/'))
+  .map((path) => stripComments(readFileSync(join(root, path), 'utf8')))
+  .join('\n');
 check(
   '3.7: no business modules in the shell (no catalog/orders/inventory/users)',
   !/\bcatalog\b|\bproducts?\b|\borders?\b|\binventory\b|\bpayments?\b|\bcustomers?\b|\busers\b/i.test(
-    adminLayoutCode,
+    adminLayoutCodeWithoutCopy,
   ),
 );
 // Sub-Phase 3.8 — Responsive Foundation: the canonical breakpoint scale

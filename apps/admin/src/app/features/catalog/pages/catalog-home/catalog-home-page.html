@@ -1,0 +1,32 @@
+<section class="catalog-home" aria-labelledby="catalog-title">
+  <header class="catalog-home-header">
+    <h1 id="catalog-title">{{ copy().title }}</h1>
+    <p class="catalog-home-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  @if (status() === 'loading' || status() === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (status() === 'error') {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (status() === 'empty') {
+    <flux-empty-state [title]="copy().emptyTitle" [message]="copy().emptyMessage" />
+  } @else {
+    <div class="catalog-home-grid">
+      <app-catalog-section-card
+        [title]="copy().productsTitle"
+        [description]="copy().productsDescription"
+        [fact]="copy().productsFact"
+      />
+      <app-catalog-section-card
+        [title]="copy().categoriesTitle"
+        [description]="copy().categoriesDescription"
+        [fact]="copy().categoriesFact"
+      />
+    </div>
+  }
+</section>

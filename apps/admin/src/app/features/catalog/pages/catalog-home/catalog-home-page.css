@@ -1,0 +1,27 @@
+.catalog-home {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.catalog-home-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.catalog-home-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.catalog-home-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.catalog-home-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}

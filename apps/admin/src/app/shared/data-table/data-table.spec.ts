@@ -9,6 +9,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AdminDataTable, type AdminDataColumn } from './data-table';
 
@@ -32,7 +33,7 @@ function setup(input: {
   rows?: readonly ProductRow[];
   loading?: boolean;
 }): { fixture: ComponentFixture<AdminDataTable<ProductRow>>; element: HTMLElement } {
-  TestBed.configureTestingModule({});
+  TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(AdminDataTable<ProductRow>);
   fixture.componentRef.setInput('columns', input.columns ?? COLUMNS);
   fixture.componentRef.setInput('rows', input.rows ?? []);
@@ -89,6 +90,27 @@ describe('AdminDataTable', () => {
     const empty = element.querySelector('flux-empty-state')?.textContent ?? '';
     expect(empty).toContain('No products');
     expect(empty).toContain('Try a different filter.');
+  });
+
+  it('renders row links as anchors and plain cells as text', () => {
+    const { element } = setup({
+      columns: [
+        { key: 'sku', header: 'SKU', value: (row) => row.sku },
+        { key: 'name', header: 'Name', value: (row) => row.name, link: () => '/details' },
+        {
+          key: 'missing',
+          header: 'Missing',
+          value: (row) => row.name,
+          link: () => null,
+        },
+      ],
+      rows: ROWS,
+    });
+
+    const links = [...element.querySelectorAll('tbody td a')];
+    expect(links).toHaveLength(2);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/details', '/details']);
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['First', 'Second']);
   });
 
   it('keeps table semantics inside a scrollable region', () => {

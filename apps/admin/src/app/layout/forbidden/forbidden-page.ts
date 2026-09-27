@@ -8,7 +8,6 @@ import {
 
 @Component({
   selector: 'app-forbidden-page',
-  imports: [RouterLink],
   templateUrl: './forbidden-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

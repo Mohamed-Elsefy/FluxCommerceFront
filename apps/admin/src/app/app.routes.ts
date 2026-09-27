@@ -21,8 +21,8 @@ import { AppLayout } from './layout/app-layout/app-layout';
  * / (+ children) → protected portal shell (Admin/SuperAdmin only)
  *     ├── ''         → shell home (protected)
  *     ├── dashboard  → protected entry point
- *     ├── catalog    → future (Phase 13)
- *     ├── inventory  → future (Phase 13)
+ *     ├── catalog    → Phase 13 Catalog foundation (13.2+ lazy boundary)
+ *     ├── inventory  → future (Phase 13, 13.8+)
  *     ├── orders     → future (Phase 14)
  *     └── payments   → future (Phase 14)
  * ```
@@ -57,6 +57,11 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'catalog',
+        loadChildren: () =>
+          import('./features/catalog/catalog.routes').then((m) => m.catalogRoutes),
       },
     ],
   },

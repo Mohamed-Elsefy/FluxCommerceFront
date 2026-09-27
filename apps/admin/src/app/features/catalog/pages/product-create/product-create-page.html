@@ -1,0 +1,20 @@
+<section class="product-create" aria-labelledby="product-create-title">
+  <header class="product-create-header">
+    <h1 id="product-create-title">{{ copy().heading }}</h1>
+    <p class="product-create-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  @if (formError() !== null) {
+    <flux-error-state [title]="copy().errorTitle" [message]="formError()" [showRetry]="false" />
+  }
+
+  <app-product-form
+    [initial]="initial"
+    [categories]="categoryOptions()"
+    [visibilityOptions]="visibilityOptions()"
+    [copy]="formCopy()"
+    [submitting]="submitting()"
+    (save)="onSave($event)"
+    (cancelled)="onCancel()"
+  />
+</section>

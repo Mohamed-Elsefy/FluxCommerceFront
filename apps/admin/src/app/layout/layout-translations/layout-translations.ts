@@ -24,6 +24,8 @@ import {
 export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navHome: 'layout.nav.home',
   navDashboard: 'layout.nav.dashboard',
+  navCatalog: 'layout.nav.catalog',
+  navProducts: 'layout.nav.products',
   navSidebarLabel: 'layout.nav.sidebarLabel',
   headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
@@ -54,6 +56,8 @@ const EN_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Home',
       dashboard: 'Dashboard',
+      catalog: 'Catalog',
+      products: 'Products',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -104,6 +108,8 @@ const FR_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Accueil',
       dashboard: 'Tableau de bord',
+      catalog: 'Catalogue',
+      products: 'Produits',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -154,6 +160,8 @@ const DE_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Startseite',
       dashboard: 'Dashboard',
+      catalog: 'Katalog',
+      products: 'Produkte',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -204,6 +212,8 @@ const ES_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Inicio',
       dashboard: 'Panel',
+      catalog: 'Catálogo',
+      products: 'Productos',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -254,6 +264,8 @@ const AR_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'الرئيسية',
       dashboard: 'لوحة التحكم',
+      catalog: 'الكتالوج',
+      products: 'المنتجات',
       sidebarLabel: 'الإدارة',
     },
     header: {

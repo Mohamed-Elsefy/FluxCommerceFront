@@ -33,6 +33,14 @@ describe('routes', () => {
     expect(typeof dashboard?.loadComponent).toBe('function');
   });
 
+  it('mounts the catalog feature as a lazy boundary inside the protected shell', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const catalog = shell?.children?.find((route) => route.path === 'catalog');
+
+    expect(typeof catalog?.loadChildren).toBe('function');
+    expect(catalog?.canActivate).toBeUndefined();
+  });
+
   it('falls back to a lazy not-found page', () => {
     const fallback = routes.find((route) => route.path === '**');
 

@@ -31,7 +31,13 @@
         @for (row of rows; track $index) {
           <tr>
             @for (column of columns; track column.key) {
-              <td>{{ cell(column, row) }}</td>
+              <td>
+                @if (link(column, row) !== null) {
+                  <a [routerLink]="link(column, row)">{{ cell(column, row) }}</a>
+                } @else {
+                  {{ cell(column, row) }}
+                }
+              </td>
             }
           </tr>
         }

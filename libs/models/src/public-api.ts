@@ -7,3 +7,4 @@ export * from './lib/domains/orders';
 export * from './lib/domains/inventory';
 export * from './lib/domains/payments';
 export * from './lib/domains/payment-contract';
+export * from './lib/domains/catalog-inventory-contract';

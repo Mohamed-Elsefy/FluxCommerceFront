@@ -1,0 +1,21 @@
+.product-edit {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.product-edit-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.product-edit-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.product-edit-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}

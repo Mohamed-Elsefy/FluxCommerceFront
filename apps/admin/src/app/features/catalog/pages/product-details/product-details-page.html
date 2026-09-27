@@ -1,0 +1,167 @@
+<section class="product-details" aria-labelledby="product-details-title">
+  <a class="product-details-back" routerLink="/catalog/products">{{ copy().back }}</a>
+
+  @if (product().isLoading || product().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (product().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (product().data !== null) {
+    <header class="product-details-header">
+      <h1 id="product-details-title">{{ product().data!.name }}</h1>
+      <div class="product-details-badges">
+        @if (statusBadge() !== null) {
+          <flux-badge [variant]="statusBadge()!.variant">{{ statusBadge()!.label }}</flux-badge>
+        }
+        @if (visibilityBadge() !== null) {
+          <flux-badge [variant]="visibilityBadge()!.variant">
+            {{ visibilityBadge()!.label }}
+          </flux-badge>
+        }
+      </div>
+      @if (editLink() !== null) {
+        <a class="product-details-edit" [routerLink]="editLink()">{{ copy().edit }}</a>
+      }
+    </header>
+
+    <flux-card>
+      <dl class="product-details-facts">
+        <div>
+          <dt>{{ copy().name }}</dt>
+          <dd>{{ product().data!.name }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().slug }}</dt>
+          <dd>{{ product().data!.slug }}</dd>
+        </div>
+        @if (product().data!.description !== null) {
+          <div>
+            <dt>{{ copy().description }}</dt>
+            <dd>{{ product().data!.description }}</dd>
+          </div>
+        }
+        <div>
+          <dt>{{ copy().category }}</dt>
+          <dd>{{ categoryName() }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().created }}</dt>
+          <dd>{{ product().data!.createdAtUtc }}</dd>
+        </div>
+      </dl>
+    </flux-card>
+
+    <section aria-labelledby="product-details-actions-title">
+      <h2 id="product-details-actions-title">{{ copy().actionsTitle }}</h2>
+      <div class="product-details-actions">
+        @for (action of actions(); track action) {
+          <button
+            type="button"
+            class="product-details-action"
+            [disabled]="actionsLocked()"
+            (click)="requestAction(action)"
+          >
+            {{ actionLabels()[action] }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <section aria-labelledby="product-details-variants-title">
+      <h2 id="product-details-variants-title">{{ copy().variantsTitle }}</h2>
+      @if (variants().isLoading || variants().status === 'idle') {
+        <flux-loading-indicator [label]="copy().sectionLoading" size="sm" />
+      } @else if (variants().isError) {
+        <flux-error-state
+          [title]="copy().sectionError"
+          [message]="variantsError()"
+          [retryLabel]="copy().retry"
+          (retry)="retry()"
+        />
+      } @else {
+        <admin-data-table
+          [columns]="variantColumns()"
+          [rows]="variants().data ?? []"
+          [caption]="copy().variantsTitle"
+          [emptyTitle]="copy().variantsEmpty"
+        />
+      }
+    </section>
+
+    <section aria-labelledby="product-details-images-title">
+      <h2 id="product-details-images-title">{{ copy().imagesTitle }}</h2>
+      @if (images().isLoading || images().status === 'idle') {
+        <flux-loading-indicator [label]="copy().sectionLoading" size="sm" />
+      } @else if (images().isError) {
+        <flux-error-state
+          [title]="copy().sectionError"
+          [message]="imagesError()"
+          [retryLabel]="copy().retry"
+          (retry)="retry()"
+        />
+      } @else {
+        <admin-data-table
+          [columns]="imageColumns()"
+          [rows]="images().data ?? []"
+          [caption]="copy().imagesTitle"
+          [emptyTitle]="copy().imagesEmpty"
+        />
+      }
+    </section>
+
+    <section aria-labelledby="product-details-specs-title">
+      <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>
+      @if (specifications().isLoading || specifications().status === 'idle') {
+        <flux-loading-indicator [label]="copy().sectionLoading" size="sm" />
+      } @else if (specifications().isError) {
+        <flux-error-state
+          [title]="copy().sectionError"
+          [message]="specsError()"
+          [retryLabel]="copy().retry"
+          (retry)="retry()"
+        />
+      } @else {
+        @if ((specifications().data ?? []).length === 0) {
+          <flux-empty-state [title]="copy().specsEmpty" />
+        } @else {
+          <dl class="product-details-specs">
+            @for (spec of specifications().data ?? []; track spec.id) {
+              <div>
+                <dt>{{ spec.name }}</dt>
+                <dd>{{ spec.value }}</dd>
+              </div>
+            }
+          </dl>
+        }
+      }
+    </section>
+  }
+
+  <admin-dialog
+    [open]="pendingAction() !== null"
+    [title]="copy().dialogTitle"
+    titleId="product-lifecycle-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="cancelAction()"
+  >
+    <p>{{ copy().dialogMessage }}</p>
+    <div data-dialog-actions class="product-details-dialog-actions">
+      <button type="button" class="product-details-dialog-cancel" (click)="cancelAction()">
+        {{ copy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="product-details-dialog-confirm"
+        [disabled]="actionsLocked()"
+        (click)="confirmAction()"
+      >
+        {{ copy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+</section>

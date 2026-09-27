@@ -1,0 +1,14 @@
+.product-form {
+  display: grid;
+  gap: var(--spacing-md);
+  max-inline-size: 44rem;
+}
+
+.product-form-seo {
+  display: grid;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: var(--spacing-md);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}

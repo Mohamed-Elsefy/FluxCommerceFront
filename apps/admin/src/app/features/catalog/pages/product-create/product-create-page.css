@@ -1,0 +1,21 @@
+.product-create {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.product-create-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.product-create-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.product-create-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
