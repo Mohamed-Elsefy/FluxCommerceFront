@@ -1,14 +1,19 @@
 /**
- * Admin Catalog data-access service for Sub-Phases 13.2–13.4 — Catalog
- * Foundation + Product + Variant Management.
+ * Admin Catalog data-access service for Sub-Phases 13.2–13.6 — Catalog
+ * Foundation + Product + Variant + Category + Image/Specification
+ * Management.
  *
  * Scope: the foundation READ surface (paginated product/category lists,
  * single product/category reads, storefront search) plus the 13.3 product
  * slice (create/update/lifecycle writes and the details-section reads for
  * variants, images, and specifications) plus the 13.4 variant slice
  * (variant CRUD — the batch endpoint has no management UI and stays
- * uncalled). Image/specification/attribute WRITES arrive with the slices
- * that own their forms (Sub-Phases 13.5–13.6).
+ * uncalled) plus the 13.5 category slice (category CRUD — there is no
+ * `archive` for categories and no tree endpoint, so neither travels
+ * here) plus the 13.6 image/specification slice (image/specification
+ * CRUD, set-primary, reorder — URL references only, confirmed in 13.1;
+ * no file-upload endpoint exists). Attribute-definition WRITES arrive
+ * only if a future slice owns their forms — none does today.
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §2 (catalog
  * reads are `[AllowAnonymous]`, but the portal always sends its Admin JWT;
@@ -38,23 +43,32 @@
  *   and `Authorization` stays owned by the interceptor pipeline.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 13.4–13.6 — no variant/image/specification/attribute writes, no image
- *   uploads (URL references only, confirmed in 13.1), no attribute writes.
+ * - No attribute-definition writes (no owning slice), no image metadata
+ *   editing (preserved round-trip only — see the 13.6 models), no file
+ *   uploads (no such endpoint; URL references only, confirmed in 13.1).
  */
 
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
 import type {
+  AddProductImageRequest,
   CatalogProductListItem,
   CatalogSearchQuery,
+  CategoryLifecycleAction,
   CategoryResponse,
+  CreateCategoryRequest,
   CreateProductRequest,
+  CreateProductSpecificationRequest,
   CreateProductVariantRequest,
   ProductImageResponse,
   ProductLifecycleAction,
   ProductResponse,
   ProductSpecificationResponse,
+  ReorderProductImagesRequest,
+  UpdateCategoryRequest,
+  UpdateProductImageRequest,
   UpdateProductRequest,
+  UpdateProductSpecificationRequest,
   UpdateProductVariantRequest,
   VariantResponse,
 } from '@flux/models';
@@ -338,7 +352,219 @@ export class CatalogAdminApiService {
       pathParams: { productId, variantId, ...(options.pathParams ?? {}) },
     });
   }
+
+  /**
+   * `POST /catalog/categories` — creates a category (`Admin` only).
+   * `parentId` is the only hierarchy signal (nullable — `null` means
+   * top-level); there is no tree endpoint, so the UI follows the flat
+   * model with per-row parent references instead of inventing a tree.
+   * Success: `201 ApiResponse<Guid(categoryId)>` + `Location`.
+   * Failures: `400` validation (incl. own-parent cycles), `401`/`403`,
+   * `404` unknown parent, `409` duplicate name/slug or deleted parent.
+   */
+  createCategory(
+    body: CreateCategoryRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<string>> {
+    return this.api.post<ApiResponseWithData<string>>(
+      CATALOG_ENDPOINTS.createCategory.path,
+      body,
+      options,
+    );
+  }
+
+  /**
+   * `PUT /catalog/categories/{id}` — replaces category fields (`Admin`
+   * only). Same nullable shape as create.
+   * Success: `204` empty. Failures: `400` validation, `401`/`403`,
+   * `404`, `409` duplicate name/slug or deleted-entity mutation.
+   */
+  updateCategory(
+    id: string,
+    body: UpdateCategoryRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.put<void>(CATALOG_ENDPOINTS.updateCategory.path, body, {
+      ...options,
+      pathParams: { id, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `POST /catalog/categories/{id}/<action>` — lifecycle transition
+   * (`activate | deactivate | soft-delete | restore`, `Admin` only).
+   * Categories expose no `archive` (products only). The backend owns
+   * transition validity: illegal moves surface as `409` for the caller
+   * to display, never for the SPA to predict.
+   * Success: `204` empty. Failures: `400`, `401`/`403`, `404`, `409`.
+   */
+  transitionCategory(
+    id: string,
+    action: CategoryLifecycleAction,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.post<void>(CATEGORY_LIFECYCLE_ENDPOINTS[action].path, undefined, {
+      ...options,
+      pathParams: { id, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `POST /catalog/products/{productId}/images` — attaches a URL-based
+   * image reference (`Admin` only). There is NO file-upload endpoint:
+   * `imageUrl` carries the URL string (confirmed in 13.1), and
+   * `isPrimary` travels on create only. `metadata` passes through as
+   * given (the UI sends `null` on create — no metadata editor exists).
+   * Success: `204` empty. Failures: `400` validation, `401`/`403`,
+   * `404` unknown product.
+   */
+  addProductImage(
+    productId: string,
+    body: AddProductImageRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.post<void>(CATALOG_ENDPOINTS.addProductImage.path, body, {
+      ...options,
+      pathParams: { productId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `PUT /catalog/products/{productId}/images/{imageId}` — updates a
+   * URL/alt-text/order record (`Admin` only). Carries NO `isPrimary`
+   * (primary moves through `setPrimaryImage` only) and round-trips the
+   * stored `metadata` untouched (no metadata editor exists — sending
+   * `null` would wipe backend data the UI never showed).
+   * Success: `204` empty. Failures: `400` validation, `401`/`403`,
+   * `404`.
+   */
+  updateProductImage(
+    productId: string,
+    imageId: string,
+    body: UpdateProductImageRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.put<void>(CATALOG_ENDPOINTS.updateProductImage.path, body, {
+      ...options,
+      pathParams: { productId, imageId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `DELETE /catalog/products/{productId}/images/{imageId}` — removes
+   * an image (`Admin` only), always behind confirmation.
+   * Success: `204` empty. Failures: `401`/`403`, `404`.
+   */
+  deleteProductImage(
+    productId: string,
+    imageId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.delete<void>(CATALOG_ENDPOINTS.deleteProductImage.path, {
+      ...options,
+      pathParams: { productId, imageId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `POST .../images/{imageId}/set-primary` — marks one image primary
+   * (`Admin` only). Idempotent state change (no confirmation dialog —
+   * nothing is destroyed); the backend demotes the previous primary.
+   * Success: `204` empty. Failures: `401`/`403`, `404`.
+   */
+  setPrimaryImage(
+    productId: string,
+    imageId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.post<void>(CATALOG_ENDPOINTS.setPrimaryImage.path, undefined, {
+      ...options,
+      pathParams: { productId, imageId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `PUT .../images/reorder` — replaces the display order wholesale
+   * (`Admin` only). `orderedImageIds` must match the existing set
+   * exactly (the UI derives it from the settled list by swapping two
+   * entries — never invents, drops, or duplicates ids).
+   * Success: `204` empty. Failures: `400` id mismatch, `401`/`403`,
+   * `404`.
+   */
+  reorderProductImages(
+    productId: string,
+    body: ReorderProductImagesRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.put<void>(CATALOG_ENDPOINTS.reorderProductImages.path, body, {
+      ...options,
+      pathParams: { productId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `POST /catalog/products/{productId}/specifications` — adds a simple
+   * `name`/`value` pair (`Admin` only).
+   * Success: `204` empty. Failures: `400` validation (empty/too-long
+   * names and values are backend-owned rules), `401`/`403`, `404`.
+   */
+  createSpecification(
+    productId: string,
+    body: CreateProductSpecificationRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.post<void>(CATALOG_ENDPOINTS.createSpecification.path, body, {
+      ...options,
+      pathParams: { productId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `PUT .../specifications/{specificationId}` — renames/edits a pair
+   * (`Admin` only). Same shape as create.
+   * Success: `204` empty. Failures: `400` validation, `401`/`403`,
+   * `404`, `409` duplicate specification name.
+   */
+  updateSpecification(
+    productId: string,
+    specificationId: string,
+    body: UpdateProductSpecificationRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.put<void>(CATALOG_ENDPOINTS.updateSpecification.path, body, {
+      ...options,
+      pathParams: { productId, specificationId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `DELETE .../specifications/{specificationId}` — removes a pair
+   * (`Admin` only), always behind confirmation.
+   * Success: `204` empty. Failures: `401`/`403`, `404`.
+   */
+  deleteSpecification(
+    productId: string,
+    specificationId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.delete<void>(CATALOG_ENDPOINTS.deleteSpecification.path, {
+      ...options,
+      pathParams: { productId, specificationId, ...(options.pathParams ?? {}) },
+    });
+  }
 }
+
+/**
+ * Category lifecycle action → canonical route template (one entry per
+ * `CATEGORY_LIFECYCLE_ACTIONS` member — no scattered literals at call
+ * sites, no invented transitions, no `archive`).
+ */
+const CATEGORY_LIFECYCLE_ENDPOINTS: Record<CategoryLifecycleAction, { readonly path: string }> = {
+  activate: CATALOG_ENDPOINTS.activateCategory,
+  deactivate: CATALOG_ENDPOINTS.deactivateCategory,
+  'soft-delete': CATALOG_ENDPOINTS.softDeleteCategory,
+  restore: CATALOG_ENDPOINTS.restoreCategory,
+};
 
 /**
  * Lifecycle action → canonical route template (one entry per

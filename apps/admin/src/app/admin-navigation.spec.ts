@@ -8,8 +8,14 @@ describe('admin navigation', () => {
       expect(item.labelKey.startsWith('layout.nav.')).toBe(true);
     }
     const catalog = ADMIN_NAV_ITEMS.find((item) => item.route === '/catalog');
-    expect(catalog?.children?.map((child) => child.route)).toEqual(['/catalog/products']);
-    expect(catalog?.children?.[0]?.labelKey).toBe('layout.nav.products');
+    expect(catalog?.children?.map((child) => child.route)).toEqual([
+      '/catalog/products',
+      '/catalog/categories',
+    ]);
+    expect(catalog?.children?.map((child) => child.labelKey)).toEqual([
+      'layout.nav.products',
+      'layout.nav.categories',
+    ]);
   });
 
   it('shows unrestricted entries to every portal role', () => {

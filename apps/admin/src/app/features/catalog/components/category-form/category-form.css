@@ -1,0 +1,5 @@
+.category-form {
+  display: grid;
+  gap: var(--spacing-md);
+  max-inline-size: 44rem;
+}

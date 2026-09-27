@@ -1,0 +1,21 @@
+.category-create {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.category-create-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.category-create-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.category-create-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}

@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { CatalogAdminApiService } from './data-access/catalog-admin-api.service';
 import { CatalogOverviewState } from './state/catalog-overview-state';
+import { CategoryDetailsState } from './state/category-details-state';
+import { CategoryListState } from './state/category-list-state';
 import { CategoryLookupState } from './state/category-lookup-state';
 import { ProductDetailsState } from './state/product-details-state';
 import { ProductListState } from './state/product-list-state';
@@ -8,8 +10,8 @@ import { VariantDetailsState } from './state/variant-details-state';
 import { VariantListState } from './state/variant-list-state';
 
 /**
- * Admin Catalog feature routes for Sub-Phases 13.2–13.4 — Catalog
- * Foundation + Product + Variant Management.
+ * Admin Catalog feature routes for Sub-Phases 13.2–13.5 — Catalog
+ * Foundation + Product + Variant + Category Management.
  *
  * Lazy feature boundary under the guarded portal shell (`path: 'catalog'`
  * in `app.routes.ts` — the shell's `authGuard` + `roleGuard` chain already
@@ -23,9 +25,9 @@ import { VariantListState } from './state/variant-list-state';
  * their `:id` siblings (top-down matching — `new` must not parse as an
  * id).
  *
- * Category, image, and specification management routes arrive with the
- * slices that own their pages (Sub-Phases 13.5–13.6) — no placeholder
- * routes ship in the meantime.
+ * Image and specification management routes arrive with the slice that
+ * owns their pages (Sub-Phase 13.6) — no placeholder routes ship in the
+ * meantime.
  */
 export const catalogRoutes: Routes = [
   {
@@ -33,6 +35,8 @@ export const catalogRoutes: Routes = [
     providers: [
       CatalogAdminApiService,
       CatalogOverviewState,
+      CategoryDetailsState,
+      CategoryListState,
       CategoryLookupState,
       ProductDetailsState,
       ProductListState,
@@ -84,6 +88,28 @@ export const catalogRoutes: Routes = [
         path: 'products/:productId/variants/:variantId/edit',
         loadComponent: () =>
           import('./pages/variant-edit/variant-edit-page').then((m) => m.VariantEditPage),
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./pages/categories-list/categories-list-page').then((m) => m.CategoriesListPage),
+      },
+      {
+        path: 'categories/new',
+        loadComponent: () =>
+          import('./pages/category-create/category-create-page').then((m) => m.CategoryCreatePage),
+      },
+      {
+        path: 'categories/:id',
+        loadComponent: () =>
+          import('./pages/category-details/category-details-page').then(
+            (m) => m.CategoryDetailsPage,
+          ),
+      },
+      {
+        path: 'categories/:id/edit',
+        loadComponent: () =>
+          import('./pages/category-edit/category-edit-page').then((m) => m.CategoryEditPage),
       },
     ],
   },

@@ -1,26 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import {
   categoryNameOf,
+  categoryStatusDisplay,
+  categoryToFormValue,
   emptyCatalogOverview,
+  emptyCategoryFormValue,
+  emptyImageFormValue,
   emptyProductFormValue,
+  emptySpecFormValue,
   emptyVariantFormValue,
+  imageToFormValue,
   isCatalogOverviewEmpty,
+  moveImageIds,
   productStatusDisplay,
   productToFormValue,
   productVisibilityDisplay,
+  specToFormValue,
+  toAddImageRequest,
   toCategoryOptions,
+  toCreateCategoryRequest,
   toCreateProductRequest,
   toCatalogOverview,
+  toCreateSpecRequest,
   toCreateVariantRequest,
   toFormErrorPath,
+  toUpdateCategoryRequest,
+  toUpdateImageRequest,
   toUpdateProductRequest,
+  toUpdateSpecRequest,
   toUpdateVariantRequest,
   variantStatusDisplay,
   variantToFormValue,
   type AdminCategoryPage,
   type AdminProductPage,
 } from './catalog-admin.models';
-import type { CategoryResponse, ProductResponse, VariantResponse } from '@flux/models';
+import type {
+  CategoryResponse,
+  ProductImageResponse,
+  ProductResponse,
+  ProductSpecificationResponse,
+  VariantResponse,
+} from '@flux/models';
 
 function productPage(totalCount: number): AdminProductPage {
   return { items: [], totalCount, pageNumber: 1, pageSize: 1 };
@@ -272,6 +292,155 @@ describe('variant form value', () => {
         currency: 'USD',
       }),
     ).toEqual({ sku: 'TEE-BLK-M', name: 'Black / M' });
+  });
+});
+
+describe('category form value', () => {
+  it('exposes a blank value for the create page', () => {
+    expect(emptyCategoryFormValue()).toEqual({
+      name: null,
+      slug: null,
+      description: null,
+      parentId: null,
+    });
+  });
+
+  it('projects a loaded category into the form (edit population)', () => {
+    expect(categoryToFormValue({ ...categoryResponse('c1', 'Alpha'), parentId: 'c0' })).toEqual({
+      name: 'Alpha',
+      slug: 'alpha',
+      description: null,
+      parentId: 'c0',
+    });
+    expect(categoryToFormValue(categoryResponse('c1', 'Alpha'))).toMatchObject({
+      parentId: null,
+    });
+  });
+
+  it('projects the form into the create body (blanks to null, empty parent to null)', () => {
+    expect(
+      toCreateCategoryRequest({
+        name: '  Apparel ',
+        slug: 'apparel',
+        description: '  ',
+        parentId: '',
+      }),
+    ).toEqual({ name: 'Apparel', slug: 'apparel', description: null, parentId: null });
+    expect(
+      toCreateCategoryRequest({ name: 'Kid', slug: 'kid', description: null, parentId: 'c1' }),
+    ).toMatchObject({ parentId: 'c1' });
+  });
+
+  it('projects updates through the same shape as creates', () => {
+    const value = { name: 'Kid', slug: 'kid', description: null, parentId: 'c1' };
+
+    expect(toUpdateCategoryRequest(value)).toEqual(toCreateCategoryRequest(value));
+  });
+});
+
+describe('category status display', () => {
+  it('maps every known status to its bundle key and variant', () => {
+    expect(categoryStatusDisplay(0)).toEqual({
+      labelKey: 'catalog.categoryStatus.active',
+      variant: 'success',
+    });
+    expect(categoryStatusDisplay(1)).toEqual({
+      labelKey: 'catalog.categoryStatus.inactive',
+      variant: 'warning',
+    });
+  });
+
+  it('falls back for unknown future values instead of crashing', () => {
+    expect(categoryStatusDisplay(99)).toEqual({
+      labelKey: 'catalog.categoryStatus.unknown',
+      variant: 'neutral',
+    });
+  });
+});
+
+describe('image form value', () => {
+  const IMAGE: ProductImageResponse = {
+    id: 'img-1',
+    productId: 'prod-1',
+    imageUrl: '/images/tee.jpg',
+    altText: 'Tee',
+    displayOrder: 0,
+    isPrimary: true,
+    metadata: { source: 'studio' },
+    createdAtUtc: '2026-09-04T10:00:00Z',
+  };
+
+  it('exposes a blank value for the add dialog', () => {
+    expect(emptyImageFormValue()).toEqual({
+      url: null,
+      altText: null,
+      order: null,
+      primary: false,
+    });
+  });
+
+  it('projects a loaded image into the form with primary always false', () => {
+    expect(imageToFormValue(IMAGE)).toEqual({
+      url: '/images/tee.jpg',
+      altText: 'Tee',
+      order: '0',
+      primary: false,
+    });
+  });
+
+  it('projects the form into the add body (order parsed, metadata null)', () => {
+    expect(
+      toAddImageRequest({ url: ' /images/tee.jpg ', altText: '  ', order: '2', primary: true }),
+    ).toEqual({
+      imageUrl: '/images/tee.jpg',
+      altText: null,
+      isPrimary: true,
+      displayOrder: 2,
+      metadata: null,
+    });
+  });
+
+  it('round-trips stored metadata on update (never primary)', () => {
+    expect(
+      toUpdateImageRequest(
+        { url: '/images/tee.jpg', altText: null, order: '1', primary: true },
+        IMAGE,
+      ),
+    ).toEqual({
+      imageUrl: '/images/tee.jpg',
+      altText: null,
+      displayOrder: 1,
+      metadata: { source: 'studio' },
+    });
+  });
+
+  it('moves ids within the settled set and ignores out-of-range moves', () => {
+    expect(moveImageIds(['a', 'b', 'c'], 0, 1)).toEqual(['b', 'a', 'c']);
+    expect(moveImageIds(['a', 'b', 'c'], 2, -1)).toEqual(['a', 'c', 'b']);
+    expect(moveImageIds(['a', 'b', 'c'], 0, -1)).toEqual(['a', 'b', 'c']);
+    expect(moveImageIds(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c']);
+    expect(moveImageIds(['a'], 0, 1)).toEqual(['a']);
+  });
+});
+
+describe('specification form value', () => {
+  const SPEC: ProductSpecificationResponse = {
+    id: 'spec-1',
+    productId: 'prod-1',
+    name: 'Material',
+    value: 'Cotton',
+  };
+
+  it('exposes a blank value and round-trips records through both bodies', () => {
+    expect(emptySpecFormValue()).toEqual({ name: null, value: null });
+    expect(specToFormValue(SPEC)).toEqual({ name: 'Material', value: 'Cotton' });
+    expect(toCreateSpecRequest({ name: '  Material ', value: '  ' })).toEqual({
+      name: 'Material',
+      value: null,
+    });
+    expect(toUpdateSpecRequest({ name: 'Material', value: 'Wool' })).toEqual(
+      toCreateSpecRequest({ name: 'Material', value: 'Wool' }),
+    );
   });
 });
 

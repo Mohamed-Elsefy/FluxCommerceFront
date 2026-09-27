@@ -8,10 +8,11 @@
  * mapping, not the math.
  */
 
+import { Component, TemplateRef, viewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AdminDataTable, type AdminDataColumn } from './data-table';
+import { AdminDataTable, type AdminDataColumn, type AdminDataRowContext } from './data-table';
 
 interface ProductRow {
   readonly sku: string;
@@ -111,6 +112,49 @@ describe('AdminDataTable', () => {
     expect(links).toHaveLength(2);
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/details', '/details']);
     expect(links.map((link) => link.textContent?.trim())).toEqual(['First', 'Second']);
+  });
+
+  it('projects row actions with row and index context when templated', () => {
+    @Component({
+      selector: 'action-table-host',
+      imports: [AdminDataTable],
+      template: `
+        <admin-data-table
+          [columns]="columns"
+          [rows]="rows"
+          [actionsTemplate]="actionsTpl()"
+          actionsHeader="Actions"
+          emptyTitle="No products"
+        />
+        <ng-template #actions let-row let-index="index">
+          <button type="button" [attr.data-sku]="row.sku" [attr.data-index]="index">Remove</button>
+        </ng-template>
+      `,
+    })
+    class ActionHost {
+      readonly columns: readonly AdminDataColumn<ProductRow>[] = COLUMNS;
+      readonly rows: readonly ProductRow[] = ROWS;
+      readonly actionsTpl =
+        viewChild.required<TemplateRef<AdminDataRowContext<ProductRow>>>('actions');
+    }
+
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(ActionHost);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('thead th:last-child')?.textContent?.trim()).toBe('Actions');
+    const buttons = [...element.querySelectorAll('tbody td.data-table-actions button')];
+    expect(buttons).toHaveLength(2);
+    expect(buttons.map((button) => button.getAttribute('data-sku'))).toEqual(['SKU-1', 'SKU-2']);
+    expect(buttons.map((button) => button.getAttribute('data-index'))).toEqual(['0', '1']);
+  });
+
+  it('renders no actions column without a template', () => {
+    const { element } = setup({ rows: ROWS });
+
+    expect(element.querySelector('td.data-table-actions')).toBeNull();
+    expect(element.querySelectorAll('thead th')).toHaveLength(2);
   });
 
   it('keeps table semantics inside a scrollable region', () => {

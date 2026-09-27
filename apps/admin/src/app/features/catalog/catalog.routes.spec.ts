@@ -4,6 +4,8 @@ import { CatalogOverviewState } from './state/catalog-overview-state';
 import { CategoryLookupState } from './state/category-lookup-state';
 import { ProductDetailsState } from './state/product-details-state';
 import { ProductListState } from './state/product-list-state';
+import { CategoryDetailsState } from './state/category-details-state';
+import { CategoryListState } from './state/category-list-state';
 import { VariantDetailsState } from './state/variant-details-state';
 import { VariantListState } from './state/variant-list-state';
 import { catalogRoutes } from './catalog.routes';
@@ -15,6 +17,8 @@ describe('catalogRoutes', () => {
     expect(catalogRoutes[0]?.providers).toEqual([
       CatalogAdminApiService,
       CatalogOverviewState,
+      CategoryDetailsState,
+      CategoryListState,
       CategoryLookupState,
       ProductDetailsState,
       ProductListState,
@@ -42,6 +46,10 @@ describe('catalogRoutes', () => {
       'products/:productId/variants/new',
       'products/:productId/variants/:variantId',
       'products/:productId/variants/:variantId/edit',
+      'categories',
+      'categories/new',
+      'categories/:id',
+      'categories/:id/edit',
     ]);
     for (const child of catalogRoutes[0]?.children ?? []) {
       expect(typeof child.loadComponent).toBe('function');

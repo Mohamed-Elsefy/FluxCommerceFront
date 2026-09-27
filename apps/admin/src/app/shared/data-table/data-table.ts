@@ -1,6 +1,7 @@
 /**
  * Generic admin data table for Sub-Phase 12.5 — Admin Table & Pagination
- * Primitives (extended in 13.3 with per-column row links).
+ * Primitives (extended in 13.3 with per-column row links, in 13.6 with
+ * a projected row-actions column).
  *
  * Presentation only: renders HOW rows look (typed columns, headers, a
  * scrollable responsive wrapper, loading and empty states through the
@@ -16,16 +17,28 @@
  * component never invents formatting. Columns may additionally expose a
  * row link (`(row) => string | null`, e.g. a details route): linked cells
  * render a real anchor (deep-linkable, keyboard- and screen-reader-safe);
- * `null` renders plain text. Row selection stays omitted: no consumer
- * justifies it.
+ * `null` renders plain text. Row actions (edit/delete/reorder buttons
+ * and friends) arrive as a projected template (`actionsTemplate` with
+ * `$implicit: row` and `index`) under an owner-localized `actionsHeader`
+ * — the feature owns every behavior, this component only reserves the
+ * trailing cell. Row selection stays omitted: no consumer justifies it.
  *
  * SSR/hydration safe: static markup from inputs only, no browser APIs.
  * RTL safe: logical properties only, no direction branching.
  */
 
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, Input, TemplateRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EmptyState, LoadingIndicator } from '@flux/ui';
+
+/** Template context behind one row-actions cell. */
+export interface AdminDataRowContext<T> {
+  /** The row the actions operate on. */
+  readonly $implicit: T;
+  /** Zero-based row index within the rendered rows. */
+  readonly index: number;
+}
 
 /** Typed table column: header copy plus a row-to-text cell accessor. */
 export interface AdminDataColumn<T> {
@@ -44,7 +57,7 @@ export interface AdminDataColumn<T> {
 
 @Component({
   selector: 'admin-data-table',
-  imports: [RouterLink, EmptyState, LoadingIndicator],
+  imports: [NgTemplateOutlet, RouterLink, EmptyState, LoadingIndicator],
   templateUrl: './data-table.html',
   styleUrl: './data-table.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +77,14 @@ export class AdminDataTable<T> {
   @Input() emptyMessage: string | null = null;
   /** Loading text (owner-localized). */
   @Input() loadingLabel = 'Loading';
+  /**
+   * Projected row-actions template (`$implicit: row`, `index`); `null`
+   * renders no actions column. The feature owns every behavior behind
+   * its buttons — this input only reserves the trailing cell.
+   */
+  @Input() actionsTemplate: TemplateRef<AdminDataRowContext<T>> | null = null;
+  /** Actions column header (owner-localized; rendered when templated). */
+  @Input() actionsHeader: string | null = null;
 
   /** Cell text for a row (thin projection over the column accessor). */
   protected cell(column: AdminDataColumn<T>, row: T): string {

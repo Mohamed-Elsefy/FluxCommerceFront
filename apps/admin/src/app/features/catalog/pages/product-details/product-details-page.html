@@ -100,7 +100,12 @@
     </section>
 
     <section aria-labelledby="product-details-images-title">
-      <h2 id="product-details-images-title">{{ copy().imagesTitle }}</h2>
+      <div class="product-details-section-heading">
+        <h2 id="product-details-images-title">{{ copy().imagesTitle }}</h2>
+        <button type="button" class="product-details-add" (click)="openAddImage()">
+          {{ copy().addImage }}
+        </button>
+      </div>
       @if (images().isLoading || images().status === 'idle') {
         <flux-loading-indicator [label]="copy().sectionLoading" size="sm" />
       } @else if (images().isError) {
@@ -116,12 +121,67 @@
           [rows]="images().data ?? []"
           [caption]="copy().imagesTitle"
           [emptyTitle]="copy().imagesEmpty"
+          [actionsTemplate]="imageActions"
+          [actionsHeader]="copy().actionsHeader"
         />
       }
+      <ng-template #imageActions let-image let-i="index">
+        <button
+          type="button"
+          class="product-details-row-action"
+          [disabled]="mediaBusy() || i === 0"
+          [attr.aria-label]="copy().imageMoveUp"
+          [attr.title]="copy().imageMoveUp"
+          (click)="moveImage(image, -1)"
+        >
+          <span aria-hidden="true">↑</span>
+        </button>
+        <button
+          type="button"
+          class="product-details-row-action"
+          [disabled]="mediaBusy() || i === (images().data ?? []).length - 1"
+          [attr.aria-label]="copy().imageMoveDown"
+          [attr.title]="copy().imageMoveDown"
+          (click)="moveImage(image, 1)"
+        >
+          <span aria-hidden="true">↓</span>
+        </button>
+        @if (!image.isPrimary) {
+          <button
+            type="button"
+            class="product-details-row-action"
+            [disabled]="mediaBusy()"
+            (click)="setPrimary(image)"
+          >
+            {{ copy().imageSetPrimary }}
+          </button>
+        }
+        <button
+          type="button"
+          class="product-details-row-action"
+          [disabled]="mediaBusy()"
+          (click)="openEditImage(image)"
+        >
+          {{ copy().imageEdit }}
+        </button>
+        <button
+          type="button"
+          class="product-details-row-action"
+          [disabled]="mediaBusy()"
+          (click)="requestDeleteImage(image.id)"
+        >
+          {{ copy().imageDelete }}
+        </button>
+      </ng-template>
     </section>
 
     <section aria-labelledby="product-details-specs-title">
-      <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>
+      <div class="product-details-section-heading">
+        <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>
+        <button type="button" class="product-details-add" (click)="openAddSpec()">
+          {{ copy().addSpec }}
+        </button>
+      </div>
       @if (specifications().isLoading || specifications().status === 'idle') {
         <flux-loading-indicator [label]="copy().sectionLoading" size="sm" />
       } @else if (specifications().isError) {
@@ -132,19 +192,33 @@
           (retry)="retry()"
         />
       } @else {
-        @if ((specifications().data ?? []).length === 0) {
-          <flux-empty-state [title]="copy().specsEmpty" />
-        } @else {
-          <dl class="product-details-specs">
-            @for (spec of specifications().data ?? []; track spec.id) {
-              <div>
-                <dt>{{ spec.name }}</dt>
-                <dd>{{ spec.value }}</dd>
-              </div>
-            }
-          </dl>
-        }
+        <admin-data-table
+          [columns]="specColumns()"
+          [rows]="specifications().data ?? []"
+          [caption]="copy().specsTitle"
+          [emptyTitle]="copy().specsEmpty"
+          [actionsTemplate]="specActions"
+          [actionsHeader]="copy().actionsHeader"
+        />
       }
+      <ng-template #specActions let-spec>
+        <button
+          type="button"
+          class="product-details-row-action"
+          [disabled]="specBusy()"
+          (click)="openEditSpec(spec)"
+        >
+          {{ copy().specEdit }}
+        </button>
+        <button
+          type="button"
+          class="product-details-row-action"
+          [disabled]="specBusy()"
+          (click)="requestDeleteSpec(spec.id)"
+        >
+          {{ copy().specDelete }}
+        </button>
+      </ng-template>
     </section>
   }
 
@@ -166,6 +240,103 @@
         class="product-details-dialog-confirm"
         [disabled]="actionsLocked()"
         (click)="confirmAction()"
+      >
+        {{ copy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+
+  <admin-dialog
+    [open]="imageDialogOpen()"
+    [title]="imageDialogMode() === 'create' ? copy().imageAddTitle : copy().imageEditTitle"
+    titleId="product-image-dialog-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="closeImageDialog()"
+  >
+    @if (imageFormError() !== null) {
+      <flux-error-state
+        [title]="copy().imageFormErrorTitle"
+        [message]="imageFormError()"
+        [showRetry]="false"
+      />
+    }
+    <app-image-form
+      [mode]="imageDialogMode()"
+      [initial]="imageInitial()"
+      [copy]="imageFormCopy()"
+      [submitting]="mediaBusy()"
+      (save)="saveImage($event)"
+      (cancelled)="closeImageDialog()"
+    />
+  </admin-dialog>
+
+  <admin-dialog
+    [open]="imageDeleting() !== null"
+    [title]="copy().imageDeleteTitle"
+    titleId="product-image-delete-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="cancelDeleteImage()"
+  >
+    <p>{{ copy().imageDeleteMessage }}</p>
+    <div data-dialog-actions class="product-details-dialog-actions">
+      <button type="button" class="product-details-dialog-cancel" (click)="cancelDeleteImage()">
+        {{ copy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="product-details-dialog-confirm"
+        [disabled]="mediaBusy()"
+        (click)="confirmDeleteImage()"
+      >
+        {{ copy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+
+  <admin-dialog
+    [open]="specDialogOpen()"
+    [title]="specDialogMode() === 'create' ? copy().specAddTitle : copy().specEditTitle"
+    titleId="product-spec-dialog-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="closeSpecDialog()"
+  >
+    @if (specFormError() !== null) {
+      <flux-error-state
+        [title]="copy().specFormErrorTitle"
+        [message]="specFormError()"
+        [showRetry]="false"
+      />
+    }
+    <app-spec-form
+      [initial]="specInitial()"
+      [copy]="specFormCopy()"
+      [submitting]="specBusy()"
+      (save)="saveSpec($event)"
+      (cancelled)="closeSpecDialog()"
+    />
+  </admin-dialog>
+
+  <admin-dialog
+    [open]="specDeleting() !== null"
+    [title]="copy().specDeleteTitle"
+    titleId="product-spec-delete-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="cancelDeleteSpec()"
+  >
+    <p>{{ copy().specDeleteMessage }}</p>
+    <div data-dialog-actions class="product-details-dialog-actions">
+      <button type="button" class="product-details-dialog-cancel" (click)="cancelDeleteSpec()">
+        {{ copy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="product-details-dialog-confirm"
+        [disabled]="specBusy()"
+        (click)="confirmDeleteSpec()"
       >
         {{ copy().dialogConfirm }}
       </button>

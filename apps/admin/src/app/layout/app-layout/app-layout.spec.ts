@@ -99,7 +99,7 @@ describe('AppLayout', () => {
     const labels = [...element.querySelectorAll('admin-sidebar .item-label')].map((node) =>
       node.textContent?.trim(),
     );
-    expect(labels).toEqual(['Accueil', 'Tableau de bord', 'Catalogue', 'Produits']);
+    expect(labels).toEqual(['Accueil', 'Tableau de bord', 'Catalogue', 'Produits', 'Catégories']);
     expect(element.querySelector('a.skip-link')?.textContent).toBe('Aller au contenu principal');
     TestBed.inject(CultureService).setCulture('en');
   });

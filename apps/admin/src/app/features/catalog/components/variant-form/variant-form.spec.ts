@@ -77,6 +77,20 @@ describe('VariantForm', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it('projects backend DTO keys onto their controls', () => {
+    const { fixture, element } = setup();
+    const unknown = fixture.componentInstance.applyServerErrors({
+      UnitPriceAmount: ['Price is invalid.'],
+      Currency: ['Unknown currency.'],
+      Mystery: ['No such field.'],
+    });
+    fixture.detectChanges();
+
+    expect(unknown).toEqual(['Mystery']);
+    expect(element.textContent).toContain('Price is invalid.');
+    expect(element.textContent).toContain('Unknown currency.');
+  });
+
   it('locks money controls as read-only display when editing', () => {
     const { element } = setup(
       { sku: 'TEE-BLK-M', name: 'Black / M', price: '29.99', currency: 'USD' },

@@ -50,7 +50,7 @@ export class VariantForm {
       this.form.patchValue({
         sku: value.sku,
         name: value.name,
-        price: value.price,
+        unitPriceAmount: value.price,
         currency: value.currency,
       });
     }
@@ -80,11 +80,17 @@ export class VariantForm {
 
   private formMode: VariantFormMode = 'create';
 
-  /** Typed variant form (presence + shape validators only — rules stay backend-owned). */
+  /**
+   * Typed variant form (presence + shape validators only — rules stay
+   * backend-owned). Control names mirror the DTO camelCase (`sku`,
+   * `name`, `unitPriceAmount`, `currency`) so backend `errors{}` keys
+   * project onto their paths through the shared `toFormErrorPath`
+   * mapper with no per-form table.
+   */
   protected readonly form = new FormGroup({
     sku: new FormControl<string | null>(null, { validators: [Validators.required] }),
     name: new FormControl<string | null>(null, { validators: [Validators.required] }),
-    price: new FormControl<string | null>(null, {
+    unitPriceAmount: new FormControl<string | null>(null, {
       validators: [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)],
     }),
     currency: new FormControl<string | null>(null, {
@@ -105,7 +111,7 @@ export class VariantForm {
   }
 
   protected priceControl(): FormControl<string | null> {
-    return this.form.controls.price;
+    return this.form.controls.unitPriceAmount;
   }
 
   protected currencyControl(): FormControl<string | null> {
@@ -137,7 +143,7 @@ export class VariantForm {
 
   /** Clears server errors (fresh attempt starts clean, client state kept). */
   clearServerErrors(): void {
-    for (const path of ['sku', 'name', 'price', 'currency']) {
+    for (const path of ['sku', 'name', 'unitPriceAmount', 'currency']) {
       const control = this.form.get(path);
       if (control !== null && control.errors !== null && ADMIN_SERVER_ERROR_KEY in control.errors) {
         const { [ADMIN_SERVER_ERROR_KEY]: _dropped, ...rest } = control.errors;
@@ -157,7 +163,7 @@ export class VariantForm {
       ...emptyVariantFormValue(),
       sku: raw.sku,
       name: raw.name,
-      price: raw.price,
+      price: raw.unitPriceAmount,
       currency: raw.currency,
     });
   }

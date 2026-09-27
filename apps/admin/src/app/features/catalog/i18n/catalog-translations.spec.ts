@@ -81,6 +81,46 @@ describe('translateCatalogKey', () => {
     ).toBe('Unknown (99)');
   });
 
+  it('resolves the category slice copy per culture', () => {
+    expect(translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.categoriesHeading)).toBe(
+      'Categories',
+    );
+    expect(translateCatalogKey('fr', CATALOG_TRANSLATION_KEYS.categoriesNew)).toBe(
+      'Nouvelle catégorie',
+    );
+    expect(translateCatalogKey('de', CATALOG_TRANSLATION_KEYS.categoryFormSave)).toBe(
+      'Kategorie speichern',
+    );
+    expect(translateCatalogKey('ar', CATALOG_TRANSLATION_KEYS.detailsParent)).toBe('الفئة الأب');
+    expect(
+      translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.categoryCreateSuccessMessage, {
+        name: 'Apparel',
+      }),
+    ).toBe('“Apparel” was created.');
+    expect(
+      translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.categoryStatusUnknown, { value: 99 }),
+    ).toBe('Unknown (99)');
+  });
+
+  it('resolves the image and specification slice copy per culture', () => {
+    expect(translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.detailsAddImage)).toBe('Add image');
+    expect(translateCatalogKey('de', CATALOG_TRANSLATION_KEYS.imageAddTitle)).toBe(
+      'Bild hinzufügen',
+    );
+    expect(translateCatalogKey('es', CATALOG_TRANSLATION_KEYS.specAddTitle)).toBe(
+      'Añadir especificación',
+    );
+    expect(translateCatalogKey('ar', CATALOG_TRANSLATION_KEYS.imageRowSetPrimary)).toBe(
+      'تعيين رئيسية',
+    );
+    expect(
+      translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.specDeleteMessage, { name: 'Material' }),
+    ).toBe('Do you want to delete “Material”?');
+    expect(translateCatalogKey('fr', CATALOG_TRANSLATION_KEYS.imageDeleteMessage)).toBe(
+      'Voulez-vous supprimer cette image ?',
+    );
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateCatalogKey('xx' as never, CATALOG_TRANSLATION_KEYS.title)).toBe('Catalog');
     expect(translateCatalogKey('en', 'catalog.missing.key')).toBe('catalog.missing.key');

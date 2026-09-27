@@ -1,12 +1,15 @@
 /**
- * Admin Catalog feature models for Sub-Phases 13.2–13.4 — Catalog
- * Foundation + Product + Variant Management.
+ * Admin Catalog feature models for Sub-Phases 13.2–13.6 — Catalog
+ * Foundation + Product + Variant + Category + Image/Specification
+ * Management.
  *
  * Scope: foundation view models (13.2) plus the product-slice view models
  * (13.3: form value, wire mappers, category options, server-error paths,
  * status/visibility display) plus the variant-slice view models (13.4:
- * form value, wire mappers, status display). Image/specification/
- * category management models arrive with Sub-Phases 13.5–13.6.
+ * form value, wire mappers, status display) plus the category-slice view
+ * models (13.5: form value, wire mappers, status display) plus the
+ * image/specification view models (13.6: form values, wire mappers with
+ * metadata round-tripping, reorder projection).
  *
  * Source of truth: `docs/frontend-contract/DTO_REFERENCE.md` §2 (catalog
  * shapes) via `@flux/models` (the single declaration site — aliases here,
@@ -23,13 +26,22 @@
 
 import type { PagedResult } from '@flux/api';
 import type {
+  AddProductImageRequest,
   CategoryResponse,
+  CategoryStatus,
+  CreateCategoryRequest,
   CreateProductRequest,
+  CreateProductSpecificationRequest,
   CreateProductVariantRequest,
+  ProductImageResponse,
   ProductResponse,
+  ProductSpecificationResponse,
   ProductStatus,
   ProductVisibility,
+  UpdateCategoryRequest,
+  UpdateProductImageRequest,
   UpdateProductRequest,
+  UpdateProductSpecificationRequest,
   UpdateProductVariantRequest,
   VariantResponse,
   VariantStatus,
@@ -376,4 +388,228 @@ export function variantStatusDisplay(status: VariantStatus | number): ProductBad
     default:
       return { labelKey: 'catalog.variantStatus.unknown', variant: 'neutral' };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Category form value + wire mappers (13.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Flat category-form value (what the typed `category-form` edits).
+ * `parentId` is the nullable wire id (`''` in the select means
+ * top-level — mapped to `null` at the wire boundary).
+ */
+export interface CategoryFormValue {
+  readonly name: string | null;
+  readonly slug: string | null;
+  readonly description: string | null;
+  readonly parentId: string | null;
+}
+
+/** Blank form value for the category create page. */
+export function emptyCategoryFormValue(): CategoryFormValue {
+  return { name: null, slug: null, description: null, parentId: null };
+}
+
+/**
+ * Projects a loaded category into the form value (edit population).
+ * A `null` parent stays `null` (the select renders its empty option).
+ * Pure — throws nothing.
+ */
+export function categoryToFormValue(category: CategoryResponse): CategoryFormValue {
+  return {
+    name: category.name,
+    slug: category.slug,
+    description: category.description ?? null,
+    parentId: category.parentId ?? null,
+  };
+}
+
+/**
+ * Projects the form value into the create body. Blank strings become
+ * `null` (the wire uses `string | null`); the empty parent selection
+ * becomes `null` (top-level). Pure — throws nothing, validates nothing
+ * (validators live on the form; name/slug uniqueness, own-parent
+ * cycles, and deleted-parent rules stay backend-owned).
+ */
+export function toCreateCategoryRequest(value: CategoryFormValue): CreateCategoryRequest {
+  const parentId = nullIfBlank(value.parentId);
+  return {
+    name: nullIfBlank(value.name),
+    slug: nullIfBlank(value.slug),
+    description: nullIfBlank(value.description),
+    parentId,
+  };
+}
+
+/**
+ * Projects the form value into the update body (same shape as create —
+ * `UpdateCategoryRequest` is the identical record). Pure — throws
+ * nothing.
+ */
+export function toUpdateCategoryRequest(value: CategoryFormValue): UpdateCategoryRequest {
+  return toCreateCategoryRequest(value);
+}
+
+// ---------------------------------------------------------------------------
+// Category status display (13.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Display behind a category status wire value (`Active | Inactive` —
+ * there is no Draft/Archived for categories). Unknown future values
+ * fall back to the `unknown` entry (same rule as product status).
+ * Pure — throws nothing.
+ */
+export function categoryStatusDisplay(status: CategoryStatus | number): ProductBadgeDisplay {
+  switch (status) {
+    case 0:
+      return { labelKey: 'catalog.categoryStatus.active', variant: 'success' };
+    case 1:
+      return { labelKey: 'catalog.categoryStatus.inactive', variant: 'warning' };
+    default:
+      return { labelKey: 'catalog.categoryStatus.unknown', variant: 'neutral' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image form value + wire mappers (13.6)
+// ---------------------------------------------------------------------------
+
+/** One admin image row (canonical wire shape, never re-declared). */
+export type AdminImageRow = ProductImageResponse;
+
+/**
+ * Flat image-form value (what the typed `image-form` edits). URL-based
+ * references only (confirmed in 13.1 — no file input exists anywhere):
+ * `url` carries the URL string, `order` stays editor text (parsed to an
+ * int at the wire boundary), `primary` travels on create only.
+ */
+export interface ImageFormValue {
+  readonly url: string | null;
+  readonly altText: string | null;
+  readonly order: string | null;
+  readonly primary: boolean;
+}
+
+/** Blank form value for the image add dialog. */
+export function emptyImageFormValue(): ImageFormValue {
+  return { url: null, altText: null, order: null, primary: false };
+}
+
+/**
+ * Projects a loaded image into the form value (edit population).
+ * `primary` always renders `false`: the update endpoint accepts no
+ * primary flag (primary moves through `set-primary` only), so the edit
+ * form never implies otherwise. Pure — throws nothing.
+ */
+export function imageToFormValue(image: ProductImageResponse): ImageFormValue {
+  return {
+    url: image.imageUrl,
+    altText: image.altText ?? null,
+    order: String(image.displayOrder),
+    primary: false,
+  };
+}
+
+/**
+ * Projects the form value into the add body. Blanks become `null` (the
+ * wire uses `string | null`); order parses to an int; `metadata` is
+ * `null` (no metadata editor exists — creation starts metadata-free).
+ * Pure — throws nothing, validates nothing (URL/order rules stay
+ * backend-owned).
+ */
+export function toAddImageRequest(value: ImageFormValue): AddProductImageRequest {
+  return {
+    imageUrl: nullIfBlank(value.url),
+    altText: nullIfBlank(value.altText),
+    isPrimary: value.primary,
+    displayOrder: Number((value.order ?? '').trim()),
+    metadata: null,
+  };
+}
+
+/**
+ * Projects the form value into the update body — URL, alt text, and
+ * order ONLY (no `isPrimary`: the update endpoint rejects it). The
+ * stored `metadata` round-trips untouched: the UI shows no metadata
+ * editor, so sending `null` would wipe backend data the user never saw.
+ * Pure — throws nothing.
+ */
+export function toUpdateImageRequest(
+  value: ImageFormValue,
+  existing: ProductImageResponse,
+): UpdateProductImageRequest {
+  return {
+    imageUrl: nullIfBlank(value.url),
+    altText: nullIfBlank(value.altText),
+    displayOrder: Number((value.order ?? '').trim()),
+    metadata: existing.metadata ?? null,
+  };
+}
+
+/**
+ * Projects a reorder move into the wire body: the settled id list with
+ * two entries swapped. The result always carries the exact existing set
+ * (same length, same members — the backend rejects anything else), so
+ * callers pass settled ids only. Out-of-range moves return the list
+ * unchanged. Pure — throws nothing, performs no HTTP.
+ */
+export function moveImageIds(ids: readonly string[], index: number, direction: -1 | 1): string[] {
+  const next = [...ids];
+  const target = index + direction;
+  if (index < 0 || index >= next.length || target < 0 || target >= next.length) {
+    return next;
+  }
+  const [moved] = next.splice(index, 1);
+  next.splice(target, 0, moved as string);
+  return next;
+}
+
+// ---------------------------------------------------------------------------
+// Specification form value + wire mappers (13.6)
+// ---------------------------------------------------------------------------
+
+/** One admin specification row (canonical wire shape, never re-declared). */
+export type AdminSpecRow = ProductSpecificationResponse;
+
+/**
+ * Flat specification-form value (what the typed `spec-form` edits): a
+ * simple `name`/`value` pair, both backend-required
+ * (`SpecificationNameRequired` / `SpecificationValueRequired`).
+ */
+export interface SpecFormValue {
+  readonly name: string | null;
+  readonly value: string | null;
+}
+
+/** Blank form value for the specification add dialog. */
+export function emptySpecFormValue(): SpecFormValue {
+  return { name: null, value: null };
+}
+
+/**
+ * Projects a loaded specification into the form value (edit
+ * population). Pure — throws nothing.
+ */
+export function specToFormValue(spec: ProductSpecificationResponse): SpecFormValue {
+  return { name: spec.name, value: spec.value };
+}
+
+/**
+ * Projects the form value into the create body. Blanks become `null`
+ * (the wire uses `string | null`). Pure — throws nothing, validates
+ * nothing (name/value rules and duplicate names stay backend-owned).
+ */
+export function toCreateSpecRequest(value: SpecFormValue): CreateProductSpecificationRequest {
+  return { name: nullIfBlank(value.name), value: nullIfBlank(value.value) };
+}
+
+/**
+ * Projects the form value into the update body (same shape as create —
+ * `UpdateProductSpecificationRequest` is the identical record). Pure —
+ * throws nothing.
+ */
+export function toUpdateSpecRequest(value: SpecFormValue): UpdateProductSpecificationRequest {
+  return toCreateSpecRequest(value);
 }

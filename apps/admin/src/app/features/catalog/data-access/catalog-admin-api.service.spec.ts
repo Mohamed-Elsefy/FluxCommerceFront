@@ -266,6 +266,143 @@ describe('CatalogAdminApiService variant slice (13.4)', () => {
   });
 });
 
+describe('CatalogAdminApiService category slice (13.5)', () => {
+  const CREATE_BODY = { name: 'Apparel', slug: 'apparel', description: null, parentId: null };
+
+  it('creates a category with the body verbatim', () => {
+    const { service, posts } = setup();
+    service.createCategory(CREATE_BODY).subscribe();
+
+    expect(posts.paths).toEqual([CATALOG_ENDPOINTS.createCategory.path]);
+    expect(posts.bodies).toEqual([CREATE_BODY]);
+    expect(posts.options).toEqual([{}]);
+  });
+
+  it('updates a category through the canonical route with the id as path param', () => {
+    const { service, puts } = setup();
+    service.updateCategory('cat-1', { ...CREATE_BODY, parentId: 'cat-0' }).subscribe();
+
+    expect(puts.paths).toEqual([CATALOG_ENDPOINTS.updateCategory.path]);
+    expect(puts.bodies).toEqual([{ ...CREATE_BODY, parentId: 'cat-0' }]);
+    expect(puts.options).toEqual([{ pathParams: { id: 'cat-1' } }]);
+  });
+
+  it('maps every category lifecycle action to its canonical route template', () => {
+    const { service, posts } = setup();
+    const actions = {
+      activate: CATALOG_ENDPOINTS.activateCategory.path,
+      deactivate: CATALOG_ENDPOINTS.deactivateCategory.path,
+      'soft-delete': CATALOG_ENDPOINTS.softDeleteCategory.path,
+      restore: CATALOG_ENDPOINTS.restoreCategory.path,
+    } as const;
+    for (const [action, path] of Object.entries(actions)) {
+      service.transitionCategory('cat-1', action as keyof typeof actions).subscribe();
+      expect(posts.paths.at(-1)).toBe(path);
+    }
+    expect(posts.bodies.every((body) => body === undefined)).toBe(true);
+    expect(posts.options.at(-1)).toEqual({ pathParams: { id: 'cat-1' } });
+  });
+
+  it('propagates category write failures untouched for callers to normalize', () => {
+    const { service, api } = setup();
+    const rejection = new ApiError({ status: 409, message: 'Conflict.' });
+    vi.mocked(api.post).mockReturnValueOnce(throwError(() => rejection));
+    let observed: unknown;
+    service.transitionCategory('cat-1', 'deactivate').subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+  });
+});
+
+describe('CatalogAdminApiService image slice (13.6)', () => {
+  const ADD_BODY = {
+    imageUrl: '/images/tee.jpg',
+    altText: 'Tee',
+    isPrimary: false,
+    displayOrder: 1,
+    metadata: null,
+  };
+
+  it('adds a URL-based image with the body verbatim', () => {
+    const { service, posts } = setup();
+    service.addProductImage('prod-1', ADD_BODY).subscribe();
+
+    expect(posts.paths).toEqual([CATALOG_ENDPOINTS.addProductImage.path]);
+    expect(posts.bodies).toEqual([ADD_BODY]);
+    expect(posts.options).toEqual([{ pathParams: { productId: 'prod-1' } }]);
+  });
+
+  it('updates an image without an isPrimary field', () => {
+    const { service, puts } = setup();
+    const body = { imageUrl: '/images/tee.jpg', altText: 'Tee', displayOrder: 2, metadata: null };
+    service.updateProductImage('prod-1', 'img-1', body).subscribe();
+
+    expect(puts.paths).toEqual([CATALOG_ENDPOINTS.updateProductImage.path]);
+    expect(puts.bodies).toEqual([body]);
+    expect(puts.options).toEqual([{ pathParams: { productId: 'prod-1', imageId: 'img-1' } }]);
+  });
+
+  it('marks one image primary with no body', () => {
+    const { service, posts } = setup();
+    service.setPrimaryImage('prod-1', 'img-1').subscribe();
+
+    expect(posts.paths).toEqual([CATALOG_ENDPOINTS.setPrimaryImage.path]);
+    expect(posts.bodies).toEqual([undefined]);
+    expect(posts.options).toEqual([{ pathParams: { productId: 'prod-1', imageId: 'img-1' } }]);
+  });
+
+  it('reorders with the exact id set', () => {
+    const { service, puts } = setup();
+    service.reorderProductImages('prod-1', { orderedImageIds: ['img-2', 'img-1'] }).subscribe();
+
+    expect(puts.paths).toEqual([CATALOG_ENDPOINTS.reorderProductImages.path]);
+    expect(puts.bodies).toEqual([{ orderedImageIds: ['img-2', 'img-1'] }]);
+    expect(puts.options).toEqual([{ pathParams: { productId: 'prod-1' } }]);
+  });
+});
+
+describe('CatalogAdminApiService specification slice (13.6)', () => {
+  it('creates a specification with the body verbatim', () => {
+    const { service, posts } = setup();
+    service.createSpecification('prod-1', { name: 'Material', value: 'Cotton' }).subscribe();
+
+    expect(posts.paths).toEqual([CATALOG_ENDPOINTS.createSpecification.path]);
+    expect(posts.bodies).toEqual([{ name: 'Material', value: 'Cotton' }]);
+    expect(posts.options).toEqual([{ pathParams: { productId: 'prod-1' } }]);
+  });
+
+  it('updates a specification through the canonical route', () => {
+    const { service, puts } = setup();
+    service
+      .updateSpecification('prod-1', 'spec-1', { name: 'Material', value: 'Wool' })
+      .subscribe();
+
+    expect(puts.paths).toEqual([CATALOG_ENDPOINTS.updateSpecification.path]);
+    expect(puts.bodies).toEqual([{ name: 'Material', value: 'Wool' }]);
+    expect(puts.options).toEqual([
+      { pathParams: { productId: 'prod-1', specificationId: 'spec-1' } },
+    ]);
+  });
+
+  it('propagates image/spec failures untouched for callers to normalize', () => {
+    const { service, api } = setup();
+    const rejection = new ApiError({ status: 409, message: 'Conflict.' });
+    vi.mocked(api.post).mockReturnValueOnce(throwError(() => rejection));
+    let observed: unknown;
+    service.createSpecification('prod-1', { name: 'Material', value: 'Cotton' }).subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+  });
+});
+
 describe('CatalogAdminApiService details reads (13.3)', () => {
   it('lists variants scoped to the product id', () => {
     const { service, calls } = setup();
