@@ -8,10 +8,11 @@
     @for (section of copy().sections; track section.title) {
       <flux-card>
         <article class="inventory-home-card" [attr.aria-label]="section.title">
-          <div class="inventory-home-card-heading">
-            <h2 class="inventory-home-card-title">{{ section.title }}</h2>
-            <flux-badge variant="info">{{ copy().upcoming }}</flux-badge>
-          </div>
+          <h2 class="inventory-home-card-title">
+            <a class="inventory-home-card-link" [routerLink]="section.route">
+              {{ section.title }}
+            </a>
+          </h2>
           <p class="inventory-home-card-description">{{ section.description }}</p>
         </article>
       </flux-card>

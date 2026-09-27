@@ -1,22 +1,18 @@
 /**
- * Admin Inventory landing page for Sub-Phase 13.8 — Inventory Feature
- * Foundation.
+ * Admin Inventory landing page for Sub-Phases 13.8–13.10 — Inventory
+ * Foundation plus its slices.
  *
- * Page structure only (same convention as the 12.4 dashboard
- * foundation): a localized page header plus the three upcoming-section
- * cards (Stock, Reservations, Adjustments) rendered as non-interactive
- * placeholders with an "upcoming" badge — no links, so no dead
- * functionality ships. Section UX arrives with the slices that own it
- * (Sub-Phases 13.9–13.10).
+ * Page structure (same convention as the 12.4 dashboard foundation):
+ * a localized page header plus one card per inventory section. Cards
+ * link to their live routes — never anywhere else, so no dead
+ * functionality ships.
  *
- * Explicitly out of scope (later work, must not appear here): stock
- * lookups, reservation lookups, adjustment forms, and any data-backed
- * card. There is no list endpoint behind this surface (no stock list,
- * no reservation list — see the 13.1 audit), so nothing here performs
- * HTTP: the page composes sync signals plus static metadata only.
- * Loading/empty/error resource states arrive with the first data-backed
- * section (13.9) through the existing shared async UI — no theater
- * states in the meantime.
+ * Explicitly out of scope here: any data-backed card. There is no list
+ * endpoint behind this surface (no stock list, no reservation list —
+ * see the 13.1 audit), so nothing here performs HTTP: the page
+ * composes sync signals plus static metadata only. Async states live
+ * on the section pages themselves through the existing shared async
+ * UI — no theater states in the meantime.
  *
  * SSR/hydration safe: signals plus static metadata, no browser APIs.
  * RTL safe: grid auto-flow follows the document direction; logical
@@ -24,37 +20,43 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CultureService } from '@flux/i18n';
-import { Badge, Card } from '@flux/ui';
+import { Card } from '@flux/ui';
 import {
   INVENTORY_TRANSLATION_KEYS,
   translateInventoryKey,
 } from '../../i18n/inventory-translations';
 
-interface UpcomingSection {
+interface InventorySection {
   readonly titleKey: string;
   readonly descriptionKey: string;
+  /** Live section route (every section is routed — no placeholders remain). */
+  readonly route: string;
 }
 
-/** Upcoming sections in portal order (placeholders until 13.9–13.10). */
-const UPCOMING_SECTIONS: readonly UpcomingSection[] = [
+/** Inventory sections in portal order. */
+const INVENTORY_SECTIONS: readonly InventorySection[] = [
   {
     titleKey: INVENTORY_TRANSLATION_KEYS.stockTitle,
     descriptionKey: INVENTORY_TRANSLATION_KEYS.stockDescription,
+    route: '/inventory/stock',
   },
   {
     titleKey: INVENTORY_TRANSLATION_KEYS.reservationsTitle,
     descriptionKey: INVENTORY_TRANSLATION_KEYS.reservationsDescription,
+    route: '/inventory/reservations',
   },
   {
     titleKey: INVENTORY_TRANSLATION_KEYS.adjustmentsTitle,
     descriptionKey: INVENTORY_TRANSLATION_KEYS.adjustmentsDescription,
+    route: '/inventory/adjustments',
   },
 ];
 
 @Component({
   selector: 'app-inventory-home-page',
-  imports: [Badge, Card],
+  imports: [RouterLink, Card],
   templateUrl: './inventory-home-page.html',
   styleUrl: './inventory-home-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,10 +70,10 @@ export class InventoryHomePage {
     return {
       title: translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.title),
       subtitle: translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.subtitle),
-      upcoming: translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.upcomingBadge),
-      sections: UPCOMING_SECTIONS.map((section) => ({
+      sections: INVENTORY_SECTIONS.map((section) => ({
         title: translateInventoryKey(culture, section.titleKey),
         description: translateInventoryKey(culture, section.descriptionKey),
+        route: section.route,
       })),
     };
   });

@@ -26,6 +26,7 @@ import type {
   CreateInventoryItemRequest,
   InventoryItemResponse,
   InventoryReservationResponse,
+  InventoryReservationStatus,
 } from '@flux/models';
 
 /** One admin stock row (canonical wire shape, never re-declared). */
@@ -69,4 +70,55 @@ export type AdminReservationPayload = AdminReservation;
  */
 export function normalizeSkuInput(value: string | null | undefined): string {
   return (value ?? '').trim().toUpperCase();
+}
+
+// ---------------------------------------------------------------------------
+// Reservation status display (13.10)
+// ---------------------------------------------------------------------------
+
+/** Translation key + badge variant behind one reservation status value. */
+export interface ReservationBadgeDisplay {
+  /** Key into the inventory bundle (`inventory.reservationStatus.*`). */
+  readonly labelKey: string;
+  /** Badge emphasis. */
+  readonly variant: 'neutral' | 'success' | 'warning' | 'info';
+}
+
+/**
+ * Display behind a reservation status wire value (`Pending |
+ * Committed | Released | Expired`, numbers on the wire). Unknown future
+ * values fall back to the `unknown` entry (render `Unknown (<n>)` —
+ * see `ENUM_REFERENCE.md` §8). The lifecycle itself stays entirely
+ * backend-owned: this mapper names states for display only and never
+ * gates transitions. Pure — throws nothing.
+ */
+export function reservationStatusDisplay(
+  status: InventoryReservationStatus | number,
+): ReservationBadgeDisplay {
+  switch (status) {
+    case 0:
+      return { labelKey: 'inventory.reservationStatus.pending', variant: 'info' };
+    case 1:
+      return { labelKey: 'inventory.reservationStatus.committed', variant: 'success' };
+    case 2:
+      return { labelKey: 'inventory.reservationStatus.released', variant: 'neutral' };
+    case 3:
+      return { labelKey: 'inventory.reservationStatus.expired', variant: 'warning' };
+    default:
+      return { labelKey: 'inventory.reservationStatus.unknown', variant: 'neutral' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Adjustment body mapper (13.10)
+// ---------------------------------------------------------------------------
+
+/**
+ * Projects editor quantity text into the additive adjustment body.
+ * No range is enforced here beyond parsing: `1..max` stays
+ * backend-owned (`400` on violation surfaces through the form
+ * channels). Pure — throws nothing.
+ */
+export function toAdjustStockRequest(quantity: string | null | undefined): AdjustStockRequest {
+  return { quantity: Number((quantity ?? '').trim()) };
 }

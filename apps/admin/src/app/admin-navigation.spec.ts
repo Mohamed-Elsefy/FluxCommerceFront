@@ -27,8 +27,16 @@ describe('admin navigation', () => {
     ]);
     const inventory = ADMIN_NAV_ITEMS.find((item) => item.route === '/inventory');
     expect(inventory?.labelKey).toBe('layout.nav.inventory');
-    expect(inventory?.children?.map((child) => child.route)).toEqual(['/inventory/stock']);
-    expect(inventory?.children?.map((child) => child.labelKey)).toEqual(['layout.nav.stock']);
+    expect(inventory?.children?.map((child) => child.route)).toEqual([
+      '/inventory/stock',
+      '/inventory/reservations',
+      '/inventory/adjustments',
+    ]);
+    expect(inventory?.children?.map((child) => child.labelKey)).toEqual([
+      'layout.nav.stock',
+      'layout.nav.reservations',
+      'layout.nav.adjustments',
+    ]);
   });
 
   it('shows unrestricted entries to every portal role', () => {

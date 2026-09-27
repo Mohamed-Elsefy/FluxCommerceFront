@@ -1,5 +1,6 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
 import { CultureService } from '@flux/i18n';
@@ -16,6 +17,7 @@ function configure(): void {
       }),
       provideApi(),
       provideHttpClientTesting(),
+      provideRouter([]),
     ],
   });
   window.localStorage.clear();
@@ -28,20 +30,23 @@ function render(): HTMLElement {
 }
 
 describe('InventoryHomePage', () => {
-  it('renders the page header with the upcoming-section cards', () => {
+  it('renders the page header with linked section cards (no dead links)', () => {
     configure();
     const element = render();
 
     expect(element.querySelector('h1')?.textContent).toBe('Inventory');
-    const titles = [...element.querySelectorAll('.inventory-home-card-title')].map(
-      (node) => node.textContent,
-    );
-    expect(titles).toEqual(['Stock', 'Reservations', 'Adjustments']);
-    const badges = [...element.querySelectorAll('flux-badge')].map((node) =>
-      node.textContent?.trim(),
-    );
-    expect(badges).toEqual(['Upcoming', 'Upcoming', 'Upcoming']);
-    expect(element.querySelector('a')).toBeNull();
+    const links = [...element.querySelectorAll('.inventory-home-card-link')];
+    expect(links.map((link) => link.textContent?.trim())).toEqual([
+      'Stock',
+      'Reservations',
+      'Adjustments',
+    ]);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/inventory/stock',
+      '/inventory/reservations',
+      '/inventory/adjustments',
+    ]);
+    expect(element.querySelector('flux-badge')).toBeNull();
   });
 
   it('localizes the landing page for the active culture', () => {
@@ -52,7 +57,7 @@ describe('InventoryHomePage', () => {
       const element = render();
 
       expect(element.querySelector('h1')?.textContent).toBe('Inventaire');
-      expect(element.querySelector('flux-badge')?.textContent?.trim()).toBe('Bientôt');
+      expect(element.querySelector('.inventory-home-card-link')?.textContent?.trim()).toBe('Stock');
     } finally {
       cultures.setCulture('en');
     }

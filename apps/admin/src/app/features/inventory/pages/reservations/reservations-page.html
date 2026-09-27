@@ -1,0 +1,73 @@
+<section class="reservations-page" aria-labelledby="reservations-title">
+  <header class="reservations-page-header">
+    <h1 id="reservations-title">{{ copy().heading }}</h1>
+    <p class="reservations-page-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  <form class="reservations-page-lookup" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <admin-search-input
+      [control]="idControl"
+      [label]="copy().idLabel"
+      fieldId="reservation-id"
+      [placeholder]="copy().idPlaceholder"
+      [clearLabel]="copy().idClear"
+    />
+    <button type="submit" class="reservations-page-submit">{{ copy().lookup }}</button>
+  </form>
+
+  @if (slot().status === 'idle') {
+    <flux-empty-state [title]="copy().idleTitle" [message]="copy().idleMessage" />
+  } @else if (slot().isLoading) {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (slot().data !== null) {
+    <flux-card>
+      <dl class="reservations-page-facts">
+        <div>
+          <dt>{{ copy().factReservation }}</dt>
+          <dd>{{ slot().data!.reservationId }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factOrder }}</dt>
+          <dd>{{ slot().data!.orderId }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factSku }}</dt>
+          <dd>{{ slot().data!.sku }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factQuantity }}</dt>
+          <dd>{{ slot().data!.quantity }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factStatus }}</dt>
+          <dd>
+            @if (statusBadge() !== null) {
+              <flux-badge [variant]="statusBadge()!.variant">
+                {{ statusBadge()!.label }}
+              </flux-badge>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>{{ copy().factExpires }}</dt>
+          <dd>{{ slot().data!.expiresAt }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factCreated }}</dt>
+          <dd>{{ slot().data!.createdAtUtc }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factUpdated }}</dt>
+          <dd>{{ slot().data!.updatedAtUtc }}</dd>
+        </div>
+      </dl>
+    </flux-card>
+  }
+</section>

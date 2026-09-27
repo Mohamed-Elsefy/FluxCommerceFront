@@ -1,0 +1,82 @@
+<section class="adjustments-page" aria-labelledby="adjustments-title">
+  <header class="adjustments-page-header">
+    <h1 id="adjustments-title">{{ copy().heading }}</h1>
+    <p class="adjustments-page-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  <form class="adjustments-page-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <admin-text-input
+      [control]="skuControl"
+      [label]="copy().skuLabel"
+      fieldId="adjust-sku"
+      [placeholder]="copy().skuPlaceholder"
+    />
+    <admin-text-input
+      [control]="quantityControl"
+      [label]="copy().quantityLabel"
+      fieldId="adjust-quantity"
+      [hint]="copy().quantityHint"
+    />
+    <button type="submit" class="adjustments-page-submit" [disabled]="submitting()">
+      {{ submitting() ? copy().saving : copy().submit }}
+    </button>
+  </form>
+
+  @if (formError() !== null) {
+    <flux-error-state [title]="copy().formErrorTitle" [message]="formError()" [showRetry]="false" />
+  }
+
+  @if (result() !== null) {
+    <section aria-labelledby="adjustments-result-title">
+      <h2 id="adjustments-result-title">{{ copy().resultTitle }}</h2>
+      <flux-card>
+        <dl class="adjustments-page-facts">
+          <div>
+            <dt>{{ copy().factSku }}</dt>
+            <dd>{{ result()!.sku }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factOnHand }}</dt>
+            <dd>{{ result()!.onHandQuantity }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factReserved }}</dt>
+            <dd>{{ result()!.reservedQuantity }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factAvailable }}</dt>
+            <dd>{{ result()!.availableQuantity }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factUpdated }}</dt>
+            <dd>{{ result()!.updatedAtUtc }}</dd>
+          </div>
+        </dl>
+      </flux-card>
+    </section>
+  }
+
+  <admin-dialog
+    [open]="confirmOpen()"
+    [title]="copy().confirmTitle"
+    titleId="adjust-confirm-title"
+    [closeLabel]="copy().cancel"
+    [backdropLabel]="copy().cancel"
+    (closed)="cancelConfirm()"
+  >
+    <p>{{ copy().confirmMessage }}</p>
+    <div data-dialog-actions class="adjustments-page-dialog-actions">
+      <button type="button" class="adjustments-page-dialog-cancel" (click)="cancelConfirm()">
+        {{ copy().cancel }}
+      </button>
+      <button
+        type="button"
+        class="adjustments-page-dialog-confirm"
+        [disabled]="submitting()"
+        (click)="confirmAdjust()"
+      >
+        {{ copy().confirm }}
+      </button>
+    </div>
+  </admin-dialog>
+</section>
