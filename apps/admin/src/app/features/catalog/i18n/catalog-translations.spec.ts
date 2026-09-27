@@ -57,6 +57,30 @@ describe('translateCatalogKey', () => {
     );
   });
 
+  it('resolves the variant slice copy per culture', () => {
+    expect(translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.variantsHeading)).toBe('Variants');
+    expect(translateCatalogKey('de', CATALOG_TRANSLATION_KEYS.variantsNew)).toBe('Neue Variante');
+    expect(translateCatalogKey('es', CATALOG_TRANSLATION_KEYS.variantFormSave)).toBe(
+      'Guardar la variante',
+    );
+    expect(translateCatalogKey('ar', CATALOG_TRANSLATION_KEYS.variantDetailsDelete)).toBe(
+      'حذف المتغير',
+    );
+    expect(
+      translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.variantCreateSuccessMessage, {
+        sku: 'TEE-BLK-M',
+      }),
+    ).toBe('“TEE-BLK-M” was created.');
+    expect(
+      translateCatalogKey('fr', CATALOG_TRANSLATION_KEYS.variantDetailsConfirmMessage, {
+        sku: 'TEE-BLK-M',
+      }),
+    ).toBe('Voulez-vous supprimer « TEE-BLK-M » ?');
+    expect(
+      translateCatalogKey('en', CATALOG_TRANSLATION_KEYS.variantStatusUnknown, { value: 99 }),
+    ).toBe('Unknown (99)');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateCatalogKey('xx' as never, CATALOG_TRANSLATION_KEYS.title)).toBe('Catalog');
     expect(translateCatalogKey('en', 'catalog.missing.key')).toBe('catalog.missing.key');

@@ -79,6 +79,29 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.product-details-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-block-end: var(--spacing-md);
+}
+
+.product-details-section-heading h2 {
+  margin-block-end: 0;
+}
+
+.product-details-manage {
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+
+.product-details-manage:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
 .product-details-actions {
   display: flex;
   flex-wrap: wrap;

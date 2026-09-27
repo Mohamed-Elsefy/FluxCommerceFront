@@ -155,6 +155,7 @@ export class ProductDetailsPage implements OnInit {
       deleted: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsDeleted),
       actionsTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsActionsTitle),
       variantsTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsVariantsTitle),
+      manageVariants: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsManageVariants),
       imagesTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsImagesTitle),
       specsTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsSpecsTitle),
       sectionLoading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsSectionLoading),
@@ -368,6 +369,12 @@ export class ProductDetailsPage implements OnInit {
   protected editLink(): string | null {
     const id = this.productId();
     return id === null ? null : `/catalog/products/${id}/edit`;
+  }
+
+  /** Variant management entry for the loaded product. */
+  protected manageVariantsLink(): string | null {
+    const id = this.productId();
+    return id === null ? null : `/catalog/products/${id}/variants`;
   }
 
   private notifyFailure(error: unknown): void {

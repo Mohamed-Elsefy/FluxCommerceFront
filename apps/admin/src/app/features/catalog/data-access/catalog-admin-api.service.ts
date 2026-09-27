@@ -1,13 +1,14 @@
 /**
- * Admin Catalog data-access service for Sub-Phases 13.2–13.3 — Catalog
- * Foundation + Product Management.
+ * Admin Catalog data-access service for Sub-Phases 13.2–13.4 — Catalog
+ * Foundation + Product + Variant Management.
  *
  * Scope: the foundation READ surface (paginated product/category lists,
  * single product/category reads, storefront search) plus the 13.3 product
  * slice (create/update/lifecycle writes and the details-section reads for
- * variants, images, and specifications). Variant/image/specification
- * WRITES arrive with the slices that own their forms (Sub-Phases
- * 13.4–13.6).
+ * variants, images, and specifications) plus the 13.4 variant slice
+ * (variant CRUD — the batch endpoint has no management UI and stays
+ * uncalled). Image/specification/attribute WRITES arrive with the slices
+ * that own their forms (Sub-Phases 13.5–13.6).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §2 (catalog
  * reads are `[AllowAnonymous]`, but the portal always sends its Admin JWT;
@@ -48,11 +49,13 @@ import type {
   CatalogSearchQuery,
   CategoryResponse,
   CreateProductRequest,
+  CreateProductVariantRequest,
   ProductImageResponse,
   ProductLifecycleAction,
   ProductResponse,
   ProductSpecificationResponse,
   UpdateProductRequest,
+  UpdateProductVariantRequest,
   VariantResponse,
 } from '@flux/models';
 import {
@@ -259,6 +262,81 @@ export class CatalogAdminApiService {
       CATALOG_ENDPOINTS.listSpecifications.path,
       { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
     );
+  }
+
+  /**
+   * `GET /catalog/products/{productId}/variants/{variantId}` — single
+   * variant read model.
+   * Success: `200 ApiResponse<VariantResponse>`.
+   * Failures: `400` validation, `404` unknown product or variant.
+   */
+  getVariant(
+    productId: string,
+    variantId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<VariantResponse>> {
+    return this.api.get<ApiResponseWithData<VariantResponse>>(CATALOG_ENDPOINTS.getVariant.path, {
+      ...options,
+      pathParams: { productId, variantId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `POST /catalog/products/{productId}/variants` — creates a variant
+   * (`Admin` only). Price and currency travel only here: the update
+   * endpoint accepts no money fields, so creation is the single pricing
+   * moment — the form says so explicitly.
+   * Success: `201 ApiResponse<Guid(variantId)>` + `Location`.
+   * Failures: `400` validation (SKU/price/currency rules backend-owned),
+   * `401`/`403`, `404` unknown product, `409` duplicate SKU.
+   */
+  createVariant(
+    productId: string,
+    body: CreateProductVariantRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<string>> {
+    return this.api.post<ApiResponseWithData<string>>(CATALOG_ENDPOINTS.createVariant.path, body, {
+      ...options,
+      pathParams: { productId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `PUT /catalog/products/{productId}/variants/{variantId}` — renames a
+   * variant (`Admin` only). Carries `sku` + `name` ONLY: price, currency,
+   * and status cannot be edited through any backend endpoint, so the
+   * edit form locks them as read-only display.
+   * Success: `204` empty. Failures: `400` validation, `401`/`403`,
+   * `404`, `409` duplicate SKU.
+   */
+  updateVariant(
+    productId: string,
+    variantId: string,
+    body: UpdateProductVariantRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.put<void>(CATALOG_ENDPOINTS.updateVariant.path, body, {
+      ...options,
+      pathParams: { productId, variantId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `DELETE /catalog/products/{productId}/variants/{variantId}` —
+   * deletes a variant (`Admin` only). The backend exposes no
+   * disable/lifecycle transition for variants: deletion is the only
+   * removal operation, always behind confirmation.
+   * Success: `204` empty. Failures: `401`/`403`, `404`.
+   */
+  deleteVariant(
+    productId: string,
+    variantId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<void> {
+    return this.api.delete<void>(CATALOG_ENDPOINTS.deleteVariant.path, {
+      ...options,
+      pathParams: { productId, variantId, ...(options.pathParams ?? {}) },
+    });
   }
 }
 

@@ -1,11 +1,12 @@
 /**
- * Admin Catalog feature models for Sub-Phases 13.2–13.3 — Catalog
- * Foundation + Product Management.
+ * Admin Catalog feature models for Sub-Phases 13.2–13.4 — Catalog
+ * Foundation + Product + Variant Management.
  *
  * Scope: foundation view models (13.2) plus the product-slice view models
  * (13.3: form value, wire mappers, category options, server-error paths,
- * status/visibility display). Variant/image/specification management
- * models arrive with Sub-Phases 13.4–13.6.
+ * status/visibility display) plus the variant-slice view models (13.4:
+ * form value, wire mappers, status display). Image/specification/
+ * category management models arrive with Sub-Phases 13.5–13.6.
  *
  * Source of truth: `docs/frontend-contract/DTO_REFERENCE.md` §2 (catalog
  * shapes) via `@flux/models` (the single declaration site — aliases here,
@@ -24,10 +25,14 @@ import type { PagedResult } from '@flux/api';
 import type {
   CategoryResponse,
   CreateProductRequest,
+  CreateProductVariantRequest,
   ProductResponse,
   ProductStatus,
   ProductVisibility,
   UpdateProductRequest,
+  UpdateProductVariantRequest,
+  VariantResponse,
+  VariantStatus,
 } from '@flux/models';
 
 /** One admin product row (canonical wire shape, never re-declared). */
@@ -284,5 +289,91 @@ export function productVisibilityDisplay(
       return { labelKey: 'catalog.visibility.hidden', variant: 'warning' };
     default:
       return { labelKey: 'catalog.visibility.unknown', variant: 'neutral' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Variant form value + wire mappers (13.4)
+// ---------------------------------------------------------------------------
+
+/** One admin variant row (canonical wire shape, never re-declared). */
+export type AdminVariantRow = VariantResponse;
+
+/**
+ * Flat variant-form value (what the typed `variant-form` edits). `price`
+ * stays editor text (parsed to a JSON decimal at the wire boundary);
+ * `currency` stays raw (uppercased + trimmed at the wire boundary per
+ * the ISO-4217 `^[A-Z]{3}$` contract shape).
+ */
+export interface VariantFormValue {
+  readonly sku: string | null;
+  readonly name: string | null;
+  readonly price: string | null;
+  readonly currency: string | null;
+}
+
+/** Blank form value for the variant create page. */
+export function emptyVariantFormValue(): VariantFormValue {
+  return { sku: null, name: null, price: null, currency: null };
+}
+
+/**
+ * Projects a loaded variant into the form value (edit population).
+ * Price renders with its full decimal text (never rounded — display
+ * only); currency echoes verbatim. Pure — throws nothing.
+ */
+export function variantToFormValue(variant: VariantResponse): VariantFormValue {
+  return {
+    sku: variant.sku,
+    name: variant.name,
+    price: String(variant.unitPriceAmount),
+    currency: variant.currency,
+  };
+}
+
+/**
+ * Projects the form value into the create body. Blanks become `null`
+ * (the wire uses `string | null`); price parses to a JSON decimal;
+ * currency uppercases (the contract shape is upper ISO-4217). Pure —
+ * throws nothing, validates nothing (validators live on the form; SKU
+ * uniqueness, price rules, and variant validity stay backend-owned).
+ */
+export function toCreateVariantRequest(value: VariantFormValue): CreateProductVariantRequest {
+  return {
+    sku: nullIfBlank(value.sku),
+    name: nullIfBlank(value.name),
+    unitPriceAmount: Number((value.price ?? '').trim()),
+    currency: (value.currency ?? '').trim().toUpperCase(),
+  };
+}
+
+/**
+ * Projects the form value into the update body — `sku` + `name` ONLY.
+ * Price and currency never travel here (no backend endpoint accepts
+ * them after creation); the edit form locks those controls as
+ * read-only display. Pure — throws nothing.
+ */
+export function toUpdateVariantRequest(value: VariantFormValue): UpdateProductVariantRequest {
+  return { sku: nullIfBlank(value.sku), name: nullIfBlank(value.name) };
+}
+
+// ---------------------------------------------------------------------------
+// Variant status display (13.4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Display behind a variant status wire value (`Active | Inactive` —
+ * there is no Draft/Archived for variants). Unknown future values fall
+ * back to the `unknown` entry (render `Unknown (<n>)`, hide gated
+ * actions — see `ENUM_REFERENCE.md` §8). Pure — throws nothing.
+ */
+export function variantStatusDisplay(status: VariantStatus | number): ProductBadgeDisplay {
+  switch (status) {
+    case 0:
+      return { labelKey: 'catalog.variantStatus.active', variant: 'success' };
+    case 1:
+      return { labelKey: 'catalog.variantStatus.inactive', variant: 'warning' };
+    default:
+      return { labelKey: 'catalog.variantStatus.unknown', variant: 'neutral' };
   }
 }

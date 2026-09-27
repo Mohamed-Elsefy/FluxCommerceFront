@@ -3,6 +3,7 @@ import {
   categoryNameOf,
   emptyCatalogOverview,
   emptyProductFormValue,
+  emptyVariantFormValue,
   isCatalogOverviewEmpty,
   productStatusDisplay,
   productToFormValue,
@@ -10,12 +11,16 @@ import {
   toCategoryOptions,
   toCreateProductRequest,
   toCatalogOverview,
+  toCreateVariantRequest,
   toFormErrorPath,
   toUpdateProductRequest,
+  toUpdateVariantRequest,
+  variantStatusDisplay,
+  variantToFormValue,
   type AdminCategoryPage,
   type AdminProductPage,
 } from './catalog-admin.models';
-import type { CategoryResponse, ProductResponse } from '@flux/models';
+import type { CategoryResponse, ProductResponse, VariantResponse } from '@flux/models';
 
 function productPage(totalCount: number): AdminProductPage {
   return { items: [], totalCount, pageNumber: 1, pageSize: 1 };
@@ -214,6 +219,78 @@ describe('status and visibility display', () => {
     expect(productVisibilityDisplay(1)).toEqual({
       labelKey: 'catalog.visibility.hidden',
       variant: 'warning',
+    });
+  });
+});
+
+function variantResponse(): VariantResponse {
+  return {
+    id: 'var-1',
+    productId: 'prod-1',
+    sku: 'TEE-BLK-M',
+    name: 'Black / M',
+    unitPriceAmount: 29.99,
+    currency: 'USD',
+    status: 0,
+    isDeleted: false,
+    createdAtUtc: '2026-09-04T10:00:00Z',
+    deletedAtUtc: null,
+  };
+}
+
+describe('variant form value', () => {
+  it('exposes a blank value for the create page', () => {
+    expect(emptyVariantFormValue()).toEqual({ sku: null, name: null, price: null, currency: null });
+  });
+
+  it('projects a loaded variant into the form (edit population)', () => {
+    expect(variantToFormValue(variantResponse())).toEqual({
+      sku: 'TEE-BLK-M',
+      name: 'Black / M',
+      price: '29.99',
+      currency: 'USD',
+    });
+  });
+
+  it('projects the form into the create body (price parsed, currency uppercased)', () => {
+    expect(
+      toCreateVariantRequest({
+        sku: '  tee-blk-m ',
+        name: 'Black / M',
+        price: ' 29.99 ',
+        currency: 'usd',
+      }),
+    ).toEqual({ sku: 'tee-blk-m', name: 'Black / M', unitPriceAmount: 29.99, currency: 'USD' });
+  });
+
+  it('projects updates with sku and name only (no money fields)', () => {
+    expect(
+      toUpdateVariantRequest({
+        sku: 'TEE-BLK-M',
+        name: 'Black / M',
+        price: '29.99',
+        currency: 'USD',
+      }),
+    ).toEqual({ sku: 'TEE-BLK-M', name: 'Black / M' });
+  });
+});
+
+describe('variant status display', () => {
+  it('maps every known status to its bundle key and variant', () => {
+    expect(variantStatusDisplay(0)).toEqual({
+      labelKey: 'catalog.variantStatus.active',
+      variant: 'success',
+    });
+    expect(variantStatusDisplay(1)).toEqual({
+      labelKey: 'catalog.variantStatus.inactive',
+      variant: 'warning',
+    });
+  });
+
+  it('falls back for unknown future values instead of crashing', () => {
+    expect(variantStatusDisplay(99)).toEqual({
+      labelKey: 'catalog.variantStatus.unknown',
+      variant: 'neutral',
     });
   });
 });

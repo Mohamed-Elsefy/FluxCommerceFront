@@ -4,6 +4,8 @@ import { CatalogOverviewState } from './state/catalog-overview-state';
 import { CategoryLookupState } from './state/category-lookup-state';
 import { ProductDetailsState } from './state/product-details-state';
 import { ProductListState } from './state/product-list-state';
+import { VariantDetailsState } from './state/variant-details-state';
+import { VariantListState } from './state/variant-list-state';
 import { catalogRoutes } from './catalog.routes';
 
 describe('catalogRoutes', () => {
@@ -16,6 +18,8 @@ describe('catalogRoutes', () => {
       CategoryLookupState,
       ProductDetailsState,
       ProductListState,
+      VariantDetailsState,
+      VariantListState,
     ]);
   });
 
@@ -28,7 +32,17 @@ describe('catalogRoutes', () => {
   it('declares the product slice in matching order (new before id)', () => {
     const paths = catalogRoutes[0]?.children?.map((route) => route.path);
 
-    expect(paths).toEqual(['', 'products', 'products/new', 'products/:id', 'products/:id/edit']);
+    expect(paths).toEqual([
+      '',
+      'products',
+      'products/new',
+      'products/:id',
+      'products/:id/edit',
+      'products/:productId/variants',
+      'products/:productId/variants/new',
+      'products/:productId/variants/:variantId',
+      'products/:productId/variants/:variantId/edit',
+    ]);
     for (const child of catalogRoutes[0]?.children ?? []) {
       expect(typeof child.loadComponent).toBe('function');
     }

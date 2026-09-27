@@ -199,6 +199,73 @@ describe('CatalogAdminApiService product writes (13.3)', () => {
   });
 });
 
+describe('CatalogAdminApiService variant slice (13.4)', () => {
+  const CREATE_BODY = {
+    sku: 'TEE-BLK-M',
+    name: 'Black / M',
+    unitPriceAmount: 29.99,
+    currency: 'USD',
+  };
+
+  it('reads a single variant scoped to its product', () => {
+    const { service, calls } = setup();
+    service.getVariant('prod-1', 'var-1').subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.getVariant.path]);
+    expect(calls.options).toEqual([{ pathParams: { productId: 'prod-1', variantId: 'var-1' } }]);
+  });
+
+  it('creates a variant with the body verbatim', () => {
+    const { service, posts } = setup();
+    service.createVariant('prod-1', CREATE_BODY).subscribe();
+
+    expect(posts.paths).toEqual([CATALOG_ENDPOINTS.createVariant.path]);
+    expect(posts.bodies).toEqual([CREATE_BODY]);
+    expect(posts.options).toEqual([{ pathParams: { productId: 'prod-1' } }]);
+  });
+
+  it('updates a variant with sku and name only', () => {
+    const { service, puts } = setup();
+    service.updateVariant('prod-1', 'var-1', { sku: 'TEE-BLK-M', name: 'Black / M' }).subscribe();
+
+    expect(puts.paths).toEqual([CATALOG_ENDPOINTS.updateVariant.path]);
+    expect(puts.bodies).toEqual([{ sku: 'TEE-BLK-M', name: 'Black / M' }]);
+    expect(puts.options).toEqual([{ pathParams: { productId: 'prod-1', variantId: 'var-1' } }]);
+  });
+
+  it('deletes a variant without a body', () => {
+    const calls: { paths: string[]; options: unknown[] } = { paths: [], options: [] };
+    const apiStub = {
+      delete: vi.fn((path: string, options: unknown = {}) => {
+        calls.paths.push(path);
+        calls.options.push(options);
+        return of(undefined);
+      }),
+    } as unknown as ApiClient;
+    TestBed.configureTestingModule({
+      providers: [CatalogAdminApiService, { provide: ApiClient, useValue: apiStub }],
+    });
+    TestBed.inject(CatalogAdminApiService).deleteVariant('prod-1', 'var-1').subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.deleteVariant.path]);
+    expect(calls.options).toEqual([{ pathParams: { productId: 'prod-1', variantId: 'var-1' } }]);
+  });
+
+  it('propagates variant write failures untouched for callers to normalize', () => {
+    const { service, api } = setup();
+    const rejection = new ApiError({ status: 409, message: 'Conflict.' });
+    vi.mocked(api.post).mockReturnValueOnce(throwError(() => rejection));
+    let observed: unknown;
+    service.createVariant('prod-1', CREATE_BODY).subscribe({
+      error: (error: unknown) => {
+        observed = error;
+      },
+    });
+
+    expect(observed).toBe(rejection);
+  });
+});
+
 describe('CatalogAdminApiService details reads (13.3)', () => {
   it('lists variants scoped to the product id', () => {
     const { service, calls } = setup();

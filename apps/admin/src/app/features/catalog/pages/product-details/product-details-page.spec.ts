@@ -174,6 +174,12 @@ describe('ProductDetailsPage', () => {
     expect(element.querySelector('.product-details-edit')?.getAttribute('href')).toBe(
       '/catalog/products/prod-1/edit',
     );
+    expect(element.querySelector('.product-details-manage')?.getAttribute('href')).toBe(
+      '/catalog/products/prod-1/variants',
+    );
+    expect(element.querySelector('.product-details-manage')?.textContent?.trim()).toBe(
+      'Manage variants',
+    );
   });
 
   it('offers only restore for deleted products', () => {
