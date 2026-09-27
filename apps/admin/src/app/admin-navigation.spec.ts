@@ -7,7 +7,12 @@ import { ADMIN_NAV_ITEMS, visibleDestinations, type AdminDestination } from './a
 
 describe('admin navigation', () => {
   it('lists only existing portal routes with layout label keys', () => {
-    expect(ADMIN_NAV_ITEMS.map((item) => item.route)).toEqual(['/', '/dashboard', '/catalog']);
+    expect(ADMIN_NAV_ITEMS.map((item) => item.route)).toEqual([
+      '/',
+      '/dashboard',
+      '/catalog',
+      '/inventory',
+    ]);
     for (const item of ADMIN_NAV_ITEMS) {
       expect(item.labelKey.startsWith('layout.nav.')).toBe(true);
     }
@@ -20,6 +25,14 @@ describe('admin navigation', () => {
       'layout.nav.products',
       'layout.nav.categories',
     ]);
+    const inventory = ADMIN_NAV_ITEMS.find((item) => item.route === '/inventory');
+    expect(inventory?.labelKey).toBe('layout.nav.inventory');
+    expect(inventory?.children).toBeUndefined();
+  });
+
+  it('shows unrestricted entries to every portal role', () => {
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'])).toHaveLength(4);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'])).toHaveLength(4);
   });
 
   it('resolves every destination label in every culture (no key-path leakage)', () => {
@@ -39,11 +52,6 @@ describe('admin navigation', () => {
     }
   });
 
-  it('shows unrestricted entries to every portal role', () => {
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'])).toHaveLength(3);
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'])).toHaveLength(3);
-  });
-
   it('hides restricted entries and their subsections without a matching role', () => {
     const items = [
       ...ADMIN_NAV_ITEMS,
@@ -59,8 +67,9 @@ describe('admin navigation', () => {
       'layout.nav.home',
       'layout.nav.dashboard',
       'layout.nav.catalog',
+      'layout.nav.inventory',
     ]);
-    expect(visibleDestinations(items, ['SuperAdmin'])).toHaveLength(4);
-    expect(visibleDestinations(items, [])).toHaveLength(3);
+    expect(visibleDestinations(items, ['SuperAdmin'])).toHaveLength(5);
+    expect(visibleDestinations(items, [])).toHaveLength(4);
   });
 });

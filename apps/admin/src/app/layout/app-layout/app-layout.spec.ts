@@ -99,7 +99,14 @@ describe('AppLayout', () => {
     const labels = [...element.querySelectorAll('admin-sidebar .item-label')].map((node) =>
       node.textContent?.trim(),
     );
-    expect(labels).toEqual(['Accueil', 'Tableau de bord', 'Catalogue', 'Produits', 'Catégories']);
+    expect(labels).toEqual([
+      'Accueil',
+      'Tableau de bord',
+      'Catalogue',
+      'Produits',
+      'Catégories',
+      'Inventaire',
+    ]);
     expect(element.querySelector('a.skip-link')?.textContent).toBe('Aller au contenu principal');
     TestBed.inject(CultureService).setCulture('en');
   });
@@ -111,6 +118,6 @@ describe('AppLayout', () => {
       [...element.querySelectorAll('admin-sidebar flux-icon .icon')].map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(['⌂', '▦', '▤']);
+    ).toEqual(['⌂', '▦', '▤', '▣']);
   });
 });

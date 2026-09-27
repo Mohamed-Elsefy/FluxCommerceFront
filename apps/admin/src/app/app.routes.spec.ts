@@ -41,6 +41,14 @@ describe('routes', () => {
     expect(catalog?.canActivate).toBeUndefined();
   });
 
+  it('mounts the inventory feature as a lazy boundary inside the protected shell', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const inventory = shell?.children?.find((route) => route.path === 'inventory');
+
+    expect(typeof inventory?.loadChildren).toBe('function');
+    expect(inventory?.canActivate).toBeUndefined();
+  });
+
   it('falls back to a lazy not-found page', () => {
     const fallback = routes.find((route) => route.path === '**');
 
