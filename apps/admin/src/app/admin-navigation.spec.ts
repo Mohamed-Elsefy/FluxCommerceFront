@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_NAV_ITEMS, visibleDestinations } from './admin-navigation';
+import {
+  ADMIN_LAYOUT_TRANSLATION_RESOURCES,
+  translateAdminLayoutKey,
+} from './layout/layout-translations/layout-translations';
+import { ADMIN_NAV_ITEMS, visibleDestinations, type AdminDestination } from './admin-navigation';
 
 describe('admin navigation', () => {
   it('lists only existing portal routes with layout label keys', () => {
@@ -16,6 +20,23 @@ describe('admin navigation', () => {
       'layout.nav.products',
       'layout.nav.categories',
     ]);
+  });
+
+  it('resolves every destination label in every culture (no key-path leakage)', () => {
+    const flatten = (items: readonly AdminDestination[]): readonly string[] =>
+      items.flatMap((item) => [
+        item.labelKey,
+        ...(item.children === undefined ? [] : flatten(item.children)),
+      ]);
+    for (const labelKey of flatten(ADMIN_NAV_ITEMS)) {
+      for (const culture of Object.keys(ADMIN_LAYOUT_TRANSLATION_RESOURCES) as Array<
+        keyof typeof ADMIN_LAYOUT_TRANSLATION_RESOURCES
+      >) {
+        expect(translateAdminLayoutKey(culture, labelKey), `${culture}:${labelKey}`).not.toBe(
+          labelKey,
+        );
+      }
+    }
   });
 
   it('shows unrestricted entries to every portal role', () => {

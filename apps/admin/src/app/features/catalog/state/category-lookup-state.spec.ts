@@ -73,7 +73,7 @@ describe('CategoryLookupState', () => {
     ]);
   });
 
-  it('ignores duplicate loads while in flight and once settled', () => {
+  it('ignores duplicate loads while in flight', () => {
     let release!: (value: unknown) => void;
     const pending = new Promise<unknown>((resolve) => {
       release = resolve;
@@ -85,10 +85,19 @@ describe('CategoryLookupState', () => {
     expect(listCategories).toHaveBeenCalledTimes(1);
     release(page([category('c1', 'Alpha')]));
     return pending.then(() => {
-      state.load();
-      expect(listCategories).toHaveBeenCalledTimes(1);
       expect(state.options()).toEqual([{ value: 'c1', label: 'Alpha' }]);
     });
+  });
+
+  it('refetches settled snapshots so later visits render backend-current data', () => {
+    const { state, listCategories } = setup(() => of(page([category('c1', 'Alpha')])));
+    state.load();
+    expect(state.options()).toEqual([{ value: 'c1', label: 'Alpha' }]);
+
+    state.load();
+
+    expect(listCategories).toHaveBeenCalledTimes(2);
+    expect(state.options()).toEqual([{ value: 'c1', label: 'Alpha' }]);
   });
 
   it('resolves failures to error', () => {

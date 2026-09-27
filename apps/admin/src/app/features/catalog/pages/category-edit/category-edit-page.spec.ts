@@ -37,14 +37,17 @@ function category(): CategoryResponse {
 function setup(scenario: {
   category?: ResourceState<CategoryResponse>;
   updateCategory?: (id: string, body: unknown) => ReturnType<typeof of>;
+  lookupFails?: boolean;
 }): {
   updateCategory: ReturnType<typeof vi.fn>;
   navigate: ReturnType<typeof vi.fn>;
+  lookupLoad: ReturnType<typeof vi.fn>;
 } {
   const updateCategory = vi.fn(
     (id: string, body: unknown) => scenario.updateCategory?.(id, body) ?? of(undefined),
   );
   const navigate = vi.fn(() => Promise.resolve(true));
+  const lookupLoad = vi.fn();
   TestBed.configureTestingModule({
     providers: [
       provideAppEnvironment({
@@ -72,18 +75,22 @@ function setup(scenario: {
       {
         provide: CategoryLookupState,
         useValue: {
-          categories: signal(successResource([])),
+          categories: signal(
+            scenario.lookupFails
+              ? errorResource(new ApiError({ status: 500, message: 'Server error.' }))
+              : successResource([]),
+          ),
           options: signal([
             { value: 'cat-1', label: 'Alpha' },
             { value: 'c0', label: 'Root' },
           ]),
-          load: vi.fn(),
+          load: lookupLoad,
         },
       },
     ],
   });
   window.localStorage.clear();
-  return { updateCategory, navigate };
+  return { updateCategory, navigate, lookupLoad };
 }
 
 function render(): {
@@ -142,6 +149,19 @@ describe('CategoryEditPage', () => {
     expect(element.textContent).toContain('Could not save the category');
     expect((element.querySelector('#category-name') as HTMLInputElement).value).toBe('Taken Name');
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('surfaces lookup failures with retry while keeping the populated form', () => {
+    const { lookupLoad } = setup({ lookupFails: true });
+    const { fixture, element } = render();
+
+    expect(element.textContent).toContain('Could not load this section');
+    expect((element.querySelector('#category-name') as HTMLInputElement).value).toBe('Alpha');
+    const retries = [...element.querySelectorAll('flux-error-state button')];
+    (retries.at(-1) as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(lookupLoad).toHaveBeenCalledTimes(2);
   });
 
   it('renders loading and error states for the category load', () => {

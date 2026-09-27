@@ -11,9 +11,11 @@
  * The lookup pages through `GET /catalog/categories` with the backend
  * maximum (`pageSize: 100`): the endpoint exposes no search and no larger
  * page, so names outside the first hundred fall back to raw ids
- * (`categoryNameOf`) instead of fabricated data. Load-once per route
- * instance (each navigation creates a fresh route-provided instance);
- * reloads stay explicit for future slices.
+ * (`categoryNameOf`) instead of fabricated data. Every explicit `load()`
+ * refetches (13.7 state synchronization): the state instance outlives
+ * individual pages within the catalog subtree, so a settled snapshot
+ * would otherwise hide categories created, renamed, or deleted moments
+ * ago — only in-flight loads dedupe.
  *
  * Locality rules (same convention as `catalog-overview-state`, 13.2):
  * `@Injectable()` WITHOUT `providedIn` (route-level providers only),
@@ -50,7 +52,7 @@ export const CATEGORY_LOOKUP_PAGE_SIZE = 100;
 @Injectable()
 export class CategoryLookupState implements OnDestroy {
   private readonly catalogApi = inject(CatalogAdminApiService);
-  private readonly loads = new Subscription();
+  private loads = new Subscription();
 
   private readonly snapshot: ResourceStateStore<readonly CategoryResponse[]> =
     createResourceState<readonly CategoryResponse[]>();
@@ -64,13 +66,16 @@ export class CategoryLookupState implements OnDestroy {
   );
 
   /**
-   * Loads the lookup snapshot (load-once guard: in-flight and settled
-   * snapshots never refetch implicitly — reloads stay explicit).
+   * Loads the lookup snapshot. In-flight loads dedupe (re-entrant calls
+   * while loading are no-ops); settled snapshots always refetch so
+   * every page visit renders backend-current names and options.
    */
   load(): void {
-    if (this.snapshot.isLoading() || this.snapshot.data() !== null) {
+    if (this.snapshot.isLoading()) {
       return;
     }
+    this.loads.unsubscribe();
+    this.loads = new Subscription();
     const request: Observable<readonly CategoryResponse[]> = this.catalogApi
       .listCategories({ pageNumber: 1, pageSize: CATEGORY_LOOKUP_PAGE_SIZE })
       .pipe(map(requireCategoryItems));

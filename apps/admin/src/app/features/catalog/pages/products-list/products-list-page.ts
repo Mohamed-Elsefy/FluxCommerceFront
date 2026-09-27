@@ -166,9 +166,10 @@ export class ProductsListPage implements OnInit {
     this.products.setPage(pageNumber);
   }
 
-  /** List retry re-enters the current effective page. */
+  /** List retry re-enters the current effective page plus the name lookup. */
   protected retry(): void {
     this.products.reload();
+    this.lookup.load();
   }
 
   /** Localized status text with the forward-compatible unknown fallback. */

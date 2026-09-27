@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CATALOG_TRANSLATION_KEYS, translateCatalogKey } from './catalog-translations';
+import {
+  CATALOG_TRANSLATION_KEYS,
+  CATALOG_TRANSLATION_RESOURCES,
+  translateCatalogKey,
+} from './catalog-translations';
 
 describe('translateCatalogKey', () => {
   it('resolves the landing copy per culture', () => {
@@ -124,5 +128,16 @@ describe('translateCatalogKey', () => {
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateCatalogKey('xx' as never, CATALOG_TRANSLATION_KEYS.title)).toBe('Catalog');
     expect(translateCatalogKey('en', 'catalog.missing.key')).toBe('catalog.missing.key');
+  });
+
+  it('resolves every owned key in every culture (no key-path leakage)', () => {
+    const params = { count: '3', value: '99', name: 'Tee', action: 'activate', sku: 'SKU-1' };
+    for (const key of Object.values(CATALOG_TRANSLATION_KEYS)) {
+      for (const culture of Object.keys(CATALOG_TRANSLATION_RESOURCES) as Array<
+        keyof typeof CATALOG_TRANSLATION_RESOURCES
+      >) {
+        expect(translateCatalogKey(culture, key, params), `${culture}:${key}`).not.toBe(key);
+      }
+    }
   });
 });

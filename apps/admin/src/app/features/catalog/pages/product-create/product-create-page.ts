@@ -30,7 +30,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
+import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { ApiError, isApiError, UNKNOWN_ERROR_CODE } from '@flux/api';
 import { ErrorState } from '@flux/ui';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
@@ -127,8 +127,27 @@ export class ProductCreatePage implements OnInit {
       heading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.createHeading),
       subheading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.createSubheading),
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.formErrorTitle),
+      lookupTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsSectionError),
+      retry: translateKey(culture, 'common.actions.retry'),
     };
   });
+
+  /**
+   * Category-lookup failure notice (`null` when clean). A failed lookup
+   * leaves the required category select empty with no valid choice, so
+   * the failure renders explicitly instead of failing silently — the
+   * form itself stays usable for every other field.
+   */
+  protected readonly lookupError = computed(() =>
+    this.lookup.categories().isError
+      ? resolveApiErrorMessage(this.lookup.categories().error, this.cultures.culture())
+      : null,
+  );
+
+  /** Lookup retry reloads the category snapshot. */
+  protected retryLookup(): void {
+    this.lookup.load();
+  }
 
   ngOnInit(): void {
     this.lookup.load();

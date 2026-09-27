@@ -4,15 +4,25 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { ApiError, provideApi, provideAppEnvironment, successResource } from '@flux/api';
+import {
+  ApiError,
+  errorResource,
+  provideApi,
+  provideAppEnvironment,
+  successResource,
+} from '@flux/api';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
 import { CatalogAdminApiService } from '../../data-access/catalog-admin-api.service';
 import { CategoryLookupState } from '../../state/category-lookup-state';
 import { CategoryCreatePage } from './category-create-page';
 
-function setup(scenario: { createCategory?: (body: unknown) => ReturnType<typeof of> }): {
+function setup(scenario: {
+  createCategory?: (body: unknown) => ReturnType<typeof of>;
+  lookupFails?: boolean;
+}): {
   createCategory: ReturnType<typeof vi.fn>;
   navigate: ReturnType<typeof vi.fn>;
+  lookupLoad: ReturnType<typeof vi.fn>;
 } {
   const createCategory = vi.fn(
     (body: unknown) =>
@@ -20,6 +30,7 @@ function setup(scenario: { createCategory?: (body: unknown) => ReturnType<typeof
       of({ isSuccess: true, message: 'Created.', data: 'cat-new' }),
   );
   const navigate = vi.fn(() => Promise.resolve(true));
+  const lookupLoad = vi.fn();
   TestBed.configureTestingModule({
     providers: [
       provideAppEnvironment({
@@ -35,15 +46,20 @@ function setup(scenario: { createCategory?: (body: unknown) => ReturnType<typeof
       {
         provide: CategoryLookupState,
         useValue: {
-          categories: signal(successResource([])),
+          categories: signal(
+            scenario.lookupFails
+              ? errorResource(new ApiError({ status: 500, message: 'Server error.' }))
+              : successResource([]),
+          ),
           options: signal([{ value: 'c0', label: 'Root' }]),
-          load: vi.fn(),
+          load: lookupLoad,
         },
       },
+      { provide: Router, useValue: { navigate } },
     ],
   });
   window.localStorage.clear();
-  return { createCategory, navigate };
+  return { createCategory, navigate, lookupLoad };
 }
 
 function render(): {
@@ -128,6 +144,19 @@ describe('CategoryCreatePage', () => {
     (element.querySelector('.form-actions-cancel') as HTMLButtonElement).click();
 
     expect(navigate).toHaveBeenCalledWith(['/catalog/categories']);
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+
+  it('surfaces lookup failures with retry while keeping the form usable', () => {
+    const { lookupLoad, createCategory } = setup({ lookupFails: true });
+    const { fixture, element } = render();
+
+    expect(element.textContent).toContain('Could not load this section');
+    expect(element.querySelector('app-category-form')).not.toBeNull();
+    (element.querySelector('flux-error-state button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(lookupLoad).toHaveBeenCalledTimes(2);
     expect(createCategory).not.toHaveBeenCalled();
   });
 });

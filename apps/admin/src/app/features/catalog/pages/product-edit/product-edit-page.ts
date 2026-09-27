@@ -104,6 +104,22 @@ export class ProductEditPage implements OnInit {
     return data === null ? null : productToFormValue(data);
   });
 
+  /**
+   * Category-lookup failure notice (`null` when clean). A failed lookup
+   * leaves the required category select empty with no valid choice, so
+   * the failure renders explicitly instead of failing silently.
+   */
+  protected readonly lookupError = computed(() =>
+    this.lookup.categories().isError
+      ? resolveApiErrorMessage(this.lookup.categories().error, this.cultures.culture())
+      : null,
+  );
+
+  /** Lookup retry reloads the category snapshot. */
+  protected retryLookup(): void {
+    this.lookup.load();
+  }
+
   /** Category options with the localized empty first option. */
   protected readonly categoryOptions = computed(() => [
     {
@@ -166,6 +182,7 @@ export class ProductEditPage implements OnInit {
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listErrorTitle),
       retry: translateKey(culture, 'common.actions.retry'),
       formErrorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.formErrorTitle),
+      lookupTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsSectionError),
     };
   });
 

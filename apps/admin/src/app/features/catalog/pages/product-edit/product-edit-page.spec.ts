@@ -39,14 +39,17 @@ function product(): ProductResponse {
 function setup(scenario: {
   product?: ResourceState<ProductResponse>;
   updateProduct?: (id: string, body: unknown) => ReturnType<typeof of>;
+  lookupFails?: boolean;
 }): {
   updateProduct: ReturnType<typeof vi.fn>;
   navigate: ReturnType<typeof vi.fn>;
+  lookupLoad: ReturnType<typeof vi.fn>;
 } {
   const updateProduct = vi.fn(
     (id: string, body: unknown) => scenario.updateProduct?.(id, body) ?? of(undefined),
   );
   const navigate = vi.fn(() => Promise.resolve(true));
+  const lookupLoad = vi.fn();
   TestBed.configureTestingModule({
     providers: [
       provideAppEnvironment({
@@ -73,15 +76,19 @@ function setup(scenario: {
       {
         provide: CategoryLookupState,
         useValue: {
-          categories: signal(successResource([])),
+          categories: signal(
+            scenario.lookupFails
+              ? errorResource(new ApiError({ status: 500, message: 'Server error.' }))
+              : successResource([]),
+          ),
           options: signal([{ value: 'cat-1', label: 'Alpha' }]),
-          load: vi.fn(),
+          load: lookupLoad,
         },
       },
     ],
   });
   window.localStorage.clear();
-  return { updateProduct, navigate };
+  return { updateProduct, navigate, lookupLoad };
 }
 
 function render(): {
@@ -139,6 +146,19 @@ describe('ProductEditPage', () => {
     expect(element.textContent).toContain('Could not save the product');
     expect((element.querySelector('#product-name') as HTMLInputElement).value).toBe('Taken Name');
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('surfaces lookup failures with retry while keeping the populated form', () => {
+    const { lookupLoad } = setup({ lookupFails: true });
+    const { fixture, element } = render();
+
+    expect(element.textContent).toContain('Could not load this section');
+    expect((element.querySelector('#product-name') as HTMLInputElement).value).toBe('Tee');
+    const retries = [...element.querySelectorAll('flux-error-state button')];
+    (retries.at(-1) as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(lookupLoad).toHaveBeenCalledTimes(2);
   });
 
   it('renders loading and error states for the product load', () => {

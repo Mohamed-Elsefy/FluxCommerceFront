@@ -151,9 +151,10 @@ export class CategoriesListPage implements OnInit {
     this.categories.setPage(pageNumber);
   }
 
-  /** List retry re-enters the current effective page. */
+  /** List retry re-enters the current effective page plus the name lookup. */
   protected retry(): void {
     this.categories.reload();
+    this.lookup.load();
   }
 
   /** Localized status text with the forward-compatible unknown fallback. */

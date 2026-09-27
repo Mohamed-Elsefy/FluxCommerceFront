@@ -21,6 +21,14 @@
         [showRetry]="false"
       />
     }
+    @if (lookupError() !== null) {
+      <flux-error-state
+        [title]="copy().lookupTitle"
+        [message]="lookupError()"
+        [retryLabel]="copy().retry"
+        (retry)="retryLookup()"
+      />
+    }
     <app-category-form
       [initial]="initial()"
       [parents]="parentOptions()"

@@ -148,8 +148,25 @@ export class CategoryEditPage implements OnInit {
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesErrorTitle),
       retry: translateKey(culture, 'common.actions.retry'),
       formErrorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoryFormErrorTitle),
+      lookupTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsSectionError),
     };
   });
+
+  /**
+   * Parent-lookup failure notice (`null` when clean). The parent select
+   * degrades to top-level-only when the lookup fails, so the failure
+   * renders explicitly instead of failing silently.
+   */
+  protected readonly lookupError = computed(() =>
+    this.lookup.categories().isError
+      ? resolveApiErrorMessage(this.lookup.categories().error, this.cultures.culture())
+      : null,
+  );
+
+  /** Lookup retry reloads the category snapshot. */
+  protected retryLookup(): void {
+    this.lookup.load();
+  }
 
   /** Localized category-load failure message (never backend text). */
   protected readonly errorMessage = computed(() =>

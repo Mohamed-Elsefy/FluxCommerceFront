@@ -28,7 +28,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
+import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { ApiError, isApiError, UNKNOWN_ERROR_CODE } from '@flux/api';
 import { ErrorState } from '@flux/ui';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
@@ -101,8 +101,26 @@ export class CategoryCreatePage implements OnInit {
       heading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoryCreateHeading),
       subheading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoryCreateSubheading),
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoryFormErrorTitle),
+      lookupTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.detailsSectionError),
+      retry: translateKey(culture, 'common.actions.retry'),
     };
   });
+
+  /**
+   * Parent-lookup failure notice (`null` when clean). The parent select
+   * degrades to top-level-only when the lookup fails, so the failure
+   * renders explicitly instead of failing silently.
+   */
+  protected readonly lookupError = computed(() =>
+    this.lookup.categories().isError
+      ? resolveApiErrorMessage(this.lookup.categories().error, this.cultures.culture())
+      : null,
+  );
+
+  /** Lookup retry reloads the category snapshot. */
+  protected retryLookup(): void {
+    this.lookup.load();
+  }
 
   ngOnInit(): void {
     this.lookup.load();

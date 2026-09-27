@@ -879,11 +879,12 @@ export class ProductDetailsPage implements OnInit {
     });
   }
 
-  /** Reloads every slot for the current id (post-mutation refresh). */
+  /** Reloads every slot plus the name lookup for the current id (post-mutation refresh). */
   private refreshSections(): void {
     const id = this.productId();
     if (id !== null) {
       this.details.load(id);
+      this.lookup.load();
     }
   }
 

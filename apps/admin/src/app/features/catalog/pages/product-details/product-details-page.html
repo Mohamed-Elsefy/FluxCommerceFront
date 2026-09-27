@@ -52,6 +52,12 @@
           <dt>{{ copy().created }}</dt>
           <dd>{{ product().data!.createdAtUtc }}</dd>
         </div>
+        @if (product().data!.deletedAtUtc !== null) {
+          <div>
+            <dt>{{ copy().deleted }}</dt>
+            <dd>{{ product().data!.deletedAtUtc }}</dd>
+          </div>
+        }
       </dl>
     </flux-card>
 

@@ -4,15 +4,25 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { ApiError, provideApi, provideAppEnvironment, successResource } from '@flux/api';
+import {
+  ApiError,
+  errorResource,
+  provideApi,
+  provideAppEnvironment,
+  successResource,
+} from '@flux/api';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
 import { CatalogAdminApiService } from '../../data-access/catalog-admin-api.service';
 import { CategoryLookupState } from '../../state/category-lookup-state';
 import { ProductCreatePage } from './product-create-page';
 
-function setup(scenario: { createProduct?: (body: unknown) => ReturnType<typeof of> }): {
+function setup(scenario: {
+  createProduct?: (body: unknown) => ReturnType<typeof of>;
+  lookupFails?: boolean;
+}): {
   createProduct: ReturnType<typeof vi.fn>;
   navigate: ReturnType<typeof vi.fn>;
+  lookupLoad: ReturnType<typeof vi.fn>;
 } {
   const createProduct = vi.fn(
     (body: unknown) =>
@@ -20,6 +30,8 @@ function setup(scenario: { createProduct?: (body: unknown) => ReturnType<typeof 
       of({ isSuccess: true, message: 'Created.', data: 'prod-new' }),
   );
   const navigate = vi.fn(() => Promise.resolve(true));
+  const lookupLoad = vi.fn();
+  const rejection = new ApiError({ status: 500, message: 'Server error.' });
   TestBed.configureTestingModule({
     providers: [
       provideAppEnvironment({
@@ -34,16 +46,16 @@ function setup(scenario: { createProduct?: (body: unknown) => ReturnType<typeof 
       {
         provide: CategoryLookupState,
         useValue: {
-          categories: signal(successResource([])),
+          categories: signal(scenario.lookupFails ? errorResource(rejection) : successResource([])),
           options: signal([{ value: 'cat-1', label: 'Alpha' }]),
-          load: vi.fn(),
+          load: lookupLoad,
         },
       },
       { provide: Router, useValue: { navigate } },
     ],
   });
   window.localStorage.clear();
-  return { createProduct, navigate };
+  return { createProduct, navigate, lookupLoad };
 }
 
 function render(): {
@@ -135,6 +147,19 @@ describe('ProductCreatePage', () => {
     (element.querySelector('.form-actions-cancel') as HTMLButtonElement).click();
 
     expect(navigate).toHaveBeenCalledWith(['/catalog/products']);
+    expect(createProduct).not.toHaveBeenCalled();
+  });
+
+  it('surfaces lookup failures with retry while keeping the form usable', () => {
+    const { lookupLoad, createProduct } = setup({ lookupFails: true });
+    const { fixture, element } = render();
+
+    expect(element.textContent).toContain('Could not load this section');
+    expect(element.querySelector('app-product-form')).not.toBeNull();
+    (element.querySelector('flux-error-state button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(lookupLoad).toHaveBeenCalledTimes(2);
     expect(createProduct).not.toHaveBeenCalled();
   });
 });
