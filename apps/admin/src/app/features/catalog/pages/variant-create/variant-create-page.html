@@ -1,0 +1,19 @@
+<section class="variant-create" aria-labelledby="variant-create-title">
+  <header class="variant-create-header">
+    <h1 id="variant-create-title">{{ copy().heading }}</h1>
+    <p class="variant-create-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  @if (formError() !== null) {
+    <flux-error-state [title]="copy().errorTitle" [message]="formError()" [showRetry]="false" />
+  }
+
+  <app-variant-form
+    mode="create"
+    [initial]="initial"
+    [copy]="formCopy()"
+    [submitting]="submitting()"
+    (save)="onSave($event)"
+    (cancelled)="onCancel()"
+  />
+</section>

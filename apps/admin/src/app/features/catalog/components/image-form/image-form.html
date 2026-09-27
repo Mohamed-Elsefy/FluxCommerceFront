@@ -1,0 +1,21 @@
+<form class="image-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <admin-text-input
+    [control]="urlControl()"
+    [label]="copy.url"
+    fieldId="image-url"
+    [hint]="copy.urlHint"
+  />
+  <admin-textarea [control]="altControl()" [label]="copy.altText" fieldId="image-alt" />
+  <admin-text-input [control]="orderControl()" [label]="copy.order" fieldId="image-order" />
+  @if (showPrimary()) {
+    <admin-checkbox [control]="primaryControl()" [label]="copy.primary" />
+  }
+  <admin-form-actions
+    [submitLabel]="copy.submit"
+    [cancelLabel]="copy.cancel"
+    [submittingLabel]="copy.saving"
+    [submitting]="submitting"
+    (submitted)="submit()"
+    (cancelled)="cancelled.emit()"
+  />
+</form>

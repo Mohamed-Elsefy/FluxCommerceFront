@@ -1,0 +1,21 @@
+.variant-edit {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.variant-edit-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.variant-edit-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.variant-edit-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}

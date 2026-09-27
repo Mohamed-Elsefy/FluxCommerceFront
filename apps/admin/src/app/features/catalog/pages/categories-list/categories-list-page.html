@@ -1,0 +1,37 @@
+<section class="categories-list" aria-labelledby="categories-list-title">
+  <header class="categories-list-header">
+    <div>
+      <h1 id="categories-list-title">{{ copy().heading }}</h1>
+      <p class="categories-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+    <a class="categories-list-new" routerLink="new">{{ copy().new }}</a>
+  </header>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

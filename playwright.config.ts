@@ -65,6 +65,11 @@ export default defineConfig({
       use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
     },
     {
+      name: 'admin-catalog-chromium',
+      testMatch: /admin-catalog\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'catalog-chromium',
       testMatch: /catalog\.spec\.ts/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },

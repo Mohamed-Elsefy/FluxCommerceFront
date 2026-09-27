@@ -1,17 +1,64 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_NAV_ITEMS, visibleDestinations } from './admin-navigation';
+import {
+  ADMIN_LAYOUT_TRANSLATION_RESOURCES,
+  translateAdminLayoutKey,
+} from './layout/layout-translations/layout-translations';
+import { ADMIN_NAV_ITEMS, visibleDestinations, type AdminDestination } from './admin-navigation';
 
 describe('admin navigation', () => {
   it('lists only existing portal routes with layout label keys', () => {
-    expect(ADMIN_NAV_ITEMS.map((item) => item.route)).toEqual(['/', '/dashboard']);
+    expect(ADMIN_NAV_ITEMS.map((item) => item.route)).toEqual([
+      '/',
+      '/dashboard',
+      '/catalog',
+      '/inventory',
+    ]);
     for (const item of ADMIN_NAV_ITEMS) {
       expect(item.labelKey.startsWith('layout.nav.')).toBe(true);
     }
+    const catalog = ADMIN_NAV_ITEMS.find((item) => item.route === '/catalog');
+    expect(catalog?.children?.map((child) => child.route)).toEqual([
+      '/catalog/products',
+      '/catalog/categories',
+    ]);
+    expect(catalog?.children?.map((child) => child.labelKey)).toEqual([
+      'layout.nav.products',
+      'layout.nav.categories',
+    ]);
+    const inventory = ADMIN_NAV_ITEMS.find((item) => item.route === '/inventory');
+    expect(inventory?.labelKey).toBe('layout.nav.inventory');
+    expect(inventory?.children?.map((child) => child.route)).toEqual([
+      '/inventory/stock',
+      '/inventory/reservations',
+      '/inventory/adjustments',
+    ]);
+    expect(inventory?.children?.map((child) => child.labelKey)).toEqual([
+      'layout.nav.stock',
+      'layout.nav.reservations',
+      'layout.nav.adjustments',
+    ]);
   });
 
   it('shows unrestricted entries to every portal role', () => {
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'])).toHaveLength(2);
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'])).toHaveLength(2);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'])).toHaveLength(4);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'])).toHaveLength(4);
+  });
+
+  it('resolves every destination label in every culture (no key-path leakage)', () => {
+    const flatten = (items: readonly AdminDestination[]): readonly string[] =>
+      items.flatMap((item) => [
+        item.labelKey,
+        ...(item.children === undefined ? [] : flatten(item.children)),
+      ]);
+    for (const labelKey of flatten(ADMIN_NAV_ITEMS)) {
+      for (const culture of Object.keys(ADMIN_LAYOUT_TRANSLATION_RESOURCES) as Array<
+        keyof typeof ADMIN_LAYOUT_TRANSLATION_RESOURCES
+      >) {
+        expect(translateAdminLayoutKey(culture, labelKey), `${culture}:${labelKey}`).not.toBe(
+          labelKey,
+        );
+      }
+    }
   });
 
   it('hides restricted entries and their subsections without a matching role', () => {
@@ -28,8 +75,10 @@ describe('admin navigation', () => {
     expect(visibleDestinations(items, ['Admin']).map((item) => item.labelKey)).toEqual([
       'layout.nav.home',
       'layout.nav.dashboard',
+      'layout.nav.catalog',
+      'layout.nav.inventory',
     ]);
-    expect(visibleDestinations(items, ['SuperAdmin'])).toHaveLength(3);
-    expect(visibleDestinations(items, [])).toHaveLength(2);
+    expect(visibleDestinations(items, ['SuperAdmin'])).toHaveLength(5);
+    expect(visibleDestinations(items, [])).toHaveLength(4);
   });
 });

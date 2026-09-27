@@ -1,0 +1,21 @@
+<section class="inventory-home" aria-labelledby="inventory-title">
+  <header class="inventory-home-header">
+    <h1 id="inventory-title">{{ copy().title }}</h1>
+    <p class="inventory-home-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  <div class="inventory-home-grid">
+    @for (section of copy().sections; track section.title) {
+      <flux-card>
+        <article class="inventory-home-card" [attr.aria-label]="section.title">
+          <h2 class="inventory-home-card-title">
+            <a class="inventory-home-card-link" [routerLink]="section.route">
+              {{ section.title }}
+            </a>
+          </h2>
+          <p class="inventory-home-card-description">{{ section.description }}</p>
+        </article>
+      </flux-card>
+    }
+  </div>
+</section>

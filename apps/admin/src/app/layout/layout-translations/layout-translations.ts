@@ -24,6 +24,13 @@ import {
 export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navHome: 'layout.nav.home',
   navDashboard: 'layout.nav.dashboard',
+  navCatalog: 'layout.nav.catalog',
+  navProducts: 'layout.nav.products',
+  navCategories: 'layout.nav.categories',
+  navInventory: 'layout.nav.inventory',
+  navStock: 'layout.nav.stock',
+  navReservations: 'layout.nav.reservations',
+  navAdjustments: 'layout.nav.adjustments',
   navSidebarLabel: 'layout.nav.sidebarLabel',
   headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
@@ -54,6 +61,13 @@ const EN_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Home',
       dashboard: 'Dashboard',
+      catalog: 'Catalog',
+      products: 'Products',
+      categories: 'Categories',
+      inventory: 'Inventory',
+      stock: 'Stock',
+      reservations: 'Reservations',
+      adjustments: 'Adjustments',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -104,6 +118,13 @@ const FR_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Accueil',
       dashboard: 'Tableau de bord',
+      catalog: 'Catalogue',
+      products: 'Produits',
+      categories: 'Catégories',
+      inventory: 'Inventaire',
+      stock: 'Stock',
+      reservations: 'Réservations',
+      adjustments: 'Ajustements',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -154,6 +175,13 @@ const DE_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Startseite',
       dashboard: 'Dashboard',
+      catalog: 'Katalog',
+      products: 'Produkte',
+      categories: 'Kategorien',
+      inventory: 'Bestand',
+      stock: 'Bestand',
+      reservations: 'Reservierungen',
+      adjustments: 'Anpassungen',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -204,6 +232,13 @@ const ES_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'Inicio',
       dashboard: 'Panel',
+      catalog: 'Catálogo',
+      products: 'Productos',
+      categories: 'Categorías',
+      inventory: 'Inventario',
+      stock: 'Stock',
+      reservations: 'Reservas',
+      adjustments: 'Ajustes',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -254,6 +289,13 @@ const AR_LAYOUT: TranslationDictionary = {
     nav: {
       home: 'الرئيسية',
       dashboard: 'لوحة التحكم',
+      catalog: 'الكتالوج',
+      products: 'المنتجات',
+      categories: 'الفئات',
+      inventory: 'المخزون',
+      stock: 'المخزون',
+      reservations: 'الحجوزات',
+      adjustments: 'التعديلات',
       sidebarLabel: 'الإدارة',
     },
     header: {

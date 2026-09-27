@@ -40,3 +40,9 @@
 .data-table-state td {
   white-space: normal;
 }
+
+.data-table-actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}

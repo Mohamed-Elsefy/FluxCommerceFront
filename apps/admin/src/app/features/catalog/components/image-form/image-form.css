@@ -1,0 +1,4 @@
+.image-form {
+  display: grid;
+  gap: var(--spacing-md);
+}

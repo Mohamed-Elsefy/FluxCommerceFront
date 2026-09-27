@@ -1,0 +1,33 @@
+<section class="variant-edit" aria-labelledby="variant-edit-title">
+  <header class="variant-edit-header">
+    <h1 id="variant-edit-title">{{ copy().heading }}</h1>
+    <p class="variant-edit-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  @if (variant().isLoading || variant().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (variant().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (initial() !== null) {
+    @if (formError() !== null) {
+      <flux-error-state
+        [title]="copy().formErrorTitle"
+        [message]="formError()"
+        [showRetry]="false"
+      />
+    }
+    <app-variant-form
+      mode="edit"
+      [initial]="initial()"
+      [copy]="formCopy()"
+      [submitting]="submitting()"
+      (save)="onSave($event)"
+      (cancelled)="onCancel()"
+    />
+  }
+</section>

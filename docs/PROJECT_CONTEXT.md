@@ -1157,22 +1157,38 @@ Catalog & Inventory**. No business features exist yet.
 
 # 34. Phase 13 — Admin Catalog & Inventory
 
-Scope:
+Status: **Complete** (2026-09-27) — see
+`docs/completed/PHASE_13_COMPLETION_REPORT.md`.
+
+Scope delivered:
 
 ### Catalog
 
-- Products
-- Variants
-- Categories
-- Images
-- Specifications
+- Products (list/create/edit/details/lifecycle)
+- Product Variants (list/details/create/edit/delete, creation-only pricing)
+- Categories (list/details/create/edit/lifecycle, flat parent model)
+- Product Images (add/edit/delete/set-primary/reorder, URL-only)
+- Product Specifications (add/edit/delete)
 
 ### Inventory
 
-- Stock
-- Reservations
-- Inventory status
-- Inventory adjustments
+- Stock (single-SKU lookup, verbatim quantities)
+- Inventory status (backend-provided state, no invented thresholds)
+- Reservations (single-id lookup, lifecycle backend-owned)
+- Inventory adjustments (additive form + confirm + backend-returned result)
+
+All Phase 13 acceptance criteria are satisfied (real backend
+contracts with contract-honest omissions pinned instead of
+fabricated, protected routes, loading/empty/error discipline, typed
+Reactive Forms with backend field-error projection, duplicate-submit
+prevention, Phase 12 primitive reuse plus two spec-pinned table
+extensions, clean feature boundaries, no duplicated business rules,
+5-culture localization with RTL-safe rendering, responsive behavior,
+unit/component specs, 13 admin catalog/inventory E2E journeys plus
+re-verified access-control suites, audit 106/106, both builds
+green). Decisions recorded in `docs/adr/027–028`. Known limitations
+and the Phase 14 handoff live in the completion report. The baseline
+is ready for **Phase 14 — Admin Orders & Payments**.
 
 ---
 
