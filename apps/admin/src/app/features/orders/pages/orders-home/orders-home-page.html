@@ -1,0 +1,28 @@
+<section class="orders-home" aria-labelledby="orders-title">
+  <header class="orders-home-header">
+    <h1 id="orders-title">{{ copy().title }}</h1>
+    <p class="orders-home-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  @if (status() === 'loading' || status() === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (status() === 'error') {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (status() === 'empty') {
+    <flux-empty-state [title]="copy().emptyTitle" [message]="copy().emptyMessage" />
+  } @else {
+    <div class="orders-home-grid">
+      <flux-card>
+        <article class="orders-home-card" [attr.aria-label]="copy().summaryHeading">
+          <h2 class="orders-home-card-title">{{ copy().summaryHeading }}</h2>
+          <p class="orders-home-card-fact">{{ copy().summaryTotal }}</p>
+        </article>
+      </flux-card>
+    </div>
+  }
+</section>

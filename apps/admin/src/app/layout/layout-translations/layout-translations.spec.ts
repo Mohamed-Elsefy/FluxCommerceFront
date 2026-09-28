@@ -12,6 +12,10 @@ describe('translateAdminLayoutKey', () => {
     expect(translateAdminLayoutKey('de', ADMIN_LAYOUT_TRANSLATION_KEYS.navHome)).toBe('Startseite');
     expect(translateAdminLayoutKey('es', ADMIN_LAYOUT_TRANSLATION_KEYS.navHome)).toBe('Inicio');
     expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.switchLabel)).toBe('اللغة');
+    expect(translateAdminLayoutKey('en', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe('Orders');
+    expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe(
+      'Commandes',
+    );
   });
 
   it('resolves header, skip-link, and account copy without key leakage', () => {

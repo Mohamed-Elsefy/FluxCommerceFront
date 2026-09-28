@@ -39,7 +39,8 @@ export interface AdminDestination {
  * Sidebar destinations — only routes that exist. The catalog group grows
  * with the slices that create their routes (products in 13.3, categories
  * in 13.5); the inventory group grows the same way (stock, reservations,
- * and adjustments in 13.9–13.10).
+ * and adjustments in 13.9–13.10); the orders group grows with the slices
+ * that create their routes (list in 14.3, details in 14.5).
  */
 export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
   { labelKey: 'layout.nav.home', route: '/', icon: '⌂' },
@@ -62,6 +63,11 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
       { labelKey: 'layout.nav.reservations', route: '/inventory/reservations' },
       { labelKey: 'layout.nav.adjustments', route: '/inventory/adjustments' },
     ],
+  },
+  {
+    labelKey: 'layout.nav.orders',
+    route: '/orders',
+    icon: '▨',
   },
 ];
 

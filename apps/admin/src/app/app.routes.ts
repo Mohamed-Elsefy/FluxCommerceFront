@@ -23,8 +23,8 @@ import { AppLayout } from './layout/app-layout/app-layout';
  *     ├── dashboard  → protected entry point
  *     ├── catalog    → Phase 13 Catalog foundation (13.2+ lazy boundary)
  *     ├── inventory  → Phase 13 Inventory foundation (13.8+ lazy boundary)
- *     ├── orders     → future (Phase 14)
- *     └── payments   → future (Phase 14)
+ *     ├── orders     → Phase 14 Orders foundation (14.2+ lazy boundary)
+ *     └── payments   → future (Phase 14, 14.6+)
  * ```
  *
  * - Anonymous navigation to the shell redirects to
@@ -67,6 +67,10 @@ export const routes: Routes = [
         path: 'inventory',
         loadChildren: () =>
           import('./features/inventory/inventory.routes').then((m) => m.inventoryRoutes),
+      },
+      {
+        path: 'orders',
+        loadChildren: () => import('./features/orders/orders.routes').then((m) => m.ordersRoutes),
       },
     ],
   },
