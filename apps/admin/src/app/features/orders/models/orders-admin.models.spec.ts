@@ -3,6 +3,7 @@ import {
   emptyOrdersOverview,
   isOrdersOverviewEmpty,
   orderStatusDisplay,
+  toOrderPaymentView,
   toOrdersOverview,
   type AdminOrderPage,
 } from './orders-admin.models';
@@ -67,5 +68,96 @@ describe('orders-admin models', () => {
       labelKey: 'orders.status.unknown',
       variant: 'neutral',
     });
+  });
+
+  it('projects the payment view from the two-step read', () => {
+    const view = toOrderPaymentView(
+      {
+        id: 'pay-1',
+        orderId: 'order-1',
+        customerId: 'cust-1',
+        amount: 59.98,
+        currency: 'USD',
+        status: 'Processing',
+        providerPaymentIntentId: 'pi_live',
+        provider: 'stripe',
+        createdAtUtc: '2026-09-28T10:00:00Z',
+        updatedAtUtc: null,
+        version: 2,
+      },
+      {
+        paymentId: 'pay-1',
+        orderId: 'order-1',
+        clientSecret: 'secret-live',
+        paymentReference: 'pi_init',
+        status: 'Pending',
+      },
+    );
+
+    expect(view).toEqual({
+      status: 'Processing',
+      reference: 'pi_live',
+      provider: 'stripe',
+      amount: 59.98,
+      currency: 'USD',
+    });
+  });
+
+  it('falls back to the initialization reference when the payment carries none', () => {
+    const view = toOrderPaymentView(
+      {
+        id: 'pay-1',
+        orderId: 'order-1',
+        customerId: 'cust-1',
+        amount: 10,
+        currency: 'USD',
+        status: 'Pending',
+        providerPaymentIntentId: null,
+        provider: null,
+        createdAtUtc: '2026-09-28T10:00:00Z',
+        updatedAtUtc: null,
+        version: 1,
+      },
+      {
+        paymentId: 'pay-1',
+        orderId: 'order-1',
+        clientSecret: 'secret-live',
+        paymentReference: 'pi_init',
+        status: 'Pending',
+      },
+    );
+
+    expect(view.reference).toBe('pi_init');
+    expect(view.provider).toBeNull();
+  });
+
+  it('never carries the client secret (no such field by construction)', () => {
+    const view = toOrderPaymentView(
+      {
+        id: 'pay-1',
+        orderId: 'order-1',
+        customerId: 'cust-1',
+        amount: 10,
+        currency: 'USD',
+        status: 'Pending',
+        providerPaymentIntentId: null,
+        provider: null,
+        createdAtUtc: '2026-09-28T10:00:00Z',
+        updatedAtUtc: null,
+        version: 1,
+      },
+      {
+        paymentId: 'pay-1',
+        orderId: 'order-1',
+        clientSecret: 'secret-live',
+        paymentReference: null,
+        status: 'Pending',
+      },
+    );
+
+    expect('clientSecret' in view).toBe(false);
+    expect(Object.keys(view).sort()).toEqual(
+      ['amount', 'currency', 'provider', 'reference', 'status'].sort(),
+    );
   });
 });

@@ -128,5 +128,49 @@
         </flux-card>
       </div>
     </section>
+
+    <section aria-labelledby="order-details-payment-title">
+      <h2 id="order-details-payment-title">{{ copy().paymentTitle }}</h2>
+      @if (paymentSlot().isLoading || paymentSlot().status === 'idle') {
+        <flux-loading-indicator [label]="copy().paymentLoading" size="sm" />
+      } @else if (paymentEmpty()) {
+        <flux-empty-state
+          [title]="copy().paymentEmptyTitle"
+          [message]="copy().paymentEmptyMessage"
+        />
+      } @else if (paymentSlot().isError) {
+        <flux-error-state
+          [title]="copy().paymentErrorTitle"
+          [message]="paymentErrorMessage()"
+          [retryLabel]="copy().retry"
+          (retry)="retryPayment()"
+        />
+      } @else if (paymentSlot().data !== null) {
+        <flux-card>
+          <dl class="order-details-facts">
+            <div>
+              <dt>{{ copy().paymentFactStatus }}</dt>
+              <dd>{{ copy().paymentStatus }}</dd>
+            </div>
+            @if (copy().paymentReference !== null) {
+              <div>
+                <dt>{{ copy().paymentFactReference }}</dt>
+                <dd>{{ copy().paymentReference }}</dd>
+              </div>
+            }
+            @if (copy().paymentProvider !== null) {
+              <div>
+                <dt>{{ copy().paymentFactProvider }}</dt>
+                <dd>{{ copy().paymentProvider }}</dd>
+              </div>
+            }
+            <div>
+              <dt>{{ copy().paymentFactAmount }}</dt>
+              <dd>{{ copy().paymentAmount }}</dd>
+            </div>
+          </dl>
+        </flux-card>
+      }
+    </section>
   }
 </section>

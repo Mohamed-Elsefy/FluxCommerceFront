@@ -3,11 +3,11 @@
  * Feature Foundation.
  *
  * Scope: the foundation READ surface (paginated order list, single
- * order read). List/filter/status UI arrives with the slices that own
- * their pages (Sub-Phases 14.3–14.5); payment reads arrive with the
- * payment slice (Sub-Phase 14.6+); `POST /orders/checkout` is the
- * customer purchase flow and is never an admin operation; cancel
- * arrives only if a future slice owns its action — none does today.
+ * order read) plus the 14.6 payment slice (by-order initialization read
+ * plus the single payment read it links to). List/filter/status UI
+ * arrives with the slices that own their pages (Sub-Phases 14.3–14.5);
+ * payment history, payment mutations, and the Stripe webhook never
+ * travel here (no contract supports them from the SPA).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §4 (orders
  * endpoints are `[Authorize]`, any authenticated JWT — NOT `Admin`-only;
@@ -39,19 +39,25 @@
  *   interceptor pipeline.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 14.3–14.5 — no pagination/filter/sort transitions, no badges, no
- *   details-page orchestration.
- * - 14.6–14.8 — no payment reads, no history, no provider integration.
- * - No checkout (customer flow), no cancel (no owning slice), no totals
- *   math, no status derivation.
+ * - 14.7–14.8 — no payment history, no failed-payments query (no such
+ *   endpoints), no payment status badge mapping (presentation only).
+ * - No checkout (customer flow), no cancel (no owning slice), no webhook
+ *   (Stripe→API only, never called by the SPA), no totals math, no
+ *   status derivation.
  */
 
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
-import type { OrderDetailsResponse, OrderSummaryResponse } from '@flux/models';
+import type {
+  OrderDetailsResponse,
+  OrderSummaryResponse,
+  PaymentInitializationResult,
+  PaymentResponse,
+} from '@flux/models';
 import {
   ApiClient,
   ORDERS_ENDPOINTS,
+  PAYMENTS_ENDPOINTS,
   toQueryParams,
   type ApiRequestOptions,
   type ApiResponseWithData,
@@ -105,6 +111,54 @@ export class OrdersAdminApiService {
     return this.api.get<ApiResponseWithData<OrderDetailsResponse>>(ORDERS_ENDPOINTS.getOrder.path, {
       ...options,
       pathParams: { orderId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `GET /api/payments/by-order/{orderId}` — payment initialization read
+   * for one order (the ONLY order→payment linkage the backend exposes:
+   * no order payload carries payment fields). Read-only: never creates a
+   * Stripe intent (saga-owned); the live `clientSecret` is re-fetched per
+   * call for the single intent per order. The admin discards the secret
+   * at the state boundary (memory-only, never stored, never rendered,
+   * never logged — see `toOrderPaymentView`).
+   * Success: `200 ApiResponse<PaymentInitializationResult>`.
+   * Failures: `400` empty id, `401` anonymous, `404` missing payment OR
+   * other-customer order (masked), `409` intent not created yet
+   * (`NotReady` — poll/retry) or terminal payment (`NotPayable`), `500`
+   * provider unreachable. `NotReady`/`NotPayable` share the `409`
+   * status with no machine code on the wire — callers branch
+   * status-first and retry without interpreting the message text.
+   */
+  paymentByOrder(
+    orderId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<PaymentInitializationResult>> {
+    return this.api.get<ApiResponseWithData<PaymentInitializationResult>>(
+      PAYMENTS_ENDPOINTS.byOrder.path,
+      {
+        ...options,
+        pathParams: { orderId, ...(options.pathParams ?? {}) },
+      },
+    );
+  }
+
+  /**
+   * `GET /api/payments/{paymentId}` — single payment read (amount,
+   * currency, provider, intent reference, status — all backend-issued,
+   * display only). The id arrives via `paymentByOrder` (no order payload
+   * carries it).
+   * Success: `200 ApiResponse<PaymentResponse>`.
+   * Failures: `401` anonymous, `404` unknown payment OR other-customer
+   * payment (masked).
+   */
+  getPayment(
+    paymentId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<PaymentResponse>> {
+    return this.api.get<ApiResponseWithData<PaymentResponse>>(PAYMENTS_ENDPOINTS.getPayment.path, {
+      ...options,
+      pathParams: { paymentId, ...(options.pathParams ?? {}) },
     });
   }
 }

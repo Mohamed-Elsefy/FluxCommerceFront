@@ -1,18 +1,19 @@
 /**
- * Delegation tests for the Sub-Phase 14.2 `OrdersAdminApiService`.
+ * Delegation tests for the Sub-Phases 14.2/14.6 `OrdersAdminApiService`.
  *
  * `ApiClient` (the shared-lib HTTP boundary, already covered by `libs/api`
  * specs) is stubbed at its typed seam so these tests own the feature logic:
- * correct route templates from `ORDERS_ENDPOINTS`, correct `pathParams`
- * interpolation keys, query funneling through `toQueryParams`, envelope
- * passthrough without unwrapping, and request-options forwarding. Errors
- * propagate untouched — the service never catches.
+ * correct route templates from `ORDERS_ENDPOINTS`/`PAYMENTS_ENDPOINTS`,
+ * correct `pathParams` interpolation keys, query funneling through
+ * `toQueryParams`, envelope passthrough without unwrapping, and
+ * request-options forwarding. Errors propagate untouched — the service
+ * never catches.
  */
 
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { ApiClient, ApiError, ORDERS_ENDPOINTS } from '@flux/api';
+import { ApiClient, ApiError, ORDERS_ENDPOINTS, PAYMENTS_ENDPOINTS } from '@flux/api';
 import { OrdersAdminApiService } from './orders-admin-api.service';
 
 function setup(): {
@@ -50,6 +51,30 @@ describe('OrdersAdminApiService routes', () => {
 
     expect(calls.paths).toEqual([ORDERS_ENDPOINTS.getOrder.path]);
     expect(calls.options).toEqual([{ pathParams: { orderId: 'order-1' } }]);
+  });
+
+  it('reads the payment initialization through the by-order route template', () => {
+    const { service, calls } = setup();
+    service.paymentByOrder('order-1').subscribe();
+
+    expect(calls.paths).toEqual([PAYMENTS_ENDPOINTS.byOrder.path]);
+    expect(calls.options).toEqual([{ pathParams: { orderId: 'order-1' } }]);
+  });
+
+  it('reads a single payment through the canonical route template', () => {
+    const { service, calls } = setup();
+    service.getPayment('pay-1').subscribe();
+
+    expect(calls.paths).toEqual([PAYMENTS_ENDPOINTS.getPayment.path]);
+    expect(calls.options).toEqual([{ pathParams: { paymentId: 'pay-1' } }]);
+  });
+
+  it('never calls the Stripe webhook from the SPA', () => {
+    const { service, calls } = setup();
+    service.paymentByOrder('order-1').subscribe();
+    service.getPayment('pay-1').subscribe();
+
+    expect(calls.paths).not.toContain(PAYMENTS_ENDPOINTS.stripeWebhook.path);
   });
 });
 

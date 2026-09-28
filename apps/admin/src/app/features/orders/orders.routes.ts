@@ -2,12 +2,14 @@ import { Routes } from '@angular/router';
 import { OrdersAdminApiService } from './data-access/orders-admin-api.service';
 import { OrderDetailsState } from './state/order-details-state';
 import { OrderListState } from './state/orders-list-state';
+import { OrderPaymentState } from './state/order-payment-state';
 import { OrdersOverviewState } from './state/orders-overview-state';
 
 /**
- * Admin Orders feature routes for Sub-Phases 14.2–14.5 — Admin Orders
+ * Admin Orders feature routes for Sub-Phases 14.2–14.6 — Admin Orders
  * Feature Foundation + Orders List & Pagination + Orders Filtering &
- * Status Presentation + Order Details & Customer Information.
+ * Status Presentation + Order Details & Customer Information + Payment
+ * Integration & Order-Payment Presentation.
  *
  * Lazy feature boundary under the guarded portal shell (`path: 'orders'`
  * in `app.routes.ts` — the shell's `authGuard` + `roleGuard` chain already
@@ -23,12 +25,18 @@ import { OrdersOverviewState } from './state/orders-overview-state';
  * (top-down matching — `list` must not parse as an id).
  *
  * Payment routes arrive with the slices that own their pages
- * (Sub-Phases 14.6–14.8) — no placeholder routes ship in the meantime.
+ * (Sub-Phases 14.7–14.8) — no placeholder routes ship in the meantime.
  */
 export const ordersRoutes: Routes = [
   {
     path: '',
-    providers: [OrdersAdminApiService, OrdersOverviewState, OrderListState, OrderDetailsState],
+    providers: [
+      OrdersAdminApiService,
+      OrdersOverviewState,
+      OrderListState,
+      OrderDetailsState,
+      OrderPaymentState,
+    ],
     children: [
       {
         path: '',

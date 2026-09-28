@@ -3,6 +3,7 @@ import { OrdersAdminApiService } from './data-access/orders-admin-api.service';
 import { ordersRoutes } from './orders.routes';
 import { OrderDetailsState } from './state/order-details-state';
 import { OrderListState } from './state/orders-list-state';
+import { OrderPaymentState } from './state/order-payment-state';
 import { OrdersOverviewState } from './state/orders-overview-state';
 
 describe('ordersRoutes', () => {
@@ -14,6 +15,7 @@ describe('ordersRoutes', () => {
       OrdersOverviewState,
       OrderListState,
       OrderDetailsState,
+      OrderPaymentState,
     ]);
   });
 

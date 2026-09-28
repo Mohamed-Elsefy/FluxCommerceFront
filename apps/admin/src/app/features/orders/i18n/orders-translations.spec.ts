@@ -61,6 +61,18 @@ describe('translateOrdersKey', () => {
     expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.detailsFactTotal)).toBe('الإجمالي');
   });
 
+  it('resolves the payment copy per culture', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.paymentTitle)).toBe('Payment');
+    expect(translateOrdersKey('fr', ORDERS_TRANSLATION_KEYS.paymentEmptyTitle)).toBe(
+      'Aucune information de paiement',
+    );
+    expect(translateOrdersKey('de', ORDERS_TRANSLATION_KEYS.paymentFactAmount)).toBe('Betrag');
+    expect(translateOrdersKey('es', ORDERS_TRANSLATION_KEYS.paymentErrorTitle)).toBe(
+      'No se pudo cargar el pago',
+    );
+    expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.paymentFactReference)).toBe('المرجع');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateOrdersKey('xx' as never, ORDERS_TRANSLATION_KEYS.title)).toBe('Orders');
     expect(translateOrdersKey('en', 'orders.missing.key')).toBe('orders.missing.key');

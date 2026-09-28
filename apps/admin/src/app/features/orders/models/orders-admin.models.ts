@@ -21,7 +21,12 @@
  */
 
 import type { PagedResult } from '@flux/api';
-import type { OrderDetailsResponse, OrderSummaryResponse } from '@flux/models';
+import type {
+  OrderDetailsResponse,
+  OrderSummaryResponse,
+  PaymentInitializationResult,
+  PaymentResponse,
+} from '@flux/models';
 import type { BadgeVariant } from '@flux/ui';
 
 /** One admin order row (canonical wire shape, never re-declared). */
@@ -103,4 +108,54 @@ export function orderStatusDisplay(status: string): OrderBadgeDisplay {
     default:
       return { labelKey: 'orders.status.unknown', variant: 'neutral' };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Order payment view (14.6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Admin order payment view: the backend-supported payment facts behind
+ * the order details payment section. Display only — no verification
+ * semantics, no lifecycle, no provider interaction.
+ *
+ * Sensitive-data rule (binds every later slice): this shape carries NO
+ * `clientSecret`. The by-order read returns a live confirmation secret,
+ * but the admin never confirms cards (no Stripe.js, no provider
+ * integration — the secret exists for the customer checkout only), so
+ * the mapper below drops it at the boundary: never stored, never
+ * rendered, never logged.
+ */
+export interface OrderPaymentView {
+  /** Backend payment status string verbatim (badge arrives in 14.7). */
+  readonly status: string;
+  /** Provider intent id (`pi_*`) for support correlation, when present. */
+  readonly reference: string | null;
+  /** Payment provider name (e.g. `stripe`), when present. */
+  readonly provider: string | null;
+  /** Backend-issued amount (display only — never an input to math). */
+  readonly amount: number;
+  /** Backend-issued ISO-4217 currency (display only). */
+  readonly currency: string;
+}
+
+/**
+ * Projects the two-step payment read (by-order initialization plus the
+ * single payment read it links to) into the admin view. The
+ * `clientSecret` is discarded here — the resulting object has no such
+ * field by construction. Reference prefers the payment read's intent id
+ * with the initialization reference as fallback. Pure — throws nothing,
+ * performs no HTTP, verifies nothing.
+ */
+export function toOrderPaymentView(
+  payment: PaymentResponse,
+  init: PaymentInitializationResult,
+): OrderPaymentView {
+  return {
+    status: payment.status,
+    reference: payment.providerPaymentIntentId ?? init.paymentReference ?? null,
+    provider: payment.provider ?? null,
+    amount: payment.amount,
+    currency: payment.currency,
+  };
 }

@@ -1,6 +1,7 @@
 /**
- * Admin order details page for Sub-Phase 14.5 — Order Details & Customer
- * Information.
+ * Admin order details page for Sub-Phases 14.5–14.6 — Order Details &
+ * Customer Information + Payment Integration & Order-Payment
+ * Presentation.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `OrderDetailsState` (route-provided `ordersRoutes` entry — never a
@@ -32,6 +33,17 @@
  * (never inputs to math). Failures resolve through
  * `resolveApiErrorMessage` (never backend text).
  *
+ * Payment section (14.6 — the only order→payment linkage the backend
+ * exposes): the by-order initialization read chained into the single
+ * payment read, rendered as backend-issued facts (status verbatim — the
+ * `PaymentStatusBadge` arrives in 14.7 — intent reference, provider,
+ * amount). The live `clientSecret` never reaches the view (discarded at
+ * the mapping boundary). `404` renders the empty notice; `409`
+ * (`NotReady` saga lag and `NotPayable` terminal share the status with
+ * no machine code on the wire) and other failures render the retryable
+ * error state. Payment lifecycle and verification stay backend-owned:
+ * this section presents, never confirms, polls, or derives.
+ *
  * Resource states: idle → loading → success | error through the shared
  * primitives with localized copy and retry. The line-items table reuses
  * the sanctioned `admin-data-table` (no fork); an order without line
@@ -41,8 +53,8 @@
  * logical properties only.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 14.6–14.8 — no payment section, no payment linkage, no history
- *   (no order payload carries payment fields).
+ * - 14.7 — no `PaymentStatusBadge`, no failed-payment presentation.
+ * - 14.8 — no payment history (no such endpoint).
  * - No admin mutations (no cancel/confirm/refund actions exist for any
  *   slice to own).
  */
@@ -66,22 +78,32 @@ import {
   resolveApiErrorMessage,
   translateKey,
 } from '@flux/i18n';
-import { Card, ErrorState, LoadingIndicator } from '@flux/ui';
+import { Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import type { OrderLineItemResponse } from '@flux/models';
 import { AdminDataTable, type AdminDataColumn } from '../../../../shared/data-table/data-table';
 import { OrderStatusBadge } from '../../components/order-status-badge/order-status-badge';
 import { OrderDetailsState } from '../../state/order-details-state';
+import { OrderPaymentState } from '../../state/order-payment-state';
 import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-translations';
 
 @Component({
   selector: 'app-order-details-page',
-  imports: [RouterLink, AdminDataTable, Card, ErrorState, LoadingIndicator, OrderStatusBadge],
+  imports: [
+    RouterLink,
+    AdminDataTable,
+    Card,
+    EmptyState,
+    ErrorState,
+    LoadingIndicator,
+    OrderStatusBadge,
+  ],
   templateUrl: './order-details-page.html',
   styleUrl: './order-details-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrderDetailsPage {
   private readonly details = inject(OrderDetailsState);
+  private readonly payment = inject(OrderPaymentState);
   private readonly cultures = inject(CultureService);
 
   /** Route order id (`null` until the first param emission). */
@@ -93,16 +115,21 @@ export class OrderDetailsPage {
   /** Current order details (idle → loading → success | error). */
   protected readonly order = this.details.order;
 
+  /** Current order payment (idle → loading → success | error). */
+  protected readonly paymentSlot = this.payment.payment;
+
   constructor() {
-    // Drives the slot from the route id (initial value included,
+    // Drives both slots from the route id (initial value included,
     // changes followed). Runs `untracked` on purpose: loads read and
-    // write the slot, so without `untracked` every settled response
+    // write the slots, so without `untracked` every settled response
     // would reschedule the effect into an infinite fetch loop. The
-    // effect depends on the route id alone.
+    // effect depends on the route id alone. The payment slot stays
+    // independent — its failures never hide settled order facts.
     effect(() => {
       const id = this.orderId();
       untracked(() => {
         this.details.load(id);
+        this.payment.load(id);
       });
     });
   }
@@ -111,6 +138,7 @@ export class OrderDetailsPage {
   protected readonly copy = computed(() => {
     const culture = this.cultures.culture();
     const order = this.order().data;
+    const payment = this.paymentSlot().data;
     return {
       back: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsBack),
       loading: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsLoading),
@@ -158,6 +186,23 @@ export class OrderDetailsPage {
       addrRegion: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsAddrRegion),
       addrPostal: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsAddrPostal),
       addrCountry: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.detailsAddrCountry),
+      paymentTitle: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentTitle),
+      paymentLoading: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentLoading),
+      paymentEmptyTitle: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentEmptyTitle),
+      paymentEmptyMessage: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentEmptyMessage),
+      paymentErrorTitle: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentErrorTitle),
+      paymentFactStatus: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentFactStatus),
+      paymentFactReference: translateOrdersKey(
+        culture,
+        ORDERS_TRANSLATION_KEYS.paymentFactReference,
+      ),
+      paymentFactProvider: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentFactProvider),
+      paymentFactAmount: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentFactAmount),
+      paymentStatus: payment?.status ?? '',
+      paymentReference: payment?.reference ?? null,
+      paymentProvider: payment?.provider ?? null,
+      paymentAmount:
+        payment === null ? '' : formatCurrency(payment.amount, payment.currency, culture),
     };
   });
 
@@ -198,9 +243,22 @@ export class OrderDetailsPage {
     resolveApiErrorMessage(this.order().error, this.cultures.culture()),
   );
 
+  /** Localized payment failure message (never backend text). */
+  protected readonly paymentErrorMessage = computed(() =>
+    resolveApiErrorMessage(this.paymentSlot().error, this.cultures.culture()),
+  );
+
+  /** Whether the payment slot settled with no payment (missing or masked). */
+  protected readonly paymentEmpty = computed(() => this.paymentSlot().error?.status === 404);
+
   /** Details retry reloads the slot for the current route id. */
   protected retry(): void {
     this.details.load(this.orderId());
+  }
+
+  /** Payment retry reloads the payment slot for the current route id. */
+  protected retryPayment(): void {
+    this.payment.load(this.orderId());
   }
 }
 

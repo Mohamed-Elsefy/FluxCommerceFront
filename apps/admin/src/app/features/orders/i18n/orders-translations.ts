@@ -75,6 +75,15 @@ export const ORDERS_TRANSLATION_KEYS = {
   detailsAddrRegion: 'orders.details.addrRegion',
   detailsAddrPostal: 'orders.details.addrPostal',
   detailsAddrCountry: 'orders.details.addrCountry',
+  paymentTitle: 'orders.payment.title',
+  paymentLoading: 'orders.payment.loading',
+  paymentEmptyTitle: 'orders.payment.emptyTitle',
+  paymentEmptyMessage: 'orders.payment.emptyMessage',
+  paymentErrorTitle: 'orders.payment.errorTitle',
+  paymentFactStatus: 'orders.payment.factStatus',
+  paymentFactReference: 'orders.payment.factReference',
+  paymentFactProvider: 'orders.payment.factProvider',
+  paymentFactAmount: 'orders.payment.factAmount',
 } as const;
 
 /** English (`en`) orders vocabulary. Also the deterministic fallback source. */
@@ -144,6 +153,17 @@ const EN_ORDERS: TranslationDictionary = {
       addrRegion: 'Region',
       addrPostal: 'Postal code',
       addrCountry: 'Country',
+    },
+    payment: {
+      title: 'Payment',
+      loading: 'Loading payment…',
+      emptyTitle: 'No payment information',
+      emptyMessage: 'This order has no payment yet.',
+      errorTitle: 'Could not load payment',
+      factStatus: 'Status',
+      factReference: 'Reference',
+      factProvider: 'Provider',
+      factAmount: 'Amount',
     },
   },
 };
@@ -216,6 +236,17 @@ const FR_ORDERS: TranslationDictionary = {
       addrPostal: 'Code postal',
       addrCountry: 'Pays',
     },
+    payment: {
+      title: 'Paiement',
+      loading: 'Chargement du paiement…',
+      emptyTitle: 'Aucune information de paiement',
+      emptyMessage: 'Cette commande n’a pas encore de paiement.',
+      errorTitle: 'Impossible de charger le paiement',
+      factStatus: 'Statut',
+      factReference: 'Référence',
+      factProvider: 'Prestataire',
+      factAmount: 'Montant',
+    },
   },
 };
 
@@ -286,6 +317,17 @@ const DE_ORDERS: TranslationDictionary = {
       addrRegion: 'Region',
       addrPostal: 'Postleitzahl',
       addrCountry: 'Land',
+    },
+    payment: {
+      title: 'Zahlung',
+      loading: 'Zahlung wird geladen…',
+      emptyTitle: 'Keine Zahlungsinformationen',
+      emptyMessage: 'Diese Bestellung hat noch keine Zahlung.',
+      errorTitle: 'Zahlung konnte nicht geladen werden',
+      factStatus: 'Status',
+      factReference: 'Referenz',
+      factProvider: 'Anbieter',
+      factAmount: 'Betrag',
     },
   },
 };
@@ -358,6 +400,17 @@ const ES_ORDERS: TranslationDictionary = {
       addrPostal: 'Código postal',
       addrCountry: 'País',
     },
+    payment: {
+      title: 'Pago',
+      loading: 'Cargando pago…',
+      emptyTitle: 'Sin información de pago',
+      emptyMessage: 'Este pedido aún no tiene pago.',
+      errorTitle: 'No se pudo cargar el pago',
+      factStatus: 'Estado',
+      factReference: 'Referencia',
+      factProvider: 'Proveedor',
+      factAmount: 'Importe',
+    },
   },
 };
 
@@ -428,6 +481,17 @@ const AR_ORDERS: TranslationDictionary = {
       addrRegion: 'المنطقة',
       addrPostal: 'الرمز البريدي',
       addrCountry: 'البلد',
+    },
+    payment: {
+      title: 'الدفع',
+      loading: 'جارٍ تحميل الدفع…',
+      emptyTitle: 'لا توجد معلومات دفع',
+      emptyMessage: 'لا يوجد دفع لهذا الطلب بعد.',
+      errorTitle: 'تعذّر تحميل الدفع',
+      factStatus: 'الحالة',
+      factReference: 'المرجع',
+      factProvider: 'المزوّد',
+      factAmount: 'المبلغ',
     },
   },
 };

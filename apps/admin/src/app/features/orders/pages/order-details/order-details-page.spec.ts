@@ -16,7 +16,58 @@ import {
 import { CultureService } from '@flux/i18n';
 import type { OrderDetailsResponse } from '@flux/models';
 import { OrderDetailsState } from '../../state/order-details-state';
+import { OrderPaymentState } from '../../state/order-payment-state';
+import type { OrderPaymentView } from '../../models/orders-admin.models';
 import { OrderDetailsPage } from './order-details-page';
+
+function paymentView(overrides: Partial<OrderPaymentView> = {}): OrderPaymentView {
+  return {
+    status: 'Processing',
+    reference: 'pi_live',
+    provider: 'stripe',
+    amount: 59.98,
+    currency: 'USD',
+    ...overrides,
+  };
+}
+
+function setup(scenario: {
+  order: ResourceState<OrderDetailsResponse>;
+  payment?: ResourceState<OrderPaymentView>;
+}): {
+  load: ReturnType<typeof vi.fn>;
+  loadPayment: ReturnType<typeof vi.fn>;
+} {
+  const load = vi.fn();
+  const loadPayment = vi.fn();
+  TestBed.configureTestingModule({
+    providers: [
+      provideAppEnvironment({
+        name: 'development',
+        production: false,
+        appName: 'test',
+        apiBaseUrl: '/api',
+      }),
+      provideApi(),
+      provideHttpClientTesting(),
+      provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of(convertToParamMap({ id: 'order-1' })) },
+      },
+      { provide: OrderDetailsState, useValue: { order: signal(scenario.order), load } },
+      {
+        provide: OrderPaymentState,
+        useValue: {
+          payment: signal(scenario.payment ?? successResource(paymentView())),
+          load: loadPayment,
+        },
+      },
+    ],
+  });
+  window.localStorage.clear();
+  return { load, loadPayment };
+}
 
 function address() {
   return {
@@ -56,32 +107,6 @@ function order(overrides: Partial<OrderDetailsResponse> = {}): OrderDetailsRespo
     ],
     ...overrides,
   };
-}
-
-function setup(scenario: { order: ResourceState<OrderDetailsResponse> }): {
-  load: ReturnType<typeof vi.fn>;
-} {
-  const load = vi.fn();
-  TestBed.configureTestingModule({
-    providers: [
-      provideAppEnvironment({
-        name: 'development',
-        production: false,
-        appName: 'test',
-        apiBaseUrl: '/api',
-      }),
-      provideApi(),
-      provideHttpClientTesting(),
-      provideRouter([]),
-      {
-        provide: ActivatedRoute,
-        useValue: { paramMap: of(convertToParamMap({ id: 'order-1' })) },
-      },
-      { provide: OrderDetailsState, useValue: { order: signal(scenario.order), load } },
-    ],
-  });
-  window.localStorage.clear();
-  return { load };
 }
 
 function render(): HTMLElement {
@@ -164,5 +189,60 @@ describe('OrderDetailsPage', () => {
     } finally {
       cultures.setCulture('en');
     }
+  });
+
+  it('loads the payment for the route id and renders its facts', () => {
+    const { loadPayment } = setup({ order: successResource(order()) });
+    const element = render();
+
+    expect(loadPayment).toHaveBeenCalledTimes(1);
+    expect(loadPayment).toHaveBeenCalledWith('order-1');
+    expect(element.textContent).toContain('Payment');
+    expect(element.textContent).toContain('Processing');
+    expect(element.textContent).toContain('pi_live');
+    expect(element.textContent).toContain('stripe');
+  });
+
+  it('renders the payment empty notice when no payment exists', () => {
+    setup({
+      order: successResource(order()),
+      payment: errorResource<OrderPaymentView>(
+        new ApiError({ status: 404, message: 'Not found.' }),
+      ),
+    });
+    const element = render();
+
+    expect(element.querySelector('h1')?.textContent).toBe('ORD-ABC123');
+    expect(element.textContent).toContain('No payment information');
+    expect(element.textContent).toContain('This order has no payment yet.');
+  });
+
+  it('renders the payment error state with retry that reloads the payment', () => {
+    const { loadPayment } = setup({
+      order: successResource(order()),
+      payment: errorResource<OrderPaymentView>(new ApiError({ status: 409, message: 'Conflict.' })),
+    });
+    const element = render();
+
+    expect(element.textContent).toContain('Could not load payment');
+
+    loadPayment.mockClear();
+    const errors = [...element.querySelectorAll('flux-error-state button')];
+    (errors[errors.length - 1] as HTMLButtonElement).click();
+
+    expect(loadPayment).toHaveBeenCalledTimes(1);
+    expect(loadPayment).toHaveBeenCalledWith('order-1');
+  });
+
+  it('renders the payment loading state while the payment loads', () => {
+    setup({
+      order: successResource(order()),
+      payment: loadingResource<OrderPaymentView>(),
+    });
+    const element = render();
+
+    expect(element.textContent).toContain('Payment');
+    expect(element.textContent).toContain('Loading payment…');
+    expect(element.querySelector('h1')?.textContent).toBe('ORD-ABC123');
   });
 });
