@@ -8,7 +8,7 @@
  * mapping, not the math.
  */
 
-import { Component, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, TemplateRef, viewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -155,6 +155,59 @@ describe('AdminDataTable', () => {
 
     expect(element.querySelector('td.data-table-actions')).toBeNull();
     expect(element.querySelectorAll('thead th')).toHaveLength(2);
+  });
+
+  it('projects per-column cell templates with row and index context', () => {
+    @Component({
+      selector: 'cell-table-host',
+      imports: [AdminDataTable],
+      template: `
+        <admin-data-table [columns]="columns()" [rows]="rows" emptyTitle="No products" />
+        <ng-template #nameCell let-row let-index="index">
+          <strong [attr.data-sku]="row.sku" [attr.data-index]="index">{{ row.name }}</strong>
+        </ng-template>
+      `,
+    })
+    class CellHost {
+      readonly rows: readonly ProductRow[] = ROWS;
+      readonly nameTpl = viewChild<TemplateRef<AdminDataRowContext<ProductRow>>>('nameCell');
+      readonly columns = computed((): readonly AdminDataColumn<ProductRow>[] => [
+        { key: 'sku', header: 'SKU', value: (row) => row.sku },
+        { key: 'name', header: 'Name', value: (row) => row.name, template: this.nameTpl() ?? null },
+      ]);
+    }
+
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(CellHost);
+    fixture.detectChanges();
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const cells = [...element.querySelectorAll('tbody tr td:last-child strong')];
+    expect(cells).toHaveLength(2);
+    expect(cells.map((cell) => cell.getAttribute('data-sku'))).toEqual(['SKU-1', 'SKU-2']);
+    expect(cells.map((cell) => cell.getAttribute('data-index'))).toEqual(['0', '1']);
+    expect(cells.map((cell) => cell.textContent?.trim())).toEqual(['First', 'Second']);
+  });
+
+  it('renders text cells for columns without a template', () => {
+    const { element } = setup({
+      columns: [
+        { key: 'sku', header: 'SKU', value: (row) => row.sku },
+        { key: 'name', header: 'Name', value: (row) => row.name, template: null },
+      ],
+      rows: ROWS,
+    });
+
+    expect(element.querySelector('tbody strong')).toBeNull();
+    expect(
+      [...element.querySelectorAll('tbody tr')].map((row) =>
+        [...row.querySelectorAll('td')].map((cell) => cell.textContent?.trim()),
+      ),
+    ).toEqual([
+      ['SKU-1', 'First'],
+      ['SKU-2', 'Second'],
+    ]);
   });
 
   it('keeps table semantics inside a scrollable region', () => {

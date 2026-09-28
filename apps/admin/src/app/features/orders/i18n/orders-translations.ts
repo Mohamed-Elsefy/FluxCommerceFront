@@ -45,6 +45,10 @@ export const ORDERS_TRANSLATION_KEYS = {
   paginationPrevious: 'orders.pagination.previous',
   paginationNext: 'orders.pagination.next',
   paginationLast: 'orders.pagination.last',
+  statusPending: 'orders.status.pending',
+  statusCancelled: 'orders.status.cancelled',
+  statusConfirmed: 'orders.status.confirmed',
+  statusUnknown: 'orders.status.unknown',
 } as const;
 
 /** English (`en`) orders vocabulary. Also the deterministic fallback source. */
@@ -80,6 +84,12 @@ const EN_ORDERS: TranslationDictionary = {
       previous: 'Previous',
       next: 'Next',
       last: 'Last',
+    },
+    status: {
+      pending: 'Pending',
+      cancelled: 'Cancelled',
+      confirmed: 'Confirmed',
+      unknown: 'Unknown ({value})',
     },
   },
 };
@@ -118,6 +128,12 @@ const FR_ORDERS: TranslationDictionary = {
       next: 'Suivante',
       last: 'Dernière',
     },
+    status: {
+      pending: 'En attente',
+      cancelled: 'Annulée',
+      confirmed: 'Confirmée',
+      unknown: 'Inconnu ({value})',
+    },
   },
 };
 
@@ -154,6 +170,12 @@ const DE_ORDERS: TranslationDictionary = {
       previous: 'Zurück',
       next: 'Weiter',
       last: 'Letzte',
+    },
+    status: {
+      pending: 'Ausstehend',
+      cancelled: 'Storniert',
+      confirmed: 'Bestätigt',
+      unknown: 'Unbekannt ({value})',
     },
   },
 };
@@ -192,6 +214,12 @@ const ES_ORDERS: TranslationDictionary = {
       next: 'Siguiente',
       last: 'Última',
     },
+    status: {
+      pending: 'Pendiente',
+      cancelled: 'Cancelado',
+      confirmed: 'Confirmado',
+      unknown: 'Desconocido ({value})',
+    },
   },
 };
 
@@ -228,6 +256,12 @@ const AR_ORDERS: TranslationDictionary = {
       previous: 'السابقة',
       next: 'التالية',
       last: 'الأخيرة',
+    },
+    status: {
+      pending: 'معلّق',
+      cancelled: 'ملغى',
+      confirmed: 'مؤكّد',
+      unknown: 'غير معروف ({value})',
     },
   },
 };

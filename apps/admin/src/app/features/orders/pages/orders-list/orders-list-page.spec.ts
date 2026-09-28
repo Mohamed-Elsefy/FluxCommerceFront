@@ -89,6 +89,23 @@ describe('OrdersListPage', () => {
     expect(element.querySelector('admin-pagination')).not.toBeNull();
   });
 
+  it('renders one status badge per row through the cell template', () => {
+    setup({
+      page: successResource<AdminOrderPage>({
+        items: [row('o1', 'ORD-AAA'), row('o2', 'ORD-BBB')],
+        totalCount: 2,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const element = render();
+
+    const badges = [...element.querySelectorAll('tbody app-order-status-badge flux-badge .badge')];
+    expect(badges).toHaveLength(2);
+    expect(badges.map((badge) => badge.textContent?.trim())).toEqual(['Pending', 'Pending']);
+    expect(badges.map((badge) => badge.getAttribute('data-variant'))).toEqual(['info', 'info']);
+  });
+
   it('commits pager moves through the state', () => {
     const { setPage } = setup({
       page: successResource<AdminOrderPage>({

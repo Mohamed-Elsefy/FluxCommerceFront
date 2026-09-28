@@ -1,7 +1,8 @@
 /**
  * Generic admin data table for Sub-Phase 12.5 — Admin Table & Pagination
  * Primitives (extended in 13.3 with per-column row links, in 13.6 with
- * a projected row-actions column).
+ * a projected row-actions column, in 14.4 with per-column cell
+ * templates).
  *
  * Presentation only: renders HOW rows look (typed columns, headers, a
  * scrollable responsive wrapper, loading and empty states through the
@@ -17,7 +18,10 @@
  * component never invents formatting. Columns may additionally expose a
  * row link (`(row) => string | null`, e.g. a details route): linked cells
  * render a real anchor (deep-linkable, keyboard- and screen-reader-safe);
- * `null` renders plain text. Row actions (edit/delete/reorder buttons
+ * `null` renders plain text. A column may instead project a cell template
+ * (`template` with `$implicit: row` and `index`, e.g. a status badge):
+ * templated cells render the owner-provided content and skip the
+ * text/link rendering. Row actions (edit/delete/reorder buttons
  * and friends) arrive as a projected template (`actionsTemplate` with
  * `$implicit: row` and `index`) under an owner-localized `actionsHeader`
  * — the feature owns every behavior, this component only reserves the
@@ -51,8 +55,16 @@ export interface AdminDataColumn<T> {
   /**
    * Optional row link for the cell (feature-owned route, e.g. a details
    * page). `null` renders plain text — links never invent destinations.
+   * Ignored when `template` is present (the template owns its content).
    */
   readonly link?: (row: T) => string | null;
+  /**
+   * Optional cell template (feature-owned content, e.g. a status badge).
+   * Context is `{ $implicit: row, index }` (see `AdminDataRowContext`).
+   * `null`/absent renders the text/link cell. Business-free by design:
+   * the table reserves the cell, the feature owns every behavior.
+   */
+  readonly template?: TemplateRef<AdminDataRowContext<T>> | null;
 }
 
 @Component({

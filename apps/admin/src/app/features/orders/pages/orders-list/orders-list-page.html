@@ -23,6 +23,9 @@
       [emptyMessage]="copy().emptyMessage"
       [loadingLabel]="copy().loading"
     />
+    <ng-template #statusCell let-order>
+      <app-order-status-badge [status]="order.status" />
+    </ng-template>
     @if (showPager() && slot().data !== null) {
       <admin-pagination
         [page]="slot().data!.pageNumber"

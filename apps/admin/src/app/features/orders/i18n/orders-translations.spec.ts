@@ -36,6 +36,17 @@ describe('translateOrdersKey', () => {
     expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.paginationNext)).toBe('التالية');
   });
 
+  it('resolves the status labels per culture', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusPending)).toBe('Pending');
+    expect(translateOrdersKey('fr', ORDERS_TRANSLATION_KEYS.statusConfirmed)).toBe('Confirmée');
+    expect(translateOrdersKey('de', ORDERS_TRANSLATION_KEYS.statusCancelled)).toBe('Storniert');
+    expect(translateOrdersKey('es', ORDERS_TRANSLATION_KEYS.statusPending)).toBe('Pendiente');
+    expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.statusConfirmed)).toBe('مؤكّد');
+    expect(
+      translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.statusUnknown, { value: 'Shipped' }),
+    ).toBe('Unknown (Shipped)');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateOrdersKey('xx' as never, ORDERS_TRANSLATION_KEYS.title)).toBe('Orders');
     expect(translateOrdersKey('en', 'orders.missing.key')).toBe('orders.missing.key');

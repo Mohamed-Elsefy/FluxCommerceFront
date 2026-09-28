@@ -1,5 +1,6 @@
 /**
- * Admin orders list page for Sub-Phase 14.3 — Orders List & Pagination.
+ * Admin orders list page for Sub-Phases 14.3–14.4 — Orders List &
+ * Pagination + Orders Filtering & Status Presentation.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `OrderListState` (route-provided `ordersRoutes` entry — never a global
@@ -20,14 +21,19 @@
  * `GET /orders` exposes paging only (`pageNumber`/`pageSize`, fixed
  * newest-first, caller-owned) — no `sortBy`, no filters, no search on
  * order rows. Sorting/filtering UI therefore does not exist here by
- * design; the table shows every backend-issued summary field the
- * contract carries (order number, status, grand total, item count,
- * creation time). Pager values always come from the RESPONSE envelope
- * (effective `pageNumber`/`pageSize`/`totalCount`) with page counts from
- * the shared `totalPagesOf` helper. Status renders as verbatim wire
- * text — the localized `OrderStatusBadge` arrives with Sub-Phase 14.4,
- * which owns status presentation. Money and counts render
- * culture-formatted for display only (never inputs to math).
+ * design (Sub-Phase 14.4 confirms the supported filter set is empty:
+ * status filtering has no backend contract, so no filter controls, no
+ * debounce, and no filter-driven reloads ship — the 14.1
+ * `order-status-filter` gap stays pinned instead of fabricated); the
+ * table shows every backend-issued summary field the contract carries
+ * (order number, status, grand total, item count, creation time).
+ * Pager values always come from the RESPONSE envelope (effective
+ * `pageNumber`/`pageSize`/`totalCount`) with page counts from the
+ * shared `totalPagesOf` helper. Status renders through the feature-owned
+ * `OrderStatusBadge` (localized label + tone, verbatim fallback for
+ * unknown values — the single status mapping site, no scattered string
+ * comparisons). Money and counts render culture-formatted for display
+ * only (never inputs to math).
  *
  * Resource states: idle → loading → success | empty | error through the
  * shared primitives with localized copy and retry (out-of-range pages
@@ -40,12 +46,19 @@
  * logical properties only.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 14.4 — no filters, no status badge, no localized status labels.
  * - 14.5 — no details navigation, no address rendering.
  * - 14.6–14.8 — no payment presentation.
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import {
   CultureService,
   formatCurrency,
@@ -55,18 +68,23 @@ import {
   translateKey,
 } from '@flux/i18n';
 import { ErrorState } from '@flux/ui';
-import { AdminDataTable, type AdminDataColumn } from '../../../../shared/data-table/data-table';
+import {
+  AdminDataTable,
+  type AdminDataColumn,
+  type AdminDataRowContext,
+} from '../../../../shared/data-table/data-table';
 import {
   AdminPagination,
   type AdminPaginationCopy,
 } from '../../../../shared/pagination/pagination';
+import { OrderStatusBadge } from '../../components/order-status-badge/order-status-badge';
 import { OrderListState } from '../../state/orders-list-state';
 import type { AdminOrderRow } from '../../models/orders-admin.models';
 import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-translations';
 
 @Component({
   selector: 'app-orders-list-page',
-  imports: [AdminDataTable, AdminPagination, ErrorState],
+  imports: [AdminDataTable, AdminPagination, ErrorState, OrderStatusBadge],
   templateUrl: './orders-list-page.html',
   styleUrl: './orders-list-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +92,10 @@ import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-t
 export class OrdersListPage implements OnInit {
   private readonly orders = inject(OrderListState);
   private readonly cultures = inject(CultureService);
+
+  /** Status cell template (badge per row — resolved after view init). */
+  private readonly statusCell =
+    viewChild<TemplateRef<AdminDataRowContext<AdminOrderRow>>>('statusCell');
 
   /** Current order page (idle → loading → success | empty | error). */
   protected readonly slot = this.orders.page;
@@ -97,6 +119,7 @@ export class OrdersListPage implements OnInit {
         key: 'status',
         header: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listColStatus),
         value: (row) => row.status,
+        template: this.statusCell() ?? null,
       },
       {
         key: 'total',

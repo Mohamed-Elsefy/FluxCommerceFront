@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   emptyOrdersOverview,
   isOrdersOverviewEmpty,
+  orderStatusDisplay,
   toOrdersOverview,
   type AdminOrderPage,
 } from './orders-admin.models';
@@ -36,5 +37,35 @@ describe('orders-admin models', () => {
     expect(isOrdersOverviewEmpty(null)).toBe(true);
     expect(isOrdersOverviewEmpty({ orderTotal: 0 })).toBe(true);
     expect(isOrdersOverviewEmpty({ orderTotal: 3 })).toBe(false);
+  });
+
+  it('maps backend order statuses to display (single mapping site)', () => {
+    expect(orderStatusDisplay('Pending')).toEqual({
+      labelKey: 'orders.status.pending',
+      variant: 'info',
+    });
+    expect(orderStatusDisplay('Confirmed')).toEqual({
+      labelKey: 'orders.status.confirmed',
+      variant: 'success',
+    });
+    expect(orderStatusDisplay('Cancelled')).toEqual({
+      labelKey: 'orders.status.cancelled',
+      variant: 'danger',
+    });
+  });
+
+  it('falls back to neutral for unknown and payment-only values', () => {
+    expect(orderStatusDisplay('Shipped')).toEqual({
+      labelKey: 'orders.status.unknown',
+      variant: 'neutral',
+    });
+    expect(orderStatusDisplay('Succeeded')).toEqual({
+      labelKey: 'orders.status.unknown',
+      variant: 'neutral',
+    });
+    expect(orderStatusDisplay('')).toEqual({
+      labelKey: 'orders.status.unknown',
+      variant: 'neutral',
+    });
   });
 });
