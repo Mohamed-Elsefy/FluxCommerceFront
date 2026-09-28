@@ -1,0 +1,132 @@
+<section class="order-details" aria-labelledby="order-details-title">
+  <a class="order-details-back" routerLink="/orders/list">{{ copy().back }}</a>
+
+  @if (order().isLoading || order().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (order().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (order().data !== null) {
+    <header class="order-details-header">
+      <h1 id="order-details-title">{{ copy().orderNumber }}</h1>
+      <div class="order-details-badges">
+        <app-order-status-badge [status]="order().data!.status" />
+      </div>
+    </header>
+
+    <flux-card>
+      <dl class="order-details-facts">
+        <div>
+          <dt>{{ copy().factNumber }}</dt>
+          <dd>{{ copy().orderNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factItems }}</dt>
+          <dd>{{ copy().items }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factCreated }}</dt>
+          <dd>{{ copy().created }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factSubtotal }}</dt>
+          <dd>{{ copy().subtotal }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factShipping }}</dt>
+          <dd>{{ copy().shipping }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factDiscount }}</dt>
+          <dd>{{ copy().discount }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factTotal }}</dt>
+          <dd>{{ copy().total }}</dd>
+        </div>
+      </dl>
+    </flux-card>
+
+    <section aria-labelledby="order-details-items-title">
+      <h2 id="order-details-items-title">{{ copy().itemsTitle }}</h2>
+      <admin-data-table
+        [columns]="itemColumns()"
+        [rows]="order().data!.lineItems"
+        [caption]="copy().itemsTitle"
+        [emptyTitle]="copy().itemsEmpty"
+      />
+    </section>
+
+    <section aria-labelledby="order-details-customer-title">
+      <h2 id="order-details-customer-title">{{ copy().customerTitle }}</h2>
+      <div class="order-details-addresses">
+        <flux-card>
+          <article [attr.aria-label]="copy().shippingTitle">
+            <h3 class="order-details-address-title">{{ copy().shippingTitle }}</h3>
+            <dl class="order-details-facts">
+              <div>
+                <dt>{{ copy().addrRecipient }}</dt>
+                <dd>{{ order().data!.shippingAddress.recipientName }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrStreet }}</dt>
+                <dd>{{ shippingStreet() }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCity }}</dt>
+                <dd>{{ order().data!.shippingAddress.city }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrRegion }}</dt>
+                <dd>{{ order().data!.shippingAddress.region }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrPostal }}</dt>
+                <dd>{{ order().data!.shippingAddress.postalCode }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCountry }}</dt>
+                <dd>{{ order().data!.shippingAddress.countryCode }}</dd>
+              </div>
+            </dl>
+          </article>
+        </flux-card>
+        <flux-card>
+          <article [attr.aria-label]="copy().billingTitle">
+            <h3 class="order-details-address-title">{{ copy().billingTitle }}</h3>
+            <dl class="order-details-facts">
+              <div>
+                <dt>{{ copy().addrRecipient }}</dt>
+                <dd>{{ order().data!.billingAddress.recipientName }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrStreet }}</dt>
+                <dd>{{ billingStreet() }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCity }}</dt>
+                <dd>{{ order().data!.billingAddress.city }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrRegion }}</dt>
+                <dd>{{ order().data!.billingAddress.region }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrPostal }}</dt>
+                <dd>{{ order().data!.billingAddress.postalCode }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCountry }}</dt>
+                <dd>{{ order().data!.billingAddress.countryCode }}</dd>
+              </div>
+            </dl>
+          </article>
+        </flux-card>
+      </div>
+    </section>
+  }
+</section>

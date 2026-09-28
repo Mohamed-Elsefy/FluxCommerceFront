@@ -47,6 +47,20 @@ describe('translateOrdersKey', () => {
     ).toBe('Unknown (Shipped)');
   });
 
+  it('resolves the details copy per culture', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.detailsBack)).toBe('Back to orders');
+    expect(translateOrdersKey('fr', ORDERS_TRANSLATION_KEYS.detailsCustomerTitle)).toBe(
+      'Informations client',
+    );
+    expect(translateOrdersKey('de', ORDERS_TRANSLATION_KEYS.detailsItemsTitle)).toBe(
+      'Bestellpositionen',
+    );
+    expect(translateOrdersKey('es', ORDERS_TRANSLATION_KEYS.detailsColLineTotal)).toBe(
+      'Total de línea',
+    );
+    expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.detailsFactTotal)).toBe('الإجمالي');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateOrdersKey('xx' as never, ORDERS_TRANSLATION_KEYS.title)).toBe('Orders');
     expect(translateOrdersKey('en', 'orders.missing.key')).toBe('orders.missing.key');

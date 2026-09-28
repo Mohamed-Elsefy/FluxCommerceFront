@@ -65,7 +65,7 @@ function render(): HTMLElement {
 }
 
 describe('OrdersListPage', () => {
-  it('loads the first page on init and renders rows with pager and no links', () => {
+  it('loads the first page on init and renders rows with pager and details links', () => {
     const { load } = setup({
       page: successResource<AdminOrderPage>({
         items: [row('o1', 'ORD-AAA'), row('o2', 'ORD-BBB')],
@@ -85,7 +85,8 @@ describe('OrdersListPage', () => {
     expect(body[0]?.[0]).toBe('ORD-AAA');
     expect(body[0]?.[1]).toBe('Pending');
     expect(body[1]?.[0]).toBe('ORD-BBB');
-    expect(element.querySelector('tbody td a')).toBeNull();
+    const links = [...element.querySelectorAll('tbody td a')];
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/orders/o1', '/orders/o2']);
     expect(element.querySelector('admin-pagination')).not.toBeNull();
   });
 

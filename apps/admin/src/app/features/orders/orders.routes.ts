@@ -1,11 +1,13 @@
 import { Routes } from '@angular/router';
 import { OrdersAdminApiService } from './data-access/orders-admin-api.service';
+import { OrderDetailsState } from './state/order-details-state';
 import { OrderListState } from './state/orders-list-state';
 import { OrdersOverviewState } from './state/orders-overview-state';
 
 /**
- * Admin Orders feature routes for Sub-Phases 14.2–14.3 — Admin Orders
- * Feature Foundation + Orders List & Pagination.
+ * Admin Orders feature routes for Sub-Phases 14.2–14.5 — Admin Orders
+ * Feature Foundation + Orders List & Pagination + Orders Filtering &
+ * Status Presentation + Order Details & Customer Information.
  *
  * Lazy feature boundary under the guarded portal shell (`path: 'orders'`
  * in `app.routes.ts` — the shell's `authGuard` + `roleGuard` chain already
@@ -16,15 +18,17 @@ import { OrdersOverviewState } from './state/orders-overview-state';
  *
  * The API service and every feature state are provided once at the
  * feature root, so all orders pages share one transport seam and one
- * state family without root singletons or a global store.
+ * state family without root singletons or a global store. Route order
+ * matters: the static `list` segment precedes the `:id` sibling
+ * (top-down matching — `list` must not parse as an id).
  *
- * Details and payment routes arrive with the slices that own their pages
- * (Sub-Phases 14.5–14.8) — no placeholder routes ship in the meantime.
+ * Payment routes arrive with the slices that own their pages
+ * (Sub-Phases 14.6–14.8) — no placeholder routes ship in the meantime.
  */
 export const ordersRoutes: Routes = [
   {
     path: '',
-    providers: [OrdersAdminApiService, OrdersOverviewState, OrderListState],
+    providers: [OrdersAdminApiService, OrdersOverviewState, OrderListState, OrderDetailsState],
     children: [
       {
         path: '',
@@ -35,6 +39,11 @@ export const ordersRoutes: Routes = [
         path: 'list',
         loadComponent: () =>
           import('./pages/orders-list/orders-list-page').then((m) => m.OrdersListPage),
+      },
+      {
+        path: ':id',
+        loadComponent: () =>
+          import('./pages/order-details/order-details-page').then((m) => m.OrderDetailsPage),
       },
     ],
   },

@@ -1,6 +1,7 @@
 /**
- * Admin orders list page for Sub-Phases 14.3–14.4 — Orders List &
- * Pagination + Orders Filtering & Status Presentation.
+ * Admin orders list page for Sub-Phases 14.3–14.5 — Orders List &
+ * Pagination + Orders Filtering & Status Presentation + Order Details &
+ * Customer Information (row deep-links).
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `OrderListState` (route-provided `ordersRoutes` entry — never a global
@@ -39,8 +40,9 @@
  * shared primitives with localized copy and retry (out-of-range pages
  * arrive as `200` with `items: []` — the empty state, never an error).
  * Failures resolve through `resolveApiErrorMessage` (never backend
- * text). Rows stay non-interactive: the order details route does not
- * exist yet (Sub-Phase 14.5), so no links ship with this slice.
+ * text). Order numbers deep-link to the details route (Sub-Phase 14.5)
+ * through the sanctioned per-column row links — every listed route
+ * exists, so no dead links ship.
  *
  * SSR/hydration safe: signals plus markup, no browser APIs. RTL safe:
  * logical properties only.
@@ -114,6 +116,7 @@ export class OrdersListPage implements OnInit {
         key: 'orderNumber',
         header: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listColNumber),
         value: (row) => row.orderNumber,
+        link: (row) => `/orders/${row.orderId}`,
       },
       {
         key: 'status',
