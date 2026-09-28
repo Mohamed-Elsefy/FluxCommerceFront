@@ -26,6 +26,16 @@ describe('translateOrdersKey', () => {
     expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.loading)).toBe('جارٍ تحميل الطلبات…');
   });
 
+  it('resolves the list copy per culture', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.listHeading)).toBe('Orders');
+    expect(translateOrdersKey('fr', ORDERS_TRANSLATION_KEYS.listColNumber)).toBe('Commande');
+    expect(translateOrdersKey('de', ORDERS_TRANSLATION_KEYS.listColTotal)).toBe('Gesamtbetrag');
+    expect(translateOrdersKey('es', ORDERS_TRANSLATION_KEYS.listEmptyTitle)).toBe(
+      'No se encontraron pedidos',
+    );
+    expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.paginationNext)).toBe('التالية');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateOrdersKey('xx' as never, ORDERS_TRANSLATION_KEYS.title)).toBe('Orders');
     expect(translateOrdersKey('en', 'orders.missing.key')).toBe('orders.missing.key');

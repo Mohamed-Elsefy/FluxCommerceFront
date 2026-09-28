@@ -40,7 +40,8 @@ describe('admin navigation', () => {
     ]);
     const orders = ADMIN_NAV_ITEMS.find((item) => item.route === '/orders');
     expect(orders?.labelKey).toBe('layout.nav.orders');
-    expect(orders?.children).toBeUndefined();
+    expect(orders?.children?.map((child) => child.route)).toEqual(['/orders/list']);
+    expect(orders?.children?.map((child) => child.labelKey)).toEqual(['layout.nav.ordersList']);
   });
 
   it('shows unrestricted entries to every portal role', () => {

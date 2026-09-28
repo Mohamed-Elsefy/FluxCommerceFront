@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
 import { OrdersAdminApiService } from './data-access/orders-admin-api.service';
+import { OrderListState } from './state/orders-list-state';
 import { OrdersOverviewState } from './state/orders-overview-state';
 
 /**
- * Admin Orders feature routes for Sub-Phase 14.2 — Admin Orders Feature
- * Foundation.
+ * Admin Orders feature routes for Sub-Phases 14.2–14.3 — Admin Orders
+ * Feature Foundation + Orders List & Pagination.
  *
  * Lazy feature boundary under the guarded portal shell (`path: 'orders'`
  * in `app.routes.ts` — the shell's `authGuard` + `roleGuard` chain already
@@ -13,23 +14,27 @@ import { OrdersOverviewState } from './state/orders-overview-state';
  * themselves are `[Authorize]` (any authenticated JWT, caller-owned) —
  * not `Admin`-only — so the portal shell is UX protection only).
  *
- * The API service and the overview state are provided once at the
+ * The API service and every feature state are provided once at the
  * feature root, so all orders pages share one transport seam and one
  * state family without root singletons or a global store.
  *
- * List, details, and payment routes arrive with the slices that own
- * their pages (Sub-Phases 14.3–14.8) — no placeholder routes ship in the
- * meantime.
+ * Details and payment routes arrive with the slices that own their pages
+ * (Sub-Phases 14.5–14.8) — no placeholder routes ship in the meantime.
  */
 export const ordersRoutes: Routes = [
   {
     path: '',
-    providers: [OrdersAdminApiService, OrdersOverviewState],
+    providers: [OrdersAdminApiService, OrdersOverviewState, OrderListState],
     children: [
       {
         path: '',
         loadComponent: () =>
           import('./pages/orders-home/orders-home-page').then((m) => m.OrdersHomePage),
+      },
+      {
+        path: 'list',
+        loadComponent: () =>
+          import('./pages/orders-list/orders-list-page').then((m) => m.OrdersListPage),
       },
     ],
   },

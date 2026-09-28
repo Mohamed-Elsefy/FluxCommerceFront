@@ -16,6 +16,9 @@ describe('translateAdminLayoutKey', () => {
     expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe(
       'Commandes',
     );
+    expect(translateAdminLayoutKey('de', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrdersList)).toBe(
+      'Bestellliste',
+    );
   });
 
   it('resolves header, skip-link, and account copy without key leakage', () => {
