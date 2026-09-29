@@ -43,6 +43,10 @@ export const inventoryRoutes: Routes = [
         loadComponent: () =>
           import('./pages/adjustments/adjustments-page').then((m) => m.AdjustmentsPage),
       },
+      {
+        path: 'new',
+        loadComponent: () => import('./pages/new-item/new-item-page').then((m) => m.NewItemPage),
+      },
     ],
   },
 ];

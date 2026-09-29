@@ -1194,22 +1194,38 @@ is ready for **Phase 14 — Admin Orders & Payments**.
 
 # 35. Phase 14 — Admin Orders & Payments
 
-Scope:
+Status: **Complete** (2026-09-29) — see
+`docs/completed/PHASE_14_COMPLETION_REPORT.md`.
+
+Scope delivered:
 
 ### Orders
 
-- Orders list
-- Filtering
-- Order details
-- Status
-- Customer information
+- Orders list (paged, caller-owned — no platform-wide admin list exists)
+- Filtering (no backend-supported filters — absence by design, E2E-pinned)
+- Order details (facts, line items, address-backed customer information)
+- Status (localized `OrderStatusBadge`, single map, verbatim fallback)
+- Customer information (shipping/billing address echo — the complete contract data)
 
 ### Payments
 
-- Payment status
-- Payment details
-- Failed payments
-- Payment history
+- Payment status (localized `PaymentStatusBadge`, all six backend states)
+- Payment details (by-order chain: status, reference, provider, amount; secret discarded)
+- Failed payments (backend-supplied `Failed` status only — no reason exists on the wire)
+- Payment history (unsupported — test-pinned gap, not fabricated)
+
+All Phase 14 acceptance criteria are satisfied (real backend
+contracts with contract-honest omissions pinned instead of
+fabricated, protected routes, loading/empty/error discipline,
+feature-local signals with independent payment lifecycle, Phase 12
+primitive reuse plus one spec-pinned table extension, clean feature
+boundaries, no duplicated business rules, 5-culture localization with
+RTL-safe rendering, responsive behavior, unit/component specs, 15
+admin orders E2E journeys plus re-verified access-control suites,
+audit 106/106, both builds green). Decisions recorded in
+`docs/adr/029–030`. Known limitations and the Phase 15 handoff live
+in the completion report. The baseline is ready for **Phase 15 —
+Final QA & Optimization**.
 
 ---
 

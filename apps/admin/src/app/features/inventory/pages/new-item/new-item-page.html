@@ -1,0 +1,59 @@
+<section class="new-item-page" aria-labelledby="new-item-title">
+  <header class="new-item-page-header">
+    <h1 id="new-item-title">{{ copy().heading }}</h1>
+    <p class="new-item-page-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  <form class="new-item-page-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <admin-text-input
+      [control]="skuControl"
+      [label]="copy().skuLabel"
+      fieldId="new-item-sku"
+      [placeholder]="copy().skuPlaceholder"
+    />
+    <admin-text-input
+      [control]="quantityControl"
+      [label]="copy().quantityLabel"
+      fieldId="new-item-quantity"
+      [hint]="copy().quantityHint"
+    />
+    <button type="submit" class="new-item-page-submit" [disabled]="submitting()">
+      {{ submitting() ? copy().saving : copy().submit }}
+    </button>
+  </form>
+
+  @if (formError() !== null) {
+    <flux-error-state [title]="copy().formErrorTitle" [message]="formError()" [showRetry]="false" />
+  }
+
+  @if (result() !== null) {
+    <section aria-labelledby="new-item-result-title">
+      <h2 id="new-item-result-title">{{ copy().resultTitle }}</h2>
+      <flux-card>
+        <dl class="new-item-page-facts">
+          <div>
+            <dt>{{ copy().factSku }}</dt>
+            <dd>{{ result()!.sku }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factOnHand }}</dt>
+            <dd>{{ result()!.onHandQuantity }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factReserved }}</dt>
+            <dd>{{ result()!.reservedQuantity }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factAvailable }}</dt>
+            <dd>{{ result()!.availableQuantity }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().factUpdated }}</dt>
+            <dd>{{ result()!.updatedAtUtc }}</dd>
+          </div>
+        </dl>
+      </flux-card>
+      <a class="new-item-page-view-stock" routerLink="/inventory/stock">{{ copy().viewStock }}</a>
+    </section>
+  }
+</section>

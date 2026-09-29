@@ -136,6 +136,18 @@ with nested sidebar destinations, all against the real backend
 contracts with contract-honest omissions (no invented lists,
 searches, sorts, uploads, thresholds, or lifecycles).
 
+As built in Phase 14 (see
+`docs/completed/PHASE_14_COMPLETION_REPORT.md` and
+`docs/adr/029–030`): the Orders area is a real business feature —
+landing (backend-issued total), paged caller-owned list (no
+platform-wide admin list exists), details (verbatim facts, line
+items, address-backed customer information), and the payment section
+(by-order chain into the single payment read, secret discarded,
+status-first failures) — all under the guarded shell with sidebar
+destinations, all against the real backend contracts with
+contract-honest omissions (no invented filters, sorts, history,
+linkage, mutations, or failure reasons).
+
 ---
 
 ## 5. Feature-Based Architecture
@@ -290,6 +302,13 @@ anchors) plus a projected row-actions column (`actionsTemplate`
 with `$implicit: row` plus `index`, owner-localized header). Both
 are business-free and spec-pinned; features pass templates while
 the table reserves the cell.
+
+As built in Phase 14 (see `docs/adr/030`): the shared table grew by
+the same sanctioned pattern a third time — per-column cell templates
+(`column.template` with `$implicit: row` plus `index`, e.g. a status
+badge). Business-free and spec-pinned; testing the extension caught
+a real defect (the outlet context carried the column-loop `$index`,
+fixed by aliasing the row index).
 
 ---
 
@@ -637,6 +656,17 @@ variant lists, details slots, stock/reservation lookups), explicit
 supersede-or-lock concurrency, envelopes unwrapped in state,
 dataless envelopes as contract violations. Adjustment submission
 stays page-local. The 12.8 root-provided allowlist is unchanged.
+
+As built in Phase 14 (see `docs/adr/030`): orders and payment state
+follows the same shape — route-provided `@Injectable()` services and
+`createResourceState` slots (overview, paged list with committed
+page moves, single order details, chained by-order → payment read),
+explicit `load*` calls with `untracked` route-param effects and
+supersede concurrency, envelopes unwrapped in state, dataless
+envelopes as contract violations. The payment slot stays
+independent (its failures never hide settled order facts) and the
+creation/adjustment submissions stay page-local. The 12.8
+root-provided allowlist is unchanged.
 
 ---
 
@@ -1192,6 +1222,16 @@ images/specs, unknown-product error, stock and reservation lookups,
 adjustment with updated-state verification, customer→forbidden,
 French chrome) run mocked-transport green in
 `e2e/admin-catalog.spec.ts`; the pre-existing admin suites were
+re-verified green with the extended navigation.
+
+As built in Phase 14: fifteen admin orders journeys (landing, list
+with pager and details navigation, response-effective pagination,
+empty/error/retry paths, unknown-order error, details
+facts/addresses/items, payment facts, failed-payment status,
+missing-payment empty, unready-payment retry recovery,
+customer→forbidden, French chrome, RTL chrome) run
+mocked-transport green in `e2e/admin-orders.spec.ts` (new
+`admin-orders-chromium` project); the pre-existing admin suites were
 re-verified green with the extended navigation.
 
 ### Testing Principle

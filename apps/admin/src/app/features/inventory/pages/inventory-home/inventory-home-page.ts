@@ -52,6 +52,11 @@ const INVENTORY_SECTIONS: readonly InventorySection[] = [
     descriptionKey: INVENTORY_TRANSLATION_KEYS.adjustmentsDescription,
     route: '/inventory/adjustments',
   },
+  {
+    titleKey: INVENTORY_TRANSLATION_KEYS.newItemSectionTitle,
+    descriptionKey: INVENTORY_TRANSLATION_KEYS.newItemSectionDescription,
+    route: '/inventory/new',
+  },
 ];
 
 @Component({

@@ -403,71 +403,71 @@ Document any backend capabilities that remain unavailable to the frontend.
 
 ## Contract
 
-- [ ] Orders contracts reviewed
-- [ ] Payment contracts reviewed
-- [ ] Supported filters identified
-- [ ] Pagination contract verified
-- [ ] Order status enums verified
-- [ ] Payment status enums verified
-- [ ] Payment linkage verified
-- [ ] Payment history availability verified
-- [ ] Contract gaps documented
+- [x] Orders contracts reviewed
+- [x] Payment contracts reviewed
+- [x] Supported filters identified
+- [x] Pagination contract verified
+- [x] Order status enums verified
+- [x] Payment status enums verified
+- [x] Payment linkage verified
+- [x] Payment history availability verified
+- [x] Contract gaps documented
 
 ## Orders
 
-- [ ] Orders feature created
-- [ ] Orders routes added
-- [ ] Orders API integration completed
-- [ ] Orders List implemented
-- [ ] Pagination implemented
-- [ ] Supported filters implemented
-- [ ] Order status presentation implemented
-- [ ] Order Details implemented
-- [ ] Customer information implemented
+- [x] Orders feature created
+- [x] Orders routes added
+- [x] Orders API integration completed
+- [x] Orders List implemented
+- [x] Pagination implemented
+- [x] Supported filters implemented
+- [x] Order status presentation implemented
+- [x] Order Details implemented
+- [x] Customer information implemented
 
 ## Payments
 
-- [ ] Payment integration completed where supported
-- [ ] Payment status presentation implemented
-- [ ] Payment details implemented where supported
-- [ ] Failed payment presentation implemented where supported
-- [ ] Payment history implemented where supported
-- [ ] Unsupported payment capabilities documented
+- [x] Payment integration completed where supported
+- [x] Payment status presentation implemented
+- [x] Payment details implemented where supported
+- [x] Failed payment presentation implemented where supported
+- [x] Payment history implemented where supported
+- [x] Unsupported payment capabilities documented
 
 ## UX
 
-- [ ] Localization complete
-- [ ] Locale key parity verified
-- [ ] RTL/LTR verified
-- [ ] Responsive behavior verified
-- [ ] Accessibility verified
-- [ ] Loading states verified
-- [ ] Empty states verified
-- [ ] Error states verified
+- [x] Localization complete
+- [x] Locale key parity verified
+- [x] RTL/LTR verified
+- [x] Responsive behavior verified
+- [x] Accessibility verified
+- [x] Loading states verified
+- [x] Empty states verified
+- [x] Error states verified
 
 ## Testing
 
-- [ ] Unit tests added
-- [ ] Component tests added
-- [ ] API mapping tested
-- [ ] Pagination tested
-- [ ] Filtering tested
-- [ ] Order Details tested
-- [ ] Payment states tested
-- [ ] E2E critical flow tested
-- [ ] Existing test suite remains green
+- [x] Unit tests added
+- [x] Component tests added
+- [x] API mapping tested
+- [x] Pagination tested
+- [x] Filtering tested
+- [x] Order Details tested
+- [x] Payment states tested
+- [x] E2E critical flow tested
+- [x] Existing test suite remains green
 
 ## Architecture & Documentation
 
-- [ ] Architecture checks pass
-- [ ] Authorization verified
-- [ ] No direct component API access
-- [ ] No duplicated data-table implementation
-- [ ] No cross-feature boundary violations
-- [ ] Performance reviewed
-- [ ] `PROJECT_CONTEXT.md` updated
-- [ ] `ARCHITECTURE.md` updated
-- [ ] Phase 14 completion documented
+- [x] Architecture checks pass
+- [x] Authorization verified
+- [x] No direct component API access
+- [x] No duplicated data-table implementation
+- [x] No cross-feature boundary violations
+- [x] Performance reviewed
+- [x] `PROJECT_CONTEXT.md` updated
+- [x] `ARCHITECTURE.md` updated
+- [x] Phase 14 completion documented
 
 ---
 

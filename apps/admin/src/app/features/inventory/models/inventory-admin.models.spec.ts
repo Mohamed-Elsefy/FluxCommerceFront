@@ -3,6 +3,7 @@ import {
   normalizeSkuInput,
   reservationStatusDisplay,
   toAdjustStockRequest,
+  toCreateInventoryItemRequest,
 } from './inventory-admin.models';
 
 describe('normalizeSkuInput', () => {
@@ -50,5 +51,22 @@ describe('toAdjustStockRequest', () => {
   it('projects editor text into the additive body without range rules', () => {
     expect(toAdjustStockRequest(' 25 ')).toEqual({ quantity: 25 });
     expect(toAdjustStockRequest(null)).toEqual({ quantity: 0 });
+  });
+});
+
+describe('toCreateInventoryItemRequest', () => {
+  it('normalizes the SKU and admits zero on-hand stock', () => {
+    expect(toCreateInventoryItemRequest('  ssd-121 ', '0')).toEqual({
+      sku: 'SSD-121',
+      onHandQuantity: 0,
+    });
+    expect(toCreateInventoryItemRequest('TEE-BLK-M', ' 100 ')).toEqual({
+      sku: 'TEE-BLK-M',
+      onHandQuantity: 100,
+    });
+  });
+
+  it('parses without backend shape rules (charset and uniqueness stay server-owned)', () => {
+    expect(toCreateInventoryItemRequest(null, null)).toEqual({ sku: '', onHandQuantity: 0 });
   });
 });
