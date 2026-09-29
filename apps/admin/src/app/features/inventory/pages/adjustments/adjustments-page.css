@@ -49,6 +49,22 @@
   outline-offset: 0.125rem;
 }
 
+.adjustments-page-create-link {
+  justify-self: start;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.adjustments-page-create-link:hover {
+  text-decoration: underline;
+}
+
+.adjustments-page-create-link:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
 .adjustments-page h2 {
   margin: 0;
   margin-block-end: var(--spacing-md);

@@ -15,7 +15,7 @@ describe('inventoryRoutes', () => {
     ]);
   });
 
-  it('serves the landing page plus the stock, reservation, and adjustment slices', () => {
+  it('serves the landing page plus the stock, reservation, adjustment, and creation slices', () => {
     const children = inventoryRoutes[0]?.children ?? [];
 
     expect(children.map((route) => route.path)).toEqual([
@@ -23,6 +23,7 @@ describe('inventoryRoutes', () => {
       'stock',
       'reservations',
       'adjustments',
+      'new',
     ]);
     for (const child of children) {
       expect(typeof child.loadComponent).toBe('function');

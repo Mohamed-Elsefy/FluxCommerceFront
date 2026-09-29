@@ -109,6 +109,8 @@ describe('AppLayout', () => {
       'Stock',
       'Réservations',
       'Ajustements',
+      'Commandes',
+      'Liste des commandes',
     ]);
     expect(element.querySelector('a.skip-link')?.textContent).toBe('Aller au contenu principal');
     TestBed.inject(CultureService).setCulture('en');
@@ -121,6 +123,6 @@ describe('AppLayout', () => {
       [...element.querySelectorAll('admin-sidebar flux-icon .icon')].map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(['⌂', '▦', '▤', '▣']);
+    ).toEqual(['⌂', '▦', '▤', '▣', '▨']);
   });
 });

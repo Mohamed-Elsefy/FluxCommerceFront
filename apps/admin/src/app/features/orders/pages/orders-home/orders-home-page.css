@@ -1,0 +1,44 @@
+.orders-home {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.orders-home-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.orders-home-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.orders-home-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.orders-home-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.orders-home-card {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.orders-home-card-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.orders-home-card-fact {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

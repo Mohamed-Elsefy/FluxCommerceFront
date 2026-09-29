@@ -40,11 +40,13 @@ describe('InventoryHomePage', () => {
       'Stock',
       'Reservations',
       'Adjustments',
+      'New item',
     ]);
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/inventory/stock',
       '/inventory/reservations',
       '/inventory/adjustments',
+      '/inventory/new',
     ]);
     expect(element.querySelector('flux-badge')).toBeNull();
   });

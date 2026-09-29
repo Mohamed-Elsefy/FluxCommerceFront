@@ -1,0 +1,76 @@
+.order-details {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.order-details-back {
+  justify-self: start;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.order-details-back:hover {
+  text-decoration: underline;
+}
+
+.order-details-back:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.order-details-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.order-details-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.order-details-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.order-details-facts {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.order-details-facts > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--spacing-sm);
+}
+
+.order-details-facts dt {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.order-details-facts dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.order-details-addresses {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.order-details-address-title {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}

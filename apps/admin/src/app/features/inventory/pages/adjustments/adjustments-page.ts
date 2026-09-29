@@ -18,7 +18,10 @@
  * whole-number shape; the documented range, SKU rules, and existence
  * stay backend-owned and surface through the form channels (`400`
  * field maps project onto their controls, `404`/`409` render as the
- * form-level notice with user input preserved).
+ * form-level notice with user input preserved). A `404` additionally
+ * names the missing SKU and links to item creation (`/inventory/new`
+ * prefilled via `?sku=`) — variant creation never provisions stock, so
+ * an untracked SKU is a missing record, not a typo.
  *
  * Expected flow (phase contract, honored end to end): form → dialog
  * confirmation → API → backend validation and business logic → the
@@ -33,6 +36,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
 import { Card, ErrorState } from '@flux/ui';
 import { isApiError } from '@flux/api';
@@ -54,7 +58,7 @@ import {
 
 @Component({
   selector: 'app-adjustments-page',
-  imports: [ReactiveFormsModule, AdminDialog, AdminTextInput, Card, ErrorState],
+  imports: [ReactiveFormsModule, RouterLink, AdminDialog, AdminTextInput, Card, ErrorState],
   templateUrl: './adjustments-page.html',
   styleUrl: './adjustments-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -100,6 +104,13 @@ export class AdjustmentsPage {
   /** Form-level failure notice (`null` when clean). */
   protected readonly formError = signal<string | null>(null);
 
+  /**
+   * Normalized SKU behind a `404` adjustment failure (`null` otherwise).
+   * A missing record is actionable — the template links it to item
+   * creation prefilled via `?sku=`.
+   */
+  protected readonly missingSku = signal<string | null>(null);
+
   /** Updated stock record from the last successful adjustment (`null` until then). */
   protected readonly result = signal<AdminStockRow | null>(null);
 
@@ -139,6 +150,10 @@ export class AdjustmentsPage {
       ),
       confirm: translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.adjustmentsConfirm),
       cancel: translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.adjustmentsCancel),
+      createItemLink: translateInventoryKey(
+        culture,
+        INVENTORY_TRANSLATION_KEYS.adjustmentsCreateItemLink,
+      ),
       formErrorTitle: translateInventoryKey(
         culture,
         INVENTORY_TRANSLATION_KEYS.adjustmentsFormErrorTitle,
@@ -197,6 +212,7 @@ export class AdjustmentsPage {
     }
     this.submitting.set(true);
     this.formError.set(null);
+    this.missingSku.set(null);
     this.clearServerErrors();
     this.inventoryApi.adjustStock(sku, body).subscribe({
       next: (envelope) => {
@@ -227,11 +243,29 @@ export class AdjustmentsPage {
         return;
       }
     }
+    if (isApiError(error) && error.status === 404) {
+      this.failMissing();
+      return;
+    }
+    this.missingSku.set(null);
     const culture = this.cultures.culture();
     this.formError.set(
       isApiError(error)
         ? resolveApiErrorMessage(error, culture)
         : translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.adjustmentsFormErrorTitle),
+    );
+  }
+
+  /**
+   * Handles the missing-record failure: names the untracked SKU and
+   * exposes the creation link (user input stays preserved in the form).
+   */
+  private failMissing(): void {
+    const sku = normalizeSkuInput(this.skuControl.value);
+    this.missingSku.set(sku === '' ? null : sku);
+    const culture = this.cultures.culture();
+    this.formError.set(
+      translateInventoryKey(culture, INVENTORY_TRANSLATION_KEYS.adjustmentsMissingItem, { sku }),
     );
   }
 

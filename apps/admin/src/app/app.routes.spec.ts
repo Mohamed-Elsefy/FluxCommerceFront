@@ -49,6 +49,14 @@ describe('routes', () => {
     expect(inventory?.canActivate).toBeUndefined();
   });
 
+  it('mounts the orders feature as a lazy boundary inside the protected shell', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const orders = shell?.children?.find((route) => route.path === 'orders');
+
+    expect(typeof orders?.loadChildren).toBe('function');
+    expect(orders?.canActivate).toBeUndefined();
+  });
+
   it('falls back to a lazy not-found page', () => {
     const fallback = routes.find((route) => route.path === '**');
 

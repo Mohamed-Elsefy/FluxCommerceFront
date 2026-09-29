@@ -29,6 +29,26 @@ describe('translateInventoryKey', () => {
     expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.stockFactReserved)).toBe('محجوز');
   });
 
+  it('resolves the item-creation copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.newItemTitle)).toBe(
+      'New inventory item',
+    );
+    expect(translateInventoryKey('fr', INVENTORY_TRANSLATION_KEYS.newItemSubmit)).toBe(
+      'Créer l’article',
+    );
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.newItemQuantityHint)).toBe(
+      'Ganze Einheiten, null zulässig.',
+    );
+    expect(
+      translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.adjustmentsMissingItem, {
+        sku: 'SSD-121',
+      }),
+    ).toBe('No existe ningún artículo de inventario para «SSD-121».');
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.adjustmentsCreateItemLink)).toBe(
+      'إنشاء صنف مخزون',
+    );
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateInventoryKey('xx' as never, INVENTORY_TRANSLATION_KEYS.title)).toBe(
       'Inventory',

@@ -31,6 +31,8 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navStock: 'layout.nav.stock',
   navReservations: 'layout.nav.reservations',
   navAdjustments: 'layout.nav.adjustments',
+  navOrders: 'layout.nav.orders',
+  navOrdersList: 'layout.nav.ordersList',
   navSidebarLabel: 'layout.nav.sidebarLabel',
   headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
@@ -68,6 +70,8 @@ const EN_LAYOUT: TranslationDictionary = {
       stock: 'Stock',
       reservations: 'Reservations',
       adjustments: 'Adjustments',
+      orders: 'Orders',
+      ordersList: 'Orders list',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -125,6 +129,8 @@ const FR_LAYOUT: TranslationDictionary = {
       stock: 'Stock',
       reservations: 'Réservations',
       adjustments: 'Ajustements',
+      orders: 'Commandes',
+      ordersList: 'Liste des commandes',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -182,6 +188,8 @@ const DE_LAYOUT: TranslationDictionary = {
       stock: 'Bestand',
       reservations: 'Reservierungen',
       adjustments: 'Anpassungen',
+      orders: 'Bestellungen',
+      ordersList: 'Bestellliste',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -239,6 +247,8 @@ const ES_LAYOUT: TranslationDictionary = {
       stock: 'Stock',
       reservations: 'Reservas',
       adjustments: 'Ajustes',
+      orders: 'Pedidos',
+      ordersList: 'Lista de pedidos',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -296,6 +306,8 @@ const AR_LAYOUT: TranslationDictionary = {
       stock: 'المخزون',
       reservations: 'الحجوزات',
       adjustments: 'التعديلات',
+      orders: 'الطلبات',
+      ordersList: 'قائمة الطلبات',
       sidebarLabel: 'الإدارة',
     },
     header: {

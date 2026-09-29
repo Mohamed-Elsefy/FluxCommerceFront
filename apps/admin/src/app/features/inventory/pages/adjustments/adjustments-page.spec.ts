@@ -1,5 +1,6 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError, provideApi, provideAppEnvironment } from '@flux/api';
@@ -35,6 +36,7 @@ function setup(scenario: { adjustStock?: (sku: string, body: unknown) => ReturnT
       }),
       provideApi(),
       provideHttpClientTesting(),
+      provideRouter([]),
       { provide: InventoryAdminApiService, useValue: { adjustStock } },
     ],
   });
@@ -146,11 +148,11 @@ describe('AdjustmentsPage', () => {
 
   it('renders a form-level notice for non-validation failures', () => {
     setup({
-      adjustStock: () => throwError(() => new ApiError({ status: 404, message: 'Not found.' })),
+      adjustStock: () => throwError(() => new ApiError({ status: 409, message: 'Conflict.' })),
     });
     const { fixture, element } = render();
 
-    fill(element, 'adjust-sku', 'MISSING');
+    fill(element, 'adjust-sku', 'TEE-BLK-M');
     fill(element, 'adjust-quantity', '25');
     openConfirm(element);
     fixture.detectChanges();
@@ -158,5 +160,26 @@ describe('AdjustmentsPage', () => {
     fixture.detectChanges();
 
     expect(element.textContent).toContain('Could not adjust stock');
+    expect(element.querySelector('.adjustments-page-create-link')).toBeNull();
+  });
+
+  it('names the missing SKU and links to creation on 404', () => {
+    setup({
+      adjustStock: () => throwError(() => new ApiError({ status: 404, message: 'Not found.' })),
+    });
+    const { fixture, element } = render();
+
+    fill(element, 'adjust-sku', 'ssd-121');
+    fill(element, 'adjust-quantity', '25');
+    openConfirm(element);
+    fixture.detectChanges();
+    (element.querySelector('.adjustments-page-dialog-confirm') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(element.textContent).toContain('No inventory item exists for “SSD-121”.');
+    const link = element.querySelector('.adjustments-page-create-link');
+    expect(link?.textContent?.trim()).toBe('Create inventory item');
+    expect(link?.getAttribute('href')).toBe('/inventory/new?sku=SSD-121');
+    expect((element.querySelector('#adjust-sku') as HTMLInputElement).value).toBe('ssd-121');
   });
 });

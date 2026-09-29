@@ -522,6 +522,59 @@ test.describe('admin inventory journeys (13.11)', () => {
     await expect(page.getByText('125')).toBeVisible();
     await expect(page.getByText('123')).toBeVisible();
   });
+
+  test('item creation onboards a new SKU and renders the created record', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(
+      page,
+      'POST',
+      '/inventory',
+      201,
+      json(
+        stock({
+          sku: 'SSD-121',
+          onHandQuantity: 0,
+          reservedQuantity: 0,
+          availableQuantity: 0,
+        }),
+      ),
+    );
+    await page.goto('/inventory/new');
+
+    await page.getByLabel('SKU').fill('ssd-121');
+    await page.getByLabel('On-hand quantity').fill('0');
+    await page.getByRole('button', { name: 'Create item' }).click();
+
+    await expect(page.getByText('Inventory item created')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Created stock' })).toBeVisible();
+    await expect(page.getByText('SSD-121').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View in stock lookup' })).toBeVisible();
+  });
+
+  test('adjustment on an untracked SKU links to prefilled item creation', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(page, 'PATCH', '/inventory/SSD-121', 404, {
+      type: 'https://tools.ietf.org/html/rfc7231#section-6.5.4',
+      title: 'Not Found',
+      status: 404,
+      detail: 'Not found.',
+      extensions: {},
+    });
+    await page.goto('/inventory/adjustments');
+
+    await page.getByLabel('SKU').fill('ssd-121');
+    await page.getByLabel('Quantity').fill('25');
+    await page.getByRole('button', { name: 'Adjust stock' }).click();
+    await page.locator('admin-dialog').getByRole('button', { name: 'Confirm' }).click();
+
+    await expect(page.getByText('No inventory item exists for “SSD-121”.')).toBeVisible();
+    await page.getByRole('link', { name: 'Create inventory item' }).click();
+
+    await expect(page).toHaveURL(/\/inventory\/new\?sku=SSD-121$/);
+    await expect(page.getByLabel('SKU')).toHaveValue('SSD-121');
+  });
 });
 
 test.describe('admin catalog authorization + localization (13.11)', () => {

@@ -26,6 +26,16 @@
     <flux-error-state [title]="copy().formErrorTitle" [message]="formError()" [showRetry]="false" />
   }
 
+  @if (missingSku() !== null) {
+    <a
+      class="adjustments-page-create-link"
+      [routerLink]="['/inventory/new']"
+      [queryParams]="{ sku: missingSku() }"
+    >
+      {{ copy().createItemLink }}
+    </a>
+  }
+
   @if (result() !== null) {
     <section aria-labelledby="adjustments-result-title">
       <h2 id="adjustments-result-title">{{ copy().resultTitle }}</h2>

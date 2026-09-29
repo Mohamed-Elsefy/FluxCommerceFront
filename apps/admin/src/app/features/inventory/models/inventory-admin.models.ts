@@ -114,6 +114,22 @@ export function reservationStatusDisplay(
 // ---------------------------------------------------------------------------
 
 /**
+ * Projects editor SKU/quantity text into the item-creation body. The SKU
+ * normalizes through `normalizeSkuInput` (trimmed + uppercased,
+ * mirroring the documented backend normalization); the on-hand quantity
+ * parses to an int and admits zero (initial stock may start empty —
+ * unlike adjustments, which require `1..max`). Shape rules (`^[A-Z0-9-_.]+$`,
+ * at most 64 chars) and SKU uniqueness stay backend-owned (`400`/`409`
+ * surface through the form channels). Pure — throws nothing.
+ */
+export function toCreateInventoryItemRequest(
+  sku: string | null | undefined,
+  quantity: string | null | undefined,
+): CreateInventoryItemRequest {
+  return { sku: normalizeSkuInput(sku), onHandQuantity: Number((quantity ?? '').trim()) };
+}
+
+/**
  * Projects editor quantity text into the additive adjustment body.
  * No range is enforced here beyond parsing: `1..max` stays
  * backend-owned (`400` on violation surfaces through the form

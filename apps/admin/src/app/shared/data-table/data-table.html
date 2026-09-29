@@ -31,11 +31,16 @@
           </td>
         </tr>
       } @else {
-        @for (row of rows; track $index) {
+        @for (row of rows; track $index; let rowIndex = $index) {
           <tr>
             @for (column of columns; track column.key) {
               <td>
-                @if (link(column, row) !== null) {
+                @if (column.template) {
+                  <ng-container
+                    [ngTemplateOutlet]="column.template"
+                    [ngTemplateOutletContext]="{ $implicit: row, index: rowIndex }"
+                  />
+                } @else if (link(column, row) !== null) {
                   <a [routerLink]="link(column, row)">{{ cell(column, row) }}</a>
                 } @else {
                   {{ cell(column, row) }}

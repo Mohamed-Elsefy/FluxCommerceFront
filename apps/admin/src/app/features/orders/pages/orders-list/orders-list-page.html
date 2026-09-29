@@ -1,0 +1,39 @@
+<section class="orders-list" aria-labelledby="orders-list-title">
+  <header class="orders-list-header">
+    <div>
+      <h1 id="orders-list-title">{{ copy().heading }}</h1>
+      <p class="orders-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+  </header>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    <ng-template #statusCell let-order>
+      <app-order-status-badge [status]="order.status" />
+    </ng-template>
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>
