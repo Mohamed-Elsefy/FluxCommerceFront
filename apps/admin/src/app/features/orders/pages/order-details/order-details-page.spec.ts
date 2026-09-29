@@ -198,9 +198,24 @@ describe('OrderDetailsPage', () => {
     expect(loadPayment).toHaveBeenCalledTimes(1);
     expect(loadPayment).toHaveBeenCalledWith('order-1');
     expect(element.textContent).toContain('Payment');
-    expect(element.textContent).toContain('Processing');
+    const badge = element.querySelector('app-payment-status-badge flux-badge .badge');
+    expect(badge?.textContent?.trim()).toBe('Processing');
+    expect(badge?.getAttribute('data-variant')).toBe('info');
     expect(element.textContent).toContain('pi_live');
     expect(element.textContent).toContain('stripe');
+  });
+
+  it('renders failed payments with the backend-supplied status and no invented reason', () => {
+    setup({
+      order: successResource(order()),
+      payment: successResource(paymentView({ status: 'Failed' })),
+    });
+    const element = render();
+
+    const badge = element.querySelector('app-payment-status-badge flux-badge .badge');
+    expect(badge?.textContent?.trim()).toBe('Failed');
+    expect(badge?.getAttribute('data-variant')).toBe('danger');
+    expect(element.textContent).not.toContain('reason');
   });
 
   it('renders the payment empty notice when no payment exists', () => {

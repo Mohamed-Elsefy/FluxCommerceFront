@@ -73,6 +73,21 @@ describe('translateOrdersKey', () => {
     expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.paymentFactReference)).toBe('المرجع');
   });
 
+  it('resolves the payment status labels per culture', () => {
+    expect(translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.paymentStatusFailed)).toBe('Failed');
+    expect(translateOrdersKey('fr', ORDERS_TRANSLATION_KEYS.paymentStatusSucceeded)).toBe('Réussi');
+    expect(translateOrdersKey('de', ORDERS_TRANSLATION_KEYS.paymentStatusProcessing)).toBe(
+      'In Bearbeitung',
+    );
+    expect(translateOrdersKey('es', ORDERS_TRANSLATION_KEYS.paymentStatusRefunded)).toBe(
+      'Reembolsado',
+    );
+    expect(translateOrdersKey('ar', ORDERS_TRANSLATION_KEYS.paymentStatusCancelled)).toBe('ملغى');
+    expect(
+      translateOrdersKey('en', ORDERS_TRANSLATION_KEYS.paymentStatusUnknown, { value: 'X' }),
+    ).toBe('Unknown (X)');
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateOrdersKey('xx' as never, ORDERS_TRANSLATION_KEYS.title)).toBe('Orders');
     expect(translateOrdersKey('en', 'orders.missing.key')).toBe('orders.missing.key');

@@ -150,7 +150,7 @@
           <dl class="order-details-facts">
             <div>
               <dt>{{ copy().paymentFactStatus }}</dt>
-              <dd>{{ copy().paymentStatus }}</dd>
+              <dd><app-payment-status-badge [status]="paymentStatus()" /></dd>
             </div>
             @if (copy().paymentReference !== null) {
               <div>

@@ -3,6 +3,7 @@ import {
   emptyOrdersOverview,
   isOrdersOverviewEmpty,
   orderStatusDisplay,
+  paymentStatusDisplay,
   toOrderPaymentView,
   toOrdersOverview,
   type AdminOrderPage,
@@ -159,5 +160,47 @@ describe('orders-admin models', () => {
     expect(Object.keys(view).sort()).toEqual(
       ['amount', 'currency', 'provider', 'reference', 'status'].sort(),
     );
+  });
+
+  it('maps every backend payment status to display (single mapping site)', () => {
+    expect(paymentStatusDisplay('Pending')).toEqual({
+      labelKey: 'orders.paymentStatus.pending',
+      variant: 'info',
+    });
+    expect(paymentStatusDisplay('Processing')).toEqual({
+      labelKey: 'orders.paymentStatus.processing',
+      variant: 'info',
+    });
+    expect(paymentStatusDisplay('Succeeded')).toEqual({
+      labelKey: 'orders.paymentStatus.succeeded',
+      variant: 'success',
+    });
+    expect(paymentStatusDisplay('Failed')).toEqual({
+      labelKey: 'orders.paymentStatus.failed',
+      variant: 'danger',
+    });
+    expect(paymentStatusDisplay('Cancelled')).toEqual({
+      labelKey: 'orders.paymentStatus.cancelled',
+      variant: 'neutral',
+    });
+    expect(paymentStatusDisplay('Refunded')).toEqual({
+      labelKey: 'orders.paymentStatus.refunded',
+      variant: 'warning',
+    });
+  });
+
+  it('falls back to neutral for unknown and order-only values', () => {
+    expect(paymentStatusDisplay('Chargeback')).toEqual({
+      labelKey: 'orders.paymentStatus.unknown',
+      variant: 'neutral',
+    });
+    expect(paymentStatusDisplay('Confirmed')).toEqual({
+      labelKey: 'orders.paymentStatus.unknown',
+      variant: 'neutral',
+    });
+    expect(paymentStatusDisplay('')).toEqual({
+      labelKey: 'orders.paymentStatus.unknown',
+      variant: 'neutral',
+    });
   });
 });

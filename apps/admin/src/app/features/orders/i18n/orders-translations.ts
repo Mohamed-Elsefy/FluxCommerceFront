@@ -84,6 +84,13 @@ export const ORDERS_TRANSLATION_KEYS = {
   paymentFactReference: 'orders.payment.factReference',
   paymentFactProvider: 'orders.payment.factProvider',
   paymentFactAmount: 'orders.payment.factAmount',
+  paymentStatusPending: 'orders.paymentStatus.pending',
+  paymentStatusProcessing: 'orders.paymentStatus.processing',
+  paymentStatusSucceeded: 'orders.paymentStatus.succeeded',
+  paymentStatusFailed: 'orders.paymentStatus.failed',
+  paymentStatusCancelled: 'orders.paymentStatus.cancelled',
+  paymentStatusRefunded: 'orders.paymentStatus.refunded',
+  paymentStatusUnknown: 'orders.paymentStatus.unknown',
 } as const;
 
 /** English (`en`) orders vocabulary. Also the deterministic fallback source. */
@@ -164,6 +171,15 @@ const EN_ORDERS: TranslationDictionary = {
       factReference: 'Reference',
       factProvider: 'Provider',
       factAmount: 'Amount',
+    },
+    paymentStatus: {
+      pending: 'Pending',
+      processing: 'Processing',
+      succeeded: 'Succeeded',
+      failed: 'Failed',
+      cancelled: 'Cancelled',
+      refunded: 'Refunded',
+      unknown: 'Unknown ({value})',
     },
   },
 };
@@ -247,6 +263,15 @@ const FR_ORDERS: TranslationDictionary = {
       factProvider: 'Prestataire',
       factAmount: 'Montant',
     },
+    paymentStatus: {
+      pending: 'En attente',
+      processing: 'En cours',
+      succeeded: 'Réussi',
+      failed: 'Échoué',
+      cancelled: 'Annulé',
+      refunded: 'Remboursé',
+      unknown: 'Inconnu ({value})',
+    },
   },
 };
 
@@ -328,6 +353,15 @@ const DE_ORDERS: TranslationDictionary = {
       factReference: 'Referenz',
       factProvider: 'Anbieter',
       factAmount: 'Betrag',
+    },
+    paymentStatus: {
+      pending: 'Ausstehend',
+      processing: 'In Bearbeitung',
+      succeeded: 'Erfolgreich',
+      failed: 'Fehlgeschlagen',
+      cancelled: 'Abgebrochen',
+      refunded: 'Erstattet',
+      unknown: 'Unbekannt ({value})',
     },
   },
 };
@@ -411,6 +445,15 @@ const ES_ORDERS: TranslationDictionary = {
       factProvider: 'Proveedor',
       factAmount: 'Importe',
     },
+    paymentStatus: {
+      pending: 'Pendiente',
+      processing: 'En proceso',
+      succeeded: 'Completado',
+      failed: 'Fallido',
+      cancelled: 'Cancelado',
+      refunded: 'Reembolsado',
+      unknown: 'Desconocido ({value})',
+    },
   },
 };
 
@@ -492,6 +535,15 @@ const AR_ORDERS: TranslationDictionary = {
       factReference: 'المرجع',
       factProvider: 'المزوّد',
       factAmount: 'المبلغ',
+    },
+    paymentStatus: {
+      pending: 'معلّق',
+      processing: 'قيد المعالجة',
+      succeeded: 'ناجح',
+      failed: 'فشل',
+      cancelled: 'ملغى',
+      refunded: 'مسترد',
+      unknown: 'غير معروف ({value})',
     },
   },
 };

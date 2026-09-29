@@ -1,7 +1,7 @@
 /**
- * Admin order details page for Sub-Phases 14.5–14.6 — Order Details &
+ * Admin order details page for Sub-Phases 14.5–14.7 — Order Details &
  * Customer Information + Payment Integration & Order-Payment
- * Presentation.
+ * Presentation + Payment Details, Status & Failed Payments.
  *
  * Smart page (route-level composition): reads the feature-scoped
  * `OrderDetailsState` (route-provided `ordersRoutes` entry — never a
@@ -33,16 +33,19 @@
  * (never inputs to math). Failures resolve through
  * `resolveApiErrorMessage` (never backend text).
  *
- * Payment section (14.6 — the only order→payment linkage the backend
- * exposes): the by-order initialization read chained into the single
- * payment read, rendered as backend-issued facts (status verbatim — the
- * `PaymentStatusBadge` arrives in 14.7 — intent reference, provider,
+ * Payment section (14.6–14.7 — the only order→payment linkage the
+ * backend exposes): the by-order initialization read chained into the
+ * single payment read, rendered as backend-issued facts (status through
+ * the feature-owned `PaymentStatusBadge`, intent reference, provider,
  * amount). The live `clientSecret` never reaches the view (discarded at
- * the mapping boundary). `404` renders the empty notice; `409`
- * (`NotReady` saga lag and `NotPayable` terminal share the status with
- * no machine code on the wire) and other failures render the retryable
- * error state. Payment lifecycle and verification stay backend-owned:
- * this section presents, never confirms, polls, or derives.
+ * the mapping boundary). Failed payments render the backend-supplied
+ * `Failed` status with the `danger` tone — no failure reason exists on
+ * the payload, so none is invented. `404` renders the empty notice;
+ * `409` (`NotReady` saga lag and `NotPayable` terminal share the status
+ * with no machine code on the wire) and other failures render the
+ * retryable error state. Payment lifecycle and verification stay
+ * backend-owned: this section presents, never confirms, polls, or
+ * derives.
  *
  * Resource states: idle → loading → success | error through the shared
  * primitives with localized copy and retry. The line-items table reuses
@@ -53,7 +56,6 @@
  * logical properties only.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - 14.7 — no `PaymentStatusBadge`, no failed-payment presentation.
  * - 14.8 — no payment history (no such endpoint).
  * - No admin mutations (no cancel/confirm/refund actions exist for any
  *   slice to own).
@@ -82,6 +84,7 @@ import { Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import type { OrderLineItemResponse } from '@flux/models';
 import { AdminDataTable, type AdminDataColumn } from '../../../../shared/data-table/data-table';
 import { OrderStatusBadge } from '../../components/order-status-badge/order-status-badge';
+import { PaymentStatusBadge } from '../../components/payment-status-badge/payment-status-badge';
 import { OrderDetailsState } from '../../state/order-details-state';
 import { OrderPaymentState } from '../../state/order-payment-state';
 import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-translations';
@@ -96,6 +99,7 @@ import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-t
     ErrorState,
     LoadingIndicator,
     OrderStatusBadge,
+    PaymentStatusBadge,
   ],
   templateUrl: './order-details-page.html',
   styleUrl: './order-details-page.css',
@@ -198,13 +202,15 @@ export class OrderDetailsPage {
       ),
       paymentFactProvider: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentFactProvider),
       paymentFactAmount: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.paymentFactAmount),
-      paymentStatus: payment?.status ?? '',
       paymentReference: payment?.reference ?? null,
       paymentProvider: payment?.provider ?? null,
       paymentAmount:
         payment === null ? '' : formatCurrency(payment.amount, payment.currency, culture),
     };
   });
+
+  /** Payment status for the badge (`''` until settled — the badge is gated on data). */
+  protected readonly paymentStatus = computed(() => this.paymentSlot().data?.status ?? '');
 
   /** Line-item table columns for the active culture. */
   protected readonly itemColumns = computed(

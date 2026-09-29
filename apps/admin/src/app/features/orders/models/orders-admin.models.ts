@@ -159,3 +159,51 @@ export function toOrderPaymentView(
     currency: payment.currency,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Payment status display (14.7)
+// ---------------------------------------------------------------------------
+
+/** Translation key + badge variant behind one payment status value. */
+export interface PaymentBadgeDisplay {
+  /** Key into the orders bundle (`orders.paymentStatus.*`). */
+  readonly labelKey: string;
+  /** Badge emphasis (maps 1:1 onto the shared `flux-badge` variants). */
+  readonly variant: BadgeVariant;
+}
+
+/**
+ * Display behind a payment status wire value (`Pending | Processing |
+ * Succeeded | Failed | Cancelled | Refunded` — strings on the wire, see
+ * `ENUM_REFERENCE.md` §5). Unknown future values fall back to the
+ * `unknown` entry (render the raw value verbatim with the `neutral`
+ * tone — see `ENUM_REFERENCE.md` §8). Order-only values (e.g.
+ * `Confirmed`) map to nothing here and fall back the same way: order
+ * and payment statuses stay independent, and nothing infers one from
+ * the other. The single mapping site for admin payment status — no
+ * scattered string comparisons elsewhere. Pure — throws nothing.
+ *
+ * Failure presentation rule (14.7 — the core constraint): the backend
+ * exposes no failure reason, message, or code on the payment payload —
+ * the `Failed` status itself (plus its `updatedAtUtc`) is the complete
+ * backend-supplied failure information. This map renders `Failed` with
+ * the `danger` tone and never invents a reason.
+ */
+export function paymentStatusDisplay(status: string): PaymentBadgeDisplay {
+  switch (status) {
+    case 'Pending':
+      return { labelKey: 'orders.paymentStatus.pending', variant: 'info' };
+    case 'Processing':
+      return { labelKey: 'orders.paymentStatus.processing', variant: 'info' };
+    case 'Succeeded':
+      return { labelKey: 'orders.paymentStatus.succeeded', variant: 'success' };
+    case 'Failed':
+      return { labelKey: 'orders.paymentStatus.failed', variant: 'danger' };
+    case 'Cancelled':
+      return { labelKey: 'orders.paymentStatus.cancelled', variant: 'neutral' };
+    case 'Refunded':
+      return { labelKey: 'orders.paymentStatus.refunded', variant: 'warning' };
+    default:
+      return { labelKey: 'orders.paymentStatus.unknown', variant: 'neutral' };
+  }
+}
