@@ -207,3 +207,42 @@ export function paymentStatusDisplay(status: string): PaymentBadgeDisplay {
       return { labelKey: 'orders.paymentStatus.unknown', variant: 'neutral' };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Payment history support (14.8)
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the backend exposes a payment-history capability: always
+ * `false` in the current contract.
+ *
+ * Verification record for Sub-Phase 14.8 (see
+ * `docs/phases/PHASE_14_ADMIN_ORDERS_PAYMENTS.md` §14.8): the audited
+ * payment surface is exactly three endpoints (`GET
+ * /api/payments/{paymentId}`, `GET /api/payments/by-order/{orderId}`,
+ * and the Stripe-only `POST /api/payments/webhook` — see
+ * `docs/frontend-contract/API_CONTRACT.md` §6 and the 14.1 audit). No
+ * history, timeline, transition-log, or per-order payments endpoint
+ * exists, and no payment payload carries transition records — so there
+ * is nothing to integrate, and the supported-branch of §14.8 (API
+ * integration, history models, record/timestamp/transition display)
+ * does not apply.
+ *
+ * Consequences (pinned, test-guarded):
+ * - No `GET /orders/{id}/payments` (or similar) is ever called — the
+ *   data-access service exposes no history-shaped method.
+ * - No history is simulated from unrelated frontend state (order polls,
+ *   status badges, or the single `updatedAtUtc` timestamp are display
+ *   facts, never timeline records).
+ * - A future backend history endpoint flips this pin and owns its own
+ *   slice — until then, later sub-phases must not invent one.
+ */
+export const PAYMENT_HISTORY_SUPPORTED = false as const;
+
+/**
+ * Whether payment history can be displayed. Always `false` today — see
+ * `PAYMENT_HISTORY_SUPPORTED`. Pure — throws nothing.
+ */
+export function isPaymentHistorySupported(): false {
+  return PAYMENT_HISTORY_SUPPORTED;
+}

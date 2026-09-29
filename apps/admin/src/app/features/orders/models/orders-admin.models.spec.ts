@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   emptyOrdersOverview,
   isOrdersOverviewEmpty,
+  isPaymentHistorySupported,
   orderStatusDisplay,
   paymentStatusDisplay,
+  PAYMENT_HISTORY_SUPPORTED,
   toOrderPaymentView,
   toOrdersOverview,
   type AdminOrderPage,
@@ -202,5 +204,10 @@ describe('orders-admin models', () => {
       labelKey: 'orders.paymentStatus.unknown',
       variant: 'neutral',
     });
+  });
+
+  it('pins payment history as unsupported (no backend contract)', () => {
+    expect(PAYMENT_HISTORY_SUPPORTED).toBe(false);
+    expect(isPaymentHistorySupported()).toBe(false);
   });
 });

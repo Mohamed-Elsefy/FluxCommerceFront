@@ -187,4 +187,27 @@ describe('OrdersListPage', () => {
       cultures.setCulture('en');
     }
   });
+
+  it('renders the list under the RTL culture without key leakage', () => {
+    setup({
+      page: successResource<AdminOrderPage>({
+        items: [row('o1', 'ORD-AAA')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('الطلبات');
+      expect(element.querySelector('thead th')?.textContent?.trim()).toBe('الطلب');
+      expect(element.textContent).not.toContain('orders.list.heading');
+      expect(element.querySelector('admin-pagination')).not.toBeNull();
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
 });

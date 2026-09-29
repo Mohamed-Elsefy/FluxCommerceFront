@@ -107,4 +107,19 @@ describe('OrdersHomePage', () => {
       cultures.setCulture('en');
     }
   });
+
+  it('renders the landing under the RTL culture without key leakage', () => {
+    setup({ status: 'success', overview: { orderTotal: 3 } });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('الطلبات');
+      expect(element.textContent).not.toContain('orders.title');
+      expect(element.textContent).not.toContain('orders.summary.total');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
 });

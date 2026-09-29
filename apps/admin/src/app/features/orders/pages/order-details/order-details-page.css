@@ -60,6 +60,7 @@
 .order-details-facts dd {
   margin: 0;
   font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
 }
 
 .order-details-addresses {

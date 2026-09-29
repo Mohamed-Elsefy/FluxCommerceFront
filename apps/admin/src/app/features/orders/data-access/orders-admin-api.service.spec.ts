@@ -76,6 +76,21 @@ describe('OrdersAdminApiService routes', () => {
 
     expect(calls.paths).not.toContain(PAYMENTS_ENDPOINTS.stripeWebhook.path);
   });
+
+  it('exposes no payment-history surface (no such endpoint — see 14.8)', () => {
+    const { service } = setup();
+
+    for (const member of [
+      'listPayments',
+      'paymentHistory',
+      'getPaymentHistory',
+      'listPaymentHistory',
+      'orderPayments',
+      'getOrderPayments',
+    ]) {
+      expect(service[member as keyof OrdersAdminApiService], member).toBeUndefined();
+    }
+  });
 });
 
 describe('OrdersAdminApiService passthrough', () => {

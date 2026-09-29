@@ -191,6 +191,25 @@ describe('OrderDetailsPage', () => {
     }
   });
 
+  it('renders the details under the RTL culture without key leakage', () => {
+    setup({ order: successResource(order()) });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('.order-details-back')?.textContent).toBe('عودة إلى الطلبات');
+      expect(element.textContent).toContain('معلومات العميل');
+      expect(element.textContent).toContain('أصناف الطلب');
+      expect(element.textContent).toContain('الدفع');
+      expect(element.textContent).not.toContain('orders.details.back');
+      expect(element.textContent).not.toContain('orders.payment.title');
+      expect(element.querySelector('h1')?.textContent).toBe('ORD-ABC123');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
   it('loads the payment for the route id and renders its facts', () => {
     const { loadPayment } = setup({ order: successResource(order()) });
     const element = render();
