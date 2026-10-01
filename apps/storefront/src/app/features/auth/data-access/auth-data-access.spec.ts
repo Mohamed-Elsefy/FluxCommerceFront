@@ -39,6 +39,7 @@ const ME_FIXTURE: UserResponse = {
   preferredLanguage: 'en',
   timeZone: 'UTC',
   status: 1,
+  permissions: [],
 };
 
 const LOGIN_FIXTURE: LoginResponse = {

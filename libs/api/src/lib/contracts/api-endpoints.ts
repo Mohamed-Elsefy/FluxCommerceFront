@@ -17,13 +17,20 @@
  * Roles: `Customer`/`Admin`/`SuperAdmin` (`RequireRole(...)` policies);
  * `authenticated` means any valid JWT. Orders/payments additionally enforce
  * ownership (other-customer ids → `403`/`404` masked).
+ *
+ * Supplement S1 (Phase 21 backend): catalog writes moved from `Admin` to
+ * the `catalog.manage` permission; inventory split into `inventory.read`
+ * (reads) / `inventory.manage` (writes); admin orders/payments/dashboard
+ * rows carry their permission; user management stays `SuperAdmin`-only.
  */
+
+import type { Permission } from '@flux/models';
 
 /** HTTP verbs used by the backend contract. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /** Authentication requirement per endpoint (backend policy summary). */
-export type EndpointAuth = 'anonymous' | 'authenticated' | 'admin' | 'super-admin';
+export type EndpointAuth = 'anonymous' | 'authenticated' | 'admin' | 'super-admin' | Permission;
 
 /** One catalog row: route template, verb, and who may call it. */
 export interface EndpointDefinition {
@@ -48,51 +55,99 @@ export const IDENTITY_ENDPOINTS = {
   me: { path: '/auth/me', method: 'GET', auth: 'authenticated' },
   assignRole: { path: '/admin/users/{id}/roles', method: 'POST', auth: 'super-admin' },
   unlockUser: { path: '/admin/users/{id}/unlock', method: 'POST', auth: 'super-admin' },
+  updateProfile: { path: '/auth/profile', method: 'PUT', auth: 'authenticated' },
+  listUsers: { path: '/admin/users', method: 'GET', auth: 'super-admin' },
+  userCounts: { path: '/admin/users/counts', method: 'GET', auth: 'super-admin' },
+  getUser: { path: '/admin/users/{id}', method: 'GET', auth: 'super-admin' },
+  grantPermission: { path: '/admin/users/{id}/permissions', method: 'POST', auth: 'super-admin' },
+  revokePermission: {
+    path: '/admin/users/{id}/permissions/{permission}',
+    method: 'DELETE',
+    auth: 'super-admin',
+  },
+  listUserPermissions: {
+    path: '/admin/users/{id}/permissions',
+    method: 'GET',
+    auth: 'super-admin',
+  },
+  permissionCatalog: { path: '/admin/users/permissions', method: 'GET', auth: 'super-admin' },
 } as const satisfies Record<string, EndpointDefinition>;
 
-/** Catalog endpoints (`API_CONTRACT.md` §2). Writes need `Admin`; reads are anonymous. */
+/** Catalog endpoints (`API_CONTRACT.md` §2). Writes need `catalog.manage`; reads are anonymous. */
 export const CATALOG_ENDPOINTS = {
-  createProduct: { path: '/catalog/products', method: 'POST', auth: 'admin' },
-  updateProduct: { path: '/catalog/products/{id}', method: 'PUT', auth: 'admin' },
-  activateProduct: { path: '/catalog/products/{id}/activate', method: 'POST', auth: 'admin' },
-  deactivateProduct: { path: '/catalog/products/{id}/deactivate', method: 'POST', auth: 'admin' },
-  archiveProduct: { path: '/catalog/products/{id}/archive', method: 'POST', auth: 'admin' },
-  softDeleteProduct: { path: '/catalog/products/{id}/soft-delete', method: 'POST', auth: 'admin' },
-  restoreProduct: { path: '/catalog/products/{id}/restore', method: 'POST', auth: 'admin' },
+  createProduct: { path: '/catalog/products', method: 'POST', auth: 'catalog.manage' },
+  updateProduct: { path: '/catalog/products/{id}', method: 'PUT', auth: 'catalog.manage' },
+  activateProduct: {
+    path: '/catalog/products/{id}/activate',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
+  deactivateProduct: {
+    path: '/catalog/products/{id}/deactivate',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
+  archiveProduct: {
+    path: '/catalog/products/{id}/archive',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
+  softDeleteProduct: {
+    path: '/catalog/products/{id}/soft-delete',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
+  restoreProduct: {
+    path: '/catalog/products/{id}/restore',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
   getProduct: { path: '/catalog/products/{id}', method: 'GET', auth: 'anonymous' },
   listProducts: { path: '/catalog/products', method: 'GET', auth: 'anonymous' },
   searchCatalog: { path: '/catalog', method: 'GET', auth: 'anonymous' },
-  createCategory: { path: '/catalog/categories', method: 'POST', auth: 'admin' },
-  updateCategory: { path: '/catalog/categories/{id}', method: 'PUT', auth: 'admin' },
-  activateCategory: { path: '/catalog/categories/{id}/activate', method: 'POST', auth: 'admin' },
+  createCategory: { path: '/catalog/categories', method: 'POST', auth: 'catalog.manage' },
+  updateCategory: { path: '/catalog/categories/{id}', method: 'PUT', auth: 'catalog.manage' },
+  activateCategory: {
+    path: '/catalog/categories/{id}/activate',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
   deactivateCategory: {
     path: '/catalog/categories/{id}/deactivate',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   softDeleteCategory: {
     path: '/catalog/categories/{id}/soft-delete',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
-  restoreCategory: { path: '/catalog/categories/{id}/restore', method: 'POST', auth: 'admin' },
+  restoreCategory: {
+    path: '/catalog/categories/{id}/restore',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
   getCategory: { path: '/catalog/categories/{id}', method: 'GET', auth: 'anonymous' },
   listCategories: { path: '/catalog/categories', method: 'GET', auth: 'anonymous' },
-  createVariant: { path: '/catalog/products/{productId}/variants', method: 'POST', auth: 'admin' },
+  createVariant: {
+    path: '/catalog/products/{productId}/variants',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
   createVariantsBatch: {
     path: '/catalog/products/{productId}/variants/batch',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   updateVariant: {
     path: '/catalog/products/{productId}/variants/{variantId}',
     method: 'PUT',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   deleteVariant: {
     path: '/catalog/products/{productId}/variants/{variantId}',
     method: 'DELETE',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   getVariant: {
     path: '/catalog/products/{productId}/variants/{variantId}',
@@ -107,32 +162,32 @@ export const CATALOG_ENDPOINTS = {
   createAttributeDefinition: {
     path: '/catalog/attribute-definitions',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   updateAttributeDefinition: {
     path: '/catalog/attribute-definitions/{id}',
     method: 'PUT',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   activateAttributeDefinition: {
     path: '/catalog/attribute-definitions/{id}/activate',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   deactivateAttributeDefinition: {
     path: '/catalog/attribute-definitions/{id}/deactivate',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   softDeleteAttributeDefinition: {
     path: '/catalog/attribute-definitions/{id}/soft-delete',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   restoreAttributeDefinition: {
     path: '/catalog/attribute-definitions/{id}/restore',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   getAttributeDefinition: {
     path: '/catalog/attribute-definitions/{id}',
@@ -147,17 +202,17 @@ export const CATALOG_ENDPOINTS = {
   assignAttributeValue: {
     path: '/catalog/products/{productId}/attributes',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   updateAttributeValue: {
     path: '/catalog/products/{productId}/attributes/{attributeDefinitionId}',
     method: 'PUT',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   deleteAttributeValue: {
     path: '/catalog/products/{productId}/attributes/{attributeDefinitionId}',
     method: 'DELETE',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   getAttributeValue: {
     path: '/catalog/products/{productId}/attributes/{attributeDefinitionId}',
@@ -169,26 +224,30 @@ export const CATALOG_ENDPOINTS = {
     method: 'GET',
     auth: 'anonymous',
   },
-  addProductImage: { path: '/catalog/products/{productId}/images', method: 'POST', auth: 'admin' },
+  addProductImage: {
+    path: '/catalog/products/{productId}/images',
+    method: 'POST',
+    auth: 'catalog.manage',
+  },
   updateProductImage: {
     path: '/catalog/products/{productId}/images/{imageId}',
     method: 'PUT',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   deleteProductImage: {
     path: '/catalog/products/{productId}/images/{imageId}',
     method: 'DELETE',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   setPrimaryImage: {
     path: '/catalog/products/{productId}/images/{imageId}/set-primary',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   reorderProductImages: {
     path: '/catalog/products/{productId}/images/reorder',
     method: 'PUT',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   getProductImage: {
     path: '/catalog/products/{productId}/images/{imageId}',
@@ -203,17 +262,17 @@ export const CATALOG_ENDPOINTS = {
   createSpecification: {
     path: '/catalog/products/{productId}/specifications',
     method: 'POST',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   updateSpecification: {
     path: '/catalog/products/{productId}/specifications/{specificationId}',
     method: 'PUT',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   deleteSpecification: {
     path: '/catalog/products/{productId}/specifications/{specificationId}',
     method: 'DELETE',
-    auth: 'admin',
+    auth: 'catalog.manage',
   },
   getSpecification: {
     path: '/catalog/products/{productId}/specifications/{specificationId}',
@@ -255,6 +314,7 @@ export const CART_ENDPOINTS = {
 /**
  * Orders endpoints (`API_CONTRACT.md` §4). Checkout additionally requires the
  * `Idempotency-Key` header; cancel is valid only while `Pending`.
+ * `listOrders` accepts an optional `status` filter (Supplement S1).
  */
 export const ORDERS_ENDPOINTS = {
   checkout: { path: '/orders/checkout', method: 'POST', auth: 'authenticated' },
@@ -263,22 +323,71 @@ export const ORDERS_ENDPOINTS = {
   cancelOrder: { path: '/orders/{orderId}/cancel', method: 'POST', auth: 'authenticated' },
 } as const satisfies Record<string, EndpointDefinition>;
 
-/** Inventory endpoints (`API_CONTRACT.md` §5) — Admin only. */
+/**
+ * Admin orders endpoints (`API_CONTRACT.md` §4.5, `[Route admin/orders]`,
+ * Supplement S1). Platform-wide (no ownership scoping); each row carries
+ * its permission. `refundAdminOrder` completes asynchronously via the saga.
+ */
+export const ADMIN_ORDERS_ENDPOINTS = {
+  listAdminOrders: { path: '/admin/orders', method: 'GET', auth: 'orders.read' },
+  orderCounts: { path: '/admin/orders/counts', method: 'GET', auth: 'orders.read' },
+  getAdminOrder: { path: '/admin/orders/{orderId}', method: 'GET', auth: 'orders.read' },
+  cancelAdminOrder: {
+    path: '/admin/orders/{orderId}/cancel',
+    method: 'POST',
+    auth: 'orders.cancel',
+  },
+  refundAdminOrder: {
+    path: '/admin/orders/{orderId}/refund',
+    method: 'POST',
+    auth: 'orders.refund',
+  },
+} as const satisfies Record<string, EndpointDefinition>;
+
+/** Inventory endpoints (`API_CONTRACT.md` §5) — reads need `inventory.read`, writes need `inventory.manage`. */
 export const INVENTORY_ENDPOINTS = {
-  createItem: { path: '/inventory', method: 'POST', auth: 'admin' },
-  getItem: { path: '/inventory/{sku}', method: 'GET', auth: 'admin' },
-  adjustStock: { path: '/inventory/{sku}', method: 'PATCH', auth: 'admin' },
-  getReservation: { path: '/inventory/reservations/{id}', method: 'GET', auth: 'admin' },
+  createItem: { path: '/inventory', method: 'POST', auth: 'inventory.manage' },
+  getItem: { path: '/inventory/{sku}', method: 'GET', auth: 'inventory.read' },
+  adjustStock: { path: '/inventory/{sku}', method: 'PATCH', auth: 'inventory.manage' },
+  getReservation: {
+    path: '/inventory/reservations/{id}',
+    method: 'GET',
+    auth: 'inventory.read',
+  },
+  listItems: { path: '/inventory', method: 'GET', auth: 'inventory.read' },
+  itemCounts: { path: '/inventory/counts', method: 'GET', auth: 'inventory.read' },
+  listReservations: { path: '/inventory/reservations', method: 'GET', auth: 'inventory.read' },
 } as const satisfies Record<string, EndpointDefinition>;
 
 /**
  * Payments endpoints (`API_CONTRACT.md` §6). The webhook is Stripe→API only
  * (raw body + `Stripe-Signature`) — the SPA must never call it.
+ * `listMine` is the caller-owned customer list (Supplement S1).
  */
 export const PAYMENTS_ENDPOINTS = {
   getPayment: { path: '/api/payments/{paymentId}', method: 'GET', auth: 'authenticated' },
   byOrder: { path: '/api/payments/by-order/{orderId}', method: 'GET', auth: 'authenticated' },
+  listMine: { path: '/api/payments/mine', method: 'GET', auth: 'authenticated' },
   stripeWebhook: { path: '/api/payments/webhook', method: 'POST', auth: 'anonymous' },
+} as const satisfies Record<string, EndpointDefinition>;
+
+/**
+ * Admin payments endpoints (`API_CONTRACT.md` §6.5, `[Route admin/payments]`,
+ * Supplement S1). Read-only (no Stripe calls); each row carries its
+ * permission.
+ */
+export const ADMIN_PAYMENTS_ENDPOINTS = {
+  listAdminPayments: { path: '/admin/payments', method: 'GET', auth: 'payments.read' },
+  paymentStats: { path: '/admin/payments/stats', method: 'GET', auth: 'payments.stats' },
+  getAdminPayment: { path: '/admin/payments/{paymentId}', method: 'GET', auth: 'payments.read' },
+} as const satisfies Record<string, EndpointDefinition>;
+
+/**
+ * Dashboard endpoint (`API_CONTRACT.md` §8, Supplement S1). Single
+ * read-only snapshot composing the per-module overviews.
+ */
+export const DASHBOARD_ENDPOINTS = {
+  getDashboard: { path: '/admin/dashboard', method: 'GET', auth: 'dashboard.read' },
 } as const satisfies Record<string, EndpointDefinition>;
 
 /** Health endpoints (`API_CONTRACT.md` §7) — no auth, no envelope. */

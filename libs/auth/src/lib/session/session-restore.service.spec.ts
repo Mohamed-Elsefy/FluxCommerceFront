@@ -58,6 +58,7 @@ const ME_FIXTURE: UserResponse = {
   preferredLanguage: 'en',
   timeZone: 'UTC',
   status: 1,
+  permissions: [],
 };
 
 const REFRESH_URL = 'https://localhost:7119/auth/refresh';

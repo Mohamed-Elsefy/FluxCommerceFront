@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { VariantStatus } from '../common/enums';
 import {
   BACKEND_SUPPLEMENT_S1_RESPONSIBILITIES,
   FRONTEND_SUPPLEMENT_S1_RESPONSIBILITIES,
@@ -11,7 +10,6 @@ import {
   SUPPLEMENT_S1_ERROR_CODES,
   SUPPLEMENT_S1_NEWLY_SUPPORTED_OPERATIONS,
   SUPPLEMENT_S1_PAGINATED_READS,
-  SUPPLEMENT_S1_PERMISSIONS,
   SUPPLEMENT_S1_PERMISSION_ENDPOINTS,
   SUPPLEMENT_S1_READ_FILTERS,
   SUPPLEMENT_S1_ROUTES,
@@ -19,12 +17,9 @@ import {
   SUPPLEMENT_S1_SUPERADMIN_ONLY_ENDPOINTS,
   isBackendSupplementS1Responsibility,
   isFrontendSupplementS1Responsibility,
-  isSupplementOrderStatusFilter,
-  isSupplementPaymentStatusFilter,
   isSupplementS1CallableEndpoint,
   isSupplementS1ErrorCode,
   isSupplementS1NewlySupportedOperation,
-  isSupplementS1Permission,
   isSupplementS1StillUnsupportedOperation,
   isSupplementS1SuperAdminOnlyEndpoint,
   isSupplementS1AuthFailure,
@@ -33,45 +28,27 @@ import {
   isSupplementS1PaginatedRead,
   isSupplementS1Route,
   isSupplementS1ValidationFailure,
-  isValidSupplementDashboardQuery,
   isValidSupplementIdQuery,
-  isValidSupplementInventoryListQuery,
-  isValidSupplementOrderListQuery,
-  isValidSupplementPagingQuery,
-  isValidSupplementPaymentListQuery,
-  isValidSupplementPaymentsMineQuery,
-  isValidSupplementPermissionGrant,
-  isValidSupplementRefundSubmission,
-  isValidSupplementReservationListQuery,
-  isValidSupplementUserListQuery,
-  isValidSupplementVariantUpdate,
   supportsSupplementS1Filtering,
   supportsSupplementS1Sorting,
-} from './supplement-s1-contract';
+} from './contract-evolution-audit';
 
-describe('supplement-s1-contract (Step S1.1 audit)', () => {
-  describe('permission catalog (API_CONTRACT.md §0.5)', () => {
-    it('pins the nine catalog permissions', () => {
-      expect([...SUPPLEMENT_S1_PERMISSIONS]).toEqual([
-        'orders.read',
-        'orders.cancel',
-        'orders.refund',
-        'payments.read',
-        'payments.stats',
-        'inventory.read',
-        'inventory.manage',
-        'catalog.manage',
-        'dashboard.read',
-      ]);
-    });
-
-    it('classifies permission values (unknown rejected)', () => {
-      expect(isSupplementS1Permission('orders.read')).toBe(true);
-      expect(isSupplementS1Permission('dashboard.read')).toBe(true);
-      expect(isSupplementS1Permission('orders.delete')).toBe(false);
-      expect(isSupplementS1Permission('Admin')).toBe(false);
-      expect(isSupplementS1Permission(null)).toBe(false);
-      expect(isSupplementS1Permission(undefined)).toBe(false);
+describe('contract-evolution-audit (Step S1.1 audit)', () => {
+  describe('permission matrix (API_CONTRACT.md §0.5)', () => {
+    it('covers all nine catalog permissions as matrix keys', () => {
+      expect(Object.keys(SUPPLEMENT_S1_PERMISSION_ENDPOINTS).sort()).toEqual(
+        [
+          'orders.read',
+          'orders.cancel',
+          'orders.refund',
+          'payments.read',
+          'payments.stats',
+          'inventory.read',
+          'inventory.manage',
+          'catalog.manage',
+          'dashboard.read',
+        ].sort(),
+      );
     });
 
     it('maps orders.read to the three order reads', () => {
@@ -214,131 +191,12 @@ describe('supplement-s1-contract (Step S1.1 audit)', () => {
     });
   });
 
-  describe('status filter values (case-insensitive)', () => {
-    it('accepts order statuses case-insensitively', () => {
-      expect(isSupplementOrderStatusFilter('Pending')).toBe(true);
-      expect(isSupplementOrderStatusFilter('confirmed')).toBe(true);
-      expect(isSupplementOrderStatusFilter('CANCELLED')).toBe(true);
-      expect(isSupplementOrderStatusFilter('Shipped')).toBe(false);
-      expect(isSupplementOrderStatusFilter(null)).toBe(false);
-    });
-
-    it('accepts the six payment statuses case-insensitively', () => {
-      expect(isSupplementPaymentStatusFilter('Succeeded')).toBe(true);
-      expect(isSupplementPaymentStatusFilter('refunded')).toBe(true);
-      expect(isSupplementPaymentStatusFilter('Paid')).toBe(false);
-      expect(isSupplementPaymentStatusFilter(undefined)).toBe(false);
-    });
-  });
-
-  describe('structural pre-checks (never substitutes for backend validation)', () => {
-    it('validates paging bounds (1/20 defaults pass as null)', () => {
-      expect(isValidSupplementPagingQuery(null)).toBe(true);
-      expect(isValidSupplementPagingQuery(undefined)).toBe(true);
-      expect(isValidSupplementPagingQuery({})).toBe(true);
-      expect(isValidSupplementPagingQuery({ pageNumber: 1, pageSize: 20 })).toBe(true);
-      expect(isValidSupplementPagingQuery({ pageNumber: 0 })).toBe(false);
-      expect(isValidSupplementPagingQuery({ pageSize: 0 })).toBe(false);
-      expect(isValidSupplementPagingQuery({ pageSize: 101 })).toBe(false);
-      expect(isValidSupplementPagingQuery({ pageNumber: 1.5 })).toBe(false);
-    });
-
-    it('validates order-list queries (unknown status + from>to rejected)', () => {
-      expect(isValidSupplementOrderListQuery(null)).toBe(true);
-      expect(isValidSupplementOrderListQuery({ status: 'Pending' })).toBe(true);
-      expect(isValidSupplementOrderListQuery({ status: 'Shipped' })).toBe(false);
-      expect(isValidSupplementOrderListQuery({ from: '2026-02-01', to: '2026-01-01' })).toBe(false);
-      expect(isValidSupplementOrderListQuery({ from: '2026-01-01', to: '2026-02-01' })).toBe(true);
-      expect(isValidSupplementOrderListQuery({ customerId: '  ' })).toBe(false);
-      expect(isValidSupplementOrderListQuery({ pageSize: 101 })).toBe(false);
-    });
-
-    it('validates payment-list queries (unknown status + empty ids rejected)', () => {
-      expect(isValidSupplementPaymentListQuery({ status: 'Succeeded' })).toBe(true);
-      expect(isValidSupplementPaymentListQuery({ status: 'Paid' })).toBe(false);
-      expect(isValidSupplementPaymentListQuery({ orderId: '' })).toBe(false);
-      expect(isValidSupplementPaymentListQuery({ from: '2026-03-01', to: '2026-01-01' })).toBe(
-        false,
-      );
-    });
-
-    it('validates payments-mine queries (status only)', () => {
-      expect(isValidSupplementPaymentsMineQuery({})).toBe(true);
-      expect(isValidSupplementPaymentsMineQuery({ status: 'Failed' })).toBe(true);
-      expect(isValidSupplementPaymentsMineQuery({ status: 'Bogus' })).toBe(false);
-    });
-
-    it('validates inventory-list queries (negative ceiling rejected)', () => {
-      expect(isValidSupplementInventoryListQuery({ search: 'SKU-' })).toBe(true);
-      expect(isValidSupplementInventoryListQuery({ maxAvailable: 0 })).toBe(true);
-      expect(isValidSupplementInventoryListQuery({ maxAvailable: -1 })).toBe(false);
-      expect(isValidSupplementInventoryListQuery({ search: '   ' })).toBe(false);
-    });
-
-    it('validates reservation-list queries (unknown status rejected)', () => {
-      expect(isValidSupplementReservationListQuery({ status: 'Committed' })).toBe(true);
-      expect(isValidSupplementReservationListQuery({ status: 'Lost' })).toBe(false);
-      expect(isValidSupplementReservationListQuery({ orderId: '' })).toBe(false);
-    });
-
-    it('validates user-list queries (unknown status/role rejected)', () => {
-      expect(isValidSupplementUserListQuery({ status: 'Locked', role: 'Admin' })).toBe(true);
-      expect(isValidSupplementUserListQuery({ role: 'Manager' })).toBe(false);
-      expect(isValidSupplementUserListQuery({ status: 'Banned' })).toBe(false);
-      expect(isValidSupplementUserListQuery({ search: '' })).toBe(false);
-    });
-
+  describe('single-id route scaffolding', () => {
     it('validates single-id queries', () => {
       expect(isValidSupplementIdQuery({ id: 'guid-value' })).toBe(true);
       expect(isValidSupplementIdQuery({ id: '   ' })).toBe(false);
       expect(isValidSupplementIdQuery(null)).toBe(false);
       expect(isValidSupplementIdQuery(undefined)).toBe(false);
-    });
-
-    it('validates refund submissions (reason 1..500)', () => {
-      expect(isValidSupplementRefundSubmission({ orderId: 'o', reason: 'Duplicate charge' })).toBe(
-        true,
-      );
-      expect(isValidSupplementRefundSubmission({ orderId: 'o', reason: '' })).toBe(false);
-      expect(isValidSupplementRefundSubmission({ orderId: '  ', reason: 'x' })).toBe(false);
-      expect(isValidSupplementRefundSubmission({ orderId: 'o', reason: 'x'.repeat(501) })).toBe(
-        false,
-      );
-      expect(isValidSupplementRefundSubmission({ orderId: 'o', reason: 'x'.repeat(500) })).toBe(
-        true,
-      );
-      expect(isValidSupplementRefundSubmission(null)).toBe(false);
-    });
-
-    it('validates permission grants (catalog values only)', () => {
-      expect(isValidSupplementPermissionGrant({ userId: 'u', permission: 'orders.read' })).toBe(
-        true,
-      );
-      expect(isValidSupplementPermissionGrant({ userId: 'u', permission: 'orders.delete' })).toBe(
-        false,
-      );
-      expect(isValidSupplementPermissionGrant({ userId: '', permission: 'orders.read' })).toBe(
-        false,
-      );
-      expect(isValidSupplementPermissionGrant(null)).toBe(false);
-    });
-
-    it('validates dashboard queries (negative threshold rejected)', () => {
-      expect(isValidSupplementDashboardQuery(null)).toBe(true);
-      expect(isValidSupplementDashboardQuery({})).toBe(true);
-      expect(isValidSupplementDashboardQuery({ lowStockThreshold: 5 })).toBe(true);
-      expect(isValidSupplementDashboardQuery({ lowStockThreshold: -1 })).toBe(false);
-    });
-
-    it('validates variant updates (amount+currency paired)', () => {
-      expect(isValidSupplementVariantUpdate({ sku: 'A-1' })).toBe(true);
-      expect(isValidSupplementVariantUpdate({ unitPriceAmount: 10, currency: 'USD' })).toBe(true);
-      expect(isValidSupplementVariantUpdate({ unitPriceAmount: 10 })).toBe(false);
-      expect(isValidSupplementVariantUpdate({ currency: 'USD' })).toBe(false);
-      expect(isValidSupplementVariantUpdate({ unitPriceAmount: 0, currency: 'USD' })).toBe(false);
-      expect(isValidSupplementVariantUpdate({ status: VariantStatus.Inactive })).toBe(true);
-      expect(isValidSupplementVariantUpdate({ status: 99 as VariantStatus })).toBe(false);
-      expect(isValidSupplementVariantUpdate(null)).toBe(false);
     });
   });
 

@@ -20,6 +20,8 @@
  */
 
 import type { Guid, IsoDateString } from '../common/shared-types';
+import type { PageQuery } from '../common/shared-types';
+import { isValidPageQuery } from '../common/shared-types';
 import type { OrderStatus } from '../common/enums';
 
 /** Shipping/billing address — `line2` optional, everything else required. */
@@ -100,4 +102,122 @@ export interface OrderDetailsResponse {
   shippingAddress: OrderAddressResponse;
   billingAddress: OrderAddressResponse;
   lineItems: OrderLineItemResponse[];
+}
+
+/** `GET /admin/orders/counts` payload (`orders.read`, all `int`). */
+export interface AdminOrderCountsResponse {
+  total: number;
+  pending: number;
+  confirmed: number;
+  cancelled: number;
+}
+
+/**
+ * `POST /admin/orders/{orderId}/refund` body (`orders.refund`).
+ * `reason` is `[Required][StringLength(500, MinimumLength = 1)]`; only
+ * paid (`Completed` saga) orders are eligible.
+ */
+export interface RefundOrderRequest {
+  reason: string;
+}
+
+/** Backend order statuses accepted as the `status` filter (case-insensitive). */
+export const ORDER_STATUS_FILTER_VALUES: readonly OrderStatus[] = [
+  'Pending',
+  'Cancelled',
+  'Confirmed',
+];
+
+/**
+ * Whether `value` names a filter-accepted order status (case-insensitive;
+ * unknown → backend `400`). Pure — throws nothing.
+ */
+export function isOrderStatusFilter(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    ORDER_STATUS_FILTER_VALUES.some((s) => s.toLowerCase() === value.toLowerCase())
+  );
+}
+
+/**
+ * `GET /admin/orders` query (`orders.read`): paging +
+ * `status?/customerId?/search?/from?/to?` (newest-first, platform-wide).
+ * Unknown `status` or `from > to` → backend `400`.
+ */
+export interface AdminOrdersQuery extends PageQuery {
+  status?: string;
+  customerId?: Guid;
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
+/**
+ * Structural pre-check for an admin order-list query: paging bounds,
+ * known status when present, non-blank ids/search, `from <= to` when both
+ * present (lexicographic ISO-8601 comparison). Pure — throws nothing.
+ */
+export function isValidAdminOrdersQuery(query: AdminOrdersQuery | null | undefined): boolean {
+  if (!isValidPageQuery(query)) {
+    return false;
+  }
+  if (query === null || query === undefined) {
+    return true;
+  }
+  if (query.status !== undefined && query.status !== null && query.status !== '') {
+    if (!isOrderStatusFilter(query.status)) {
+      return false;
+    }
+  }
+  if (
+    query.customerId !== undefined &&
+    query.customerId !== null &&
+    query.customerId.trim() === ''
+  ) {
+    return false;
+  }
+  if (query.search !== undefined && query.search !== null && query.search.trim() === '') {
+    return false;
+  }
+  if (
+    query.from !== undefined &&
+    query.from !== null &&
+    query.from !== '' &&
+    query.to !== undefined &&
+    query.to !== null &&
+    query.to !== '' &&
+    query.from > query.to
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * `POST /admin/orders/{orderId}/refund` submission (`orders.refund`): the
+ * order id (route) plus `reason` (body, 1..500 chars). Only paid
+ * (`Completed` saga) orders are eligible — `404 Order.NotFound`,
+ * `409 Order.RefundConflict` (in-flight duplicate stays `200`
+ * idempotent). Structural pre-check only. Pure — throws nothing.
+ */
+export interface RefundSubmission {
+  readonly orderId: Guid;
+  readonly reason: string;
+}
+
+/**
+ * Structural pre-check for a refund submission. Pure — throws nothing.
+ */
+export function isValidRefundSubmission(submission: RefundSubmission | null | undefined): boolean {
+  if (submission === null || submission === undefined) {
+    return false;
+  }
+  if (typeof submission.orderId !== 'string' || submission.orderId.trim() === '') {
+    return false;
+  }
+  if (typeof submission.reason !== 'string') {
+    return false;
+  }
+  const length = submission.reason.length;
+  return length >= 1 && length <= 500;
 }

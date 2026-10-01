@@ -122,6 +122,7 @@ function profile(): UserResponse {
     preferredLanguage: 'en',
     timeZone: 'UTC',
     status: 1,
+    permissions: [],
   };
 }
 

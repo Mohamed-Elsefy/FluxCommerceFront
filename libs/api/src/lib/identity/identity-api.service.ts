@@ -50,13 +50,20 @@
  * - 2.2 — no `AuthService`, no session/state stores, no selectors.
  * - 2.3 — no token storage, no persistence, no SSR storage strategy.
  * - 2.4 — no forms, no components, no pages.
+ *
+ * Supplement S1, Step S1.2 — Identity growth: `PUT /auth/profile` plus the
+ * SuperAdmin user/permission surface (`GET /admin/users`, `/counts`,
+ * `/{id}`, roles, unlock, permission grant/revoke/list/catalog). Same
+ * façade rules apply (typed 1:1 methods, envelopes intact, no mapping).
  */
 
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
 import type {
+  AssignRoleRequest,
   ChangePasswordRequest,
   ForgotPasswordRequest,
+  GrantPermissionRequest,
   LoginRequest,
   LoginResponse,
   LogoutRequest,
@@ -65,12 +72,17 @@ import type {
   ResendVerificationRequest,
   ResendVerificationResponse,
   ResetPasswordRequest,
+  UpdateProfileRequest,
+  UserAdminCountsResponse,
+  UserAdminResponse,
+  UserListQuery,
   UserResponse,
   VerifyEmailRequest,
 } from '@flux/models';
 import { ApiClient, type ApiRequestOptions } from '../client/api-client';
 import { IDENTITY_ENDPOINTS } from '../contracts/api-endpoints';
-import type { ApiResponse, ApiResponseWithData } from '../contracts/api-response';
+import type { ApiResponse, ApiResponseWithData, PagedApiResponse } from '../contracts/api-response';
+import { toQueryParams } from '../runtime/query';
 
 /**
  * Thin typed façade over the Identity backend contract. Each method maps
@@ -231,5 +243,166 @@ export class IdentityApiService {
     options: ApiRequestOptions = {},
   ): Observable<ApiResponse> {
     return this.api.post<ApiResponse>(IDENTITY_ENDPOINTS.changePassword.path, body, options);
+  }
+
+  /**
+   * `PUT /auth/profile` — any authenticated JWT. All fields nullable:
+   * `null` keeps the current value, empty clears optional fields.
+   * Success: `200 ApiResponse<UserResponse>` (with updated `permissions`).
+   * Failures: `400` validation, `401`, `404` (deleted between login and call).
+   */
+  updateProfile(
+    body: UpdateProfileRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserResponse>> {
+    return this.api.put<ApiResponseWithData<UserResponse>>(
+      IDENTITY_ENDPOINTS.updateProfile.path,
+      body,
+      options,
+    );
+  }
+
+  /**
+   * `POST /admin/users/{id}/roles` — SuperAdmin only. The id travels in the
+   * route, never in the body. Assigning `Admin` additionally stores the
+   * full permission bundle (effective on next login/refresh).
+   * Success: `200 ApiResponse<UserResponse>`.
+   * Failures: `400 Identity.InvalidRole`, `404 UserNotFound`,
+   * `409 RoleAlreadyAssigned`.
+   */
+  assignRole(
+    userId: string,
+    body: AssignRoleRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserResponse>> {
+    return this.api.post<ApiResponseWithData<UserResponse>>(
+      IDENTITY_ENDPOINTS.assignRole.path,
+      body,
+      { ...options, pathParams: { id: userId, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `POST /admin/users/{id}/unlock` — SuperAdmin only, no body.
+   * Success: `200 ApiResponse<UserResponse>`.
+   * Failures: `404 UserNotFound`.
+   */
+  unlockUser(
+    userId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserResponse>> {
+    return this.api.post<ApiResponseWithData<UserResponse>>(
+      IDENTITY_ENDPOINTS.unlockUser.path,
+      {},
+      { ...options, pathParams: { id: userId, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `GET /admin/users` — SuperAdmin only. Paged (`1/20 max 100`) newest-first
+   * with `status?/role?/search?` filters (unknown values → `400`).
+   * Success: `200 ApiResponse<PagedResult<UserAdminResponse>>`.
+   * Failures: `400 ValidationFailed/InvalidRole`, `401`, `403`.
+   */
+  listUsers(
+    query: UserListQuery = {},
+    options: ApiRequestOptions = {},
+  ): Observable<PagedApiResponse<UserAdminResponse>> {
+    return this.api.get<PagedApiResponse<UserAdminResponse>>(IDENTITY_ENDPOINTS.listUsers.path, {
+      ...options,
+      params: toQueryParams(query),
+    });
+  }
+
+  /**
+   * `GET /admin/users/counts` — SuperAdmin only.
+   * Success: `200 ApiResponse<UserAdminCountsResponse>`.
+   * Failures: `401`, `403`.
+   */
+  userCounts(
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserAdminCountsResponse>> {
+    return this.api.get<ApiResponseWithData<UserAdminCountsResponse>>(
+      IDENTITY_ENDPOINTS.userCounts.path,
+      options,
+    );
+  }
+
+  /**
+   * `GET /admin/users/{id}` — SuperAdmin only.
+   * Success: `200 ApiResponse<UserAdminResponse>`.
+   * Failures: `404 UserNotFound`.
+   */
+  getUser(
+    userId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserAdminResponse>> {
+    return this.api.get<ApiResponseWithData<UserAdminResponse>>(IDENTITY_ENDPOINTS.getUser.path, {
+      ...options,
+      pathParams: { id: userId, ...(options.pathParams ?? {}) },
+    });
+  }
+
+  /**
+   * `POST /admin/users/{id}/permissions` — SuperAdmin only, one catalog
+   * value per call.
+   * Success: `200 ApiResponse<UserResponse>` (with updated `permissions`).
+   * Failures: `400 Identity.InvalidPermission`, `404 UserNotFound`,
+   * `409 PermissionAlreadyGranted`.
+   */
+  grantPermission(
+    userId: string,
+    body: GrantPermissionRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserResponse>> {
+    return this.api.post<ApiResponseWithData<UserResponse>>(
+      IDENTITY_ENDPOINTS.grantPermission.path,
+      body,
+      { ...options, pathParams: { id: userId, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `DELETE /admin/users/{id}/permissions/{permission}` — SuperAdmin only,
+   * idempotent (absent permission still succeeds).
+   * Success: `200 ApiResponse<UserResponse>`.
+   * Failures: `400 Identity.InvalidPermission`, `404 UserNotFound`.
+   */
+  revokePermission(
+    userId: string,
+    permission: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserResponse>> {
+    return this.api.delete<ApiResponseWithData<UserResponse>>(
+      IDENTITY_ENDPOINTS.revokePermission.path,
+      { ...options, pathParams: { id: userId, permission, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `GET /admin/users/{id}/permissions` — SuperAdmin only.
+   * Success: `200 ApiResponse<string[]>` (granted values).
+   * Failures: `404 UserNotFound`.
+   */
+  listUserPermissions(
+    userId: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<string[]>> {
+    return this.api.get<ApiResponseWithData<string[]>>(
+      IDENTITY_ENDPOINTS.listUserPermissions.path,
+      { ...options, pathParams: { id: userId, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `GET /admin/users/permissions` — SuperAdmin only.
+   * Success: `200 ApiResponse<string[]>` (full catalog).
+   * Failures: `401`, `403`.
+   */
+  permissionCatalog(options: ApiRequestOptions = {}): Observable<ApiResponseWithData<string[]>> {
+    return this.api.get<ApiResponseWithData<string[]>>(
+      IDENTITY_ENDPOINTS.permissionCatalog.path,
+      options,
+    );
   }
 }

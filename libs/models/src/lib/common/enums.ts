@@ -33,6 +33,36 @@ export enum UserStatus {
 /** Backend role constants (`Identity.Domain.Aggregates.Roles`). Strings, not an enum. */
 export type UserRole = 'Customer' | 'Admin' | 'SuperAdmin';
 
+/**
+ * Action-level permission catalog (`Identity.Domain.Aggregates.PermissionCatalog`,
+ * JWT claim type `"permission"` — one claim per granted permission).
+ * Assigning the `Admin` role stores the full bundle; grants apply on the
+ * next login/refresh; `SuperAdmin` bypasses every gate without holding
+ * permissions. Source of truth: `docs/frontend-contract/API_CONTRACT.md`
+ * §0.5 (Supplement S1, Step S1.2).
+ */
+export const PERMISSION_CATALOG = [
+  'orders.read',
+  'orders.cancel',
+  'orders.refund',
+  'payments.read',
+  'payments.stats',
+  'inventory.read',
+  'inventory.manage',
+  'catalog.manage',
+  'dashboard.read',
+] as const;
+
+/** One action-level permission value. Strings, not an enum. */
+export type Permission = (typeof PERMISSION_CATALOG)[number];
+
+/**
+ * Whether `value` names a catalog permission. Pure — throws nothing.
+ */
+export function isPermission(value: unknown): value is Permission {
+  return typeof value === 'string' && (PERMISSION_CATALOG as readonly string[]).includes(value);
+}
+
 /** `ProductResponse.status` — number on the wire. See ENUM_REFERENCE §2. */
 export enum ProductStatus {
   Draft = 0,

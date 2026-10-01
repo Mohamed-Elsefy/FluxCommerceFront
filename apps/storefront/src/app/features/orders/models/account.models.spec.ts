@@ -38,6 +38,7 @@ function profile(overrides: Partial<CustomerProfile> = {}): CustomerProfile {
     preferredLanguage: 'en',
     timeZone: 'UTC',
     status: 1,
+    permissions: [],
     ...overrides,
   };
 }

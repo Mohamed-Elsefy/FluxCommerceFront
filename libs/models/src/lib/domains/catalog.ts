@@ -14,7 +14,8 @@
  * - Writes: create → `201 ApiResponse<Guid|Guid[]>`; lifecycle/assign/
  *   update/delete → `204` empty. Reads: `200 ApiResponse<...>` (controller
  *   default `[Authorize]`; every `GET` is `[AllowAnonymous]`, writes need
- *   the `Admin` role).
+ *   `catalog.manage` — evolved from `AdminPolicy` in Supplement S1;
+ *   route guards migrate in Step S1.3).
  */
 
 import type { Guid, IsoDateString } from '../common/shared-types';
@@ -26,8 +27,8 @@ import type {
   CategoryStatus,
   ProductStatus,
   ProductVisibility,
-  VariantStatus,
 } from '../common/enums';
+import { VariantStatus } from '../common/enums';
 
 /** Nullable SEO sub-object on product create/update. `keywords` is `string[] | null`. */
 export interface SeoRequest {
@@ -84,10 +85,46 @@ export interface CreateProductVariantsRequest {
   variants?: CreateProductVariantRequest[] | null;
 }
 
-/** `PUT .../variants/{variantId}` body — only these 2 fields, no price/status. */
+/**
+ * `PUT .../variants/{variantId}` body. Price travels paired
+ * (`unitPriceAmount` + `currency` together or neither); `status` toggles
+ * sellability (`VariantStatus`, number on the wire).
+ */
 export interface UpdateProductVariantRequest {
   sku?: string | null;
   name?: string | null;
+  unitPriceAmount?: number | null;
+  currency?: string | null;
+  status?: VariantStatus | null;
+}
+
+/**
+ * Structural pre-check for a variant update: amount+currency travel paired
+ * (both present or both absent); a present amount is positive; a present
+ * status is a known `VariantStatus`. Never a substitute for backend
+ * validation. Pure — throws nothing.
+ */
+export function isValidVariantPriceUpdate(
+  update: UpdateProductVariantRequest | null | undefined,
+): boolean {
+  if (update === null || update === undefined) {
+    return false;
+  }
+  const hasAmount = update.unitPriceAmount !== undefined && update.unitPriceAmount !== null;
+  const hasCurrency = update.currency !== undefined && update.currency !== null;
+  if (hasAmount !== hasCurrency) {
+    return false;
+  }
+  if (hasAmount && !(typeof update.unitPriceAmount === 'number' && update.unitPriceAmount > 0)) {
+    return false;
+  }
+  const status = update.status;
+  if (status !== undefined && status !== null) {
+    if (status !== VariantStatus.Active && status !== VariantStatus.Inactive) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

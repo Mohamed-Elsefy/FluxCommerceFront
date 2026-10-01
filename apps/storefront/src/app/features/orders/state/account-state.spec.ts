@@ -36,6 +36,7 @@ function user(overrides: Partial<UserResponse> = {}): UserResponse {
     preferredLanguage: 'en',
     timeZone: 'UTC',
     status: 1,
+    permissions: [],
     ...overrides,
   };
 }

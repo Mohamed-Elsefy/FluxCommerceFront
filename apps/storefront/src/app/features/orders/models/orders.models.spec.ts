@@ -152,6 +152,7 @@ describe('contract aliases compile against the backend shapes', () => {
       preferredLanguage: 'en',
       timeZone: 'UTC',
       status: 1,
+      permissions: [],
     };
     expect(profile.roles).toEqual(['Customer']);
   });
