@@ -43,6 +43,8 @@ Validation `errors{}` field keys are C#/DTO property names (`Password`, `Email`,
 | `Identity.ValidationFailed` | 400 | One or more fields invalid; see `errors{}` | Any auth validator failure (register/login/refresh/logout/verify/resend/forgot/reset/change/assign/unlock) | `Errors.RequestValidation` |
 | `Identity.InvalidEmail` | 400 | Email rejected | Register with malformed email | `Validation.Email.Invalid` |
 | `Identity.InvalidRole` | 400 | Unknown role string | `POST /admin/users/{id}/roles` with role outside `Customer\|Admin\|SuperAdmin` | No key → fallback `"The role …"` (English description) |
+| `Identity.InvalidPermission` | 400 | Unknown permission string | `POST /admin/users/{id}/permissions` (or `DELETE`) with value outside the §0.5 catalog | `Validation.Permission.Invalid` |
+| `Identity.PermissionAlreadyGranted` | 409 | No-op grant | Grant permission user already has | No key → fallback `"The permission is already granted to this user."` |
 | `Identity.DuplicateEmail` | 409 | Email taken | Register existing email | `Authentication.Register.EmailAlreadyExists` |
 | `Identity.RoleAlreadyAssigned` | 409 | No-op assign | Assign role user already has | `Errors.RoleAlreadyAssigned` |
 | `Identity.UserNotFound` | 404 | No such user | `me` (deleted), assign/unlock/change-password on unknown id | `Errors.NotFound` |
@@ -132,6 +134,7 @@ Note masked cases: `CartAccessDenied→404` (not 403), `VariantUnavailable→404
 | `Order.DuplicateVariant` | 409 | Dup line | Cart has same `variantId` twice | `Order.DuplicateVariant` |
 | `Order.CurrencyMismatch` | 409 | Mixed currencies | Lines/prices span currencies | `Order.CurrencyMismatch` |
 | `Order.CancelConflict` | 409 | Too late | Cancel non-`Pending` order | `Order.CancelConflict` |
+| `Order.RefundConflict` | 409 | Not eligible | Refund a non-paid order (no/in-flight saga, missing payment correlation) via `POST /admin/orders/{id}/refund` | `Order.RefundConflict` |
 | `OrderSaga.InvalidStateTransition` | 409/400 | Saga race | Async saga transition collision (backend-only, surfaces as 409 if `Conflict`) | _(fallback English)_ |
 
 ---
@@ -144,6 +147,7 @@ Note masked cases: `CartAccessDenied→404` (not 403), `VariantUnavailable→404
 | `Inventory.InvalidQuantity` | 400 | Bad qty | `onHand<0`, `adjust<=0` (also DataAnnotations) | `Inventory.InvalidQuantity` |
 | `Inventory.InvalidOrderId` | 400 | Bad order id | Reservation op with empty order id (saga path, not HTTP) | No key → fallback `"A valid order identifier is required."` |
 | `Inventory.InvalidReservationId` | 400 | Bad reservation id | `GET /inventory/reservations/{id}` empty guid | `Inventory.InvalidReservationId` |
+| `Inventory.ValidationFailed` | 400 | List/count params bad | Admin lists: bad pagination/status/SKU/order filter; negative low-stock threshold | `Errors.RequestValidation` |
 | `Inventory.InvalidExpiration` | 400 | Bad expiry | Reservation `expiresAt <= now` (saga path) | No key → fallback `"A reservation expiration must be in the future."` |
 | `Inventory.SkuNotFound` | 404 | No such SKU | `GET/PATCH /inventory/{sku}` unknown | `Errors.NotFound` |
 | `Inventory.ReservationNotFound` | 404 | No such reservation | `GET /inventory/reservations/{id}` unknown | `Errors.NotFound` |
@@ -159,6 +163,7 @@ Note masked cases: `CartAccessDenied→404` (not 403), `VariantUnavailable→404
 
 | Error Code | HTTP Status | Meaning | When Happens | User-facing message key |
 |---|---|---|---|---|
+| `Payment.ValidationFailed` | 400 | List params bad | `GET /api/payments/mine`, `GET /admin/payments` bad pagination/status/date filters | Fallback `"The payment query parameters are invalid."` |
 | `Payment.InvalidRequest` | 400 | Bad intent request | Create intent validation (backend/saga path) | Fallback `"…invalid request…"` |
 | `Payment.OrderIdRequired` | 400 | Missing order | Create intent without order | Fallback `"…order id required…"` |
 | `Payment.StripeError` | 400 | Stripe call failed | `Failure` default → 400, retry/backoff upstream | Fallback `"…stripe…"` |
