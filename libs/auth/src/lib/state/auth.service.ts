@@ -110,8 +110,26 @@ export class AuthService {
   /** Role names of the current user; empty when not authenticated. */
   readonly roles: Signal<readonly string[]> = computed(() => this._currentUser()?.roles ?? []);
 
+  /**
+   * Action-level permission values of the current user (Supplement S1,
+   * `Permission` catalog, populated from `GET /auth/me`). Empty when not
+   * authenticated — and empty for provisional login users until the first
+   * `me` hydration. Stale persisted snapshots without the field also read
+   * as empty (fail-closed), never crash.
+   */
+  readonly permissions: Signal<readonly string[]> = computed(
+    () => this._currentUser()?.permissions ?? [],
+  );
+
   /** Whether the current user holds the backend `Admin` role (strict claim mirror — see `hasRole`). */
   readonly isAdmin: Signal<boolean> = computed(() => this.roles().includes('Admin'));
+
+  /**
+   * Whether the current user holds the backend `SuperAdmin` role. The
+   * permission guard bypasses every permission gate for `SuperAdmin`
+   * (backend supremacy); this selector only mirrors the claim.
+   */
+  readonly isSuperAdmin: Signal<boolean> = computed(() => this.roles().includes('SuperAdmin'));
 
   /** Whether an access token is currently held in memory. */
   readonly hasAccessToken: Signal<boolean> = computed(() => this._accessToken() !== null);
@@ -125,6 +143,19 @@ export class AuthService {
    */
   hasRole(role: string): Signal<boolean> {
     return computed(() => this.roles().includes(role));
+  }
+
+  /**
+   * Reactive permission selector (Supplement S1). Mirrors the backend
+   * `permission` claim verbatim: holding a permission means the last
+   * `GET /auth/me` listed it — grants and revokes take effect on the next
+   * `me` sync (a demoted admin keeps the old value until then, matching
+   * the backend's next-login/refresh semantics at the UI layer). No
+   * implication: `SuperAdmin` does NOT satisfy `hasPermission` (it holds
+   * no permissions); the `SuperAdmin` bypass lives in `permissionGuard`.
+   */
+  hasPermission(permission: string): Signal<boolean> {
+    return computed(() => this.permissions().includes(permission));
   }
 
   /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authGuard, roleGuard } from '@flux/auth';
+import { authGuard, permissionGuard, roleGuard } from '@flux/auth';
 import { AppLayout } from './layout/app-layout/app-layout';
 import { routes } from './app.routes';
 
@@ -31,6 +31,8 @@ describe('routes', () => {
 
     expect(typeof home?.loadComponent).toBe('function');
     expect(typeof dashboard?.loadComponent).toBe('function');
+    expect(dashboard?.canActivate).toEqual([permissionGuard]);
+    expect(dashboard?.data?.['permissions']).toEqual(['dashboard.read']);
   });
 
   it('mounts the catalog feature as a lazy boundary inside the protected shell', () => {
@@ -38,7 +40,8 @@ describe('routes', () => {
     const catalog = shell?.children?.find((route) => route.path === 'catalog');
 
     expect(typeof catalog?.loadChildren).toBe('function');
-    expect(catalog?.canActivate).toBeUndefined();
+    expect(catalog?.canActivate).toEqual([permissionGuard]);
+    expect(catalog?.data?.['permissions']).toEqual(['catalog.manage']);
   });
 
   it('mounts the inventory feature as a lazy boundary inside the protected shell', () => {
@@ -46,7 +49,8 @@ describe('routes', () => {
     const inventory = shell?.children?.find((route) => route.path === 'inventory');
 
     expect(typeof inventory?.loadChildren).toBe('function');
-    expect(inventory?.canActivate).toBeUndefined();
+    expect(inventory?.canActivate).toEqual([permissionGuard]);
+    expect(inventory?.data?.['permissions']).toEqual(['inventory.read']);
   });
 
   it('mounts the orders feature as a lazy boundary inside the protected shell', () => {
@@ -54,7 +58,8 @@ describe('routes', () => {
     const orders = shell?.children?.find((route) => route.path === 'orders');
 
     expect(typeof orders?.loadChildren).toBe('function');
-    expect(orders?.canActivate).toBeUndefined();
+    expect(orders?.canActivate).toEqual([permissionGuard]);
+    expect(orders?.data?.['permissions']).toEqual(['orders.read']);
   });
 
   it('falls back to a lazy not-found page', () => {

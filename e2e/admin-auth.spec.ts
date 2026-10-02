@@ -19,7 +19,30 @@ import { expect, test, type Page } from '@playwright/test';
 
 const STORAGE_KEY = 'fluxcommerce.auth.session.v1';
 
-function userWithRoles(roles: string[]): Record<string, unknown> {
+/**
+ * Full permission bundle the backend stores when the `Admin` role is
+ * assigned (`API_CONTRACT.md` §0.5). Mirrors the contract so admin
+ * journeys exercise the permission-gated shell like production.
+ */
+const FULL_PERMISSIONS = [
+  'orders.read',
+  'orders.cancel',
+  'orders.refund',
+  'payments.read',
+  'payments.stats',
+  'inventory.read',
+  'inventory.manage',
+  'catalog.manage',
+  'dashboard.read',
+];
+
+function userWithRoles(roles: string[], permissions: string[] = []): Record<string, unknown> {
+  const granted =
+    permissions.length > 0
+      ? permissions
+      : roles.some((role) => role === 'Admin' || role === 'SuperAdmin')
+        ? [...FULL_PERMISSIONS]
+        : [];
   return {
     id: '22222222-2222-2222-2222-222222222222',
     email: 'boss@flux.local',
@@ -35,6 +58,7 @@ function userWithRoles(roles: string[]): Record<string, unknown> {
     preferredLanguage: 'en',
     timeZone: 'UTC',
     status: 1,
+    permissions: granted,
   };
 }
 

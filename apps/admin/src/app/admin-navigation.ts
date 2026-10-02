@@ -31,6 +31,13 @@ export interface AdminDestination {
    * portal user; otherwise the user needs at least one listed role.
    */
   readonly roles?: readonly string[];
+  /**
+   * Permission allow-list (OR semantics, Supplement S1). `undefined` means
+   * no permission check; otherwise the user needs at least one listed
+   * permission — unless `SuperAdmin`, which bypasses every permission gate
+   * (backend supremacy) while holding no permissions itself.
+   */
+  readonly permissions?: readonly string[];
   /** Nested destinations (rendered as a grouped subsection). */
   readonly children?: readonly AdminDestination[];
 }
@@ -45,11 +52,17 @@ export interface AdminDestination {
  */
 export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
   { labelKey: 'layout.nav.home', route: '/', icon: '⌂' },
-  { labelKey: 'layout.nav.dashboard', route: '/dashboard', icon: '▦' },
+  {
+    labelKey: 'layout.nav.dashboard',
+    route: '/dashboard',
+    icon: '▦',
+    permissions: ['dashboard.read'],
+  },
   {
     labelKey: 'layout.nav.catalog',
     route: '/catalog',
     icon: '▤',
+    permissions: ['catalog.manage'],
     children: [
       { labelKey: 'layout.nav.products', route: '/catalog/products' },
       { labelKey: 'layout.nav.categories', route: '/catalog/categories' },
@@ -59,35 +72,56 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     labelKey: 'layout.nav.inventory',
     route: '/inventory',
     icon: '▣',
+    permissions: ['inventory.read'],
     children: [
       { labelKey: 'layout.nav.stock', route: '/inventory/stock' },
       { labelKey: 'layout.nav.reservations', route: '/inventory/reservations' },
-      { labelKey: 'layout.nav.adjustments', route: '/inventory/adjustments' },
+      {
+        labelKey: 'layout.nav.adjustments',
+        route: '/inventory/adjustments',
+        permissions: ['inventory.manage'],
+      },
     ],
   },
   {
     labelKey: 'layout.nav.orders',
     route: '/orders',
     icon: '▨',
+    permissions: ['orders.read'],
     children: [{ labelKey: 'layout.nav.ordersList', route: '/orders/list' }],
   },
 ];
 
 /**
- * Role-aware visibility: keeps entries with no allow-list and entries
- * where the user holds at least one listed role. Children inherit the
- * outcome — a hidden group hides its whole subsection.
+ * Role- and permission-aware visibility: keeps entries passing both the
+ * role rule (no allow-list, or at least one listed role held) and the
+ * permission rule (no allow-list, or `SuperAdmin` bypass, or at least one
+ * listed permission held). Children inherit the outcome — a hidden group
+ * hides its whole subsection, while a visible group still filters its own
+ * children (e.g. `inventory.read` shows the group but hides `adjustments`
+ * without `inventory.manage`).
  */
 export function visibleDestinations(
   items: readonly AdminDestination[],
   roles: readonly string[],
+  permissions: readonly string[] = [],
 ): readonly AdminDestination[] {
+  const bypass = roles.includes('SuperAdmin');
   return items.flatMap((item) => {
     if (item.roles !== undefined && !item.roles.some((role) => roles.includes(role))) {
       return [];
     }
+    if (
+      !bypass &&
+      item.permissions !== undefined &&
+      !item.permissions.some((permission) => permissions.includes(permission))
+    ) {
+      return [];
+    }
     const children =
-      item.children === undefined ? undefined : visibleDestinations(item.children, roles);
+      item.children === undefined
+        ? undefined
+        : visibleDestinations(item.children, roles, permissions);
     return [{ ...item, children }];
   });
 }

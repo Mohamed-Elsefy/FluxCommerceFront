@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, roleGuard } from '@flux/auth';
+import { authGuard, permissionGuard, roleGuard } from '@flux/auth';
 import { ADMIN_PORTAL_ROLES } from './admin-navigation';
 import { AppLayout } from './layout/app-layout/app-layout';
 
@@ -11,21 +11,27 @@ import { AppLayout } from './layout/app-layout/app-layout';
  * through `loadComponent` (or `loadChildren` feature boundaries) and live
  * under `./features/<feature>/`.
  *
- * Access model (existing `authGuard` + `roleGuard` chain, existing
- * `Admin`/`SuperAdmin` role model — no separate Admin authentication
- * system; backend authorization stays authoritative):
+ * Access model (two layers; backend authorization stays authoritative):
  *
  * ```text
  * /login      → anonymous entry point (public, outside the shell)
  * /forbidden  → denial destination (public, outside the shell)
  * / (+ children) → protected portal shell (Admin/SuperAdmin only)
- *     ├── ''         → shell home (protected)
- *     ├── dashboard  → protected entry point
- *     ├── catalog    → Phase 13 Catalog foundation (13.2+ lazy boundary)
- *     ├── inventory  → Phase 13 Inventory foundation (13.8+ lazy boundary)
- *     ├── orders     → Phase 14 Orders foundation (14.2+ lazy boundary)
- *     └── payments   → future (Phase 14, 14.6+)
+ *     ├── ''         → shell home (protected, roles only)
+ *     ├── dashboard  → `dashboard.read` (+ SuperAdmin bypass)
+ *     ├── catalog    → `catalog.manage` (+ SuperAdmin bypass)
+ *     ├── inventory  → `inventory.read` (+ SuperAdmin bypass; in-page
+ *     │                  writes additionally need `inventory.manage`)
+ *     └── orders     → `orders.read` (+ SuperAdmin bypass; in-page
+ *                        cancel/refund additionally need `orders.cancel` /
+ *                        `orders.refund`)
  * ```
+ *
+ * The shell chain (`authGuard` + `roleGuard` over `ADMIN_PORTAL_ROLES`)
+ * stays the coarse gate — no separate Admin authentication system. Each
+ * feature mount adds `permissionGuard` over its `data['permissions']`
+ * (OR semantics, fail-closed, `SuperAdmin` bypass). Guards are navigation
+ * protection and UX only, never a security boundary.
  *
  * - Anonymous navigation to the shell redirects to
  *   `/login?returnUrl=<attempted URL>` (`authGuard`); post-login the page
@@ -57,20 +63,28 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
+        canActivate: [permissionGuard],
+        data: { permissions: ['dashboard.read'] },
       },
       {
         path: 'catalog',
         loadChildren: () =>
           import('./features/catalog/catalog.routes').then((m) => m.catalogRoutes),
+        canActivate: [permissionGuard],
+        data: { permissions: ['catalog.manage'] },
       },
       {
         path: 'inventory',
         loadChildren: () =>
           import('./features/inventory/inventory.routes').then((m) => m.inventoryRoutes),
+        canActivate: [permissionGuard],
+        data: { permissions: ['inventory.read'] },
       },
       {
         path: 'orders',
         loadChildren: () => import('./features/orders/orders.routes').then((m) => m.ordersRoutes),
+        canActivate: [permissionGuard],
+        data: { permissions: ['orders.read'] },
       },
     ],
   },

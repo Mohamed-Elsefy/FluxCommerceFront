@@ -28,6 +28,7 @@ const ADMIN: CurrentUser = {
   email: 'boss@flux.local',
   displayName: 'Boss',
   roles: ['Admin'],
+  permissions: [],
   isEmailVerified: true,
 };
 

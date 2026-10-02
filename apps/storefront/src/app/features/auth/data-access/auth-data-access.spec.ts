@@ -267,6 +267,7 @@ describe('mapLoginResponseToProvisionalUser', () => {
       email: LOGIN_FIXTURE.email,
       displayName: null,
       roles: ['Customer'],
+      permissions: [],
       isEmailVerified: true,
     });
   });

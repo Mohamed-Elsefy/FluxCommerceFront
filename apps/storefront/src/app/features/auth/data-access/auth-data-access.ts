@@ -83,6 +83,9 @@ export interface RegistrationResult {
  * before `GET /auth/me` hydrates the full profile. Sound by contract: the
  * backend rejects unverified logins, so a successful login implies a
  * verified email; `displayName` stays null until hydration fills it in.
+ * `LoginResponse` carries no permissions, so the provisional user holds
+ * none — permission-gated UI stays hidden (fail-closed) until hydration
+ * fills them in.
  */
 export function mapLoginResponseToProvisionalUser(response: LoginResponse): CurrentUser {
   return {
@@ -90,6 +93,7 @@ export function mapLoginResponseToProvisionalUser(response: LoginResponse): Curr
     email: response.email,
     displayName: null,
     roles: [...response.roles],
+    permissions: [],
     isEmailVerified: true,
   };
 }

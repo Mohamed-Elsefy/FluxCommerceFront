@@ -19,15 +19,13 @@
  * persistent and the drawer state is ignored by CSS. Route protection stays
  * in `app.routes.ts` (`authGuard` + `roleGuard`) — never in the shell.
  *
- * Navigation composition (12.3): destinations come from the app-owned
- * `ADMIN_NAV_ITEMS` table (routes plus label keys — never hardcoded copy),
- * localized through the admin layout bundle for the active culture. The
- * sidebar stays a dumb renderer; role-aware filtering (`visibleDestinations`
- * over the destinations' optional role allow-lists) is a tested capability
- * that gets wired here the moment a role-differentiated destination exists —
- * today every portal destination admits every portal role, and the shell
- * itself stays free of authentication state (it only reads culture).
- * No business modules live here.
+ * Navigation composition (12.3, permission-filtered in Supplement S1):
+ * destinations come from the app-owned `ADMIN_NAV_ITEMS` table (routes
+ * plus label keys — never hardcoded copy), filtered per session by the
+ * shell-scoped `AdminNavState` and localized through the admin layout
+ * bundle for the active culture. The sidebar stays a dumb renderer and
+ * the shell stays free of auth symbols (rule 3.7) — session reads live
+ * one layer up, in app-owned composition code. No business modules here.
  *
  * SSR/hydration safe: static composition of SSR-safe children plus
  * closed-drawer markup. RTL safe: grid areas mirror with the document
@@ -45,7 +43,8 @@ import {
 } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CultureService } from '@flux/i18n';
-import { ADMIN_NAV_ITEMS, type AdminDestination } from '../../admin-navigation';
+import { AdminNavState } from '../../admin-nav-state';
+import type { AdminDestination } from '../../admin-navigation';
 import {
   ADMIN_LAYOUT_TRANSLATION_KEYS,
   translateAdminLayoutKey,
@@ -57,27 +56,33 @@ import { AdminNotificationHost } from '../../shared/notifications/notification-h
 @Component({
   selector: 'app-layout',
   imports: [RouterOutlet, AdminHeader, AdminSidebar, AdminNotificationHost],
+  providers: [AdminNavState],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppLayout {
   private readonly cultures = inject(CultureService);
+  private readonly navState = inject(AdminNavState);
 
   /**
-   * Sidebar destinations — localized for the active culture (routes stay
-   * app-composed; labels resolve through the layout bundle — never
-   * hardcoded, never duplicated).
+   * Sidebar destinations — permission-filtered for the current session by
+   * the shell-scoped `AdminNavState`, then localized for the active
+   * culture (routes stay app-composed; labels resolve through the layout
+   * bundle — never hardcoded, never duplicated). `SuperAdmin` bypasses
+   * every permission gate, so it always sees the full menu; everyone else
+   * sees only what the last `GET /auth/me` granted.
    */
   readonly sidebarNav = computed((): readonly AdminNavItem[] => {
     const culture = this.cultures.culture();
+    const destinations = this.navState.destinations();
     const localize = (item: AdminDestination): AdminNavItem => ({
       label: translateAdminLayoutKey(culture, item.labelKey),
       route: item.route,
       icon: item.icon,
       children: item.children?.map(localize),
     });
-    return ADMIN_NAV_ITEMS.map(localize);
+    return destinations.map(localize);
   });
 
   /** Localized sidebar landmark name for the active culture. */

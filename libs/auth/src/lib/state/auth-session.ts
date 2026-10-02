@@ -41,7 +41,8 @@ export type AuthStatus = 'anonymous' | 'authenticated';
 
 /**
  * Minimal identity every authenticated session exposes. Backend
- * authorization stays authoritative; roles here drive navigation/UX only.
+ * authorization stays authoritative; roles and permissions here drive
+ * navigation/UX only.
  */
 export interface CurrentUser {
   /** Backend user identifier (opaque to the frontend). */
@@ -56,6 +57,14 @@ export interface CurrentUser {
   readonly displayName: string | null;
   /** Role names granted by the backend (`Customer` / `Admin` / `SuperAdmin`). */
   readonly roles: readonly string[];
+  /**
+   * Action-level permission values from `UserResponse.permissions`
+   * (Supplement S1, `Permission` catalog). Empty until the first
+   * `GET /auth/me` hydration — provisional login users carry none, so
+   * permission-gated UI stays hidden (fail-closed) until the backend
+   * speaks. `SuperAdmin` holds none and bypasses every gate.
+   */
+  readonly permissions: readonly string[];
   /** Email-verification flag from `UserResponse.isEmailVerified`. */
   readonly isEmailVerified: boolean;
 }
@@ -77,9 +86,11 @@ export interface AuthSession {
 /**
  * Maps a contract `UserResponse` onto the shared `CurrentUser` model.
  * `displayName` falls back to `"<firstName> <lastName>"` when the backend
- * sends null; roles are copied (never reinterpreted — authorization stays
- * backend-authoritative). Single implementation shared by login (2.4),
- * restoration (2.8), and any future `me` re-sync.
+ * sends null; roles and permissions are copied verbatim (never
+ * reinterpreted — authorization stays backend-authoritative). Missing
+ * permissions (stale mocks, older payloads) map to `[]`, never crash.
+ * Single implementation shared by login (2.4), restoration (2.8), and
+ * any future `me` re-sync.
  */
 export function mapUserResponseToCurrentUser(response: UserResponse): CurrentUser {
   const fallbackName = `${response.firstName} ${response.lastName}`.trim();
@@ -88,6 +99,7 @@ export function mapUserResponseToCurrentUser(response: UserResponse): CurrentUse
     email: response.email,
     displayName: response.displayName ?? (fallbackName.length > 0 ? fallbackName : null),
     roles: [...response.roles],
+    permissions: [...(response.permissions ?? [])],
     isEmailVerified: response.isEmailVerified,
   };
 }

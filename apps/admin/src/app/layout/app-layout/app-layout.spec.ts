@@ -3,9 +3,24 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
-import { provideAuthRecovery } from '@flux/auth';
+import { AuthService, provideAuthRecovery, type CurrentUser } from '@flux/auth';
 import { CultureService } from '@flux/i18n';
 import { AppLayout } from './app-layout';
+
+const ADMIN_USER: CurrentUser = {
+  id: '22222222-2222-2222-2222-222222222222',
+  email: 'boss@flux.local',
+  displayName: 'Boss Admin',
+  roles: ['Admin'],
+  permissions: [
+    'dashboard.read',
+    'catalog.manage',
+    'inventory.read',
+    'inventory.manage',
+    'orders.read',
+  ],
+  isEmailVerified: true,
+};
 
 function setup(): { fixture: ComponentFixture<AppLayout>; element: HTMLElement } {
   TestBed.configureTestingModule({
@@ -23,6 +38,9 @@ function setup(): { fixture: ComponentFixture<AppLayout>; element: HTMLElement }
     ],
   });
   window.localStorage.clear();
+  // The shell filters destinations by the live session: authenticate with
+  // the full menu grant so chrome tests render every destination.
+  TestBed.inject(AuthService).setAuthenticated({ user: ADMIN_USER, accessToken: 'test-token' });
   const fixture = TestBed.createComponent(AppLayout);
   fixture.detectChanges();
   return { fixture, element: fixture.nativeElement as HTMLElement };

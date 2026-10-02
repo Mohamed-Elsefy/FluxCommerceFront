@@ -29,6 +29,7 @@ const STORED_USER: CurrentUser = {
   email: 'ada@flux.local',
   displayName: null,
   roles: ['Customer'],
+  permissions: [],
   isEmailVerified: true,
 };
 

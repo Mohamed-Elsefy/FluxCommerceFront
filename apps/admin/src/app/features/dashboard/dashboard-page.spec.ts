@@ -29,6 +29,7 @@ function authenticate(roles: readonly string[] = ['Admin']): void {
       email: 'boss@flux.local',
       displayName: 'Boss Admin',
       roles: [...roles],
+      permissions: [],
       isEmailVerified: true,
     },
     accessToken: 'test-access-token',

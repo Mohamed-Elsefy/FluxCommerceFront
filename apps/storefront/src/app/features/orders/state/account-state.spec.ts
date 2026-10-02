@@ -101,6 +101,7 @@ describe('AccountState loadProfile', () => {
       email: 'ada@flux.local',
       displayName: 'Ada Lovelace',
       roles: ['Customer'],
+      permissions: [],
       isEmailVerified: true,
     });
   });

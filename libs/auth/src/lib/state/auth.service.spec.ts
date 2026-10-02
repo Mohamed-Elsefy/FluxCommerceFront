@@ -23,6 +23,7 @@ const USER: CurrentUser = {
   email: 'ada@flux.local',
   displayName: 'Ada Lovelace',
   roles: ['Customer'],
+  permissions: [],
   isEmailVerified: true,
 };
 
@@ -110,9 +111,11 @@ describe('AuthService initial state', () => {
     expect(instance.currentUser()).toBeNull();
     expect(instance.session()).toBeNull();
     expect(instance.roles()).toEqual([]);
+    expect(instance.permissions()).toEqual([]);
     expect(instance.hasAccessToken()).toBe(false);
     expect(instance.readAccessToken()).toBeNull();
     expect(instance.isAdmin()).toBe(false);
+    expect(instance.isSuperAdmin()).toBe(false);
   });
 });
 
@@ -297,6 +300,67 @@ describe('AuthService role selectors', () => {
     });
     expect(superAdmin.hasRole('SuperAdmin')()).toBe(true);
     expect(superAdmin.isAdmin()).toBe(false);
+  });
+});
+
+describe('AuthService permission selectors (Supplement S1)', () => {
+  it('exposes empty permissions until the first me hydration', () => {
+    const instance = service();
+    expect(instance.permissions()).toEqual([]);
+    expect(instance.hasPermission('orders.read')()).toBe(false);
+    expect(instance.isSuperAdmin()).toBe(false);
+  });
+
+  it('mirrors me permissions verbatim without implication', () => {
+    const instance = service();
+    instance.setAuthenticated({
+      user: { ...ADMIN, permissions: ['orders.read', 'dashboard.read'] },
+      accessToken: 'access-1',
+    });
+
+    expect(instance.permissions()).toEqual(['orders.read', 'dashboard.read']);
+    expect(instance.hasPermission('orders.read')()).toBe(true);
+    expect(instance.hasPermission('catalog.manage')()).toBe(false);
+    // SuperAdmin holds no permissions: the bypass lives in the guard.
+    expect(instance.isSuperAdmin()).toBe(false);
+  });
+
+  it('flags SuperAdmin strictly by the SuperAdmin role claim', () => {
+    const instance = service();
+    instance.setAuthenticated({
+      user: { ...USER, roles: ['SuperAdmin'], permissions: [] },
+      accessToken: 'access-1',
+    });
+
+    expect(instance.isSuperAdmin()).toBe(true);
+    expect(instance.hasPermission('orders.read')()).toBe(false);
+  });
+
+  it('drops permissions on a me re-sync that omits them (demotion rule)', () => {
+    const instance = service();
+    instance.setAuthenticated({
+      user: { ...ADMIN, permissions: ['orders.read'] },
+      accessToken: 'access-1',
+    });
+    expect(instance.hasPermission('orders.read')()).toBe(true);
+
+    instance.updateCurrentUser({ ...ADMIN, permissions: [] });
+
+    expect(instance.permissions()).toEqual([]);
+    expect(instance.hasPermission('orders.read')()).toBe(false);
+  });
+
+  it('clears permissions with the session', () => {
+    const instance = service();
+    instance.setAuthenticated({
+      user: { ...ADMIN, permissions: ['orders.read'] },
+      accessToken: 'access-1',
+    });
+    instance.clearSession();
+
+    expect(instance.permissions()).toEqual([]);
+    expect(instance.hasPermission('orders.read')()).toBe(false);
+    expect(instance.isSuperAdmin()).toBe(false);
   });
 });
 

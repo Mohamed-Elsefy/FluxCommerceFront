@@ -27,12 +27,13 @@ import { AuthService, type CurrentUser } from '@flux/auth';
 import { App } from '../../app';
 import { routes } from '../../app.routes';
 
-function adminUser(roles: readonly string[]): CurrentUser {
+function adminUser(roles: readonly string[], permissions: readonly string[] = []): CurrentUser {
   return {
     id: '22222222-2222-2222-2222-222222222222',
     email: 'boss@flux.local',
     displayName: 'Boss Admin',
     roles,
+    permissions,
     isEmailVerified: true,
   };
 }
@@ -59,7 +60,10 @@ async function setupAs(
     auth.markInitializedAnonymous();
   } else {
     auth.setAuthenticated({
-      user: adminUser(state === 'admin' ? ['Admin'] : ['Customer']),
+      user: adminUser(
+        state === 'admin' ? ['Admin'] : ['Customer'],
+        state === 'admin' ? ['dashboard.read'] : [],
+      ),
       accessToken: 'test-access-token',
     });
   }

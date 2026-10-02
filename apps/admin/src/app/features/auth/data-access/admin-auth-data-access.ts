@@ -51,7 +51,9 @@ import type { LoginRequest, LoginResponse } from '@flux/models';
 /**
  * Builds the provisional session user from a `LoginResponse` so the
  * in-memory session (and therefore centralized Bearer injection) exists
- * before `GET /auth/me` hydrates the full profile.
+ * before `GET /auth/me` hydrates the full profile. `LoginResponse` carries
+ * no permissions, so the provisional user holds none — permission-gated UI
+ * stays hidden (fail-closed) until hydration fills them in.
  */
 export function mapLoginResponseToProvisionalUser(response: LoginResponse): CurrentUser {
   return {
@@ -59,6 +61,7 @@ export function mapLoginResponseToProvisionalUser(response: LoginResponse): Curr
     email: response.email,
     displayName: null,
     roles: [...response.roles],
+    permissions: [],
     isEmailVerified: true,
   };
 }

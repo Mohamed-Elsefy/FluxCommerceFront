@@ -45,8 +45,35 @@ describe('admin navigation', () => {
   });
 
   it('shows unrestricted entries to every portal role', () => {
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'])).toHaveLength(5);
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'])).toHaveLength(5);
+    const full = ['dashboard.read', 'catalog.manage', 'inventory.read', 'orders.read'];
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], full)).toHaveLength(5);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], full)).toHaveLength(5);
+  });
+
+  it('hides permission-gated entries without a matching permission', () => {
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], [])).toHaveLength(1);
+    expect(
+      visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], []).map((item) => item.labelKey),
+    ).toEqual(['layout.nav.home']);
+  });
+
+  it('shows entries matching held permissions (children inherit the group outcome)', () => {
+    const visible = visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['inventory.read']);
+
+    expect(visible.map((item) => item.labelKey)).toEqual([
+      'layout.nav.home',
+      'layout.nav.inventory',
+    ]);
+    const inventory = visible.find((item) => item.route === '/inventory');
+    // Stock/reservations inherit the group grant; adjustments needs manage.
+    expect(inventory?.children?.map((child) => child.labelKey)).toEqual([
+      'layout.nav.stock',
+      'layout.nav.reservations',
+    ]);
+  });
+
+  it('bypasses every permission gate for SuperAdmin without held permissions', () => {
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], [])).toHaveLength(5);
   });
 
   it('resolves every destination label in every culture (no key-path leakage)', () => {
@@ -76,15 +103,17 @@ describe('admin navigation', () => {
         children: [{ labelKey: 'layout.nav.dashboard', route: '/dashboard' }],
       },
     ] as const;
+    // Full menu grant: the roles dimension alone decides here.
+    const full = ['dashboard.read', 'catalog.manage', 'inventory.read', 'orders.read'];
 
-    expect(visibleDestinations(items, ['Admin']).map((item) => item.labelKey)).toEqual([
+    expect(visibleDestinations(items, ['Admin'], full).map((item) => item.labelKey)).toEqual([
       'layout.nav.home',
       'layout.nav.dashboard',
       'layout.nav.catalog',
       'layout.nav.inventory',
       'layout.nav.orders',
     ]);
-    expect(visibleDestinations(items, ['SuperAdmin'])).toHaveLength(6);
-    expect(visibleDestinations(items, [])).toHaveLength(5);
+    expect(visibleDestinations(items, ['SuperAdmin'], full)).toHaveLength(6);
+    expect(visibleDestinations(items, [], full)).toHaveLength(5);
   });
 });
