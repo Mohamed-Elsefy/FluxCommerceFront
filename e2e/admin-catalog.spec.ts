@@ -7,14 +7,19 @@
  * real feature slices run: product list/create/edit/details, variant
  * management, category management, image/specification management on
  * the product page, stock lookup, reservation lookup, and inventory
- * adjustment with updated-state verification.
+ * adjustment with updated-state verification, plus the Supplement S1
+ * stock/reservation lists (paged, filtered) and the counts overview.
  *
- * Contract-honest coverage notes (13.1 audit): there is no stock list,
- * no reservation list, no product/category search, sort, or filter
- * endpoint — so those journeys assert single-resource lookups and the
- * paged tables instead of inventing list UX that the backend cannot
- * serve. Reservation "filtering" (phase text) maps to the supported
- * single-id lookup.
+ * Contract-honest coverage notes (13.1 audit, Supplement S1.1 audit):
+ * there is no product/category search, sort, or filter endpoint — so
+ * those journeys assert single-resource lookups and the paged tables
+ * instead of inventing list UX that the backend cannot serve. Stock
+ * lists (`search`/`maxAvailable`, by-SKU order), reservation lists
+ * (`status`/`sku`/`orderId`, newest-first), and the counts snapshot
+ * ARE backend contracts — those journeys assert rows, request queries,
+ * and verbatim buckets. Reservation "filtering" (phase text) maps to
+ * the supported list filters plus the single-id lookup. Quantities and
+ * counts echo verbatim (never derived client-side).
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
@@ -375,6 +380,40 @@ test.describe('admin catalog journeys (13.11)', () => {
     await expect(page.getByText('Variant created')).toBeVisible();
   });
 
+  test('variant editing updates price and status with a 204 round-trip', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(page, 'GET', '/catalog/products/prod-1/variants/var-1', 200, json(variant()));
+    let putBody: unknown = null;
+    await page.route(
+      (url) =>
+        url.origin === API_ORIGIN && url.pathname === '/catalog/products/prod-1/variants/var-1',
+      async (route: Route) => {
+        if (route.request().method() === 'PUT') {
+          putBody = route.request().postDataJSON();
+          await route.fulfill({ status: 204 });
+        } else {
+          await route.fallback();
+        }
+      },
+    );
+    await page.goto('/catalog/products/prod-1/variants/var-1/edit');
+
+    await expect(page.getByRole('heading', { name: 'Edit variant' })).toBeVisible();
+    await page.getByLabel('Price').fill('34.99');
+    await page.getByLabel('Status').selectOption('1');
+    await page.getByRole('button', { name: 'Save variant' }).click();
+
+    await expect(page.getByText('Variant updated')).toBeVisible();
+    expect(putBody).toEqual({
+      sku: 'TEE-BLK-M',
+      name: 'Black / M',
+      unitPriceAmount: 34.99,
+      currency: 'USD',
+      status: 1,
+    });
+  });
+
   test('category management lists, creates, and deletes with confirmation', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
@@ -495,10 +534,7 @@ test.describe('admin inventory journeys (13.11)', () => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
     await mock(page, 'GET', '/inventory/TEE-BLK-M', 200, json(stock()));
-    await page.goto('/inventory/stock');
-
-    await page.getByLabel('SKU').fill('tee-blk-m');
-    await page.getByRole('button', { name: 'Look up' }).click();
+    await page.goto('/inventory/stock/TEE-BLK-M');
 
     await expect(page.getByText('TEE-BLK-M').first()).toBeVisible();
     await expect(page.getByText('98')).toBeVisible();
@@ -514,13 +550,124 @@ test.describe('admin inventory journeys (13.11)', () => {
       200,
       json(reservation()),
     );
-    await page.goto('/inventory/reservations');
-
-    await page.getByLabel('Reservation ID').fill('3fa85f64-5717-4562-b3fc-2c963f66afa6');
-    await page.getByRole('button', { name: 'Look up' }).click();
+    await page.goto('/inventory/reservations/3fa85f64-5717-4562-b3fc-2c963f66afa6');
 
     await expect(page.getByText('Pending').first()).toBeVisible();
     await expect(page.getByText('TEE-BLK-M')).toBeVisible();
+  });
+
+  test('stock list browses pages and narrows through the search filter', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    const seen: Array<Record<string, string>> = [];
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/inventory',
+      async (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        seen.push(Object.fromEntries(new URL(route.request().url()).searchParams.entries()));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            json({ items: [stock()], totalCount: 1, pageNumber: 1, pageSize: 20 }),
+          ),
+        });
+      },
+    );
+    await page.goto('/inventory/stock');
+
+    await expect(page.getByRole('heading', { name: 'Stock list' })).toBeVisible();
+    await expect(page.getByText('TEE-BLK-M').first()).toBeVisible();
+    await page.getByRole('link', { name: 'TEE-BLK-M' }).click();
+    await expect(page).toHaveURL('/inventory/stock/TEE-BLK-M');
+  });
+
+  test('stock search filter narrows through the request query', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    const seen: Array<Record<string, string>> = [];
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/inventory',
+      async (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        seen.push(Object.fromEntries(new URL(route.request().url()).searchParams.entries()));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(json({ items: [], totalCount: 0, pageNumber: 1, pageSize: 20 })),
+        });
+      },
+    );
+    await page.goto('/inventory/stock');
+
+    await page.getByLabel('Search').fill('TEE');
+    await page.getByRole('button', { name: 'Apply filters' }).click();
+    await expect(page.getByText('No stock found')).toBeVisible();
+
+    expect(seen.at(-1)?.['search']).toBe('TEE');
+  });
+
+  test('reservation list narrows through the status filter', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    const seen: Array<Record<string, string>> = [];
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/inventory/reservations',
+      async (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        seen.push(Object.fromEntries(new URL(route.request().url()).searchParams.entries()));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            json({ items: [reservation()], totalCount: 1, pageNumber: 1, pageSize: 20 }),
+          ),
+        });
+      },
+    );
+    await page.goto('/inventory/reservations');
+
+    await expect(page.getByRole('heading', { name: 'Reservations list' })).toBeVisible();
+    await page.getByLabel('Status').selectOption('Committed');
+    await page.getByRole('button', { name: 'Apply filters' }).click();
+    await expect(page.getByText('3fa85f64-5717-4562-b3fc-2c963f66afa6')).toBeVisible();
+
+    expect(seen.at(-1)?.['status']).toBe('Committed');
+  });
+
+  test('inventory home renders the backend-issued counts', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(
+      page,
+      'GET',
+      '/inventory/counts',
+      200,
+      json({
+        totalItems: 12,
+        totalOnHand: 100,
+        totalReserved: 8,
+        lowStockItems: 2,
+        pendingReservations: 1,
+        committedReservations: 3,
+        releasedReservations: 0,
+        expiredReservations: 1,
+      }),
+    );
+    await page.goto('/inventory');
+
+    await expect(page.getByRole('heading', { name: 'Inventory overview' })).toBeVisible();
+    await expect(page.getByText('Total items')).toBeVisible();
+    await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
   });
 
   test('adjustment confirms and renders the backend-returned updated state', async ({ page }) => {
@@ -573,7 +720,23 @@ test.describe('admin inventory journeys (13.11)', () => {
     await expect(page.getByText('Inventory item created')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Created stock' })).toBeVisible();
     await expect(page.getByText('SSD-121').first()).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View in stock lookup' })).toBeVisible();
+    await mock(
+      page,
+      'GET',
+      '/inventory/SSD-121',
+      200,
+      json(
+        stock({
+          sku: 'SSD-121',
+          onHandQuantity: 0,
+          reservedQuantity: 0,
+          availableQuantity: 0,
+        }),
+      ),
+    );
+    await page.getByRole('link', { name: 'View in stock lookup' }).click();
+
+    await expect(page).toHaveURL('/inventory/stock/SSD-121');
   });
 
   test('adjustment on an untracked SKU links to prefilled item creation', async ({ page }) => {

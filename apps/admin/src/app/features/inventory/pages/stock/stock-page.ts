@@ -1,15 +1,17 @@
 /**
- * Admin stock lookup page for Sub-Phase 13.9 — Stock & Inventory Status.
+ * Admin stock lookup page for Sub-Phase 13.9 — Stock & Inventory Status
+ * — plus Supplement S1, Step S1.7 (deep-link target).
  *
- * Smart page (route-level composition) within the inventory context
- * (`/inventory/stock`): reads the feature-scoped `StockState`
- * (route-provided `inventoryRoutes` entry — never a global store) and
- * renders one SKU lookup at a time through the shared async UI.
+ * Smart page (route-level composition) within the inventory context:
+ * reads the feature-scoped `StockState` (route-provided
+ * `inventoryRoutes` entry — never a global store) and renders one SKU
+ * lookup at a time through the shared async UI. Mounted at both
+ * `/inventory/stock` (manual lookup form) and `/inventory/stock/:sku`
+ * (deep link from the stock list — the route param auto-loads on entry
+ * and on param changes).
  *
  * Display contract (13.1 audit — only backend-exposed capabilities):
- * `GET /inventory/{sku}` is the single stock read — there is no stock
- * list, no pagination, no filtering, no sorting, and no search
- * endpoint, so none of that UI exists here by design. The record
+ * `GET /inventory/{sku}` is the single-resource stock read. The record
  * renders the backend-issued quantities verbatim (`onHandQuantity`,
  * `reservedQuantity`, `availableQuantity`) plus the update timestamp:
  * `availableQuantity` is never derived client-side, no status or
@@ -27,11 +29,23 @@
  * logical properties only.
  *
  * Explicitly out of scope (later work, must not appear here):
+ * - Stock lists, filtering, or pagination (owned by the stock list
+ *   page in S1.7 — no shared logic, separate state).
  * - 13.10 — no reservation lookups, no adjustment forms.
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  untracked,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { AdminSearchInput } from '../../../../shared/filters/search-input/search-input';
@@ -52,6 +66,12 @@ export class StockPage {
   private readonly stock = inject(StockState);
   private readonly cultures = inject(CultureService);
 
+  /** Route SKU (`null` on the manual-lookup entry — deep links carry it). */
+  private readonly routeSku = toSignal(
+    inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('sku'))),
+    { initialValue: null as string | null },
+  );
+
   /** SKU editor control (presence validated; normalization lives in the state). */
   protected readonly skuControl = new FormControl<string | null>(null, {
     validators: [Validators.required],
@@ -59,6 +79,21 @@ export class StockPage {
 
   /** Lookup form group (owns the `ngSubmit` output the template binds). */
   protected readonly form = new FormGroup({ sku: this.skuControl });
+
+  constructor() {
+    // Deep-link drive: a present `:sku` param auto-loads (initial value
+    // included, param changes followed). Runs `untracked` so settled
+    // responses never reschedule the effect — the param is the only
+    // dependency. Manual lookups keep working alongside.
+    effect(() => {
+      const sku = this.routeSku();
+      untracked(() => {
+        if (sku !== null) {
+          this.stock.lookup(sku);
+        }
+      });
+    });
+  }
 
   /** Current stock record (idle → loading → success | error). */
   protected readonly slot = this.stock.stock;

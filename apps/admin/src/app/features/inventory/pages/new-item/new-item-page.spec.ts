@@ -125,7 +125,7 @@ describe('NewItemPage', () => {
     const facts = element.querySelector('.new-item-page-facts')?.textContent ?? '';
     expect(facts).toContain('SSD-121');
     expect(element.querySelector('.new-item-page-view-stock')?.getAttribute('href')).toBe(
-      '/inventory/stock',
+      '/inventory/stock/SSD-121',
     );
     const notifications = TestBed.inject(AdminNotificationService).notifications();
     expect(notifications.at(-1)?.type).toBe('success');

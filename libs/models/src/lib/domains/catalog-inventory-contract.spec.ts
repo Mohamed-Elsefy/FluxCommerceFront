@@ -85,8 +85,6 @@ describe('admin-catalog-inventory-contract (Sub-Phase 13.1 audit)', () => {
       expect([...UNSUPPORTED_CATALOG_OPERATIONS]).toEqual([
         'product-hard-delete',
         'product-status-write',
-        'variant-price-update',
-        'variant-status-update',
         'variant-lifecycle',
         'category-archive',
         'image-file-upload',
@@ -95,9 +93,9 @@ describe('admin-catalog-inventory-contract (Sub-Phase 13.1 audit)', () => {
       ]);
     });
 
-    it('pins inventory operations that must never be implemented (no lists)', () => {
-      expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).toContain('stock-list');
-      expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).toContain('reservation-list');
+    it('pins inventory operations that must never be implemented (no mutations)', () => {
+      expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).not.toContain('stock-list');
+      expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).not.toContain('reservation-list');
       expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).toContain('stock-decrement');
       expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).toContain('reservation-commit');
       expect([...UNSUPPORTED_INVENTORY_OPERATIONS]).toContain('reservation-release');
@@ -106,7 +104,7 @@ describe('admin-catalog-inventory-contract (Sub-Phase 13.1 audit)', () => {
     it('classifies unsupported operations (unknown strings pass as supported)', () => {
       expect(isUnsupportedCatalogOperation('product-hard-delete')).toBe(true);
       expect(isUnsupportedCatalogOperation('product-create')).toBe(false);
-      expect(isUnsupportedInventoryOperation('stock-list')).toBe(true);
+      expect(isUnsupportedInventoryOperation('stock-list')).toBe(false);
       expect(isUnsupportedInventoryOperation('stock-lookup')).toBe(false);
       expect(isUnsupportedCatalogOperation(null)).toBe(false);
       expect(isUnsupportedInventoryOperation(42)).toBe(false);
@@ -239,11 +237,13 @@ describe('admin-catalog-inventory-contract (Sub-Phase 13.1 audit)', () => {
       expect(paths).not.toContain('/catalog/products/{productId}/variants/{variantId}/price');
     });
 
-    it('pins the complete inventory surface (exactly three templates, four endpoints)', () => {
+    it('pins the complete inventory surface (list, counts, and lookup templates)', () => {
       expect([...ADMIN_CALLABLE_INVENTORY_ENDPOINTS]).toEqual([
         '/inventory',
         '/inventory/{sku}',
         '/inventory/reservations/{id}',
+        '/inventory/counts',
+        '/inventory/reservations',
       ]);
     });
 

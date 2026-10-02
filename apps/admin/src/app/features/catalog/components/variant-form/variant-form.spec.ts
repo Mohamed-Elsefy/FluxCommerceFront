@@ -9,11 +9,17 @@ const COPY: VariantFormCopy = {
   price: 'Price',
   currency: 'Currency',
   currencyHint: 'Three letters.',
-  priceLockedHint: 'Set at creation.',
+  statusLabel: 'Status',
+  pairedError: 'Price and currency must be provided together.',
   submit: 'Save variant',
   cancel: 'Cancel',
   saving: 'Saving…',
 };
+
+const STATUS_OPTIONS = [
+  { value: '0', label: 'Active' },
+  { value: '1', label: 'Inactive' },
+];
 
 function setup(
   initial: VariantFormValue = emptyVariantFormValue(),
@@ -23,6 +29,7 @@ function setup(
   const fixture = TestBed.createComponent(VariantForm);
   fixture.componentRef.setInput('initial', initial);
   fixture.componentRef.setInput('mode', mode);
+  fixture.componentRef.setInput('statusOptions', STATUS_OPTIONS);
   fixture.componentRef.setInput('copy', COPY);
   fixture.detectChanges();
   return { fixture, element: fixture.nativeElement as HTMLElement };
@@ -91,16 +98,46 @@ describe('VariantForm', () => {
     expect(element.textContent).toContain('Unknown currency.');
   });
 
-  it('locks money controls as read-only display when editing', () => {
+  it('keeps money editable in edit mode with the status select', () => {
     const { element } = setup(
-      { sku: 'TEE-BLK-M', name: 'Black / M', price: '29.99', currency: 'USD' },
+      { sku: 'TEE-BLK-M', name: 'Black / M', price: '29.99', currency: 'USD', status: 0 },
       'edit',
     );
 
-    expect((element.querySelector('#variant-price') as HTMLInputElement).disabled).toBe(true);
-    expect((element.querySelector('#variant-currency') as HTMLInputElement).disabled).toBe(true);
-    expect((element.querySelector('#variant-sku') as HTMLInputElement).disabled).toBe(false);
-    expect(element.textContent).toContain('Set at creation.');
+    expect((element.querySelector('#variant-price') as HTMLInputElement).disabled).toBe(false);
+    expect((element.querySelector('#variant-currency') as HTMLInputElement).disabled).toBe(false);
+    expect(element.querySelector('#variant-status')).not.toBeNull();
+    expect(element.textContent).not.toContain('Set at creation.');
+  });
+
+  it('blocks unpaired money in edit mode with the pairing notice', () => {
+    const { fixture, element } = setup(
+      { sku: 'TEE-BLK-M', name: 'Black / M', price: '29.99', currency: 'USD', status: 0 },
+      'edit',
+    );
+    const save = vi.fn();
+    fixture.componentInstance.save.subscribe(save);
+
+    fill(element, 'variant-price', '');
+    (element.querySelector('.form-actions-submit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(save).not.toHaveBeenCalled();
+    expect(element.textContent).toContain('Price and currency must be provided together.');
+  });
+
+  it('emits paired money and status on edit submit', () => {
+    const { fixture, element } = setup(
+      { sku: 'TEE-BLK-M', name: 'Black / M', price: '29.99', currency: 'USD', status: 0 },
+      'edit',
+    );
+    const seen: VariantFormValue[] = [];
+    fixture.componentInstance.save.subscribe((value) => seen.push(value));
+
+    (element.querySelector('.form-actions-submit') as HTMLButtonElement).click();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ price: '29.99', currency: 'USD', status: 0 });
   });
 
   it('projects server errors onto fields and reports unknown keys', () => {

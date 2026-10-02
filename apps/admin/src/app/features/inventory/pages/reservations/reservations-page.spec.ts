@@ -1,6 +1,7 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { of } from 'rxjs';
 import {
@@ -33,7 +34,12 @@ function reservation(): InventoryReservationResponse {
   };
 }
 
-function setup(scenario: { reservation?: ResourceState<InventoryReservationResponse> } = {}): {
+function setup(
+  scenario: {
+    reservation?: ResourceState<InventoryReservationResponse>;
+    params?: Record<string, string | null>;
+  } = {},
+): {
   lookup: ReturnType<typeof vi.fn>;
 } {
   const lookup = vi.fn();
@@ -50,6 +56,10 @@ function setup(scenario: { reservation?: ResourceState<InventoryReservationRespo
       {
         provide: ReservationState,
         useValue: { reservation: signal(scenario.reservation ?? idleResource()), lookup },
+      },
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of(convertToParamMap(scenario.params ?? {})) },
       },
     ],
   });
@@ -82,6 +92,14 @@ function submitLookup(element: HTMLElement): void {
 }
 
 describe('ReservationsPage', () => {
+  it('auto-loads the route id on the deep-link entry', () => {
+    const { lookup } = setup({ params: { id: RESERVATION_ID } });
+    const fixture = TestBed.createComponent(ReservationsPage);
+    fixture.detectChanges();
+
+    expect(lookup).toHaveBeenCalledWith(RESERVATION_ID);
+  });
+
   it('prompts for an id while untouched and blocks blank submits', () => {
     const { lookup } = setup();
     const { element } = render();

@@ -53,7 +53,9 @@
           </div>
         </dl>
       </flux-card>
-      <a class="new-item-page-view-stock" routerLink="/inventory/stock">{{ copy().viewStock }}</a>
+      <a class="new-item-page-view-stock" [routerLink]="['/inventory/stock', result()!.sku]">{{
+        copy().viewStock
+      }}</a>
     </section>
   }
 </section>

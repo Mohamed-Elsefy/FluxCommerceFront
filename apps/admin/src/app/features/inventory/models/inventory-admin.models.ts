@@ -1,22 +1,24 @@
 /**
  * Admin Inventory feature models for Sub-Phase 13.8 — Inventory Feature
- * Foundation.
+ * Foundation — plus Supplement S1, Step S1.7 (list surfaces).
  *
- * Scope: canonical wire aliases only (no view models yet — stock,
- * reservation, and adjustment views arrive with Sub-Phases 13.9–13.10,
- * which own their mappers). The single declaration site stays
- * `@flux/models` (13.1 audit mirrors) — aliases here, never
- * re-declarations, so no contract drift is possible.
+ * Scope: canonical wire aliases only (stock, reservation, and
+ * adjustment views arrive with Sub-Phases 13.9–13.10, list views with
+ * Supplement S1.7 — which own their mappers). The single declaration
+ * site stays `@flux/models` (13.1 audit mirrors + S1.2 declarations) —
+ * aliases here, never re-declarations, so no contract drift is
+ * possible.
  *
  * Backend-authoritative data rule (binds every later slice):
- * `availableQuantity` echoes verbatim for display (never an input to
- * math, never recomputed client-side as `onHand - reserved`), money
- * never appears on this surface, and reservation ids are never
- * enumerable (single-resource lookups only — there is no stock list
- * and no reservation list endpoint). Pure types: no Angular, no HTTP,
- * no browser APIs — SSR-safe.
+ * `availableQuantity` and every counts bucket echo verbatim for display
+ * (never inputs to math, never recomputed client-side as `onHand -
+ * reserved`), money never appears on this surface, and list ordering is
+ * server-fixed (stock by SKU, reservations newest-first — no sort
+ * params exist). Pure types: no Angular, no HTTP, no browser APIs —
+ * SSR-safe.
  */
 
+import type { PagedResult } from '@flux/api';
 import type {
   AdjustStockRequest,
   AdminReservation,
@@ -32,8 +34,14 @@ import type {
 /** One admin stock row (canonical wire shape, never re-declared). */
 export type AdminStockRow = InventoryItemResponse;
 
+/** Paged stock result (`GET /inventory`, ordered by SKU). */
+export type AdminStockPage = PagedResult<AdminStockRow>;
+
 /** One admin reservation record (canonical wire shape, never re-declared). */
 export type AdminReservationRow = InventoryReservationResponse;
+
+/** Paged reservation result (`GET /inventory/reservations`, newest-first). */
+export type AdminReservationPage = PagedResult<AdminReservationRow>;
 
 /** `POST /inventory` body (canonical wire shape, never re-declared). */
 export type AdminStockCreateBody = CreateInventoryItemRequest;

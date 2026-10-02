@@ -56,3 +56,44 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
+
+.inventory-home-counts {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.inventory-home-counts h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.inventory-home-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.inventory-home-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.inventory-home-facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-home-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 48rem) {
+  .inventory-home-facts > div {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    align-items: baseline;
+  }
+}

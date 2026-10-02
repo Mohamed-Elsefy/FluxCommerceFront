@@ -1,12 +1,29 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { describe, expect, it } from 'vitest';
-import { provideApi, provideAppEnvironment } from '@flux/api';
+import { describe, expect, it, vi } from 'vitest';
+import { idleResource, provideApi, provideAppEnvironment, successResource } from '@flux/api';
 import { CultureService } from '@flux/i18n';
+import type { InventoryCountsResponse } from '@flux/models';
+import { InventoryCountsState } from '../../state/inventory-counts-state';
 import { InventoryHomePage } from './inventory-home-page';
 
-function configure(): void {
+function counts(): InventoryCountsResponse {
+  return {
+    totalItems: 12,
+    totalOnHand: 100,
+    totalReserved: 8,
+    lowStockItems: 2,
+    pendingReservations: 1,
+    committedReservations: 3,
+    releasedReservations: 0,
+    expiredReservations: 1,
+  };
+}
+
+function configure(countsResource = idleResource()): { load: ReturnType<typeof vi.fn> } {
+  const load = vi.fn();
   TestBed.configureTestingModule({
     providers: [
       provideAppEnvironment({
@@ -18,9 +35,14 @@ function configure(): void {
       provideApi(),
       provideHttpClientTesting(),
       provideRouter([]),
+      {
+        provide: InventoryCountsState,
+        useValue: { counts: signal(countsResource), load, reload: vi.fn() },
+      },
     ],
   });
   window.localStorage.clear();
+  return { load };
 }
 
 function render(): HTMLElement {
@@ -63,5 +85,19 @@ describe('InventoryHomePage', () => {
     } finally {
       cultures.setCulture('en');
     }
+  });
+
+  it('loads the counts snapshot and renders every bucket verbatim', () => {
+    const { load } = configure(successResource(counts()));
+    const element = render();
+
+    expect(load).toHaveBeenCalledTimes(1);
+    const facts = [...element.querySelectorAll('.inventory-home-facts > div')].map(
+      (row) =>
+        `${row.querySelector('dt')?.textContent?.trim()}: ${row.querySelector('dd')?.textContent?.trim()}`,
+    );
+    expect(facts).toHaveLength(8);
+    expect(facts).toContain('Total items: 12');
+    expect(facts).toContain('Low stock items: 2');
   });
 });

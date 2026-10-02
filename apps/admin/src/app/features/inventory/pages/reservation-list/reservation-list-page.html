@@ -1,0 +1,62 @@
+<section class="reservation-list" aria-labelledby="reservation-list-title">
+  <header class="reservation-list-header">
+    <div>
+      <h1 id="reservation-list-title">{{ copy().heading }}</h1>
+      <p class="reservation-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+  </header>
+
+  <form class="reservation-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <admin-filter-bar
+      [label]="copy().filterTitle"
+      [clearLabel]="copy().filterClear"
+      (clear)="clearFilters()"
+    >
+      <admin-select
+        [control]="filters.controls.status"
+        [options]="statusOptions()"
+        [label]="copy().filterStatus"
+        fieldId="reservation-filter-status"
+      />
+      <admin-text-input
+        [control]="filters.controls.sku"
+        [label]="copy().filterSku"
+        fieldId="reservation-filter-sku"
+      />
+      <admin-text-input
+        [control]="filters.controls.orderId"
+        [label]="copy().filterOrderId"
+        fieldId="reservation-filter-order"
+      />
+      <button class="reservation-list-apply" type="submit">{{ copy().filterApply }}</button>
+    </admin-filter-bar>
+  </form>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

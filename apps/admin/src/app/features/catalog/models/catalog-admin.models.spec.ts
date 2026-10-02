@@ -260,7 +260,13 @@ function variantResponse(): VariantResponse {
 
 describe('variant form value', () => {
   it('exposes a blank value for the create page', () => {
-    expect(emptyVariantFormValue()).toEqual({ sku: null, name: null, price: null, currency: null });
+    expect(emptyVariantFormValue()).toEqual({
+      sku: null,
+      name: null,
+      price: null,
+      currency: null,
+      status: null,
+    });
   });
 
   it('projects a loaded variant into the form (edit population)', () => {
@@ -269,6 +275,7 @@ describe('variant form value', () => {
       name: 'Black / M',
       price: '29.99',
       currency: 'USD',
+      status: 0,
     });
   });
 
@@ -279,19 +286,60 @@ describe('variant form value', () => {
         name: 'Black / M',
         price: ' 29.99 ',
         currency: 'usd',
+        status: 0,
       }),
     ).toEqual({ sku: 'tee-blk-m', name: 'Black / M', unitPriceAmount: 29.99, currency: 'USD' });
   });
 
-  it('projects updates with sku and name only (no money fields)', () => {
+  it('projects paired money and status into the update body', () => {
     expect(
       toUpdateVariantRequest({
         sku: 'TEE-BLK-M',
         name: 'Black / M',
         price: '29.99',
-        currency: 'USD',
+        currency: 'usd',
+        status: 1,
       }),
-    ).toEqual({ sku: 'TEE-BLK-M', name: 'Black / M' });
+    ).toEqual({
+      sku: 'TEE-BLK-M',
+      name: 'Black / M',
+      unitPriceAmount: 29.99,
+      currency: 'USD',
+      status: 1,
+    });
+  });
+
+  it('omits the money pair when blank and never emits NaN', () => {
+    expect(
+      toUpdateVariantRequest({
+        sku: 'TEE-BLK-M',
+        name: 'Black / M',
+        price: '',
+        currency: '',
+        status: 0,
+      }),
+    ).toEqual({
+      sku: 'TEE-BLK-M',
+      name: 'Black / M',
+      unitPriceAmount: null,
+      currency: null,
+      status: 0,
+    });
+    expect(
+      toUpdateVariantRequest({
+        sku: 'TEE-BLK-M',
+        name: 'Black / M',
+        price: 'not-a-number',
+        currency: 'USD',
+        status: null,
+      }),
+    ).toEqual({
+      sku: 'TEE-BLK-M',
+      name: 'Black / M',
+      unitPriceAmount: null,
+      currency: null,
+      status: null,
+    });
   });
 });
 

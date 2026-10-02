@@ -16,8 +16,8 @@
  * only if a future slice owns their forms — none does today.
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §2 (catalog
- * reads are `[AllowAnonymous]`, but the portal always sends its Admin JWT;
- * writes need the `Admin` role) and the 13.1 audit
+ * reads are `[AllowAnonymous]`, but the portal always sends its JWT;
+ * writes need `catalog.manage`) and the 13.1 audit
  * (`libs/models/.../catalog-inventory-contract.ts`).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
@@ -316,10 +316,10 @@ export class CatalogAdminApiService {
   }
 
   /**
-   * `PUT /catalog/products/{productId}/variants/{variantId}` — renames a
-   * variant (`Admin` only). Carries `sku` + `name` ONLY: price, currency,
-   * and status cannot be edited through any backend endpoint, so the
-   * edit form locks them as read-only display.
+   * `PUT /catalog/products/{productId}/variants/{variantId}` — edits a
+   * variant (`catalog.manage`). Carries `sku` + `name` plus the optional
+   * paired `unitPriceAmount`/`currency` and the `status` sellability
+   * toggle (Supplement S1).
    * Success: `204` empty. Failures: `400` validation, `401`/`403`,
    * `404`, `409` duplicate SKU.
    */

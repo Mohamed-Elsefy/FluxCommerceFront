@@ -24,6 +24,7 @@
     <app-variant-form
       mode="edit"
       [initial]="initial()"
+      [statusOptions]="statusOptions()"
       [copy]="formCopy()"
       [submitting]="submitting()"
       (save)="onSave($event)"

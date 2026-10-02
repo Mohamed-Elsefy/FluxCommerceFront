@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { InventoryAdminApiService } from './data-access/inventory-admin-api.service';
+import { InventoryCountsState } from './state/inventory-counts-state';
+import { ReservationListState } from './state/reservation-list-state';
 import { ReservationState } from './state/reservation-state';
+import { StockListState } from './state/stock-list-state';
 import { StockState } from './state/stock-state';
 import { inventoryRoutes } from './inventory.routes';
 
@@ -12,16 +15,21 @@ describe('inventoryRoutes', () => {
       InventoryAdminApiService,
       StockState,
       ReservationState,
+      StockListState,
+      ReservationListState,
+      InventoryCountsState,
     ]);
   });
 
-  it('serves the landing page plus the stock, reservation, adjustment, and creation slices', () => {
+  it('serves the landing, list, lookup, adjustment, and creation slices', () => {
     const children = inventoryRoutes[0]?.children ?? [];
 
     expect(children.map((route) => route.path)).toEqual([
       '',
       'stock',
+      'stock/:sku',
       'reservations',
+      'reservations/:id',
       'adjustments',
       'new',
     ]);

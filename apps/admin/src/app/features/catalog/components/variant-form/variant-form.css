@@ -3,3 +3,10 @@
   gap: var(--spacing-md);
   max-inline-size: 44rem;
 }
+
+.variant-form-paired-error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-danger);
+}

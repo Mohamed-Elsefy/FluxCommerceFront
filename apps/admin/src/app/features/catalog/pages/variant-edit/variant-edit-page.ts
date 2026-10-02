@@ -1,6 +1,6 @@
 /**
  * Admin variant edit page for Sub-Phase 13.4 — Product Variants
- * Management.
+ * Management — plus Supplement S1, Step S1.6 (editable money + status).
  *
  * Smart page (route-level composition) within the product context
  * (`/catalog/products/:productId/variants/:variantId/edit`): loads the
@@ -10,15 +10,17 @@
  * `PUT .../variants/{variantId}` submission transport with the same
  * error discipline as the create page.
  *
- * Contract-shaped editing: the form locks price and currency as
- * read-only display (the update endpoint accepts `sku` + `name` only),
- * and the submit projects exactly those two fields. Error discipline:
- * the variant loads behind page-level loading/error states (the form
- * mounts only on success, so population can never race); submit
- * failures project `400` field maps onto their controls and render
- * everything else — including `409` duplicate-SKU conflicts — as the
- * form-level notice with user input preserved. Success notifies and
- * navigates to the variant details page.
+ * Contract-shaped editing (S1.6): price + currency travel optional-but-
+ * paired (both or neither — the form blocks unpaired submits and omits
+ * the pair when blank) alongside `sku`/`name`, and the status select
+ * toggles sellability (Active/Inactive — the only backend lifecycle,
+ * see `variantStatusDisplay`). Error discipline: the variant loads
+ * behind page-level loading/error states (the form mounts only on
+ * success, so population can never race); submit failures project
+ * `400` field maps onto their controls and render everything else —
+ * including `409` duplicate-SKU conflicts — as the form-level notice
+ * with user input preserved. Success notifies and navigates to the
+ * variant details page.
  *
  * SSR/hydration safe: signals plus markup, no browser APIs. RTL safe:
  * logical properties only.
@@ -39,8 +41,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { isApiError } from '@flux/api';
+import { VariantStatus } from '@flux/models';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
+import type { AdminSelectOption } from '../../../../shared/forms/select/select';
 import { CatalogAdminApiService } from '../../data-access/catalog-admin-api.service';
 import { VariantDetailsState } from '../../state/variant-details-state';
 import {
@@ -115,11 +119,27 @@ export class VariantEditPage {
       price: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormPrice),
       currency: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormCurrency),
       currencyHint: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormCurrencyHint),
-      priceLockedHint: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormLockedHint),
+      statusLabel: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormStatus),
+      pairedError: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormPairedError),
       submit: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormSave),
       cancel: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormCancel),
       saving: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantFormSaving),
     };
+  });
+
+  /** Localized status select options (Active/Inactive wire values). */
+  protected readonly statusOptions = computed((): readonly AdminSelectOption[] => {
+    const culture = this.cultures.culture();
+    return [
+      {
+        value: String(VariantStatus.Active),
+        label: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantStatusActive),
+      },
+      {
+        value: String(VariantStatus.Inactive),
+        label: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.variantStatusInactive),
+      },
+    ];
   });
 
   /** Localized page copy for the active culture. */

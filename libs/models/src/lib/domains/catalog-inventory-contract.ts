@@ -223,14 +223,14 @@ export function isAttributeDefinitionLifecycleAction(
 /**
  * Catalog operations that DO NOT exist in the backend contract and must
  * never be implemented in the admin UI. Pinned so later sub-phases cannot
- * invent them (e.g. a product hard-delete button, a variant price editor,
- * or a stock decrement field).
+ * invent them (e.g. a product hard-delete button or a stock decrement
+ * field). Supplement S1 unlocked variant price/status editing — those
+ * former pins live in `SUPPLEMENT_S1_NEWLY_SUPPORTED_OPERATIONS`, not
+ * here.
  */
 export const UNSUPPORTED_CATALOG_OPERATIONS = [
   'product-hard-delete',
   'product-status-write',
-  'variant-price-update',
-  'variant-status-update',
   'variant-lifecycle',
   'category-archive',
   'image-file-upload',
@@ -243,20 +243,17 @@ export type UnsupportedCatalogOperation = (typeof UNSUPPORTED_CATALOG_OPERATIONS
 
 /**
  * Inventory operations that DO NOT exist in the backend contract and must
- * never be implemented in the admin UI. The inventory surface is exactly
- * four endpoints (`INVENTORY_*` below) — there is no stock list, no
- * reservation list, no stock search/filter/sort/pagination, no manual
- * decrement, no item delete, and no reservation mutation from the SPA.
+ * never be implemented in the admin UI. Supplement S1 unlocked the stock
+ * list (search/pagination/filtering), the counts snapshot, and the
+ * reservation list — those former pins live in
+ * `SUPPLEMENT_S1_NEWLY_SUPPORTED_OPERATIONS`, not here. Still pinned:
+ * no sort params (server-fixed ordering), no manual decrement, no item
+ * delete, and no reservation mutation from the SPA.
  */
 export const UNSUPPORTED_INVENTORY_OPERATIONS = [
-  'stock-list',
-  'stock-search',
-  'stock-pagination',
-  'stock-filtering',
   'stock-sorting',
   'stock-decrement',
   'stock-delete',
-  'reservation-list',
   'reservation-create',
   'reservation-update',
   'reservation-delete',
@@ -352,9 +349,11 @@ export function supportsAdminCatalogSorting(read: string | null | undefined): bo
 
 /**
  * Filtering support: ONLY `searchCatalog` accepts filters
- * (`searchTerm`/`categoryId`/`status`/`visibility`). `listProducts`
- * returns non-deleted items only (implicit, no params); `listCategories`
- * has no filter params; no inventory endpoint accepts filter params.
+ * (`searchTerm`/`categoryId`/`status`/`visibility`) among catalog reads.
+ * `listProducts` returns non-deleted items only (implicit, no params);
+ * `listCategories` has no filter params. Inventory list filtering
+ * (`GET /inventory`, `GET /inventory/reservations`) is pinned in the
+ * S1.1 supplement matrix, not here.
  * Pure — throws nothing.
  */
 export function supportsAdminCatalogFiltering(read: string | null | undefined): boolean {
@@ -693,13 +692,18 @@ export const ADMIN_CALLABLE_CATALOG_ENDPOINTS = [
 
 /**
  * SPA-callable admin inventory path templates — the COMPLETE inventory
- * surface (four endpoints, all `Admin`-only). Anything not listed here
- * does not exist and must not be called.
+ * surface (seven endpoints: single reads, creation, adjustment, the
+ * paged stock and reservation lists, and the counts snapshot; reads
+ * require `inventory.read`, writes require `inventory.manage` since
+ * Supplement S1). Anything not listed here does not exist and must not
+ * be called.
  */
 export const ADMIN_CALLABLE_INVENTORY_ENDPOINTS = [
   '/inventory',
   '/inventory/{sku}',
   '/inventory/reservations/{id}',
+  '/inventory/counts',
+  '/inventory/reservations',
 ] as const;
 
 /**

@@ -1,23 +1,24 @@
 /**
  * Admin reservation lookup page for Sub-Phase 13.10 — Reservations &
- * Inventory Adjustments.
+ * Inventory Adjustments — plus Supplement S1, Step S1.7 (deep-link
+ * target).
  *
- * Smart page (route-level composition) within the inventory context
- * (`/inventory/reservations`): reads the feature-scoped
- * `ReservationState` (route-provided `inventoryRoutes` entry — never a
- * global store) and renders one reservation lookup at a time through
- * the shared async UI.
+ * Smart page (route-level composition) within the inventory context:
+ * reads the feature-scoped `ReservationState` (route-provided
+ * `inventoryRoutes` entry — never a global store) and renders one
+ * reservation lookup at a time through the shared async UI. Mounted at
+ * both `/inventory/reservations` (manual lookup form) and
+ * `/inventory/reservations/:id` (deep link from the reservation list —
+ * the route param auto-loads on entry and on param changes).
  *
  * Display contract (13.1 audit — only backend-exposed capabilities):
- * `GET /inventory/reservations/{id}` is the single reservation read —
- * ids are never enumerable, so there is no reservation list, no
- * pagination, no filtering, and no search UI here by design. The record
- * renders the backend-issued fields verbatim (reservation and order
- * ids, SKU, quantity, status, and timestamps); the status names itself
- * through `reservationStatusDisplay` with the forward-compatible
- * unknown fallback. The reservation lifecycle (commit, release,
- * expiry) stays entirely backend-owned: this page performs no
- * transitions and gates none.
+ * `GET /inventory/reservations/{id}` is the single-resource reservation
+ * read. The record renders the backend-issued fields verbatim
+ * (reservation and order ids, SKU, quantity, status, and timestamps);
+ * the status names itself through `reservationStatusDisplay` with the
+ * forward-compatible unknown fallback. The reservation lifecycle
+ * (commit, release, expiry) stays entirely backend-owned: this page
+ * performs no transitions and gates none.
  *
  * Resource states: idle (entry prompt) → loading → success | error
  * with retry. There is no separate empty state: a single-resource read
@@ -29,12 +30,23 @@
  * logical properties only.
  *
  * Explicitly out of scope (later work, must not appear here):
- * - Reservation listing, filtering, or pagination (no backend contract).
+ * - Reservation listing, filtering, or pagination (owned by the
+ *   reservation list page in S1.7 — no shared logic, separate state).
  * - Reservation lifecycle transitions (backend-owned, no endpoint).
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  untracked,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { Badge, type BadgeVariant, Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { AdminSearchInput } from '../../../../shared/filters/search-input/search-input';
@@ -64,6 +76,12 @@ export class ReservationsPage {
   private readonly reservations = inject(ReservationState);
   private readonly cultures = inject(CultureService);
 
+  /** Route reservation id (`null` on the manual-lookup entry). */
+  private readonly routeId = toSignal(
+    inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id'))),
+    { initialValue: null as string | null },
+  );
+
   /** Reservation id editor control (presence validated; shape rules stay backend-owned). */
   protected readonly idControl = new FormControl<string | null>(null, {
     validators: [Validators.required],
@@ -71,6 +89,21 @@ export class ReservationsPage {
 
   /** Lookup form group (owns the `ngSubmit` output the template binds). */
   protected readonly form = new FormGroup({ id: this.idControl });
+
+  constructor() {
+    // Deep-link drive: a present `:id` param auto-loads (initial value
+    // included, param changes followed). Runs `untracked` so settled
+    // responses never reschedule the effect — the param is the only
+    // dependency. Manual lookups keep working alongside.
+    effect(() => {
+      const id = this.routeId();
+      untracked(() => {
+        if (id !== null) {
+          this.reservations.lookup(id);
+        }
+      });
+    });
+  }
 
   /** Current reservation record (idle → loading → success | error). */
   protected readonly slot = this.reservations.reservation;

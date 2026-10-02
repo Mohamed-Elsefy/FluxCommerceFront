@@ -87,17 +87,18 @@ function render(): {
 }
 
 describe('VariantEditPage', () => {
-  it('populates the form with locked money controls', () => {
+  it('populates the form with editable money and status controls', () => {
     setup({});
     const { element } = render();
 
     expect(element.querySelector('h1')?.textContent).toBe('Edit variant');
     expect((element.querySelector('#variant-sku') as HTMLInputElement).value).toBe('TEE-BLK-M');
-    expect((element.querySelector('#variant-price') as HTMLInputElement).disabled).toBe(true);
-    expect((element.querySelector('#variant-currency') as HTMLInputElement).disabled).toBe(true);
+    expect((element.querySelector('#variant-price') as HTMLInputElement).disabled).toBe(false);
+    expect((element.querySelector('#variant-currency') as HTMLInputElement).disabled).toBe(false);
+    expect(element.querySelector('#variant-status')).not.toBeNull();
   });
 
-  it('updates sku and name only, notifies, and navigates to details', () => {
+  it('updates the variant with paired money and status, notifies, and navigates', () => {
     const { updateVariant, navigate } = setup({});
     const { element } = render();
 
@@ -110,6 +111,9 @@ describe('VariantEditPage', () => {
     expect(updateVariant).toHaveBeenCalledWith('prod-1', 'var-1', {
       sku: 'TEE-BLK-M',
       name: 'Black / L',
+      unitPriceAmount: 29.99,
+      currency: 'USD',
+      status: 0,
     });
     const notifications = TestBed.inject(AdminNotificationService).notifications();
     expect(notifications.at(-1)?.type).toBe('success');

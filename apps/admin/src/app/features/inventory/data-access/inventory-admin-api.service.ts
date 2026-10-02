@@ -1,17 +1,18 @@
 /**
  * Admin Inventory data-access service for Sub-Phase 13.8 — Inventory
- * Feature Foundation.
+ * Feature Foundation — plus Supplement S1, Step S1.7 (list/counts
+ * surface).
  *
- * Scope: the complete four-endpoint inventory surface (the contract has
- * no more surface than this — there is no stock list, no reservation
- * list, no search, no pagination). Stock, reservation, and adjustment
- * UX (forms, states, pages) arrive with the slices that own them
- * (Sub-Phases 13.9–13.10); this service is the transport seam they
- * build on.
+ * Scope: the seven-endpoint inventory surface (single reads, creation,
+ * adjustment, plus the paged stock list, the counts snapshot, and the
+ * paged reservation list). Stock, reservation, and adjustment UX
+ * (forms, states, pages) arrive with the slices that own them
+ * (Sub-Phases 13.9–13.10, Supplement S1.7); this service is the
+ * transport seam they build on.
  *
- * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §5 (every
- * endpoint is `Admin`-only, including reads) and the 13.1 audit
- * (`libs/models/.../catalog-inventory-contract.ts`).
+ * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §5 (reads
+ * require `inventory.read`, writes require `inventory.manage`) and the
+ * 13.1 audit (`libs/models/.../catalog-inventory-contract.ts`).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
@@ -44,14 +45,17 @@ import type { Observable } from 'rxjs';
 import type {
   AdjustStockRequest,
   CreateInventoryItemRequest,
+  InventoryCountsResponse,
   InventoryItemResponse,
   InventoryReservationResponse,
 } from '@flux/models';
 import {
   ApiClient,
   INVENTORY_ENDPOINTS,
+  toQueryParams,
   type ApiRequestOptions,
   type ApiResponseWithData,
+  type PagedApiResponse,
 } from '@flux/api';
 
 /**
@@ -68,7 +72,7 @@ export class InventoryAdminApiService {
   private readonly api = inject(ApiClient);
 
   /**
-   * `POST /inventory` — creates a stock item (`Admin` only). SKU
+   * `POST /inventory` — creates a stock item (`inventory.manage`). SKU
    * normalizes backend-side (trimmed + uppercased, `^[A-Z0-9-_.]+$`,
    * at most 64 chars); duplicates surface as `409`.
    * Success: `201 ApiResponse<InventoryItemResponse>` + `Location`.
@@ -86,7 +90,7 @@ export class InventoryAdminApiService {
   }
 
   /**
-   * `GET /inventory/{sku}` — single stock read (`Admin` only).
+   * `GET /inventory/{sku}` — single stock read (`inventory.read`).
    * Success: `200 ApiResponse<InventoryItemResponse>`.
    * Failures: `400` invalid SKU, `401`/`403`, `404` unknown SKU.
    */
@@ -101,9 +105,9 @@ export class InventoryAdminApiService {
   }
 
   /**
-   * `PATCH /inventory/{sku}` — additive stock adjustment (`Admin`
-   * only). Additive ONLY (`1..max`): consumption happens via
-   * reservation commit, manual decrements do not exist.
+   * `PATCH /inventory/{sku}` — additive stock adjustment
+   * (`inventory.manage`). Additive ONLY (`1..max`): consumption happens
+   * via reservation commit, manual decrements do not exist.
    * Success: `200 ApiResponse<InventoryItemResponse>`.
    * Failures: `400` validation, `401`/`403`, `404` unknown SKU.
    */
@@ -121,8 +125,8 @@ export class InventoryAdminApiService {
 
   /**
    * `GET /inventory/reservations/{id}` — single reservation read
-   * (`Admin` only). Reservation ids are never enumerable: callers hold
-   * an id from elsewhere, never browse.
+   * (`inventory.read`). Reservation ids are enumerable through the
+   * paged reservation list; direct ids still resolve here.
    * Success: `200 ApiResponse<InventoryReservationResponse>`.
    * Failures: `400` invalid id, `401`/`403`, `404` unknown reservation.
    */
@@ -133,6 +137,66 @@ export class InventoryAdminApiService {
     return this.api.get<ApiResponseWithData<InventoryReservationResponse>>(
       INVENTORY_ENDPOINTS.getReservation.path,
       { ...options, pathParams: { id, ...(options.pathParams ?? {}) } },
+    );
+  }
+
+  /**
+   * `GET /inventory` — paged stock list (`inventory.read`), ordered by
+   * SKU. Filters: `search?` (SKU substring, case-insensitive),
+   * `maxAvailable?` (available-quantity ceiling).
+   * Success: `200 ApiResponse<PagedResult<InventoryItemResponse>>`.
+   * Failures: `400` validation (paging bounds, negative `maxAvailable`),
+   * `401`/`403`.
+   */
+  listItems(
+    query: { pageNumber?: number; pageSize?: number; search?: string; maxAvailable?: number } = {},
+    options: ApiRequestOptions = {},
+  ): Observable<PagedApiResponse<InventoryItemResponse>> {
+    return this.api.get<PagedApiResponse<InventoryItemResponse>>(
+      INVENTORY_ENDPOINTS.listItems.path,
+      { ...options, params: toQueryParams(query) },
+    );
+  }
+
+  /**
+   * `GET /inventory/counts` — inventory overview snapshot
+   * (`inventory.read`). `lowStockThreshold?` defaults to 5 (inclusive
+   * available ceiling for the low-stock bucket).
+   * Success: `200 ApiResponse<InventoryCountsResponse>`.
+   * Failures: `400` validation (negative threshold), `401`/`403`.
+   */
+  itemCounts(
+    query: { lowStockThreshold?: number } = {},
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<InventoryCountsResponse>> {
+    return this.api.get<ApiResponseWithData<InventoryCountsResponse>>(
+      INVENTORY_ENDPOINTS.itemCounts.path,
+      { ...options, params: toQueryParams(query) },
+    );
+  }
+
+  /**
+   * `GET /inventory/reservations` — paged reservation list
+   * (`inventory.read`), newest-first. Filters: `status?`
+   * (`Pending|Committed|Released|Expired`), `sku?` (exact, normalized),
+   * `orderId?`.
+   * Success: `200 ApiResponse<PagedResult<InventoryReservationResponse>>`.
+   * Failures: `400` validation (paging bounds, unknown status, bad SKU,
+   * empty order id), `401`/`403`.
+   */
+  listReservations(
+    query: {
+      pageNumber?: number;
+      pageSize?: number;
+      status?: string;
+      sku?: string;
+      orderId?: string;
+    } = {},
+    options: ApiRequestOptions = {},
+  ): Observable<PagedApiResponse<InventoryReservationResponse>> {
+    return this.api.get<PagedApiResponse<InventoryReservationResponse>>(
+      INVENTORY_ENDPOINTS.listReservations.path,
+      { ...options, params: toQueryParams(query) },
     );
   }
 }

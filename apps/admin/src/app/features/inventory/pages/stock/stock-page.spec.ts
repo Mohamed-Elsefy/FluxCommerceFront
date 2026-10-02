@@ -1,6 +1,7 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { of } from 'rxjs';
 import {
@@ -28,7 +29,12 @@ function stock(): InventoryItemResponse {
   };
 }
 
-function setup(scenario: { stock?: ResourceState<InventoryItemResponse> } = {}): {
+function setup(
+  scenario: {
+    stock?: ResourceState<InventoryItemResponse>;
+    params?: Record<string, string | null>;
+  } = {},
+): {
   lookup: ReturnType<typeof vi.fn>;
 } {
   const lookup = vi.fn();
@@ -45,6 +51,10 @@ function setup(scenario: { stock?: ResourceState<InventoryItemResponse> } = {}):
       {
         provide: StockState,
         useValue: { stock: signal(scenario.stock ?? idleResource()), lookup },
+      },
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of(convertToParamMap(scenario.params ?? {})) },
       },
     ],
   });
@@ -77,6 +87,13 @@ function submitLookup(element: HTMLElement): void {
 }
 
 describe('StockPage', () => {
+  it('auto-loads the route SKU on the deep-link entry', () => {
+    const { lookup } = setup({ stock: successResource(stock()), params: { sku: 'TEE-BLK-M' } });
+    render();
+
+    expect(lookup).toHaveBeenCalledWith('TEE-BLK-M');
+  });
+
   it('prompts for a SKU while untouched and blocks blank submits', () => {
     const { lookup } = setup();
     const { element } = render();

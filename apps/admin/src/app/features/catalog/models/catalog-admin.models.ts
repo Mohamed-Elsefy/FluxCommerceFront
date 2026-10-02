@@ -315,24 +315,27 @@ export type AdminVariantRow = VariantResponse;
  * Flat variant-form value (what the typed `variant-form` edits). `price`
  * stays editor text (parsed to a JSON decimal at the wire boundary);
  * `currency` stays raw (uppercased + trimmed at the wire boundary per
- * the ISO-4217 `^[A-Z]{3}$` contract shape).
+ * the ISO-4217 `^[A-Z]{3}$` contract shape); `status` is the sellability
+ * toggle (edit mode only — creation carries no status field).
  */
 export interface VariantFormValue {
   readonly sku: string | null;
   readonly name: string | null;
   readonly price: string | null;
   readonly currency: string | null;
+  readonly status: VariantStatus | null;
 }
 
 /** Blank form value for the variant create page. */
 export function emptyVariantFormValue(): VariantFormValue {
-  return { sku: null, name: null, price: null, currency: null };
+  return { sku: null, name: null, price: null, currency: null, status: null };
 }
 
 /**
  * Projects a loaded variant into the form value (edit population).
  * Price renders with its full decimal text (never rounded — display
- * only); currency echoes verbatim. Pure — throws nothing.
+ * only); currency echoes verbatim; status echoes the wire value. Pure —
+ * throws nothing.
  */
 export function variantToFormValue(variant: VariantResponse): VariantFormValue {
   return {
@@ -340,6 +343,7 @@ export function variantToFormValue(variant: VariantResponse): VariantFormValue {
     name: variant.name,
     price: String(variant.unitPriceAmount),
     currency: variant.currency,
+    status: variant.status,
   };
 }
 
@@ -360,13 +364,26 @@ export function toCreateVariantRequest(value: VariantFormValue): CreateProductVa
 }
 
 /**
- * Projects the form value into the update body — `sku` + `name` ONLY.
- * Price and currency never travel here (no backend endpoint accepts
- * them after creation); the edit form locks those controls as
- * read-only display. Pure — throws nothing.
+ * Projects the form value into the update body. Blanks become `null`
+ * (the wire uses `string | null`); price + currency travel paired — both
+ * present (parsed/uppercased) or both `null` (the form blocks unpaired
+ * submits, and the mapper never emits `NaN` over the wire); `status`
+ * passes through verbatim (sellability toggle, no lifecycle invented).
+ * Pure — throws nothing, validates nothing (validators live on the
+ * form; SKU uniqueness, price rules, and variant validity stay
+ * backend-owned).
  */
 export function toUpdateVariantRequest(value: VariantFormValue): UpdateProductVariantRequest {
-  return { sku: nullIfBlank(value.sku), name: nullIfBlank(value.name) };
+  const price = (value.price ?? '').trim();
+  const currency = (value.currency ?? '').trim().toUpperCase();
+  const amount = price !== '' && currency !== '' ? Number(price) : NaN;
+  return {
+    sku: nullIfBlank(value.sku),
+    name: nullIfBlank(value.name),
+    unitPriceAmount: Number.isFinite(amount) ? amount : null,
+    currency: Number.isFinite(amount) ? currency : null,
+    status: value.status,
+  };
 }
 
 // ---------------------------------------------------------------------------

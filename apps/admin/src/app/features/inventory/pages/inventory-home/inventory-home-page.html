@@ -18,4 +18,29 @@
       </flux-card>
     }
   </div>
+
+  <section class="inventory-home-counts" aria-labelledby="inventory-counts-title">
+    <h2 id="inventory-counts-title">{{ copy().countsHeading }}</h2>
+    @if (slot().status === 'loading' || slot().status === 'idle') {
+      <flux-loading-indicator [label]="copy().countsLoading" />
+    } @else if (slot().status === 'error') {
+      <flux-error-state
+        [title]="copy().countsErrorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="retry()"
+      />
+    } @else {
+      <flux-card>
+        <dl class="inventory-home-facts">
+          @for (fact of facts(); track fact.label) {
+            <div>
+              <dt>{{ fact.label }}</dt>
+              <dd>{{ fact.value }}</dd>
+            </div>
+          }
+        </dl>
+      </flux-card>
+    }
+  </section>
 </section>

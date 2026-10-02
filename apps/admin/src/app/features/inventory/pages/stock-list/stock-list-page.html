@@ -1,0 +1,58 @@
+<section class="stock-list" aria-labelledby="stock-list-title">
+  <header class="stock-list-header">
+    <div>
+      <h1 id="stock-list-title">{{ copy().heading }}</h1>
+      <p class="stock-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+  </header>
+
+  <form class="stock-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <admin-filter-bar
+      [label]="copy().filterTitle"
+      [clearLabel]="copy().filterClear"
+      (clear)="clearFilters()"
+    >
+      <admin-search-input
+        [control]="filters.controls.search"
+        [label]="copy().filterSearch"
+        [placeholder]="copy().filterSearchPlaceholder"
+        fieldId="stock-filter-search"
+      />
+      <admin-text-input
+        [control]="filters.controls.maxAvailable"
+        [label]="copy().filterMax"
+        [placeholder]="copy().filterMaxPlaceholder"
+        fieldId="stock-filter-max"
+      />
+      <button class="stock-list-apply" type="submit">{{ copy().filterApply }}</button>
+    </admin-filter-bar>
+  </form>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

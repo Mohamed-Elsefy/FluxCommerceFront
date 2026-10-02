@@ -49,6 +49,24 @@ describe('translateInventoryKey', () => {
     );
   });
 
+  it('resolves the list and counts copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.stockListHeading)).toBe(
+      'Stock list',
+    );
+    expect(translateInventoryKey('fr', INVENTORY_TRANSLATION_KEYS.reservationsListHeading)).toBe(
+      'Liste des réservations',
+    );
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.homeCountLowStock)).toBe(
+      'Niedriger Bestand',
+    );
+    expect(translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.stockListFilterApply)).toBe(
+      'Aplicar filtros',
+    );
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.homeCountsHeading)).not.toBe(
+      'inventory.home.countsHeading',
+    );
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
     expect(translateInventoryKey('xx' as never, INVENTORY_TRANSLATION_KEYS.title)).toBe(
       'Inventory',

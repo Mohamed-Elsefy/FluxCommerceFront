@@ -81,6 +81,36 @@ describe('InventoryAdminApiService routes', () => {
     expect(calls.paths).toEqual([INVENTORY_ENDPOINTS.getReservation.path]);
     expect(calls.options).toEqual([{ pathParams: { id: 'res-1' } }]);
   });
+
+  it('lists stock through the canonical route with the query funnelled', () => {
+    const { service, calls } = setup();
+    service.listItems({ pageNumber: 2, pageSize: 20, search: 'TEE', maxAvailable: 5 }).subscribe();
+
+    expect(calls.paths).toEqual([INVENTORY_ENDPOINTS.listItems.path]);
+    expect(calls.options).toEqual([
+      { params: { pageNumber: 2, pageSize: 20, search: 'TEE', maxAvailable: 5 } },
+    ]);
+  });
+
+  it('reads counts through the canonical route', () => {
+    const { service, calls } = setup();
+    service.itemCounts({ lowStockThreshold: 5 }).subscribe();
+
+    expect(calls.paths).toEqual([INVENTORY_ENDPOINTS.itemCounts.path]);
+    expect(calls.options).toEqual([{ params: { lowStockThreshold: 5 } }]);
+  });
+
+  it('lists reservations through the canonical route with the query funnelled', () => {
+    const { service, calls } = setup();
+    service
+      .listReservations({ pageNumber: 1, pageSize: 20, status: 'Pending', sku: 'TEE-BLK-M' })
+      .subscribe();
+
+    expect(calls.paths).toEqual([INVENTORY_ENDPOINTS.listReservations.path]);
+    expect(calls.options).toEqual([
+      { params: { pageNumber: 1, pageSize: 20, status: 'Pending', sku: 'TEE-BLK-M' } },
+    ]);
+  });
 });
 
 describe('InventoryAdminApiService passthrough', () => {
