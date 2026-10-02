@@ -33,6 +33,7 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navAdjustments: 'layout.nav.adjustments',
   navOrders: 'layout.nav.orders',
   navOrdersList: 'layout.nav.ordersList',
+  navUsers: 'layout.nav.users',
   navSidebarLabel: 'layout.nav.sidebarLabel',
   headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
@@ -72,6 +73,7 @@ const EN_LAYOUT: TranslationDictionary = {
       adjustments: 'Adjustments',
       orders: 'Orders',
       ordersList: 'Orders list',
+      users: 'Users',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -131,6 +133,7 @@ const FR_LAYOUT: TranslationDictionary = {
       adjustments: 'Ajustements',
       orders: 'Commandes',
       ordersList: 'Liste des commandes',
+      users: 'Utilisateurs',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -190,6 +193,7 @@ const DE_LAYOUT: TranslationDictionary = {
       adjustments: 'Anpassungen',
       orders: 'Bestellungen',
       ordersList: 'Bestellliste',
+      users: 'Benutzer',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -249,6 +253,7 @@ const ES_LAYOUT: TranslationDictionary = {
       adjustments: 'Ajustes',
       orders: 'Pedidos',
       ordersList: 'Lista de pedidos',
+      users: 'Usuarios',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -308,6 +313,7 @@ const AR_LAYOUT: TranslationDictionary = {
       adjustments: 'التعديلات',
       orders: 'الطلبات',
       ordersList: 'قائمة الطلبات',
+      users: 'المستخدمون',
       sidebarLabel: 'الإدارة',
     },
     header: {

@@ -13,10 +13,10 @@
  * is the §10.1 alias (re-exported from `./orders.models`), never
  * re-declared, so no contract drift is possible.
  *
- * Read-only rule (§10.2 constraint): the backend exposes no profile-edit
- * endpoint, so this module projects a display-only `ProfileView` — rows
- * for rendering, never a form model. There is deliberately no update
- * payload, no draft type, and no edit helper here.
+ * Editing (Supplement S1, Step S1.4): the display projection below stays
+ * read-only; the editable draft, the typed-form factory, the draft →
+ * `UpdateProfileRequest` projection, and the server field-error helpers
+ * live in `./profile-edit.models` (backed by `PUT /auth/profile`).
  *
  * Ownership (`ARCHITECTURE.md` §5): this module owns the feature-local
  * account route paths, the display-name resolution, and the pure
@@ -26,7 +26,6 @@
  * Explicitly out of scope (later work, must not appear here):
  * - 10.3 — no orders-list shapes (see `./orders.models` pagination).
  * - 10.4 — no order-details presentation.
- * - Any profile editing (no backend contract supports it).
  */
 
 import type { CustomerProfile } from './orders.models';
@@ -41,8 +40,8 @@ export const ACCOUNT_PROFILE_PATH = '/account/profile' as const;
 
 /**
  * Read-only profile view projected from the backend `CustomerProfile`.
- * Every row renders verbatim backend data for display only — nothing
- * here is editable and nothing round-trips to an endpoint.
+ * Every row renders verbatim backend data for display only — the editable
+ * draft lives in `./profile-edit.models` (backed by `PUT /auth/profile`).
  */
 export interface ProfileView {
   /** Resolved display name (never blank — falls back to the email). */

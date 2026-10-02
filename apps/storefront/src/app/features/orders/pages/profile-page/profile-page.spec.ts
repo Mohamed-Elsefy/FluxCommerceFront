@@ -56,11 +56,12 @@ function envelope(data: UserResponse | null): ApiResponseWithData<UserResponse> 
 
 async function setup(
   source: () => Observable<ApiResponseWithData<UserResponse>> = () => of(envelope(user())),
+  update: () => Observable<ApiResponseWithData<UserResponse>> = () => of(envelope(user())),
 ): Promise<{
   fixture: ComponentFixture<ProfilePage>;
-  identity: { getCurrentUser: ReturnType<typeof vi.fn> };
+  identity: { getCurrentUser: ReturnType<typeof vi.fn>; updateProfile: ReturnType<typeof vi.fn> };
 }> {
-  const identity = { getCurrentUser: vi.fn(source) };
+  const identity = { getCurrentUser: vi.fn(source), updateProfile: vi.fn(update) };
 
   await TestBed.configureTestingModule({
     imports: [ProfilePage],
@@ -135,11 +136,14 @@ describe('ProfilePage loaded profile (read-only)', () => {
     expect(rows).toContain('Not provided');
   });
 
-  it('exposes no edit surface (no forms, inputs, or action buttons)', async () => {
+  it('exposes the edit toggle and keeps the form hidden until opened', async () => {
     const { fixture } = await setup();
     const loaded = fixture.nativeElement.querySelector('dl');
     expect(loaded).not.toBeNull();
-    expect(loaded.querySelector('form, input, select, textarea, button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('profile-form')).toBeNull();
+
+    const edit = fixture.nativeElement.querySelector('#profile-edit-button') as HTMLButtonElement;
+    expect(edit?.textContent?.trim()).toBe('Edit profile');
   });
 
   it('sets the localized document title', async () => {
@@ -199,6 +203,163 @@ describe('ProfilePage errors', () => {
     expect(identity.getCurrentUser).toHaveBeenCalledTimes(2);
     expect(fixture.nativeElement.querySelector('flux-error-state')).toBeNull();
     expect(fixture.nativeElement.querySelector('dl')).not.toBeNull();
+  });
+});
+
+describe('ProfilePage profile editing', () => {
+  it('opens the form prefilled from the loaded profile', async () => {
+    const { fixture } = await setup();
+
+    (fixture.nativeElement.querySelector('#profile-edit-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('profile-form')).not.toBeNull();
+    const values = [...fixture.nativeElement.querySelectorAll('profile-form input')].map(
+      (node: HTMLInputElement) => node.value,
+    );
+    expect(values).toEqual(['Ada', 'Lovelace', '', '', 'en', 'UTC']);
+  });
+
+  it('saves the draft, refreshes the rows, and shows the notice', async () => {
+    const edited = user({ firstName: 'Augusta', phoneNumber: '+49 170 000001' });
+    const identity = {
+      getCurrentUser: vi.fn(() => of(envelope(user()))),
+      updateProfile: vi.fn(() => of(envelope(edited))),
+    };
+    await TestBed.configureTestingModule({
+      imports: [ProfilePage],
+      providers: [
+        provideRouter([]),
+        CultureService,
+        AccountState,
+        { provide: IdentityApiService, useValue: identity },
+        { provide: AuthService, useValue: { updateCurrentUser: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ProfilePage);
+    TestBed.inject(CultureService).setCulture('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    (fixture.nativeElement.querySelector('#profile-edit-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const phone = fixture.nativeElement.querySelector('#profile-phone-number') as HTMLInputElement;
+    phone.value = '+49 170 000001';
+    phone.dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('profile-form form')?.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(identity.updateProfile).toHaveBeenCalledTimes(1);
+    expect(identity.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ phoneNumber: '+49 170 000001' }),
+      expect.anything(),
+    );
+    expect(fixture.nativeElement.querySelector('profile-form')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.profile-save-notice')?.textContent?.trim()).toBe(
+      'Your profile was updated.',
+    );
+    expect(fixture.nativeElement.querySelector('dl')?.textContent).toContain('+49 170 000001');
+  });
+
+  it('projects 400 field errors onto the form controls', async () => {
+    const identity = {
+      getCurrentUser: vi.fn(() => of(envelope(user()))),
+      updateProfile: vi.fn(() =>
+        throwError(
+          () =>
+            new ApiError({
+              status: 400,
+              message: 'Invalid.',
+              validationErrors: { FirstName: ['Too short.'] },
+            }),
+        ),
+      ),
+    };
+    await TestBed.configureTestingModule({
+      imports: [ProfilePage],
+      providers: [
+        provideRouter([]),
+        CultureService,
+        AccountState,
+        { provide: IdentityApiService, useValue: identity },
+        { provide: AuthService, useValue: { updateCurrentUser: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ProfilePage);
+    TestBed.inject(CultureService).setCulture('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    (fixture.nativeElement.querySelector('#profile-edit-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.nativeElement.querySelector('profile-form form')?.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const lists = [...fixture.nativeElement.querySelectorAll('.profile-form-errors')];
+    expect(lists).toHaveLength(1);
+    expect(lists[0]?.textContent?.trim()).toBe('Too short.');
+    expect(fixture.nativeElement.querySelector('profile-form')).not.toBeNull();
+  });
+
+  it('renders the save banner on failure without field errors', async () => {
+    const identity = {
+      getCurrentUser: vi.fn(() => of(envelope(user()))),
+      updateProfile: vi.fn(() => throwError(() => new ApiError({ status: 404, message: 'Gone.' }))),
+    };
+    await TestBed.configureTestingModule({
+      imports: [ProfilePage],
+      providers: [
+        provideRouter([]),
+        CultureService,
+        AccountState,
+        { provide: IdentityApiService, useValue: identity },
+        { provide: AuthService, useValue: { updateCurrentUser: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ProfilePage);
+    TestBed.inject(CultureService).setCulture('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    (fixture.nativeElement.querySelector('#profile-edit-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.nativeElement.querySelector('profile-form form')?.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('[data-save-error-focus]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('profile-form')).not.toBeNull();
+  });
+
+  it('cancels editing and returns focus to the edit toggle', async () => {
+    const { fixture } = await setup();
+
+    (fixture.nativeElement.querySelector('#profile-edit-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('profile-form')).not.toBeNull();
+
+    const cancel = [...fixture.nativeElement.querySelectorAll('profile-form button')].find(
+      (node: HTMLButtonElement) => node.type === 'button',
+    ) as HTMLButtonElement;
+    cancel.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('profile-form')).toBeNull();
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('#profile-edit-button'),
+    );
   });
 });
 

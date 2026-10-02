@@ -1,0 +1,130 @@
+<form class="profile-form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+  <div class="profile-form-field">
+    <label for="profile-first-name">{{ copy?.firstName }}</label>
+    <input
+      id="profile-first-name"
+      [attr.aria-invalid]="shouldShow('firstName')"
+      name="firstName"
+      type="text"
+      autocomplete="given-name"
+      [formControl]="form.controls.firstName"
+    />
+    @if (shouldShow('firstName')) {
+      <ul class="profile-form-errors" role="alert">
+        @for (message of fieldMessages('firstName'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="profile-form-field">
+    <label for="profile-last-name">{{ copy?.lastName }}</label>
+    <input
+      id="profile-last-name"
+      [attr.aria-invalid]="shouldShow('lastName')"
+      name="lastName"
+      type="text"
+      autocomplete="family-name"
+      [formControl]="form.controls.lastName"
+    />
+    @if (shouldShow('lastName')) {
+      <ul class="profile-form-errors" role="alert">
+        @for (message of fieldMessages('lastName'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="profile-form-field">
+    <label for="profile-phone-number">{{ copy?.phoneNumber }}</label>
+    <input
+      id="profile-phone-number"
+      [attr.aria-invalid]="shouldShow('phoneNumber')"
+      name="phoneNumber"
+      type="tel"
+      autocomplete="tel"
+      [formControl]="form.controls.phoneNumber"
+    />
+    @if (shouldShow('phoneNumber')) {
+      <ul class="profile-form-errors" role="alert">
+        @for (message of fieldMessages('phoneNumber'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="profile-form-field">
+    <label for="profile-avatar-url">{{ copy?.avatarUrl }}</label>
+    <input
+      id="profile-avatar-url"
+      [attr.aria-invalid]="shouldShow('avatarUrl')"
+      name="avatarUrl"
+      type="url"
+      autocomplete="url"
+      [formControl]="form.controls.avatarUrl"
+    />
+    @if (shouldShow('avatarUrl')) {
+      <ul class="profile-form-errors" role="alert">
+        @for (message of fieldMessages('avatarUrl'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="profile-form-field">
+    <label for="profile-preferred-language">{{ copy?.preferredLanguage }}</label>
+    <input
+      id="profile-preferred-language"
+      [attr.aria-invalid]="shouldShow('preferredLanguage')"
+      name="preferredLanguage"
+      type="text"
+      autocomplete="off"
+      [formControl]="form.controls.preferredLanguage"
+      [attr.aria-describedby]="'profile-preferred-language-hint'"
+    />
+    <p class="profile-form-hint" id="profile-preferred-language-hint">
+      {{ copy?.languageHint }}
+    </p>
+    @if (shouldShow('preferredLanguage')) {
+      <ul class="profile-form-errors" role="alert">
+        @for (message of fieldMessages('preferredLanguage'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="profile-form-field">
+    <label for="profile-time-zone">{{ copy?.timeZone }}</label>
+    <input
+      id="profile-time-zone"
+      [attr.aria-invalid]="shouldShow('timeZone')"
+      name="timeZone"
+      type="text"
+      autocomplete="off"
+      [formControl]="form.controls.timeZone"
+      [attr.aria-describedby]="'profile-time-zone-hint'"
+    />
+    <p class="profile-form-hint" id="profile-time-zone-hint">{{ copy?.timezoneHint }}</p>
+    @if (shouldShow('timeZone')) {
+      <ul class="profile-form-errors" role="alert">
+        @for (message of fieldMessages('timeZone'); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="profile-form-actions">
+    <button type="submit" [disabled]="form.invalid || saving">
+      {{ saving ? copy?.saving : copy?.save }}
+    </button>
+    <button type="button" (click)="onCancel()" [disabled]="saving">
+      {{ copy?.cancel }}
+    </button>
+  </div>
+</form>

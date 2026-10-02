@@ -90,6 +90,12 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     permissions: ['orders.read'],
     children: [{ labelKey: 'layout.nav.ordersList', route: '/orders/list' }],
   },
+  {
+    labelKey: 'layout.nav.users',
+    route: '/users',
+    icon: '◉',
+    roles: ['SuperAdmin'],
+  },
 ];
 
 /**

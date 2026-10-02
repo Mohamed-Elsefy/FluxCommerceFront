@@ -1,0 +1,100 @@
+/* Customer profile-edit form (Supplement S1, Step S1.4). Single
+  intrinsically responsive component — no device duplicates, no viewport
+  media queries. Logical properties only (RTL-safe); visual values come
+  from theming tokens. */
+
+.profile-form {
+  display: grid;
+  gap: var(--spacing-lg);
+  margin: 0;
+  margin-block-start: var(--spacing-lg);
+  padding: 0;
+  max-inline-size: 32rem;
+}
+
+.profile-form-field {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.profile-form-field label {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+.profile-form-field input {
+  inline-size: 100%;
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.profile-form-field input:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.profile-form-field input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.profile-form-hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-muted);
+}
+
+.profile-form-errors {
+  margin: 0;
+  padding-inline-start: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-danger);
+}
+
+.profile-form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.profile-form-actions button {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-base);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.profile-form-actions button[type='submit'] {
+  color: var(--color-primary-contrast);
+  background-color: var(--color-primary);
+  border: var(--border-width-thin) solid var(--color-primary);
+}
+
+.profile-form-actions button[type='button'] {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+}
+
+.profile-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.profile-form-actions button:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: 2px;
+}

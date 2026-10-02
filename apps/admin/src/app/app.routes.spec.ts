@@ -62,6 +62,15 @@ describe('routes', () => {
     expect(orders?.data?.['permissions']).toEqual(['orders.read']);
   });
 
+  it('mounts the users feature as a SuperAdmin-only lazy boundary', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const users = shell?.children?.find((route) => route.path === 'users');
+
+    expect(typeof users?.loadChildren).toBe('function');
+    expect(users?.canActivate).toEqual([roleGuard]);
+    expect(users?.data?.['roles']).toEqual(['SuperAdmin']);
+  });
+
   it('falls back to a lazy not-found page', () => {
     const fallback = routes.find((route) => route.path === '**');
 

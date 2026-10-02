@@ -48,5 +48,37 @@
         <dd>{{ memberSinceText() }}</dd>
       </div>
     </dl>
+
+    @if (showSaveSuccess()) {
+      <p class="profile-save-notice" role="status">{{ copy().saveSuccess }}</p>
+    }
+
+    @if (!editing()) {
+      <button id="profile-edit-button" class="profile-edit-button" type="button" (click)="onEdit()">
+        {{ copy().editTitle }}
+      </button>
+    } @else {
+      <section class="profile-edit-section" aria-labelledby="profile-edit-title">
+        <h3 id="profile-edit-title" tabindex="-1">{{ copy().editTitle }}</h3>
+        <profile-form
+          [initial]="draft()"
+          [serverErrors]="serverErrors()"
+          [saving]="isSaving()"
+          [copy]="formCopy()"
+          (save)="onSaveDraft($event)"
+          (cancelled)="onCancelEdit()"
+        ></profile-form>
+      </section>
+    }
+
+    @if (showSaveError()) {
+      <div data-save-error-focus tabindex="-1">
+        <flux-error-state
+          [title]="copy().saveErrorTitle"
+          [message]="saveErrorMessage()"
+          [showRetry]="false"
+        ></flux-error-state>
+      </div>
+    }
   }
 </section>

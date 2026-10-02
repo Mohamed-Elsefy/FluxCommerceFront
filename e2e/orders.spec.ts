@@ -306,6 +306,26 @@ test('Journey 1 — login leads to the account shell with the backend profile', 
   await expect(page.getByText('ada@flux.local').first()).toBeVisible();
 });
 
+test('Journey 1b — profile edits round-trip through PUT /auth/profile', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/auth/profile', (route) =>
+    route.fulfill({
+      json: envelope({ ...userResponse(), phoneNumber: '+49 170 000001' }),
+    }),
+  );
+  await gotoStable(page, '/account/profile');
+
+  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit profile' }).click();
+  await expect(page.getByRole('heading', { name: 'Edit profile' })).toBeVisible();
+
+  await fillField(page, 'Phone', '+49 170 000001');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(page.getByText('Your profile was updated.')).toBeVisible();
+  await expect(page.getByText('+49 170 000001').first()).toBeVisible();
+});
+
 test('Journey 2 — orders list paginates through backend pages', async ({ page }) => {
   await mockSession(page);
   await mockOrdersApi(page, backend, {

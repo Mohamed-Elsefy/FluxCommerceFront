@@ -13,6 +13,7 @@ describe('admin navigation', () => {
       '/catalog',
       '/inventory',
       '/orders',
+      '/users',
     ]);
     for (const item of ADMIN_NAV_ITEMS) {
       expect(item.labelKey.startsWith('layout.nav.')).toBe(true);
@@ -47,7 +48,7 @@ describe('admin navigation', () => {
   it('shows unrestricted entries to every portal role', () => {
     const full = ['dashboard.read', 'catalog.manage', 'inventory.read', 'orders.read'];
     expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], full)).toHaveLength(5);
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], full)).toHaveLength(5);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], full)).toHaveLength(6);
   });
 
   it('hides permission-gated entries without a matching permission', () => {
@@ -73,7 +74,17 @@ describe('admin navigation', () => {
   });
 
   it('bypasses every permission gate for SuperAdmin without held permissions', () => {
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], [])).toHaveLength(5);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], [])).toHaveLength(6);
+  });
+
+  it('shows the users entry to SuperAdmin only', () => {
+    const full = ['dashboard.read', 'catalog.manage', 'inventory.read', 'orders.read'];
+    expect(
+      visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], full).map((item) => item.labelKey),
+    ).not.toContain('layout.nav.users');
+    expect(
+      visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], []).map((item) => item.labelKey),
+    ).toContain('layout.nav.users');
   });
 
   it('resolves every destination label in every culture (no key-path leakage)', () => {
@@ -97,7 +108,7 @@ describe('admin navigation', () => {
     const items = [
       ...ADMIN_NAV_ITEMS,
       {
-        labelKey: 'layout.nav.users',
+        labelKey: 'layout.nav.settings',
         icon: '●',
         roles: ['SuperAdmin'],
         children: [{ labelKey: 'layout.nav.dashboard', route: '/dashboard' }],
@@ -113,7 +124,7 @@ describe('admin navigation', () => {
       'layout.nav.inventory',
       'layout.nav.orders',
     ]);
-    expect(visibleDestinations(items, ['SuperAdmin'], full)).toHaveLength(6);
+    expect(visibleDestinations(items, ['SuperAdmin'], full)).toHaveLength(7);
     expect(visibleDestinations(items, [], full)).toHaveLength(5);
   });
 });

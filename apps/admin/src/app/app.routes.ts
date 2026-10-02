@@ -25,6 +25,7 @@ import { AppLayout } from './layout/app-layout/app-layout';
  *     └── orders     → `orders.read` (+ SuperAdmin bypass; in-page
  *                        cancel/refund additionally need `orders.cancel` /
  *                        `orders.refund`)
+ *     └── users      → `SuperAdmin` role only (user/permission management)
  * ```
  *
  * The shell chain (`authGuard` + `roleGuard` over `ADMIN_PORTAL_ROLES`)
@@ -85,6 +86,12 @@ export const routes: Routes = [
         loadChildren: () => import('./features/orders/orders.routes').then((m) => m.ordersRoutes),
         canActivate: [permissionGuard],
         data: { permissions: ['orders.read'] },
+      },
+      {
+        path: 'users',
+        loadChildren: () => import('./features/users/users.routes').then((m) => m.usersRoutes),
+        canActivate: [roleGuard],
+        data: { roles: ['SuperAdmin'] },
       },
     ],
   },

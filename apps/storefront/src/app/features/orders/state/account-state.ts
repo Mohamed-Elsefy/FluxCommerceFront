@@ -1,21 +1,23 @@
 /**
  * Storefront Account feature state for Sub-Phase 10.2 — Customer Account
- * & Profile.
+ * & Profile — plus Supplement S1, Step S1.4 — Profile Editing.
  *
  * Scope: `docs/phases/PHASE_10_ORDERS_CUSTOMER_ACCOUNT.md` §10.2 (profile
- * resource only — no orders-list state, no order-details state, no
- * polling, no navigation state).
+ * resource) and `docs/phases/SUPPLEMENT_S1_BACKEND_CONTRACT_EVOLUTION.md`
+ * §S1.4 (profile update submission).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §1.11
  * (`GET /auth/me` → `ApiResponse<UserResponse>`; authenticated, user
- * resolved from the JWT — no id parameter, no IDOR surface).
+ * resolved from the JWT — no id parameter, no IDOR surface) and §1.18
+ * (`PUT /auth/profile` → `ApiResponse<UserResponse>`; all fields
+ * nullable — `null` keeps, empty clears optional phone/avatar).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
  * ```text
  * ProfilePage (pages/ — orchestration only)
  *     ↓ AccountState (this file — route-provided local Signals)
- *     ↓ IdentityApiService (@flux/api — GET /auth/me transport)
+ *     ↓ IdentityApiService (@flux/api — GET /auth/me + PUT /auth/profile)
  *     ↓ AuthService (@flux/auth — session re-sync, read-only otherwise)
  *     ↓ ApiClient → HttpClient → ASP.NET Core API
  * ```
@@ -25,20 +27,29 @@
  * - One profile resource slot (`idle → loading → success | error`,
  *   shared Phase 1 `createResourceState`/`loadResourceState` — the page
  *   renders loading/error/loaded from it, never from ad-hoc flags).
+ * - One independent save slot for the update submission (same machinery;
+ *   its failures never disturb the settled profile facts).
  * - `loadProfile()` reads the live backend profile and re-syncs the
  *   central session (`AuthService.updateCurrentUser`, the §2.5 hydration
  *   seam — a no-op unless authenticated, so expiry can never corrupt
  *   session state). Missing `data` on a `200` is treated as failure
  *   (contract breach, never rendered as a profile).
+ * - `saveProfile()` submits the validated draft (`PUT /auth/profile`)
+ *   with duplicate-submit prevention (a second call while saving is a
+ *   safe no-op). On success the returned profile refreshes BOTH the
+ *   profile slot and the central session — no extra `GET` round-trip.
+ *   Failures land in the save slot untouched (`400` field errors project
+ *   onto the form; `401`/`404`/other render the save banner).
  * - Loads dedupe: a second call while loading, or after success without
  *   `force`, is a safe no-op (page `ngOnInit` + browser-only
  *   `afterNextRender` both trigger it — exactly one request results).
- *   `retry()` forces a fresh load after errors.
+ *   `retry()` forces a fresh load after errors; `resetSave()` clears the
+ *   save slot (edit cancel/reopen).
  * - Cancellation travels through `options.signal` (Phase 1
  *   `cancelOnAbort` completes pre-aborted/in-flight aborts silently —
  *   never as errors; state stays untouched).
  * - No logout here (`AuthService.logout` owns it — the shell calls it
- *   directly); no profile editing (no backend contract supports it).
+ *   directly); no client price math anywhere (no money travels here).
  *
  * Explicitly out of scope (later work, must not appear here):
  * - 10.3 — no orders-list slots or pagination behavior.
@@ -55,6 +66,7 @@ import {
   type ApiRequestOptions,
 } from '@flux/api';
 import { AuthService, mapUserResponseToCurrentUser } from '@flux/auth';
+import type { UpdateProfileRequest } from '@flux/models';
 import type { CustomerProfile } from '../models/account.models';
 
 /** Options for `AccountState.loadProfile`. */
@@ -67,15 +79,17 @@ export interface LoadProfileOptions extends ApiRequestOptions {
 }
 
 /**
- * Feature-scoped account state: the live customer profile resource.
- * Provided on the `accountRoutes` parent (one instance per account
- * entry — never a global store, no `providedIn`).
+ * Feature-scoped account state: the live customer profile resource plus
+ * the independent profile-update submission slot. Provided on the
+ * `accountRoutes` parent (one instance per account entry — never a
+ * global store, no `providedIn`).
  */
 @Injectable()
 export class AccountState {
   private readonly identity = inject(IdentityApiService);
   private readonly auth = inject(AuthService);
   private readonly profileStore = createResourceState<CustomerProfile>();
+  private readonly saveStore = createResourceState<CustomerProfile>();
 
   /** Profile resource lifecycle (`idle | loading | success | error`). */
   readonly status = this.profileStore.status;
@@ -119,6 +133,39 @@ export class AccountState {
     this.loadProfile({ force: true });
   }
 
+  /** Save-submission lifecycle (`idle | loading | success | error`). */
+  readonly saveStatus = this.saveStore.status;
+
+  /** Normalized save failure (`ApiError | null`). */
+  readonly saveError = this.saveStore.error;
+
+  /** True while the update request is in flight. */
+  readonly isSaving = this.saveStore.isLoading;
+
+  /** True once an update has settled successfully (drives the notice). */
+  readonly isSaveSuccess = this.saveStore.isSuccess;
+
+  /**
+   * Submits the validated draft (`PUT /auth/profile`). Duplicate-submit
+   * safe: a second call while saving is a no-op. On success the returned
+   * profile refreshes the profile slot AND the central session (no extra
+   * `GET`); failures land in the save slot — `400` field maps project
+   * onto the form, everything else renders the save banner.
+   */
+  saveProfile(body: UpdateProfileRequest, options: ApiRequestOptions = {}): void {
+    if (this.saveStore.isLoading()) {
+      return;
+    }
+    loadResourceState(this.saveStore, this.saveSource(body, options), {
+      signal: options.signal,
+    });
+  }
+
+  /** Clears the save slot (edit cancel/reopen). */
+  resetSave(): void {
+    this.saveStore.reset();
+  }
+
   /**
    * Live profile source: unwraps `ApiResponse.data` (missing data is a
    * contract breach → normalized failure, never a rendered profile)
@@ -134,6 +181,31 @@ export class AccountState {
         return profile;
       }),
       tap((profile) => this.auth.updateCurrentUser(mapUserResponseToCurrentUser(profile))),
+    );
+  }
+
+  /**
+   * Live update source: unwraps `ApiResponse.data` (missing data is a
+   * contract breach → normalized failure) and refreshes BOTH the profile
+   * slot and the central session user from the PUT response — no extra
+   * `GET` round-trip.
+   */
+  private saveSource(
+    body: UpdateProfileRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<CustomerProfile> {
+    return this.identity.updateProfile(body, options).pipe(
+      map((envelope) => {
+        const profile = envelope.data ?? null;
+        if (profile === null) {
+          throw new Error('Profile update response carried no data.');
+        }
+        return profile;
+      }),
+      tap((profile) => {
+        this.profileStore.setSuccess(profile);
+        this.auth.updateCurrentUser(mapUserResponseToCurrentUser(profile));
+      }),
     );
   }
 }
