@@ -48,7 +48,8 @@ export interface AdminDestination {
  * in 13.5); the inventory group grows the same way (stock, reservations,
  * and adjustments in 13.9–13.10); the orders group grows with the slices
  * that create their routes (list in 14.3; details arrive deep-linked in
- * 14.5 with no nav entry — like catalog details).
+ * 14.5 with no nav entry — like catalog details); the payments group
+ * arrives with Supplement S1.9 (list with a deep-linked details page).
  */
 export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
   { labelKey: 'layout.nav.home', route: '/', icon: '⌂' },
@@ -89,6 +90,13 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     icon: '▨',
     permissions: ['orders.read'],
     children: [{ labelKey: 'layout.nav.ordersList', route: '/orders/list' }],
+  },
+  {
+    labelKey: 'layout.nav.payments',
+    route: '/payments',
+    icon: '◈',
+    permissions: ['payments.read', 'payments.stats'],
+    children: [{ labelKey: 'layout.nav.paymentsList', route: '/payments/list' }],
   },
   {
     labelKey: 'layout.nav.users',

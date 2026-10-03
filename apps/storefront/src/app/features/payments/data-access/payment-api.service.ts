@@ -1,6 +1,7 @@
 /**
  * Payments data-access service for Sub-Phases 9.3 (data access) and
- * 9.10 (order-summary display read).
+ * 9.10 (order-summary display read) — plus Supplement S1, Step S1.9
+ * (caller-owned `GET /api/payments/mine` list).
  *
  * Scope: `docs/phases/PHASE_9_PAYMENTS.md` §§9.3/9.10 (data access only
  * — no state implementation, no provider integration, no UI).
@@ -74,14 +75,18 @@ import {
   ApiClient,
   ORDERS_ENDPOINTS,
   PAYMENTS_ENDPOINTS,
+  toQueryParams,
   type ApiRequestOptions,
   type ApiResponseWithData,
+  type PagedApiResponse,
 } from '@flux/api';
 import type {
   OrderDetailsResponse,
   Payment,
+  PaymentAdminResponse,
   PaymentInitializationRequest,
   PaymentInitializationResult,
+  PaymentsMineQuery,
 } from '@flux/models';
 
 /**
@@ -151,6 +156,30 @@ export class PaymentApiService {
         pathParams: { orderId: request.orderId, ...(options.pathParams ?? {}) },
       },
     );
+  }
+
+  /**
+   * `GET /api/payments/mine` — caller-owned paged payment list
+   * (Supplement S1). Paging plus an optional `status` filter
+   * (`Pending|Processing|Succeeded|Failed|Cancelled|Refunded`,
+   * case-insensitive; unknown → backend `400 Payment.ValidationFailed`),
+   * fixed newest-first — no sort params. Never another customer's
+   * payments.
+   *
+   * `options.signal` aborts the call silently (Phase 1 `cancelOnAbort`).
+   *
+   * Success: `200 ApiResponse<PagedResult<PaymentAdminResponse>>`.
+   * Failures: `400` validation, `401` anonymous — all propagate untouched
+   * through the error channel.
+   */
+  listMine(
+    query: PaymentsMineQuery = {},
+    options: ApiRequestOptions = {},
+  ): Observable<PagedApiResponse<PaymentAdminResponse>> {
+    return this.api.get<PagedApiResponse<PaymentAdminResponse>>(PAYMENTS_ENDPOINTS.listMine.path, {
+      ...options,
+      params: toQueryParams(query),
+    });
   }
 
   /**

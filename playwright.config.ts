@@ -75,6 +75,16 @@ export default defineConfig({
       use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
     },
     {
+      name: 'admin-payments-chromium',
+      testMatch: /admin-payments\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'payments-mine-chromium',
+      testMatch: /payments-mine\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'admin-users-chromium',
       testMatch: /admin-users\.spec\.ts/,
       use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },

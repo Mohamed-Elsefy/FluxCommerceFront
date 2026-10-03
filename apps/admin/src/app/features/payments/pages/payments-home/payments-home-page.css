@@ -1,0 +1,61 @@
+.payments-home {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.payments-home-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.payments-home-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.payments-home-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.payments-home-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.payments-home-card {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.payments-home-card-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.payments-home-card-fact {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.payments-home-facts {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin: 0;
+}
+
+.payments-home-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.payments-home-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

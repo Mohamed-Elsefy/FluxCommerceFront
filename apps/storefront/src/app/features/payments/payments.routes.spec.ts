@@ -23,8 +23,10 @@ import {
 } from './integrations/stripe-payment-provider';
 import { PaymentPage } from './pages/payment-page/payment-page';
 import { PaymentResultPage } from './pages/payment-result-page/payment-result-page';
+import { PaymentsMinePage } from './pages/payments-mine-page/payments-mine-page';
 import { paymentsRoutes } from './payments.routes';
 import { PaymentState } from './state/payment-state';
+import { PaymentsMineState } from './state/payments-mine-state';
 
 describe('paymentsRoutes', () => {
   it('exposes a single pathless guarded parent entry', () => {
@@ -35,6 +37,21 @@ describe('paymentsRoutes', () => {
 
   it('provides the feature-scoped PaymentState on the parent entry', () => {
     expect(paymentsRoutes[0]?.providers).toContain(PaymentState);
+  });
+
+  it('provides the feature-scoped PaymentsMineState on the parent entry', () => {
+    expect(paymentsRoutes[0]?.providers).toContain(PaymentsMineState);
+  });
+
+  it('serves the static mine list before the :orderId sibling (no id shadowing)', async () => {
+    const children = paymentsRoutes[0]?.children ?? [];
+    expect(children.map((child) => child.path)).toEqual(['mine', ':orderId', ':orderId/result']);
+
+    const mine = children[0];
+    expect(typeof mine?.loadComponent).toBe('function');
+
+    const page = await mine?.loadComponent?.();
+    expect(page).toBe(PaymentsMinePage);
   });
 
   it('binds the provider abstraction with environment-sourced tokens', () => {
@@ -54,7 +71,7 @@ describe('paymentsRoutes', () => {
   });
 
   it('lazy-loads the payment page on :orderId', async () => {
-    const child = paymentsRoutes[0]?.children?.[0];
+    const child = paymentsRoutes[0]?.children?.[1];
 
     expect(child?.path).toBe(':orderId');
     expect(typeof child?.loadComponent).toBe('function');
@@ -67,7 +84,7 @@ describe('paymentsRoutes', () => {
   });
 
   it('lazy-loads the payment result page on :orderId/result', async () => {
-    const child = paymentsRoutes[0]?.children?.[1];
+    const child = paymentsRoutes[0]?.children?.[2];
 
     expect(child?.path).toBe(':orderId/result');
     expect(typeof child?.loadComponent).toBe('function');

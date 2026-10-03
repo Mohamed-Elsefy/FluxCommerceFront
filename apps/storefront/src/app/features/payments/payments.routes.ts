@@ -8,14 +8,19 @@ import {
   StripePaymentProvider,
 } from './integrations/stripe-payment-provider';
 import { PaymentState } from './state/payment-state';
+import { PaymentsMineState } from './state/payments-mine-state';
 
 /**
  * Storefront Payments feature routes (Sub-Phase 9.2 — Payment Feature
  * Foundation).
  *
  * Mounted at `payment` in `app.routes.ts`, so the entries below serve
+ * `/payment/mine` (caller-owned payments list, Supplement S1.9),
  * `/payment/:orderId` (payment page) and `/payment/:orderId/result`
  * (payment result page), per `docs/phases/PHASE_9_PAYMENTS.md` §9.10.
+ *
+ * Route order matters: the static `mine` segment precedes the `:orderId`
+ * sibling (top-down matching — `mine` must not parse as an order id).
  *
  * The lazy boundary, the authentication guard, and the feature-scoped
  * state live on the state-providing parent: payment reads are `[Authorize]`
@@ -46,12 +51,18 @@ export const paymentsRoutes: Routes = [
     path: '',
     providers: [
       PaymentState,
+      PaymentsMineState,
       { provide: PAYMENT_PROVIDER, useClass: StripePaymentProvider },
       { provide: STRIPE_JS_SCRIPT_URL, useValue: stripeEnvironment.scriptUrl },
       { provide: STRIPE_PUBLISHABLE_KEY, useValue: stripeEnvironment.publishableKey },
     ],
     canActivate: [authGuard],
     children: [
+      {
+        path: 'mine',
+        loadComponent: () =>
+          import('./pages/payments-mine-page/payments-mine-page').then((m) => m.PaymentsMinePage),
+      },
       {
         path: ':orderId',
         loadComponent: () => import('./pages/payment-page/payment-page').then((m) => m.PaymentPage),

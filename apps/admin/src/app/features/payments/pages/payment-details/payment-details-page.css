@@ -1,0 +1,64 @@
+.payment-details {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.payment-details-back {
+  justify-self: start;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.payment-details-back:hover {
+  text-decoration: underline;
+}
+
+.payment-details-back:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.payment-details-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.payment-details-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.payment-details-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.payment-details-facts {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.payment-details-facts > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--spacing-sm);
+}
+
+.payment-details-facts dt {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.payment-details-facts dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}

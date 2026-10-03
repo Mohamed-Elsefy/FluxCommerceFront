@@ -25,6 +25,10 @@ import { AppLayout } from './layout/app-layout/app-layout';
  *     └── orders     → `orders.read` (+ SuperAdmin bypass; in-page
  *                        cancel/refund additionally need `orders.cancel` /
  *                        `orders.refund`)
+ *     ├── payments   → `payments.read` + `payments.stats` (OR semantics
+ *     │                  + SuperAdmin bypass; list/details read through
+ *     │                  `payments.read`, the stats landing through
+ *     │                  `payments.stats`)
  *     └── users      → `SuperAdmin` role only (user/permission management)
  * ```
  *
@@ -86,6 +90,13 @@ export const routes: Routes = [
         loadChildren: () => import('./features/orders/orders.routes').then((m) => m.ordersRoutes),
         canActivate: [permissionGuard],
         data: { permissions: ['orders.read'] },
+      },
+      {
+        path: 'payments',
+        loadChildren: () =>
+          import('./features/payments/payments.routes').then((m) => m.paymentsRoutes),
+        canActivate: [permissionGuard],
+        data: { permissions: ['payments.read', 'payments.stats'] },
       },
       {
         path: 'users',

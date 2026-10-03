@@ -31,12 +31,21 @@
  *   (force-cancel any `Pending` order), `POST
  *   /admin/orders/{orderId}/refund` (`RefundOrderRequest{reason}`,
  *   paid orders only, `409 RefundConflict` otherwise).
- * - Payments (`[Route api/payments][Authorize]`, note the inconsistent
- *   `api/` prefix): `GET /api/payments/{paymentId}` (ownership-masked
- *   `404`), `GET /api/payments/by-order/{orderId}` (live client secret,
- *   `409 NotReady/NotPayable`, `500 ProviderUnavailable`),
+ * - Customer payments (`[Route api/payments][Authorize]`, note the
+ *   inconsistent `api/` prefix): `GET /api/payments/{paymentId}`
+ *   (ownership-masked `404`), `GET /api/payments/by-order/{orderId}`
+ *   (live client secret, `409 NotReady/NotPayable`, `500
+ *   ProviderUnavailable`), `GET /api/payments/mine` (paged,
+ *   caller-owned, newest-first, paging plus optional `status`),
  *   `POST /api/payments/webhook` (Stripe→API only, never called by the
  *   SPA, never replicated).
+ * - Admin payments (`[Route admin/payments]`, permission-gated):
+ *   `GET /admin/payments` (paged, platform-wide, newest-first, paging
+ *   plus `status`/`orderId`/`customerId`/`from`/`to`),
+ *   `GET /admin/payments/stats` (totals + `totalsByCurrency`),
+ *   `GET /admin/payments/{paymentId}` (no ownership scoping).
+ *   Read-only: the admin never confirms cards and the live
+ *   `clientSecret` is discarded at the mapping boundary.
  * - Order and payment `status` fields are STRINGS on the wire
  *   (`.ToString()`, never enums): `Pending|Cancelled|Confirmed` for
  *   orders, `Pending|Processing|Succeeded|Failed|Cancelled|Refunded` for
@@ -161,11 +170,18 @@ export type AdminCallableOrderEndpoint = (typeof ADMIN_CALLABLE_ORDER_ENDPOINTS)
 
 /**
  * SPA-callable admin payment path templates. The webhook is Stripe→API
- * only and never appears here by design.
+ * only and never appears here by design. Supplement S1 added the
+ * `[Route admin/payments]` surface: the platform-wide list with filters,
+ * the stats read, and the unscoped details read (all read-only — the
+ * admin never confirms cards and the live `clientSecret` is discarded
+ * at the mapping boundary).
  */
 export const ADMIN_CALLABLE_PAYMENT_ENDPOINTS = [
   '/api/payments/{paymentId}',
   '/api/payments/by-order/{orderId}',
+  '/admin/payments',
+  '/admin/payments/stats',
+  '/admin/payments/{paymentId}',
 ] as const;
 
 /** One SPA-callable admin payment path template. */
@@ -212,16 +228,17 @@ export type UnsupportedAdminOrderOperation = (typeof UNSUPPORTED_ADMIN_ORDER_OPE
 
 /**
  * Payment operations that DO NOT exist in the backend contract and must
- * never be implemented in the admin UI. There is no payment list, no
- * history endpoint, no failed-payments query, and no admin payment
- * mutation — single-resource reads plus the by-order initialization read
- * are the complete supported surface.
+ * never be implemented in the admin UI. Supplement S1 unlocked the
+ * platform-wide list and its status filter — those former pins live in
+ * `SUPPLEMENT_S1_NEWLY_SUPPORTED_OPERATIONS` (see
+ * `./contract-evolution-audit`), not here. There is still no history
+ * endpoint, no failed-payments query, and no admin payment mutation —
+ * lists plus stats plus single-resource reads are the complete
+ * supported surface.
  */
 export const UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS = [
-  'payment-list',
   'payment-history',
   'failed-payments-list',
-  'payment-status-filter',
   'payment-create',
   'payment-confirm-admin',
   'payment-cancel-admin',
@@ -265,29 +282,40 @@ export function isUnsupportedAdminPaymentOperation(
 
 /**
  * The paginated reads in this slice, Supplement S1 matrix: the
- * caller-owned `GET /orders` (paging plus optional `status`) and the
+ * caller-owned `GET /orders` (paging plus optional `status`), the
  * platform-wide `GET /admin/orders` (paging plus `status`/`customerId`/
- * `search`/`from`/`to`). Both newest-first (`pageNumber >= 1`,
- * `1 <= pageSize <= 100`, defaults `1`/`20`). Payment reads are
- * single-resource (`GET /api/payments/{id}`,
- * `GET /api/payments/by-order/{orderId}`) and must never be wrapped in
- * pager logic.
+ * `search`/`from`/`to`), the caller-owned `GET /api/payments/mine`
+ * (paging plus optional `status`), and the platform-wide
+ * `GET /admin/payments` (paging plus `status`/`orderId`/`customerId`/
+ * `from`/`to`). All newest-first (`pageNumber >= 1`,
+ * `1 <= pageSize <= 100`, defaults `1`/`20`). Single-resource payment
+ * reads (`GET /api/payments/{id}`,
+ * `GET /api/payments/by-order/{orderId}`, `GET /admin/payments/stats`,
+ * `GET /admin/payments/{id}`) must never be wrapped in pager logic.
  */
-export const PAGINATED_ADMIN_ORDERS_READS = ['listOrders', 'listAdminOrders'] as const;
+export const PAGINATED_ADMIN_ORDERS_READS = [
+  'listOrders',
+  'listAdminOrders',
+  'listMine',
+  'listAdminPayments',
+] as const;
 
-/** The single paginated admin orders read. */
+/** One paginated admin orders/payments read. */
 export type PaginatedAdminOrdersRead = (typeof PAGINATED_ADMIN_ORDERS_READS)[number];
 
 /**
  * Admin-consumed orders/payments reads that return single resources
  * (never `PagedResult`): order details, order cancel (returns the updated
- * `OrderDetailsResponse`), payment status, payment by-order.
+ * `OrderDetailsResponse`), payment status, payment by-order, payment
+ * stats, admin payment details.
  */
 export const NON_PAGINATED_ADMIN_ORDERS_READS = [
   'orderDetails',
   'cancelOrder',
   'paymentStatus',
   'paymentByOrder',
+  'paymentStats',
+  'getAdminPayment',
 ] as const;
 
 /** One non-paginated admin orders/payments read. */
@@ -317,10 +345,21 @@ export function supportsAdminOrdersSorting(_read: string | null | undefined): bo
  * Filtering support, Supplement S1 matrix: `listAdminOrders` accepts
  * `status`/`customerId`/`search`/`from`/`to` and `listOrders` accepts
  * `status` (unknown values and `from > to` → backend `400`). Every
- * other read takes ids only. Pure — throws nothing.
+ * other order read takes ids only. Pure — throws nothing.
  */
 export function supportsAdminOrdersFiltering(read: string | null | undefined): boolean {
   return read === 'listOrders' || read === 'listAdminOrders';
+}
+
+/**
+ * Payment filtering support, Supplement S1 matrix: `listAdminPayments`
+ * accepts `status`/`orderId`/`customerId`/`from`/`to` and `listMine`
+ * accepts `status` (unknown values and `from > to` → backend `400
+ * Payment.ValidationFailed`). Every other payment read takes ids only
+ * or nothing (`paymentStats`). Pure — throws nothing.
+ */
+export function supportsAdminPaymentsFiltering(read: string | null | undefined): boolean {
+  return read === 'listMine' || read === 'listAdminPayments';
 }
 
 /**

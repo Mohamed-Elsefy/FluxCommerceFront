@@ -39,6 +39,7 @@ import {
   isValidAdminPaymentStatusQuery,
   supportsAdminOrdersFiltering,
   supportsAdminOrdersSorting,
+  supportsAdminPaymentsFiltering,
 } from './orders-payments-contract';
 
 describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
@@ -56,10 +57,13 @@ describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
       ]);
     });
 
-    it('pins the two payment reads (webhook excluded by design)', () => {
+    it('pins the payment reads incl. the S1.9 admin surface (webhook excluded by design)', () => {
       expect([...ADMIN_CALLABLE_PAYMENT_ENDPOINTS]).toEqual([
         '/api/payments/{paymentId}',
         '/api/payments/by-order/{orderId}',
+        '/admin/payments',
+        '/admin/payments/stats',
+        '/admin/payments/{paymentId}',
       ]);
     });
 
@@ -68,6 +72,9 @@ describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
       expect(isAdminCallableOrdersPaymentsEndpoint('/admin/orders')).toBe(true);
       expect(isAdminCallableOrdersPaymentsEndpoint('/admin/orders/{orderId}/refund')).toBe(true);
       expect(isAdminCallableOrdersPaymentsEndpoint('/api/payments/by-order/{orderId}')).toBe(true);
+      expect(isAdminCallableOrdersPaymentsEndpoint('/admin/payments')).toBe(true);
+      expect(isAdminCallableOrdersPaymentsEndpoint('/admin/payments/stats')).toBe(true);
+      expect(isAdminCallableOrdersPaymentsEndpoint('/admin/payments/{paymentId}')).toBe(true);
       expect(isAdminCallableOrdersPaymentsEndpoint('/orders/checkout')).toBe(false);
       expect(isAdminCallableOrdersPaymentsEndpoint('/api/payments/webhook')).toBe(false);
       expect(isAdminCallableOrdersPaymentsEndpoint('/orders/{id}/payments')).toBe(false);
@@ -87,12 +94,13 @@ describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
       ]);
     });
 
-    it('pins payment operations that must never be implemented (no list/history)', () => {
-      expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).toContain('payment-list');
+    it('pins payment operations that must never be implemented (history stays unsupported)', () => {
       expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).toContain('payment-history');
       expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).toContain('failed-payments-list');
       expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).toContain('payment-refund-admin');
       expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).toContain('webhook-spa-call');
+      expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).not.toContain('payment-list');
+      expect([...UNSUPPORTED_ADMIN_PAYMENT_OPERATIONS]).not.toContain('payment-status-filter');
     });
 
     it('classifies unsupported operations (supported names pass through)', () => {
@@ -102,6 +110,8 @@ describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
       expect(isUnsupportedAdminOrderOperation('order-refund')).toBe(false);
       expect(isUnsupportedAdminOrderOperation('order-details')).toBe(false);
       expect(isUnsupportedAdminPaymentOperation('payment-history')).toBe(true);
+      expect(isUnsupportedAdminPaymentOperation('payment-list')).toBe(false);
+      expect(isUnsupportedAdminPaymentOperation('payment-status-filter')).toBe(false);
       expect(isUnsupportedAdminPaymentOperation('payment-status')).toBe(false);
       expect(isUnsupportedAdminOrderOperation(null)).toBe(false);
       expect(isUnsupportedAdminPaymentOperation(42)).toBe(false);
@@ -109,21 +119,32 @@ describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
   });
 
   describe('pagination / filtering / sorting capability', () => {
-    it('pins the two paginated reads (customer plus admin lists)', () => {
-      expect([...PAGINATED_ADMIN_ORDERS_READS]).toEqual(['listOrders', 'listAdminOrders']);
+    it('pins the four paginated reads (customer plus admin order/payment lists)', () => {
+      expect([...PAGINATED_ADMIN_ORDERS_READS]).toEqual([
+        'listOrders',
+        'listAdminOrders',
+        'listMine',
+        'listAdminPayments',
+      ]);
       expect([...NON_PAGINATED_ADMIN_ORDERS_READS]).toEqual([
         'orderDetails',
         'cancelOrder',
         'paymentStatus',
         'paymentByOrder',
+        'paymentStats',
+        'getAdminPayment',
       ]);
     });
 
-    it('classifies paginated reads (payment reads never paged)', () => {
+    it('classifies paginated reads (single-resource reads never paged)', () => {
       expect(isPaginatedAdminOrdersRead('listOrders')).toBe(true);
       expect(isPaginatedAdminOrdersRead('listAdminOrders')).toBe(true);
+      expect(isPaginatedAdminOrdersRead('listMine')).toBe(true);
+      expect(isPaginatedAdminOrdersRead('listAdminPayments')).toBe(true);
       expect(isPaginatedAdminOrdersRead('paymentStatus')).toBe(false);
       expect(isPaginatedAdminOrdersRead('paymentByOrder')).toBe(false);
+      expect(isPaginatedAdminOrdersRead('paymentStats')).toBe(false);
+      expect(isPaginatedAdminOrdersRead('getAdminPayment')).toBe(false);
       expect(isPaginatedAdminOrdersRead(null)).toBe(false);
     });
 
@@ -134,13 +155,23 @@ describe('admin-orders-payments-contract (Sub-Phase 14.1 audit)', () => {
       expect(supportsAdminOrdersSorting(undefined)).toBe(false);
     });
 
-      it('pins filtering support on the two list reads (Supplement S1 matrix)', () => {
-        expect(supportsAdminOrdersFiltering('listOrders')).toBe(true);
-        expect(supportsAdminOrdersFiltering('listAdminOrders')).toBe(true);
-        expect(supportsAdminOrdersFiltering('paymentStatus')).toBe(false);
-        expect(supportsAdminOrdersFiltering(null)).toBe(false);
-        expect(supportsAdminOrdersFiltering(undefined)).toBe(false);
-      });
+    it('pins filtering support on the two order list reads (Supplement S1 matrix)', () => {
+      expect(supportsAdminOrdersFiltering('listOrders')).toBe(true);
+      expect(supportsAdminOrdersFiltering('listAdminOrders')).toBe(true);
+      expect(supportsAdminOrdersFiltering('paymentStatus')).toBe(false);
+      expect(supportsAdminOrdersFiltering(null)).toBe(false);
+      expect(supportsAdminOrdersFiltering(undefined)).toBe(false);
+    });
+
+    it('pins filtering support on the two payment list reads (S1.9 matrix)', () => {
+      expect(supportsAdminPaymentsFiltering('listMine')).toBe(true);
+      expect(supportsAdminPaymentsFiltering('listAdminPayments')).toBe(true);
+      expect(supportsAdminPaymentsFiltering('paymentStatus')).toBe(false);
+      expect(supportsAdminPaymentsFiltering('paymentStats')).toBe(false);
+      expect(supportsAdminPaymentsFiltering('getAdminPayment')).toBe(false);
+      expect(supportsAdminPaymentsFiltering(null)).toBe(false);
+      expect(supportsAdminPaymentsFiltering(undefined)).toBe(false);
+    });
 
     it('pre-checks paging bounds (1-based page, 1..100 size)', () => {
       expect(isValidAdminOrdersPagingQuery(null)).toBe(true);

@@ -1,0 +1,62 @@
+.payments-mine-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.payments-mine-page-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.payments-mine-page-filter select:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.payments-mine-page h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.payments-mine-page-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payments-mine-row {
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding-block: var(--spacing-md);
+  padding-inline: var(--spacing-md);
+  background-color: var(--color-surface);
+}
+
+.payments-mine-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.payments-mine-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+}
+
+.payments-mine-facts dt {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.payments-mine-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

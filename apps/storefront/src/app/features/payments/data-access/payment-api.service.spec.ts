@@ -344,3 +344,62 @@ describe('PaymentApiService initializePayment (by-order read)', () => {
     }
   });
 });
+
+describe('PaymentApiService listMine (Supplement S1.9 caller-owned list)', () => {
+  it('reads the canonical mine route with paging plus status as query params', () => {
+    const { service, calls } = setup();
+    service.listMine({ pageNumber: 1, pageSize: 20, status: 'Succeeded' }).subscribe();
+
+    expect(calls.getPaths).toEqual([PAYMENTS_ENDPOINTS.listMine.path]);
+    expect(calls.getPaths).toEqual(['/api/payments/mine']);
+    expect(calls.getOptions).toEqual([
+      { params: { pageNumber: 1, pageSize: 20, status: 'Succeeded' } },
+    ]);
+  });
+
+  it('omits the status key when unfiltered (paging only)', () => {
+    const { service, calls } = setup();
+    service.listMine({ pageNumber: 2, pageSize: 20 }).subscribe();
+
+    expect(calls.getOptions).toEqual([{ params: { pageNumber: 2, pageSize: 20 } }]);
+  });
+
+  it('forwards the AbortSignal for cancellation without touching it', () => {
+    const { service, calls } = setup();
+    const controller = new AbortController();
+    service.listMine({ pageNumber: 1 }, { signal: controller.signal }).subscribe();
+
+    expect(calls.getOptions).toEqual([{ signal: controller.signal, params: { pageNumber: 1 } }]);
+  });
+
+  it('passes the paged envelope through without unwrapping data', () => {
+    const { service, api } = setup();
+    const envelope = {
+      isSuccess: true,
+      message: 'Operation completed successfully.',
+      data: { items: [STATUS_BODY], totalCount: 1, pageNumber: 1, pageSize: 20 },
+    };
+    vi.mocked(api.get).mockReturnValueOnce(of(envelope));
+
+    let observed: unknown;
+    service.listMine().subscribe((value) => (observed = value));
+    expect(observed).toEqual(envelope);
+  });
+
+  it('propagates validation 400s (unknown status) and 401s untouched', () => {
+    const { service, api } = setup();
+    for (const failure of [
+      new ApiError({ status: 400, code: 'Payment.ValidationFailed', message: 'Bad query.' }),
+      new ApiError({ status: 401, code: 'Payment.Unauthorized', message: 'Denied.' }),
+    ]) {
+      vi.mocked(api.get).mockReturnValueOnce(throwError(() => failure));
+
+      let observed: unknown;
+      service.listMine({ status: 'Nope' }).subscribe({
+        error: (error: unknown) => (observed = error),
+      });
+      expect(observed).toBe(failure);
+      expect(isApiError(observed)).toBe(true);
+    }
+  });
+});

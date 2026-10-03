@@ -62,6 +62,15 @@ describe('routes', () => {
     expect(orders?.data?.['permissions']).toEqual(['orders.read']);
   });
 
+  it('mounts the payments feature as a lazy boundary with read/stats permissions', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const payments = shell?.children?.find((route) => route.path === 'payments');
+
+    expect(typeof payments?.loadChildren).toBe('function');
+    expect(payments?.canActivate).toEqual([permissionGuard]);
+    expect(payments?.data?.['permissions']).toEqual(['payments.read', 'payments.stats']);
+  });
+
   it('mounts the users feature as a SuperAdmin-only lazy boundary', () => {
     const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
     const users = shell?.children?.find((route) => route.path === 'users');
