@@ -2,6 +2,18 @@
   <!-- h2, not h1: the account shell owns the section h1 (11.8 — one h1 per view). -->
   <h2 id="orders-list-page-title" tabindex="-1">{{ copy().title }}</h2>
 
+  @if (showList() || showEmpty()) {
+    <div class="orders-list-page-filter">
+      <label for="orders-status-filter">{{ copy().filterLabel }}</label>
+      <select id="orders-status-filter" (change)="onStatusFilter($event)">
+        <option value="">{{ copy().filterAll }}</option>
+        @for (option of copy().statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+  }
+
   @if (showLoading()) {
     <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
   } @else if (showError()) {

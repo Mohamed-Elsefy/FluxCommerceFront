@@ -171,6 +171,13 @@ export class OrdersListPage implements OnInit {
     };
     return {
       title: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listTitle),
+      filterLabel: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listFilterLabel),
+      filterAll: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listFilterAll),
+      statusOptions: [
+        { value: 'Pending', label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderPending) },
+        { value: 'Cancelled', label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderCancelled) },
+        { value: 'Confirmed', label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderConfirmed) },
+      ],
       loading: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listLoading),
       loadErrorTitle: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listLoadErrorTitle),
       retry: translateKey(culture, 'common.actions.retry'),
@@ -228,6 +235,15 @@ export class OrdersListPage implements OnInit {
   /** Retries the failed page load (forced fresh request). */
   onRetry(): void {
     this.state.retry();
+  }
+
+  /**
+   * Commits a status filter change through the state (resets to page
+   * 1). Empty selection clears the filter.
+   */
+  onStatusFilter(event: Event): void {
+    const value = (event.target as HTMLSelectElement | null)?.value ?? '';
+    this.state.setStatusFilter(value === '' ? null : value);
   }
 
   /**

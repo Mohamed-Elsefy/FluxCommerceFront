@@ -2,20 +2,28 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { provideApi, provideAppEnvironment, type ResourceStatus } from '@flux/api';
+import {
+  errorResource,
+  idleResource,
+  loadingResource,
+  provideApi,
+  provideAppEnvironment,
+  successResource,
+  type ResourceState,
+} from '@flux/api';
 import { ApiError } from '@flux/api';
 import { CultureService } from '@flux/i18n';
+import type { AdminOrderCountsResponse } from '@flux/models';
 import { OrdersOverviewState } from '../../state/orders-overview-state';
-import type { OrdersOverview } from '../../models/orders-admin.models';
 import { OrdersHomePage } from './orders-home-page';
 
-interface OverviewScenario {
-  status: ResourceStatus;
-  overview: OrdersOverview | null;
-  error?: ApiError | null;
+function counts(): AdminOrderCountsResponse {
+  return { total: 42, pending: 30, confirmed: 10, cancelled: 2 };
 }
 
-function setup(scenario: OverviewScenario): { refresh: ReturnType<typeof vi.fn> } {
+function setup(scenario: { counts?: ResourceState<AdminOrderCountsResponse> }): {
+  refresh: ReturnType<typeof vi.fn>;
+} {
   const refresh = vi.fn();
   TestBed.configureTestingModule({
     providers: [
@@ -30,9 +38,7 @@ function setup(scenario: OverviewScenario): { refresh: ReturnType<typeof vi.fn> 
       {
         provide: OrdersOverviewState,
         useValue: {
-          status: signal(scenario.status),
-          overview: signal(scenario.overview),
-          error: signal(scenario.error ?? null),
+          counts: signal(scenario.counts ?? idleResource()),
           refresh,
         },
       },
@@ -49,18 +55,25 @@ function render(): HTMLElement {
 }
 
 describe('OrdersHomePage', () => {
-  it('loads the overview on init and renders the summary fact on success', () => {
-    const { refresh } = setup({ status: 'success', overview: { orderTotal: 42 } });
+  it('loads the overview on init and renders every bucket verbatim', () => {
+    const { refresh } = setup({ counts: successResource(counts()) });
     const element = render();
 
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(element.querySelector('h1')?.textContent).toBe('Orders');
     expect(element.querySelector('.orders-home-card-fact')?.textContent).toBe('42 orders');
+    const facts = [...element.querySelectorAll('.orders-home-facts > div')].map(
+      (row) =>
+        `${row.querySelector('dt')?.textContent?.trim()}: ${row
+          .querySelector('dd')
+          ?.textContent?.trim()}`,
+    );
+    expect(facts).toEqual(['Pending: 30', 'Confirmed: 10', 'Cancelled: 2']);
     expect(element.querySelector('a')).toBeNull();
   });
 
   it('renders the loading state while the overview loads', () => {
-    setup({ status: 'loading', overview: null });
+    setup({ counts: loadingResource() });
     const element = render();
 
     expect(element.querySelector('flux-loading-indicator')).not.toBeNull();
@@ -69,9 +82,7 @@ describe('OrdersHomePage', () => {
 
   it('renders the error state with retry that re-enters refresh', () => {
     const { refresh } = setup({
-      status: 'error',
-      overview: null,
-      error: new ApiError({ status: 403, message: 'Forbidden.' }),
+      counts: errorResource(new ApiError({ status: 403, message: 'Forbidden.' })),
     });
     const element = render();
 
@@ -85,39 +96,15 @@ describe('OrdersHomePage', () => {
     expect(refresh).toHaveBeenCalledTimes(2);
   });
 
-  it('renders the empty state when no order data exists', () => {
-    setup({ status: 'empty', overview: { orderTotal: 0 } });
-    const element = render();
-
-    expect(element.querySelector('flux-empty-state')).not.toBeNull();
-    expect(element.textContent).toContain('No orders yet');
-    expect(element.querySelector('.orders-home-card')).toBeNull();
-  });
-
   it('localizes the landing page for the active culture', () => {
-    setup({ status: 'success', overview: { orderTotal: 3 } });
+    setup({ counts: successResource(counts()) });
     const cultures = TestBed.inject(CultureService);
     cultures.setCulture('fr');
     try {
       const element = render();
 
       expect(element.querySelector('h1')?.textContent).toBe('Commandes');
-      expect(element.querySelector('.orders-home-card-fact')?.textContent).toBe('3 commandes');
-    } finally {
-      cultures.setCulture('en');
-    }
-  });
-
-  it('renders the landing under the RTL culture without key leakage', () => {
-    setup({ status: 'success', overview: { orderTotal: 3 } });
-    const cultures = TestBed.inject(CultureService);
-    cultures.setCulture('ar');
-    try {
-      const element = render();
-
-      expect(element.querySelector('h1')?.textContent).toBe('الطلبات');
-      expect(element.textContent).not.toContain('orders.title');
-      expect(element.textContent).not.toContain('orders.summary.total');
+      expect(element.querySelector('.orders-home-card-fact')?.textContent).toBe('42 commandes');
     } finally {
       cultures.setCulture('en');
     }

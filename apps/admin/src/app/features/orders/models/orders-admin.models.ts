@@ -22,6 +22,7 @@
 
 import type { PagedResult } from '@flux/api';
 import type {
+  AdminOrderCountsResponse,
   OrderDetailsResponse,
   OrderSummaryResponse,
   PaymentInitializationResult,
@@ -39,40 +40,15 @@ export type AdminOrderRow = OrderSummaryResponse;
  */
 export type AdminOrderDetailsRecord = OrderDetailsResponse;
 
-/** Paged admin order result (`GET /orders`, caller-owned, newest-first). */
+/** Paged admin order result (`GET /admin/orders`, platform-wide, newest-first). */
 export type AdminOrderPage = PagedResult<AdminOrderRow>;
 
 /**
- * Orders overview: the backend-issued total behind the admin landing
- * page. The count echoes `totalCount` verbatim (total caller-visible
- * matches across all pages, never page-relative — there is no
- * platform-wide admin list, see the 14.1 audit).
+ * Orders overview: the backend-issued counters behind the admin landing
+ * page (`GET /admin/orders/counts`). Every bucket echoes verbatim for
+ * display (never an input to math).
  */
-export interface OrdersOverview {
-  readonly orderTotal: number;
-}
-
-/** Zero overview (no caller-visible order data yet). */
-export function emptyOrdersOverview(): OrdersOverview {
-  return { orderTotal: 0 };
-}
-
-/**
- * Projects the overview out of a settled page. Pure — throws nothing,
- * performs no HTTP, derives no domain truth.
- */
-export function toOrdersOverview(page: AdminOrderPage): OrdersOverview {
-  return { orderTotal: page.totalCount };
-}
-
-/**
- * Whether the overview is empty (zero total — the landing page renders
- * its empty state instead of a zeroed overview card). Pure — throws
- * nothing.
- */
-export function isOrdersOverviewEmpty(overview: OrdersOverview | null): boolean {
-  return overview === null || overview.orderTotal <= 0;
-}
+export type OrdersOverview = AdminOrderCountsResponse;
 
 // ---------------------------------------------------------------------------
 // Order status display (14.4)

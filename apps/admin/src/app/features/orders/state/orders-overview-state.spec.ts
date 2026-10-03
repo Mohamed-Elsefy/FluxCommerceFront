@@ -1,9 +1,9 @@
 /**
- * Behavior tests for the Sub-Phase 14.2 `OrdersOverviewState`.
+ * Behavior tests for the Supplement S1 `OrdersOverviewState`.
  *
- * `OrdersAdminApiService` (already covered by its own delegation spec) is
- * stubbed at its typed seam so these tests own the state logic: the idle
- * → loading → success | empty | error lifecycle, verbatim `totalCount`
+ * `OrdersAdminApiService` (already covered by its own delegation spec)
+ * is stubbed at its typed seam so these tests own the state logic: the
+ * idle → loading → success | error lifecycle, verbatim counts
  * projection, duplicate-refresh prevention, retry after failure, and
  * contract-violation (dataless envelope) handling.
  */
@@ -13,27 +13,22 @@ import { describe, expect, it, vi } from 'vitest';
 import { defer, of, throwError, type Observable } from 'rxjs';
 import { ApiError } from '@flux/api';
 import { OrdersAdminApiService } from '../data-access/orders-admin-api.service';
-import { ORDERS_OVERVIEW_PAGE_SIZE, OrdersOverviewState } from './orders-overview-state';
+import { OrdersOverviewState } from './orders-overview-state';
 
-function page(totalCount: number, itemCount = 1) {
+function counts(total = 42) {
   return {
     isSuccess: true,
     message: 'Operation completed successfully.',
-    data: {
-      items: Array.from({ length: itemCount }, (_, index) => ({ orderId: `order-${index}` })),
-      totalCount,
-      pageNumber: 1,
-      pageSize: ORDERS_OVERVIEW_PAGE_SIZE,
-    },
+    data: { total, pending: 30, confirmed: 10, cancelled: 2 },
   };
 }
 
-function setup(stub: Partial<{ orders: () => Observable<unknown> }> = {}): {
+function setup(stub: Partial<{ counts: () => Observable<unknown> }> = {}): {
   state: OrdersOverviewState;
-  api: { listOrders: ReturnType<typeof vi.fn> };
+  api: { orderCounts: ReturnType<typeof vi.fn> };
 } {
   const api = {
-    listOrders: vi.fn(() => stub.orders?.() ?? of(page(0, 0))),
+    orderCounts: vi.fn(() => stub.counts?.() ?? of(counts(0))),
   };
   TestBed.configureTestingModule({
     providers: [OrdersOverviewState, { provide: OrdersAdminApiService, useValue: api }],
@@ -42,59 +37,48 @@ function setup(stub: Partial<{ orders: () => Observable<unknown> }> = {}): {
 }
 
 describe('OrdersOverviewState lifecycle', () => {
-  it('starts idle with no overview and no error', () => {
+  it('starts idle with no counts and no error', () => {
     const { state } = setup();
 
-    expect(state.status()).toBe('idle');
-    expect(state.overview()).toBeNull();
-    expect(state.error()).toBeNull();
+    expect(state.counts().status).toBe('idle');
+    expect(state.counts().data).toBeNull();
+    expect(state.counts().error).toBeNull();
   });
 
-  it('projects the backend-issued total verbatim on success', () => {
-    const { state, api } = setup({ orders: () => of(page(42)) });
+  it('projects the backend-issued buckets verbatim on success', () => {
+    const { state, api } = setup({ counts: () => of(counts(42)) });
     state.refresh();
 
-    expect(api.listOrders).toHaveBeenCalledWith({
-      pageNumber: 1,
-      pageSize: ORDERS_OVERVIEW_PAGE_SIZE,
-    });
-    expect(state.status()).toBe('success');
-    expect(state.overview()).toEqual({ orderTotal: 42 });
-    expect(state.error()).toBeNull();
-  });
-
-  it('resolves to empty when the slot settles with no rows', () => {
-    const { state } = setup({ orders: () => of(page(0, 0)) });
-    state.refresh();
-
-    expect(state.status()).toBe('empty');
-    expect(state.overview()).toEqual({ orderTotal: 0 });
+    expect(api.orderCounts).toHaveBeenCalledTimes(1);
+    expect(state.counts().status).toBe('success');
+    expect(state.counts().data).toEqual({ total: 42, pending: 30, confirmed: 10, cancelled: 2 });
+    expect(state.counts().error).toBeNull();
   });
 
   it('resolves to error and records the normalized failure', () => {
     const failure = new ApiError({ status: 403, message: 'Forbidden.' });
-    const { state } = setup({ orders: () => throwError(() => failure) });
+    const { state } = setup({ counts: () => throwError(() => failure) });
     state.refresh();
 
-    expect(state.status()).toBe('error');
-    expect(state.overview()).toBeNull();
-    expect(state.error()).toBe(failure);
+    expect(state.counts().status).toBe('error');
+    expect(state.counts().data).toBeNull();
+    expect(state.counts().error).toBe(failure);
   });
 
   it('ignores a refresh issued while a load is in flight', () => {
-    let resolveOrders!: (value: ReturnType<typeof page>) => void;
-    const pending = new Promise<ReturnType<typeof page>>((resolve) => {
-      resolveOrders = resolve;
+    let resolveCounts!: (value: ReturnType<typeof counts>) => void;
+    const pending = new Promise<ReturnType<typeof counts>>((resolve) => {
+      resolveCounts = resolve;
     });
-    const { state, api } = setup({ orders: () => defer(() => pending) });
+    const { state, api } = setup({ counts: () => defer(() => pending) });
     state.refresh();
     state.refresh();
 
-    expect(api.listOrders).toHaveBeenCalledTimes(1);
-    resolveOrders(page(5));
+    expect(api.orderCounts).toHaveBeenCalledTimes(1);
+    resolveCounts(counts(5));
     return pending.then(() => {
-      expect(state.status()).toBe('success');
-      expect(state.overview()).toEqual({ orderTotal: 5 });
+      expect(state.counts().status).toBe('success');
+      expect(state.counts().data?.total).toBe(5);
     });
   });
 
@@ -102,25 +86,25 @@ describe('OrdersOverviewState lifecycle', () => {
     const failure = new ApiError({ status: 500, message: 'Server error.' });
     let attempts = 0;
     const { state, api } = setup({
-      orders: () => (attempts++ === 0 ? throwError(() => failure) : of(page(2))),
+      counts: () => (attempts++ === 0 ? throwError(() => failure) : of(counts(2))),
     });
     state.refresh();
-    expect(state.status()).toBe('error');
+    expect(state.counts().status).toBe('error');
 
     state.refresh();
-    expect(api.listOrders).toHaveBeenCalledTimes(2);
-    expect(state.status()).toBe('success');
-    expect(state.overview()).toEqual({ orderTotal: 2 });
+    expect(api.orderCounts).toHaveBeenCalledTimes(2);
+    expect(state.counts().status).toBe('success');
+    expect(state.counts().data?.total).toBe(2);
   });
 
   it('resolves a dataless envelope to error (contract violation)', () => {
     const { state } = setup({
-      orders: () => of({ isSuccess: true, message: 'Operation completed successfully.' }),
+      counts: () => of({ isSuccess: true, message: 'Operation completed successfully.' }),
     });
     state.refresh();
 
-    expect(state.status()).toBe('error');
-    expect(state.overview()).toBeNull();
-    expect(state.error()).not.toBeNull();
+    expect(state.counts().status).toBe('error');
+    expect(state.counts().data).toBeNull();
+    expect(state.counts().error).not.toBeNull();
   });
 });

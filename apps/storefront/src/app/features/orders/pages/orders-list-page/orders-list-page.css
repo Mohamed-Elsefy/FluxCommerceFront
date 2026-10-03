@@ -4,6 +4,17 @@
   gap: var(--spacing-lg);
 }
 
+.orders-list-page-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.orders-list-page-filter select:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .orders-list-page h1 {
   margin: 0;
   font-size: var(--font-size-lg);

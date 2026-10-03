@@ -1,19 +1,25 @@
 /**
- * Admin Orders & Payments E2E for Sub-Phase 14.10 — Orders & Payments E2E
- * + Integration Verification.
+ * Admin Orders & Payments E2E for Supplement S1, Step S1.8 — Admin Orders
+ * Upgrade + Storefront Status Filter (admin scope).
  *
  * Same backend reality as `admin-catalog.spec.ts`: transports are
  * fulfilled with contract-exact payloads because no live API runs here.
  * Sessions are seeded through `localStorage`, then restoration + guards
- * + the real feature slices run: orders landing, orders list with
- * server-side pagination, order details with addresses and line items,
- * and the payment section (loaded, missing, unready-retry, failed).
+ * + the real feature slices run: orders landing (counts snapshot),
+ * platform-wide orders list with server-side pagination + filters,
+ * order details with addresses and line items, force-cancel + refund
+ * actions, and the payment section (loaded, missing, unready-retry,
+ * failed).
  *
- * Contract-honest coverage notes (14.1 audit):
- * - `GET /orders` exposes paging params only — there is no status
- *   filter, search, or sort endpoint, so the suite asserts the ABSENCE
- *   of filter controls (no `admin-filter-bar`) instead of inventing
- *   filter UX the backend cannot serve.
+ * Contract-honest coverage notes (S1.1 audit):
+ * - `GET /admin/orders` exposes paging plus `status`/`customerId`/
+ *   `search`/`from`/`to` (newest-first) — the suite asserts the
+ *   PRESENCE of the filter bar and a status-filter journey.
+ * - `GET /admin/orders/counts` drives the landing (replaces the old
+ *   `pageSize=1` hack).
+ * - `POST /admin/orders/{id}/cancel` (force-cancel any `Pending`) and
+ *   `POST /admin/orders/{id}/refund {reason 1..500}` drive the details
+ *   actions (page-local submissions, duplicate-submit locked).
  * - No order payload carries payment fields — payment assertions run
  *   against the by-order initialization read chained into the single
  *   payment read, the only supported linkage.
@@ -225,6 +231,10 @@ async function mock(
   );
 }
 
+function orderCounts(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { total: 7, pending: 4, confirmed: 2, cancelled: 1, ...overrides };
+}
+
 async function mockOrderDetails(
   page: Page,
   options: {
@@ -233,7 +243,7 @@ async function mockOrderDetails(
     payment?: Record<string, unknown> | null;
   } = {},
 ): Promise<void> {
-  await mock(page, 'GET', '/orders/order-1', 200, ok(options.order ?? orderDetails()));
+  await mock(page, 'GET', '/admin/orders/order-1', 200, ok(options.order ?? orderDetails()));
   if (options.init === null) {
     await mock(page, 'GET', '/api/payments/by-order/order-1', 404, problem(404, 'Not found.'));
   } else {
@@ -250,17 +260,11 @@ async function mockOrderDetails(
   }
 }
 
-test.describe('admin orders journeys (14.10)', () => {
-  test('orders landing renders the backend-issued total', async ({ page }) => {
+test.describe('admin orders journeys (S1.8)', () => {
+  test('orders landing renders the backend-issued counts snapshot', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
-    await mock(
-      page,
-      'GET',
-      '/orders',
-      200,
-      ok({ items: [orderSummary()], totalCount: 7, pageNumber: 1, pageSize: 1 }),
-    );
+    await mock(page, 'GET', '/admin/orders/counts', 200, ok(orderCounts()));
     await page.goto('/orders');
 
     await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
@@ -273,7 +277,7 @@ test.describe('admin orders journeys (14.10)', () => {
     await mock(
       page,
       'GET',
-      '/orders',
+      '/admin/orders',
       200,
       ok(
         paged(
@@ -301,7 +305,7 @@ test.describe('admin orders journeys (14.10)', () => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
     await page.route(
-      (url) => url.origin === API_ORIGIN && url.pathname === '/orders',
+      (url) => url.origin === API_ORIGIN && url.pathname === '/admin/orders',
       (route: Route) => {
         if (route.request().method() !== 'GET') {
           return route.fallback();
@@ -334,7 +338,7 @@ test.describe('admin orders journeys (14.10)', () => {
   test('orders list renders the empty state without rows', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
-    await mock(page, 'GET', '/orders', 200, ok(paged([], 0)));
+    await mock(page, 'GET', '/admin/orders', 200, ok(paged([], 0)));
     await page.goto('/orders/list');
 
     await expect(page.getByText('No orders found')).toBeVisible();
@@ -346,7 +350,7 @@ test.describe('admin orders journeys (14.10)', () => {
     await mockSession(page, ['Admin']);
     let calls = 0;
     await page.route(
-      (url) => url.origin === API_ORIGIN && url.pathname === '/orders',
+      (url) => url.origin === API_ORIGIN && url.pathname === '/admin/orders',
       (route: Route) => {
         if (route.request().method() !== 'GET') {
           return route.fallback();
@@ -373,27 +377,73 @@ test.describe('admin orders journeys (14.10)', () => {
     await expect(page.getByRole('cell', { name: 'ORD-ABC123' })).toBeVisible();
   });
 
-  test('orders list exposes no filter controls (no backend contract)', async ({ page }) => {
+  test('orders list exposes the platform-wide filter bar (S1.8 contract)', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
-    await mock(page, 'GET', '/orders', 200, ok(paged([orderSummary()], 1)));
+    await mock(page, 'GET', '/admin/orders', 200, ok(paged([orderSummary()], 1)));
     await page.goto('/orders/list');
 
     await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
-    await expect(page.locator('admin-filter-bar')).toHaveCount(0);
+    await expect(page.locator('admin-filter-bar')).toHaveCount(1);
+    await expect(page.locator('#orders-filter-status')).toBeVisible();
+    await expect(page.locator('#orders-filter-customer')).toBeVisible();
+    await expect(page.locator('#orders-filter-search')).toBeVisible();
+  });
+
+  test('orders list filters by status through the backend query', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/admin/orders',
+      (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          return route.fallback();
+        }
+        const status = new URL(route.request().url()).searchParams.get('status') ?? '';
+        return status === 'Confirmed'
+          ? route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: ok(
+                paged(
+                  [
+                    orderSummary({
+                      orderId: 'order-2',
+                      orderNumber: 'ORD-DEF456',
+                      status: 'Confirmed',
+                    }),
+                  ],
+                  1,
+                ),
+              ),
+            })
+          : route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: ok(paged([orderSummary()], 1)),
+            });
+      },
+    );
+    await page.goto('/orders/list');
+    await expect(page.getByRole('cell', { name: 'ORD-ABC123' })).toBeVisible();
+
+    await page.locator('#orders-filter-status').selectOption('Confirmed');
+    await page.getByRole('button', { name: 'Apply filters' }).click();
+
+    await expect(page.getByRole('cell', { name: 'ORD-DEF456' })).toBeVisible();
   });
 
   test('unknown orders render the error state', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
-    await mock(page, 'GET', '/orders/missing', 404, problem(404, 'Not found.'));
+    await mock(page, 'GET', '/admin/orders/missing', 404, problem(404, 'Not found.'));
     await page.goto('/orders/missing');
 
     await expect(page.getByText('Could not load order')).toBeVisible();
   });
 });
 
-test.describe('admin order details journeys (14.10)', () => {
+test.describe('admin order details journeys (S1.8)', () => {
   test('order details renders facts, addresses, and items', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
@@ -470,7 +520,7 @@ test.describe('admin order details journeys (14.10)', () => {
       },
     );
     await mock(page, 'GET', '/api/payments/pay-1', 200, ok(payment()));
-    await mock(page, 'GET', '/orders/order-1', 200, ok(orderDetails()));
+    await mock(page, 'GET', '/admin/orders/order-1', 200, ok(orderDetails()));
     await page.goto('/orders/order-1');
 
     await expect(page.getByText('Could not load payment')).toBeVisible();
@@ -480,9 +530,48 @@ test.describe('admin order details journeys (14.10)', () => {
 
     await expect(section.getByText('Processing')).toBeVisible();
   });
+
+  test('force-cancel ends a Pending order behind the confirm dialog', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mockOrderDetails(page);
+    await mock(
+      page,
+      'POST',
+      '/admin/orders/order-1/cancel',
+      200,
+      ok(orderDetails({ status: 'Cancelled' })),
+    );
+    await page.goto('/orders/order-1');
+
+    await page.getByRole('button', { name: 'Cancel order' }).click();
+    await page.getByRole('button', { name: 'Confirm' }).click();
+
+    await expect(page.getByText('Order cancelled')).toBeVisible();
+  });
+
+  test('refund starts for a Confirmed order with a reason', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mockOrderDetails(page, { order: orderDetails({ status: 'Confirmed' }) });
+    await mock(
+      page,
+      'POST',
+      '/admin/orders/order-1/refund',
+      200,
+      ok(orderDetails({ status: 'Confirmed' })),
+    );
+    await page.goto('/orders/order-1');
+
+    await page.getByRole('button', { name: 'Refund order' }).click();
+    await page.locator('#order-refund-reason').fill('Duplicate charge');
+    await page.getByRole('button', { name: 'Confirm' }).click();
+
+    await expect(page.getByText('Refund started')).toBeVisible();
+  });
 });
 
-test.describe('admin orders authorization + localization (14.10)', () => {
+test.describe('admin orders authorization + localization (S1.8)', () => {
   test('customers land on forbidden for orders routes', async ({ page }) => {
     await seed(page, ['Customer']);
     await mockSession(page, ['Customer']);
@@ -494,7 +583,7 @@ test.describe('admin orders authorization + localization (14.10)', () => {
   test('French chrome localizes orders journeys', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
-    await mock(page, 'GET', '/orders', 200, ok(paged([orderSummary()], 1)));
+    await mock(page, 'GET', '/admin/orders', 200, ok(paged([orderSummary()], 1)));
     await mockOrderDetails(page);
     await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'fr'));
     await page.goto('/orders/list');
@@ -509,7 +598,7 @@ test.describe('admin orders authorization + localization (14.10)', () => {
   test('RTL chrome renders orders journeys without key leakage', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
-    await mock(page, 'GET', '/orders', 200, ok(paged([orderSummary()], 1)));
+    await mock(page, 'GET', '/admin/orders', 200, ok(paged([orderSummary()], 1)));
     await mockOrderDetails(page);
     await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'ar'));
     await page.goto('/orders/list');

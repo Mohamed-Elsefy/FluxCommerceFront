@@ -30,6 +30,8 @@ import {
 /** Orders list translation key paths owned by this feature (`orders.list.*`). */
 export const ORDERS_TRANSLATION_KEYS = {
   listTitle: 'orders.list.title',
+  listFilterLabel: 'orders.list.filterLabel',
+  listFilterAll: 'orders.list.filterAll',
   listLoading: 'orders.list.loading',
   listLoadErrorTitle: 'orders.list.loadErrorTitle',
   listEmptyTitle: 'orders.list.emptyTitle',
@@ -95,6 +97,8 @@ const EN_ORDERS: TranslationDictionary = {
   orders: {
     list: {
       title: 'Orders',
+      filterLabel: 'Filter by status',
+      filterAll: 'All statuses',
       loading: 'Loading your orders…',
       loadErrorTitle: 'Orders unavailable',
       emptyTitle: 'No orders yet',
@@ -180,6 +184,8 @@ const FR_ORDERS: TranslationDictionary = {
   orders: {
     list: {
       title: 'Commandes',
+      filterLabel: 'Filtrer par statut',
+      filterAll: 'Tous les statuts',
       loading: 'Chargement de vos commandes…',
       loadErrorTitle: 'Commandes indisponibles',
       emptyTitle: 'Aucune commande pour le moment',
@@ -265,6 +271,8 @@ const DE_ORDERS: TranslationDictionary = {
   orders: {
     list: {
       title: 'Bestellungen',
+      filterLabel: 'Nach Status filtern',
+      filterAll: 'Alle Status',
       loading: 'Deine Bestellungen werden geladen…',
       loadErrorTitle: 'Bestellungen nicht verfügbar',
       emptyTitle: 'Noch keine Bestellungen',
@@ -350,6 +358,8 @@ const ES_ORDERS: TranslationDictionary = {
   orders: {
     list: {
       title: 'Pedidos',
+      filterLabel: 'Filtrar por estado',
+      filterAll: 'Todos los estados',
       loading: 'Cargando tus pedidos…',
       loadErrorTitle: 'Pedidos no disponibles',
       emptyTitle: 'Aún no tienes pedidos',
@@ -435,6 +445,8 @@ const AR_ORDERS: TranslationDictionary = {
   orders: {
     list: {
       title: 'الطلبات',
+      filterLabel: 'تصفية حسب الحالة',
+      filterAll: 'كل الحالات',
       loading: 'جارٍ تحميل طلباتك…',
       loadErrorTitle: 'الطلبات غير متاحة',
       emptyTitle: 'لا توجد طلبات بعد',

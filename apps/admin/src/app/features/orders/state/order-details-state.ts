@@ -3,7 +3,7 @@
  * Customer Information.
  *
  * Scope: the single order slot behind the details page
- * (`GET /orders/{orderId}` — the only order read beyond the list; the
+ * (`GET /admin/orders/{orderId}` — the only order read beyond the list; the
  * payload carries totals, items, addresses, and status verbatim).
  * Payment reads arrive with the payment slice (Sub-Phase 14.6+); no
  * order payload carries payment fields, so this state performs no

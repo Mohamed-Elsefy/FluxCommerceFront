@@ -70,6 +70,43 @@ describe('OrderListState lifecycle', () => {
     expect(state.page().data?.pageNumber).toBe(3);
   });
 
+  it('commits filters with a page reset', () => {
+    const { state, api } = setup({ orders: () => of(page(1, 1)) });
+    state.load({ pageNumber: 4 });
+    state.setFilters({ status: 'Pending', customerId: 'cust-1', search: 'ORD', from: '2026-01-01' });
+
+    expect(api.listOrders).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: ORDER_LIST_PAGE_SIZE,
+      status: 'Pending',
+      customerId: 'cust-1',
+      search: 'ORD',
+      from: '2026-01-01',
+    });
+  });
+
+  it('omits blank filter values (the backend 400s on empty strings)', () => {
+    const { state, api } = setup({ orders: () => of(page(0, 0)) });
+    state.setFilters({ status: '', search: '   ' });
+
+    expect(api.listOrders).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: ORDER_LIST_PAGE_SIZE,
+    });
+  });
+
+  it('preserves committed filters across pager moves', () => {
+    const { state, api } = setup({ orders: () => of(page(25, 1, 3)) });
+    state.setFilters({ status: 'Confirmed' });
+    state.setPage(3);
+
+    expect(api.listOrders).toHaveBeenLastCalledWith({
+      pageNumber: 3,
+      pageSize: ORDER_LIST_PAGE_SIZE,
+      status: 'Confirmed',
+    });
+  });
+
   it('reloads the current effective page', () => {
     const { state, api } = setup({ orders: () => of(page(25, 1, 2)) });
     state.load({ pageNumber: 2 });

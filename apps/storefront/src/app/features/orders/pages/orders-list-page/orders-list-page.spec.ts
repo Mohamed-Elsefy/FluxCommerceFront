@@ -109,6 +109,24 @@ describe('OrdersListPage loading', () => {
     const { api } = await setup();
     expect(api.getOrders).toHaveBeenCalledTimes(1);
   });
+
+  it('commits a status filter through the state', async () => {
+    const { fixture, api } = await setup();
+
+    const select = fixture.nativeElement.querySelector(
+      '#orders-status-filter',
+    ) as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    select.value = 'Confirmed';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(api.getOrders).toHaveBeenLastCalledWith(
+      { pageNumber: 1, pageSize: ORDERS_DEFAULT_PAGE_SIZE, status: 'Confirmed' },
+      expect.objectContaining({}),
+    );
+  });
 });
 
 describe('OrdersListPage success', () => {

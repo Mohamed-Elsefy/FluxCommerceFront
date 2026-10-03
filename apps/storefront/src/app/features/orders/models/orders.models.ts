@@ -150,14 +150,16 @@ export const ORDERS_MIN_PAGE_SIZE = 1;
 export const ORDERS_MAX_PAGE_SIZE = 100;
 
 /**
- * Orders list query (`GET /orders?pageNumber=&pageSize=`). Both fields
- * optional and 1-based; omitted values resolve to backend defaults
- * (`1/20`). Fixed newest-first ordering — there are no sort/filter
- * params on this endpoint by design.
+ * Orders list query (`GET /orders?pageNumber=&pageSize=&status=`). Paging
+ * fields optional and 1-based; omitted values resolve to backend
+ * defaults (`1/20`). Fixed newest-first ordering — no sort params.
+ * `status` filters caller-owned orders (`Pending|Cancelled|Confirmed`,
+ * case-insensitive; unknown → backend `400`).
  */
 export interface OrdersQuery {
   readonly pageNumber?: number;
   readonly pageSize?: number;
+  readonly status?: string;
 }
 
 /**
@@ -167,16 +169,16 @@ export type OrderPagination = OrdersQuery;
 
 /**
  * Structural pre-check for an orders query against the contract bounds
- * (`pageNumber >= 1`, `1 <= pageSize <= 100`, integers). Never a
- * substitute for backend validation (`Order.ValidationFailed` stays
- * authoritative) — it only keeps unusable input from reaching the call.
- * Pure — throws nothing.
+ * (`pageNumber >= 1`, `1 <= pageSize <= 100`, integers; known `status`
+ * values only). Never a substitute for backend validation
+ * (`Order.ValidationFailed` stays authoritative) — it only keeps
+ * unusable input from reaching the call. Pure — throws nothing.
  */
 export function isValidOrdersQuery(query: OrdersQuery | null | undefined): boolean {
   if (query === null || query === undefined) {
     return true;
   }
-  const { pageNumber, pageSize } = query;
+  const { pageNumber, pageSize, status } = query;
   if (
     pageNumber !== undefined &&
     (!Number.isInteger(pageNumber) || pageNumber < ORDERS_MIN_PAGE_NUMBER)
@@ -190,6 +192,12 @@ export function isValidOrdersQuery(query: OrdersQuery | null | undefined): boole
       pageSize > ORDERS_MAX_PAGE_SIZE)
   ) {
     return false;
+  }
+  if (status !== undefined && status !== null && status !== '') {
+    const known = ['pending', 'cancelled', 'confirmed'];
+    if (!known.includes(String(status).toLowerCase())) {
+      return false;
+    }
   }
   return true;
 }

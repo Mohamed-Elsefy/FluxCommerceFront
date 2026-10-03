@@ -1,9 +1,9 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import {
   ApiError,
   errorResource,
@@ -15,9 +15,11 @@ import {
 } from '@flux/api';
 import { CultureService } from '@flux/i18n';
 import type { OrderDetailsResponse } from '@flux/models';
+import { OrdersAdminApiService } from '../../data-access/orders-admin-api.service';
 import { OrderDetailsState } from '../../state/order-details-state';
 import { OrderPaymentState } from '../../state/order-payment-state';
 import type { OrderPaymentView } from '../../models/orders-admin.models';
+import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
 import { OrderDetailsPage } from './order-details-page';
 
 function paymentView(overrides: Partial<OrderPaymentView> = {}): OrderPaymentView {
@@ -37,9 +39,13 @@ function setup(scenario: {
 }): {
   load: ReturnType<typeof vi.fn>;
   loadPayment: ReturnType<typeof vi.fn>;
+  cancelOrder: ReturnType<typeof vi.fn>;
+  refundOrder: ReturnType<typeof vi.fn>;
 } {
   const load = vi.fn();
   const loadPayment = vi.fn();
+  const cancelOrder = vi.fn(() => of(envelopeOrder()));
+  const refundOrder = vi.fn(() => of(envelopeOrder()));
   TestBed.configureTestingModule({
     providers: [
       provideAppEnvironment({
@@ -63,10 +69,15 @@ function setup(scenario: {
           load: loadPayment,
         },
       },
+      { provide: OrdersAdminApiService, useValue: { cancelOrder, refundOrder } },
     ],
   });
   window.localStorage.clear();
-  return { load, loadPayment };
+  return { load, loadPayment, cancelOrder, refundOrder };
+}
+
+function envelopeOrder() {
+  return { isSuccess: true, message: 'Operation completed successfully.', data: order() };
 }
 
 function address() {
@@ -109,16 +120,16 @@ function order(overrides: Partial<OrderDetailsResponse> = {}): OrderDetailsRespo
   };
 }
 
-function render(): HTMLElement {
+function render(): { fixture: ComponentFixture<OrderDetailsPage>; element: HTMLElement } {
   const fixture = TestBed.createComponent(OrderDetailsPage);
   fixture.detectChanges();
-  return fixture.nativeElement as HTMLElement;
+  return { fixture, element: fixture.nativeElement as HTMLElement };
 }
 
 describe('OrderDetailsPage', () => {
   it('loads the order for the route id and renders header, facts, items, and addresses', () => {
     const { load } = setup({ order: successResource(order()) });
-    const element = render();
+    const { element } = render();
 
     expect(load).toHaveBeenCalledTimes(1);
     expect(load).toHaveBeenCalledWith('order-1');
@@ -143,7 +154,7 @@ describe('OrderDetailsPage', () => {
 
   it('renders the loading state while the order loads', () => {
     setup({ order: loadingResource<OrderDetailsResponse>() });
-    const element = render();
+    const { element } = render();
 
     expect(element.querySelector('flux-loading-indicator')).not.toBeNull();
     expect(element.querySelector('h1')).toBeNull();
@@ -155,7 +166,7 @@ describe('OrderDetailsPage', () => {
         new ApiError({ status: 404, message: 'Not found.' }),
       ),
     });
-    const element = render();
+    const { element } = render();
 
     expect(element.querySelector('flux-error-state')).not.toBeNull();
     expect(element.textContent).toContain('Could not load order');
@@ -169,7 +180,7 @@ describe('OrderDetailsPage', () => {
 
   it('renders the items empty state for orders without line items', () => {
     setup({ order: successResource(order({ lineItems: [] })) });
-    const element = render();
+    const { element } = render();
 
     expect(element.querySelector('h1')?.textContent).toBe('ORD-ABC123');
     expect(element.textContent).toContain('No items on this order.');
@@ -180,7 +191,7 @@ describe('OrderDetailsPage', () => {
     const cultures = TestBed.inject(CultureService);
     cultures.setCulture('fr');
     try {
-      const element = render();
+      const { element } = render();
 
       expect(element.querySelector('.order-details-back')?.textContent).toBe(
         'Retour aux commandes',
@@ -196,7 +207,7 @@ describe('OrderDetailsPage', () => {
     const cultures = TestBed.inject(CultureService);
     cultures.setCulture('ar');
     try {
-      const element = render();
+      const { element } = render();
 
       expect(element.querySelector('.order-details-back')?.textContent).toBe('عودة إلى الطلبات');
       expect(element.textContent).toContain('معلومات العميل');
@@ -212,7 +223,7 @@ describe('OrderDetailsPage', () => {
 
   it('loads the payment for the route id and renders its facts', () => {
     const { loadPayment } = setup({ order: successResource(order()) });
-    const element = render();
+    const { element } = render();
 
     expect(loadPayment).toHaveBeenCalledTimes(1);
     expect(loadPayment).toHaveBeenCalledWith('order-1');
@@ -229,7 +240,7 @@ describe('OrderDetailsPage', () => {
       order: successResource(order()),
       payment: successResource(paymentView({ status: 'Failed' })),
     });
-    const element = render();
+    const { element } = render();
 
     const badge = element.querySelector('app-payment-status-badge flux-badge .badge');
     expect(badge?.textContent?.trim()).toBe('Failed');
@@ -244,7 +255,7 @@ describe('OrderDetailsPage', () => {
         new ApiError({ status: 404, message: 'Not found.' }),
       ),
     });
-    const element = render();
+    const { element } = render();
 
     expect(element.querySelector('h1')?.textContent).toBe('ORD-ABC123');
     expect(element.textContent).toContain('No payment information');
@@ -256,7 +267,7 @@ describe('OrderDetailsPage', () => {
       order: successResource(order()),
       payment: errorResource<OrderPaymentView>(new ApiError({ status: 409, message: 'Conflict.' })),
     });
-    const element = render();
+    const { element } = render();
 
     expect(element.textContent).toContain('Could not load payment');
 
@@ -273,10 +284,88 @@ describe('OrderDetailsPage', () => {
       order: successResource(order()),
       payment: loadingResource<OrderPaymentView>(),
     });
-    const element = render();
+    const { element } = render();
 
     expect(element.textContent).toContain('Payment');
     expect(element.textContent).toContain('Loading payment…');
     expect(element.querySelector('h1')?.textContent).toBe('ORD-ABC123');
+  });
+
+  it('force-cancels a Pending order behind the confirm dialog', () => {
+    const { cancelOrder, load } = setup({ order: successResource(order()) });
+    const { fixture, element } = render();
+    const cancel = [...element.querySelectorAll('.order-details-actions-row button')].find(
+      (button) => button.textContent?.trim() === 'Cancel order',
+    ) as HTMLButtonElement;
+    expect(cancel).not.toBeUndefined();
+    cancel.click();
+    fixture.detectChanges();
+    expect(element.textContent).toContain('Force-cancel order ORD-ABC123?');
+    const confirm = element.querySelector('.order-details-dialog-confirm') as HTMLButtonElement;
+    confirm.click();
+    expect(cancelOrder).toHaveBeenCalledWith('order-1');
+    expect(load).toHaveBeenCalledTimes(2);
+    const notifications = TestBed.inject(AdminNotificationService).notifications();
+    expect(notifications.at(-1)?.title).toBe('Order cancelled');
+  });
+
+  it('hides both actions for terminal non-Confirmed orders', () => {
+    setup({ order: successResource(order({ status: 'Cancelled' })) });
+    const { element } = render();
+    expect(element.querySelector('.order-details-actions')).toBeNull();
+  });
+
+  it('refunds a Confirmed order with a reason behind the dialog', () => {
+    const { refundOrder, load } = setup({ order: successResource(order({ status: 'Confirmed' })) });
+    const { fixture, element } = render();
+    const refund = [...element.querySelectorAll('.order-details-actions-row button')].find(
+      (button) => button.textContent?.trim() === 'Refund order',
+    ) as HTMLButtonElement;
+    expect(refund).not.toBeUndefined();
+    refund.click();
+    fixture.detectChanges();
+    const reason = element.querySelector('#order-refund-reason') as HTMLTextAreaElement;
+    reason.value = 'Duplicate charge';
+    reason.dispatchEvent(new Event('input'));
+    const confirm = element.querySelector('.order-details-dialog-confirm') as HTMLButtonElement;
+    confirm.click();
+    expect(refundOrder).toHaveBeenCalledWith('order-1', { reason: 'Duplicate charge' });
+    expect(load).toHaveBeenCalledTimes(2);
+    const notifications = TestBed.inject(AdminNotificationService).notifications();
+    expect(notifications.at(-1)?.title).toBe('Refund started');
+  });
+
+  it('blocks empty refund reasons without calling', () => {
+    const { refundOrder } = setup({ order: successResource(order({ status: 'Confirmed' })) });
+    const { fixture, element } = render();
+    const refund = [...element.querySelectorAll('.order-details-actions-row button')].find(
+      (button) => button.textContent?.trim() === 'Refund order',
+    ) as HTMLButtonElement;
+    refund.click();
+    fixture.detectChanges();
+    const confirm = element.querySelector('.order-details-dialog-confirm') as HTMLButtonElement;
+    confirm.click();
+    expect(refundOrder).not.toHaveBeenCalled();
+  });
+
+  it('surfaces refund conflicts through an error toast without reload', () => {
+    const failure = new ApiError({ status: 409, message: 'Not eligible.' });
+    const { refundOrder, load } = setup({ order: successResource(order({ status: 'Confirmed' })) });
+    vi.mocked(refundOrder).mockReturnValue(throwError(() => failure));
+    const { fixture, element } = render();
+    const refund = [...element.querySelectorAll('.order-details-actions-row button')].find(
+      (button) => button.textContent?.trim() === 'Refund order',
+    ) as HTMLButtonElement;
+    refund.click();
+    fixture.detectChanges();
+    const reason = element.querySelector('#order-refund-reason') as HTMLTextAreaElement;
+    reason.value = 'Duplicate charge';
+    reason.dispatchEvent(new Event('input'));
+    const confirm = element.querySelector('.order-details-dialog-confirm') as HTMLButtonElement;
+    confirm.click();
+    expect(refundOrder).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(1);
+    const notifications = TestBed.inject(AdminNotificationService).notifications();
+    expect(notifications.at(-1)?.title).toBe('Request failed');
   });
 });

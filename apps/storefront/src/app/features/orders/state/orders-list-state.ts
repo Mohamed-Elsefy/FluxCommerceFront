@@ -91,6 +91,9 @@ export class OrdersListState {
   /** Requested page number (committed moves; 1-based). */
   private readonly requestedPage = signal(ORDERS_DEFAULT_PAGE_NUMBER);
 
+  /** Committed status filter (`null` = unfiltered; moves reset the page). */
+  private readonly statusFilter = signal<string | null>(null);
+
   /** Paged orders resource lifecycle (`idle | loading | success | empty | error`). */
   readonly status = this.pageStore.status;
 
@@ -138,11 +141,30 @@ export class OrdersListState {
       return Subscription.EMPTY;
     }
     this.requestedPage.set(page);
-    const query: OrdersQuery = { pageNumber: page, pageSize: ORDERS_DEFAULT_PAGE_SIZE };
+    const status = this.statusFilter();
+    const query: OrdersQuery = {
+      pageNumber: page,
+      pageSize: ORDERS_DEFAULT_PAGE_SIZE,
+      ...(status === null ? {} : { status }),
+    };
     return loadResourceState(this.pageStore, this.pageSource(query, options), {
       signal: options.signal,
       isEmpty: (settled) => settled.items.length === 0,
     });
+  }
+
+  /**
+   * Commits a status filter (`null` clears). The page resets to 1:
+   * filtered result sets never preserve the old page.
+   */
+  setStatusFilter(status: string | null): void {
+    const normalized = status === null || status.trim() === '' ? null : status;
+    if (normalized === this.statusFilter()) {
+      return;
+    }
+    this.statusFilter.set(normalized);
+    this.requestedPage.set(ORDERS_DEFAULT_PAGE_NUMBER);
+    this.loadPage(ORDERS_DEFAULT_PAGE_NUMBER, { force: true });
   }
 
   /** Forces a fresh load of the requested page (error-state retry path). */

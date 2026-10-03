@@ -1,17 +1,14 @@
 /**
  * Feature-owned Orders overview state for Sub-Phase 14.2 — Admin Orders
- * Feature Foundation.
+ * Feature Foundation — plus Supplement S1, Step S1.8 (counts snapshot).
  *
- * Scope: the landing-page overview only (one first-page read whose
- * backend-issued `totalCount` proves the API connection and feeds the
- * overview fact). List/detail/payment slots arrive with the business
- * slices that own their pages (Sub-Phases 14.3–14.8).
+ * Scope: the landing-page overview only (the backend-issued counters
+ * snapshot — no list slot, no query state, no pagination/filter/sort
+ * transitions).
  *
- * Display contract (14.1 audit — only backend-exposed data): the slot
- * carries the paged caller-owned result verbatim; the overview projects
- * its `totalCount` for display only (there is no platform-wide admin
- * list — an admin JWT sees its own orders). No totals math, no status
- * derivation, no customer-identity resolution.
+ * Display contract (S1.1 audit — only backend-exposed data): every
+ * bucket echoes verbatim for display (`total/pending/confirmed/
+ * cancelled` — never inputs to math, never recomputed client-side).
  *
  * Locality rules (same convention as the catalog states):
  * `@Injectable()` WITHOUT `providedIn` (route-level providers only),
@@ -26,34 +23,20 @@
  * - 14.6–14.8 — no payment slots.
  */
 
-import { computed, inject, Injectable, OnDestroy, type Signal } from '@angular/core';
+import { inject, Injectable, OnDestroy, type Signal } from '@angular/core';
 import { map, Subscription, type Observable } from 'rxjs';
 import {
   ApiError,
   createResourceState,
   loadResourceState,
   UNKNOWN_ERROR_CODE,
+  type ApiRequestOptions,
   type ApiResponseWithData,
-  type PagedApiResponse,
-  type PagedResult,
   type ResourceState,
   type ResourceStateStore,
-  type ResourceStatus,
 } from '@flux/api';
-import type { OrderSummaryResponse } from '@flux/models';
+import type { AdminOrderCountsResponse } from '@flux/models';
 import { OrdersAdminApiService } from '../data-access/orders-admin-api.service';
-import {
-  toOrdersOverview,
-  type AdminOrderPage,
-  type OrdersOverview,
-} from '../models/orders-admin.models';
-
-/**
- * Overview fetch size: the landing page needs the backend-issued
- * `totalCount` only, so one row minimizes payload while keeping the
- * envelope (and its effective paging values) intact.
- */
-export const ORDERS_OVERVIEW_PAGE_SIZE = 1;
 
 /**
  * Feature-scoped orders overview state. Provide at the orders route
@@ -65,68 +48,26 @@ export class OrdersOverviewState implements OnDestroy {
   private readonly ordersApi = inject(OrdersAdminApiService);
   private readonly loads = new Subscription();
 
-  private readonly ordersStore: ResourceStateStore<AdminOrderPage> =
-    createResourceState<AdminOrderPage>();
+  private readonly countsStore: ResourceStateStore<AdminOrderCountsResponse> =
+    createResourceState<AdminOrderCountsResponse>();
 
-  /** Current first-page order result (idle → loading → success | empty | error). */
-  readonly orders: Signal<ResourceState<AdminOrderPage>> = this.ordersStore.state;
-
-  /**
-   * Landing status derived from the single slot: `loading` while the
-   * slot loads, `error` when it fails, `empty` when it settles with no
-   * rows (zero `totalCount`), `success` once it carries data, `idle`
-   * before the first refresh.
-   */
-  readonly status: Signal<ResourceStatus> = computed(() => {
-    const orders = this.ordersStore.state();
-    if (orders.isLoading) {
-      return 'loading';
-    }
-    if (orders.isError) {
-      return 'error';
-    }
-    if (orders.isEmpty) {
-      return 'empty';
-    }
-    if (orders.isSuccess) {
-      return 'success';
-    }
-    return 'idle';
-  });
+  /** Current counts snapshot (idle → loading → success | error). */
+  readonly counts: Signal<ResourceState<AdminOrderCountsResponse>> = this.countsStore.state;
 
   /**
-   * Projected overview once the slot settles with data (an `empty` page
-   * still carries its zero `totalCount`, so the projection stays
-   * available); `null` while loading, failed, or untouched.
+   * (Re)loads the counts snapshot; landing retry re-enters here. A
+   * refresh issued while a load is in flight is a no-op
+   * (duplicate-submit prevention at the state level — the page holds no
+   * request flags).
    */
-  readonly overview: Signal<OrdersOverview | null> = computed(() => {
-    const orders = this.ordersStore.data();
-    if (orders === null) {
-      return null;
-    }
-    return toOrdersOverview(orders);
-  });
-
-  /** First normalized failure (the single slot). */
-  readonly error = computed(() => this.ordersStore.error());
-
-  /**
-   * (Re)loads the overview slot; landing retry re-enters here. A refresh
-   * issued while a load is in flight is a no-op (duplicate-submit
-   * prevention at the state level — the page holds no request flags).
-   */
-  refresh(): void {
-    if (this.status() === 'loading') {
+  refresh(options: ApiRequestOptions = {}): void {
+    if (this.countsStore.isLoading()) {
       return;
     }
-    const ordersRequest: Observable<AdminOrderPage> = this.ordersApi
-      .listOrders({ pageNumber: 1, pageSize: ORDERS_OVERVIEW_PAGE_SIZE })
-      .pipe(map(requirePage));
-    this.loads.add(
-      loadResourceState(this.ordersStore, ordersRequest, {
-        isEmpty: (page) => page.items.length === 0,
-      }),
-    );
+    const request: Observable<AdminOrderCountsResponse> = this.ordersApi
+      .orderCounts(options)
+      .pipe(map(requireCounts));
+    this.loads.add(loadResourceState(this.countsStore, request));
   }
 
   ngOnDestroy(): void {
@@ -134,12 +75,12 @@ export class OrdersOverviewState implements OnDestroy {
   }
 }
 
-/** Unwraps a paged envelope; a dataless `200` is a contract violation. */
-function requirePage(
-  envelope: PagedApiResponse<OrderSummaryResponse>,
-): PagedResult<OrderSummaryResponse> {
-  const data = (envelope as ApiResponseWithData<PagedResult<OrderSummaryResponse>>).data;
-  if (data === undefined || data === null) {
+/** Unwraps a counts envelope; a dataless `200` is a contract violation. */
+function requireCounts(
+  envelope: ApiResponseWithData<AdminOrderCountsResponse>,
+): AdminOrderCountsResponse {
+  const data = envelope.data ?? null;
+  if (data === null) {
     throw new ApiError({
       status: 200,
       code: UNKNOWN_ERROR_CODE,

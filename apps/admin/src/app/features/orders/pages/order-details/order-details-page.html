@@ -18,6 +18,24 @@
       </div>
     </header>
 
+    @if (canCancel() || canRefund()) {
+      <section class="order-details-actions" aria-labelledby="order-details-actions-title">
+        <h2 id="order-details-actions-title">{{ actionCopy().actionsTitle }}</h2>
+        <div class="order-details-actions-row">
+          @if (canCancel()) {
+            <button type="button" [disabled]="submitting()" (click)="askCancel()">
+              {{ actionCopy().cancelAction }}
+            </button>
+          }
+          @if (canRefund()) {
+            <button type="button" [disabled]="submitting()" (click)="askRefund()">
+              {{ actionCopy().refundAction }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+
     <flux-card>
       <dl class="order-details-facts">
         <div>
@@ -173,4 +191,57 @@
       }
     </section>
   }
+
+  <admin-dialog
+    [open]="pendingAction() === 'cancel'"
+    [title]="actionCopy().cancelDialogTitle"
+    titleId="order-cancel-confirm-title"
+    [closeLabel]="actionCopy().dialogCancel"
+    [backdropLabel]="actionCopy().dialogCancel"
+    (closed)="cancelMutation()"
+  >
+    <p>{{ actionCopy().cancelDialogMessage }}</p>
+    <div data-dialog-actions class="order-details-dialog-actions">
+      <button type="button" class="order-details-dialog-cancel" (click)="cancelMutation()">
+        {{ actionCopy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="order-details-dialog-confirm"
+        [disabled]="submitting()"
+        (click)="confirmMutation()"
+      >
+        {{ actionCopy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+
+  <admin-dialog
+    [open]="pendingAction() === 'refund'"
+    [title]="actionCopy().refundDialogTitle"
+    titleId="order-refund-confirm-title"
+    [closeLabel]="actionCopy().dialogCancel"
+    [backdropLabel]="actionCopy().dialogCancel"
+    (closed)="cancelMutation()"
+  >
+    <p>{{ actionCopy().refundDialogMessage }}</p>
+    <admin-textarea
+      [control]="reasonControl"
+      [label]="actionCopy().refundReasonLabel"
+      fieldId="order-refund-reason"
+    />
+    <div data-dialog-actions class="order-details-dialog-actions">
+      <button type="button" class="order-details-dialog-cancel" (click)="cancelMutation()">
+        {{ actionCopy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="order-details-dialog-confirm"
+        [disabled]="submitting()"
+        (click)="confirmMutation()"
+      >
+        {{ actionCopy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
 </section>

@@ -34,10 +34,12 @@ function row(orderId: string, orderNumber: string): OrderSummaryResponse {
 function setup(scenario: { page: ResourceState<AdminOrderPage> }): {
   load: ReturnType<typeof vi.fn>;
   setPage: ReturnType<typeof vi.fn>;
+  setFilters: ReturnType<typeof vi.fn>;
   reload: ReturnType<typeof vi.fn>;
 } {
   const load = vi.fn();
   const setPage = vi.fn();
+  const setFilters = vi.fn();
   const reload = vi.fn();
   const page = signal(scenario.page);
   TestBed.configureTestingModule({
@@ -51,11 +53,11 @@ function setup(scenario: { page: ResourceState<AdminOrderPage> }): {
       provideApi(),
       provideHttpClientTesting(),
       provideRouter([]),
-      { provide: OrderListState, useValue: { page, load, setPage, reload } },
+      { provide: OrderListState, useValue: { page, load, setPage, setFilters, reload } },
     ],
   });
   window.localStorage.clear();
-  return { load, setPage, reload };
+  return { load, setPage, setFilters, reload };
 }
 
 function render(): HTMLElement {
@@ -124,6 +126,34 @@ describe('OrdersListPage', () => {
     next.click();
 
     expect(setPage).toHaveBeenCalledWith(2);
+  });
+
+  it('commits filters on apply', () => {
+    const { setFilters } = setup({
+      page: successResource<AdminOrderPage>({
+        items: [row('o1', 'ORD-AAA')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const element = render();
+
+    const form = element.querySelector('.orders-list-filters') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+
+    expect(setFilters).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears filters through the filter bar', () => {
+    const { setFilters } = setup({ page: loadingResource<AdminOrderPage>() });
+    const element = render();
+
+    const clear = element.querySelector('.filter-bar-clear') as HTMLButtonElement;
+    expect(clear).not.toBeNull();
+    clear.click();
+
+    expect(setFilters).toHaveBeenCalledWith({});
   });
 
   it('renders the loading state while the page loads', () => {

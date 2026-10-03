@@ -1,30 +1,37 @@
 /**
- * Delegation tests for the Sub-Phases 14.2/14.6 `OrdersAdminApiService`.
+ * Delegation tests for the Sub-Phases 14.2/14.6 `OrdersAdminApiService`
+ * plus Supplement S1, Step S1.8 (admin surface).
  *
  * `ApiClient` (the shared-lib HTTP boundary, already covered by `libs/api`
  * specs) is stubbed at its typed seam so these tests own the feature logic:
- * correct route templates from `ORDERS_ENDPOINTS`/`PAYMENTS_ENDPOINTS`,
- * correct `pathParams` interpolation keys, query funneling through
- * `toQueryParams`, envelope passthrough without unwrapping, and
- * request-options forwarding. Errors propagate untouched — the service
- * never catches.
+ * correct route templates from `ADMIN_ORDERS_ENDPOINTS`/
+ * `PAYMENTS_ENDPOINTS`, correct `pathParams` interpolation keys, query
+ * funneling through `toQueryParams`, envelope passthrough without
+ * unwrapping, and request-options forwarding. Errors propagate untouched —
+ * the service never catches.
  */
 
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { ApiClient, ApiError, ORDERS_ENDPOINTS, PAYMENTS_ENDPOINTS } from '@flux/api';
+import { ApiClient, ApiError, ADMIN_ORDERS_ENDPOINTS, PAYMENTS_ENDPOINTS } from '@flux/api';
 import { OrdersAdminApiService } from './orders-admin-api.service';
 
 function setup(): {
   service: OrdersAdminApiService;
   api: ApiClient;
-  calls: { paths: string[]; options: unknown[] };
+  calls: { paths: string[]; bodies: unknown[]; options: unknown[] };
 } {
-  const calls = { paths: [] as string[], options: [] as unknown[] };
+  const calls = { paths: [] as string[], bodies: [] as unknown[], options: [] as unknown[] };
   const apiStub = {
     get: vi.fn((path: string, options: unknown = {}) => {
       calls.paths.push(path);
+      calls.options.push(options);
+      return of({ isSuccess: true, data: null });
+    }),
+    post: vi.fn((path: string, body: unknown, options: unknown = {}) => {
+      calls.paths.push(path);
+      calls.bodies.push(body);
       calls.options.push(options);
       return of({ isSuccess: true, data: null });
     }),
@@ -37,19 +44,49 @@ function setup(): {
 }
 
 describe('OrdersAdminApiService routes', () => {
-  it('lists orders with paging funneled through query params', () => {
+  it('lists admin orders with paging and filters funneled through query params', () => {
     const { service, calls } = setup();
-    service.listOrders({ pageNumber: 1, pageSize: 1 }).subscribe();
+    service
+      .listOrders({ pageNumber: 1, pageSize: 20, status: 'Pending', search: 'ORD' })
+      .subscribe();
 
-    expect(calls.paths).toEqual([ORDERS_ENDPOINTS.listOrders.path]);
-    expect(calls.options).toEqual([{ params: { pageNumber: 1, pageSize: 1 } }]);
+    expect(calls.paths).toEqual([ADMIN_ORDERS_ENDPOINTS.listAdminOrders.path]);
+    expect(calls.options).toEqual([
+      { params: { pageNumber: 1, pageSize: 20, status: 'Pending', search: 'ORD' } },
+    ]);
   });
 
-  it('reads a single order through the canonical route template', () => {
+  it('reads counts through the canonical route template', () => {
+    const { service, calls } = setup();
+    service.orderCounts().subscribe();
+
+    expect(calls.paths).toEqual([ADMIN_ORDERS_ENDPOINTS.orderCounts.path]);
+    expect(calls.options).toEqual([{}]);
+  });
+
+  it('reads a single order through the admin route template', () => {
     const { service, calls } = setup();
     service.getOrder('order-1').subscribe();
 
-    expect(calls.paths).toEqual([ORDERS_ENDPOINTS.getOrder.path]);
+    expect(calls.paths).toEqual([ADMIN_ORDERS_ENDPOINTS.getAdminOrder.path]);
+    expect(calls.options).toEqual([{ pathParams: { orderId: 'order-1' } }]);
+  });
+
+  it('force-cancels through the admin cancel template with no body', () => {
+    const { service, calls } = setup();
+    service.cancelOrder('order-1').subscribe();
+
+    expect(calls.paths).toEqual([ADMIN_ORDERS_ENDPOINTS.cancelAdminOrder.path]);
+    expect(calls.bodies).toEqual([{}]);
+    expect(calls.options).toEqual([{ pathParams: { orderId: 'order-1' } }]);
+  });
+
+  it('refunds through the admin refund template with the reason body', () => {
+    const { service, calls } = setup();
+    service.refundOrder('order-1', { reason: 'Duplicate charge' }).subscribe();
+
+    expect(calls.paths).toEqual([ADMIN_ORDERS_ENDPOINTS.refundAdminOrder.path]);
+    expect(calls.bodies).toEqual([{ reason: 'Duplicate charge' }]);
     expect(calls.options).toEqual([{ pathParams: { orderId: 'order-1' } }]);
   });
 

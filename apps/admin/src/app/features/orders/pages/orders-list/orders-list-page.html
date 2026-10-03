@@ -14,6 +14,40 @@
       (retry)="retry()"
     />
   } @else {
+    <form class="orders-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+      <admin-filter-bar
+        [label]="copy().filterTitle"
+        [clearLabel]="copy().filterClear"
+        (clear)="clearFilters()"
+      >
+        <admin-select
+          [control]="filters.controls.status"
+          [options]="statusOptions()"
+          [label]="copy().filterStatus"
+          fieldId="orders-filter-status"
+        />
+        <admin-text-input
+          [control]="filters.controls.customerId"
+          [label]="copy().filterCustomer"
+          fieldId="orders-filter-customer"
+        />
+        <admin-search-input
+          [control]="filters.controls.search"
+          [label]="copy().filterSearch"
+          [placeholder]="copy().filterSearchPlaceholder"
+          fieldId="orders-filter-search"
+        />
+        <admin-date-range
+          [from]="filters.controls.from"
+          [to]="filters.controls.to"
+          [fromLabel]="copy().filterFrom"
+          [toLabel]="copy().filterTo"
+          fromId="orders-filter-from"
+          toId="orders-filter-to"
+        />
+        <button class="orders-list-apply" type="submit">{{ copy().filterApply }}</button>
+      </admin-filter-bar>
+    </form>
     <admin-data-table
       [columns]="columns()"
       [rows]="rows()"

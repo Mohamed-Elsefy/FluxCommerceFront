@@ -15,13 +15,22 @@
  * - `docs/frontend-contract/PAYMENT_INTEGRATION_NOTES.md` (SPA rules,
  *   order-poll proxy, client-secret path).
  *
- * Audited backend surface (the complete HTTP contract today):
- * - Orders (`[Route orders][Authorize]`, any authenticated JWT — NOT
- *   `Admin`-only): `POST /orders/checkout` (customer flow, `Idempotency-Key`
- *   header required), `GET /orders` (paged, caller-owned only,
- *   newest-first, paging params only), `GET /orders/{orderId}`
+ * Audited backend surface (the complete HTTP contract today —
+ * Supplement S1 evolution applied):
+ * - Customer orders (`[Route orders][Authorize]`, any authenticated JWT):
+ *   `POST /orders/checkout` (customer flow, `Idempotency-Key` header
+ *   required), `GET /orders` (paged, caller-owned only, newest-first,
+ *   paging params plus optional `status`), `GET /orders/{orderId}`
  *   (ownership-masked `404`), `POST /orders/{orderId}/cancel`
  *   (`Pending`-only, ownership-masked `404`, `409 CancelConflict`).
+ * - Admin orders (`[Route admin/orders]`, permission-gated):
+ *   `GET /admin/orders` (paged, platform-wide, newest-first, paging
+ *   plus `status`/`customerId`/`search`/`from`/`to`),
+ *   `GET /admin/orders/counts`, `GET /admin/orders/{orderId}` (no
+ *   ownership scoping), `POST /admin/orders/{orderId}/cancel`
+ *   (force-cancel any `Pending` order), `POST
+ *   /admin/orders/{orderId}/refund` (`RefundOrderRequest{reason}`,
+ *   paid orders only, `409 RefundConflict` otherwise).
  * - Payments (`[Route api/payments][Authorize]`, note the inconsistent
  *   `api/` prefix): `GET /api/payments/{paymentId}` (ownership-masked
  *   `404`), `GET /api/payments/by-order/{orderId}` (live client secret,
@@ -131,12 +140,20 @@ export type AdminPaymentInitialization = PaymentInitializationResult;
 /**
  * SPA-callable admin order path templates. `POST /orders/checkout` is
  * deliberately absent: it is the customer purchase flow (cart-owned,
- * `Idempotency-Key` required), never an admin operation.
+ * `Idempotency-Key` required), never an admin operation. Supplement S1
+ * added the `[Route admin/orders]` surface: the platform-wide list with
+ * filters, the counts read, the unscoped details read, and the
+ * force-cancel/refund mutations.
  */
 export const ADMIN_CALLABLE_ORDER_ENDPOINTS = [
   '/orders',
   '/orders/{orderId}',
   '/orders/{orderId}/cancel',
+  '/admin/orders',
+  '/admin/orders/counts',
+  '/admin/orders/{orderId}',
+  '/admin/orders/{orderId}/cancel',
+  '/admin/orders/{orderId}/refund',
 ] as const;
 
 /** One SPA-callable admin order path template. */
@@ -177,21 +194,16 @@ export function isAdminCallableOrdersPaymentsEndpoint(path: string | null | unde
 /**
  * Order operations that DO NOT exist in the backend contract and must
  * never be implemented in the admin UI. Pinned so later sub-phases cannot
- * invent them (e.g. a platform-wide orders table backed by the
- * caller-owned `GET /orders`, a status dropdown mapped to no query param,
- * or an admin confirm/refund button with no endpoint behind it).
+ * invent them. Supplement S1 unlocked the platform-wide list, its
+ * filters, and cancel/refund mutations — those former pins live in
+ * `SUPPLEMENT_S1_NEWLY_SUPPORTED_OPERATIONS` (see
+ * `./contract-evolution-audit`), not here.
  */
 export const UNSUPPORTED_ADMIN_ORDER_OPERATIONS = [
-  'orders-list-all',
-  'order-status-filter',
-  'order-customer-filter',
-  'order-date-filter',
-  'order-search',
   'order-sorting',
   'order-customer-identity',
   'order-payment-linkage',
   'order-confirm',
-  'order-refund',
   'checkout-from-admin',
 ] as const;
 
@@ -252,13 +264,16 @@ export function isUnsupportedAdminPaymentOperation(
 // ---------------------------------------------------------------------------
 
 /**
- * The ONLY paginated read in this slice: `GET /orders`
- * (`pageNumber >= 1`, `1 <= pageSize <= 100`, defaults `1`/`20`,
- * fixed newest-first ordering). Payment reads are single-resource
- * (`GET /api/payments/{id}`, `GET /api/payments/by-order/{orderId}`) and
- * must never be wrapped in pager logic.
+ * The paginated reads in this slice, Supplement S1 matrix: the
+ * caller-owned `GET /orders` (paging plus optional `status`) and the
+ * platform-wide `GET /admin/orders` (paging plus `status`/`customerId`/
+ * `search`/`from`/`to`). Both newest-first (`pageNumber >= 1`,
+ * `1 <= pageSize <= 100`, defaults `1`/`20`). Payment reads are
+ * single-resource (`GET /api/payments/{id}`,
+ * `GET /api/payments/by-order/{orderId}`) and must never be wrapped in
+ * pager logic.
  */
-export const PAGINATED_ADMIN_ORDERS_READS = ['listOrders'] as const;
+export const PAGINATED_ADMIN_ORDERS_READS = ['listOrders', 'listAdminOrders'] as const;
 
 /** The single paginated admin orders read. */
 export type PaginatedAdminOrdersRead = (typeof PAGINATED_ADMIN_ORDERS_READS)[number];
@@ -299,14 +314,13 @@ export function supportsAdminOrdersSorting(_read: string | null | undefined): bo
 }
 
 /**
- * Filtering support: NO orders or payments read accepts filter params
- * (`GET /orders` takes `pageNumber`/`pageSize` only; payment reads take an
- * id only). Always `false` — pinned so 14.4 implements no filter except
- * client-side presentation over the fetched page, if ever. Pure — throws
- * nothing.
+ * Filtering support, Supplement S1 matrix: `listAdminOrders` accepts
+ * `status`/`customerId`/`search`/`from`/`to` and `listOrders` accepts
+ * `status` (unknown values and `from > to` → backend `400`). Every
+ * other read takes ids only. Pure — throws nothing.
  */
-export function supportsAdminOrdersFiltering(_read: string | null | undefined): boolean {
-  return false;
+export function supportsAdminOrdersFiltering(read: string | null | undefined): boolean {
+  return read === 'listOrders' || read === 'listAdminOrders';
 }
 
 /**
@@ -340,15 +354,21 @@ export function isValidAdminOrdersPagingQuery(
 // ---------------------------------------------------------------------------
 
 /**
- * Admin order-list query. `GET /orders` accepts ONLY paging (no `sortBy`,
- * no `sortDirection`, no filters). The response is caller-owned only —
- * there is NO platform-wide admin list, so an admin JWT sees its own
- * orders, never every customer's. Nulls/omission mean "server default"
- * (`pageNumber 1`, `pageSize 20`).
+ * Admin order-list query. Customer `GET /orders` accepts paging plus an
+ * optional `status` filter (caller-owned only); admin
+ * `GET /admin/orders` accepts paging plus `status`/`customerId`/`search`
+ * (`order-number` substring)/`from`/`to` (platform-wide, newest-first).
+ * Unknown `status` or `from > to` → backend `400`. Nulls/omission mean
+ * "server default" (`pageNumber 1`, `pageSize 20`).
  */
 export interface AdminOrderListQuery {
   readonly pageNumber?: number;
   readonly pageSize?: number;
+  readonly status?: string;
+  readonly customerId?: string;
+  readonly search?: string;
+  readonly from?: string;
+  readonly to?: string;
 }
 
 /**

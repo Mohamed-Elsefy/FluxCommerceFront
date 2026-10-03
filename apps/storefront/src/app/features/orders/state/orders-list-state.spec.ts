@@ -204,4 +204,35 @@ describe('OrdersListState loadPage', () => {
     );
     expect(state.status()).toBe('success');
   });
+
+  it('commits a status filter with a page reset', () => {
+    const { state, api } = setup();
+    state.loadPage(3);
+    state.setStatusFilter('Confirmed');
+
+    expect(api.getOrders).toHaveBeenLastCalledWith(
+      { pageNumber: 1, pageSize: ORDERS_DEFAULT_PAGE_SIZE, status: 'Confirmed' },
+      expect.objectContaining({}),
+    );
+    expect(state.currentPage()).toBe(1);
+  });
+
+  it('clears the status filter back to unfiltered', () => {
+    const { state, api } = setup();
+    state.setStatusFilter('Pending');
+    state.setStatusFilter(null);
+
+    expect(api.getOrders).toHaveBeenLastCalledWith(
+      { pageNumber: 1, pageSize: ORDERS_DEFAULT_PAGE_SIZE },
+      expect.objectContaining({}),
+    );
+  });
+
+  it('ignores redundant status commits', () => {
+    const { state, api } = setup();
+    state.setStatusFilter('Pending');
+    state.setStatusFilter('Pending');
+
+    expect(api.getOrders).toHaveBeenCalledTimes(1);
+  });
 });

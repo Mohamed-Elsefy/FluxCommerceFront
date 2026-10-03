@@ -193,9 +193,17 @@ describe('orders pagination bounds', () => {
     expect(isValidOrdersQuery({ pageNumber: 1.5 })).toBe(false);
     expect(isValidOrdersQuery({ pageSize: 0 })).toBe(false);
     expect(isValidOrdersQuery({ pageSize: 101 })).toBe(false);
-    expect(isValidOrdersQuery({ pageSize: 2.5 })).toBe(false);
-    expect(isValidOrdersQuery({ pageNumber: Number.NaN })).toBe(false);
-  });
+      expect(isValidOrdersQuery({ pageSize: 2.5 })).toBe(false);
+      expect(isValidOrdersQuery({ pageNumber: Number.NaN })).toBe(false);
+    });
+
+    it('accepts known statuses and rejects unknown ones', () => {
+      expect(isValidOrdersQuery({ status: 'Pending' })).toBe(true);
+      expect(isValidOrdersQuery({ status: 'confirmed' })).toBe(true);
+      expect(isValidOrdersQuery({ status: 'CANCELLED' })).toBe(true);
+      expect(isValidOrdersQuery({ status: '' })).toBe(true);
+      expect(isValidOrdersQuery({ status: 'Shipped' })).toBe(false);
+    });
 });
 
 describe('orders route params (shapes only)', () => {
