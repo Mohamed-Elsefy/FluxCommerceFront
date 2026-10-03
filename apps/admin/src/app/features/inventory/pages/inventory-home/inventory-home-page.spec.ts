@@ -87,6 +87,20 @@ describe('InventoryHomePage', () => {
     }
   });
 
+  it('renders the landing page under the RTL culture without key leakage', () => {
+    configure();
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('المخزون');
+      expect(element.textContent).not.toContain('inventory.title');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
   it('loads the counts snapshot and renders every bucket verbatim', () => {
     const { load } = configure(successResource(counts()));
     const element = render();

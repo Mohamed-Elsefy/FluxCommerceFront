@@ -47,9 +47,7 @@ describe('admin navigation', () => {
     const payments = ADMIN_NAV_ITEMS.find((item) => item.route === '/payments');
     expect(payments?.labelKey).toBe('layout.nav.payments');
     expect(payments?.children?.map((child) => child.route)).toEqual(['/payments/list']);
-    expect(payments?.children?.map((child) => child.labelKey)).toEqual([
-      'layout.nav.paymentsList',
-    ]);
+    expect(payments?.children?.map((child) => child.labelKey)).toEqual(['layout.nav.paymentsList']);
   });
 
   it('shows unrestricted entries to every portal role', () => {
@@ -102,9 +100,7 @@ describe('admin navigation', () => {
       ),
     ).toContain('layout.nav.payments');
     expect(
-      visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['orders.read']).map(
-        (item) => item.labelKey,
-      ),
+      visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['orders.read']).map((item) => item.labelKey),
     ).not.toContain('layout.nav.payments');
   });
 

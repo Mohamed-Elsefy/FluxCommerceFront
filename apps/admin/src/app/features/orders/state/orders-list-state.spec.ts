@@ -73,7 +73,12 @@ describe('OrderListState lifecycle', () => {
   it('commits filters with a page reset', () => {
     const { state, api } = setup({ orders: () => of(page(1, 1)) });
     state.load({ pageNumber: 4 });
-    state.setFilters({ status: 'Pending', customerId: 'cust-1', search: 'ORD', from: '2026-01-01' });
+    state.setFilters({
+      status: 'Pending',
+      customerId: 'cust-1',
+      search: 'ORD',
+      from: '2026-01-01',
+    });
 
     expect(api.listOrders).toHaveBeenLastCalledWith({
       pageNumber: 1,

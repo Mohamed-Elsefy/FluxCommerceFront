@@ -14,6 +14,7 @@ import {
   type ResourceState,
 } from '@flux/api';
 import type { VariantResponse } from '@flux/models';
+import { CultureService } from '@flux/i18n';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
 import { CatalogAdminApiService } from '../../data-access/catalog-admin-api.service';
 import { VariantDetailsState } from '../../state/variant-details-state';
@@ -137,6 +138,33 @@ describe('VariantEditPage', () => {
     expect(element.textContent).toContain('Could not save the variant');
     expect((element.querySelector('#variant-sku') as HTMLInputElement).value).toBe('TAKEN');
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('localizes the edit page for the active culture', () => {
+    setup({});
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const { element } = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('Modifier la variante');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('renders the edit page under the RTL culture without key leakage', () => {
+    setup({});
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const { element } = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('تعديل المتغير');
+      expect(element.textContent).not.toContain('catalog.variantEdit.heading');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('renders loading and error states for the variant load', () => {

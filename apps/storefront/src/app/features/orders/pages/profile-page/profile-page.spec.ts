@@ -163,6 +163,20 @@ describe('ProfilePage loaded profile (read-only)', () => {
 
     TestBed.inject(CultureService).setCulture('en');
   });
+
+  it('renders the profile under the RTL culture without key leakage', async () => {
+    const { fixture } = await setup();
+    TestBed.inject(CultureService).setCulture('ar');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    try {
+      expect(textOf(fixture, '#profile-page-title')).toBe('الملف الشخصي');
+      expect(fixture.nativeElement.textContent).not.toContain('account.profile.title');
+    } finally {
+      TestBed.inject(CultureService).setCulture('en');
+    }
+  });
 });
 
 describe('ProfilePage errors', () => {

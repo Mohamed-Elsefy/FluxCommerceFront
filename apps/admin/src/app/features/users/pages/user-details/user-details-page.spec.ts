@@ -103,7 +103,6 @@ function setup(scenario: {
 
 function render(): { fixture: ComponentFixture<UserDetailsPage>; element: HTMLElement } {
   const fixture = TestBed.createComponent(UserDetailsPage);
-  TestBed.inject(CultureService).setCulture('en');
   fixture.detectChanges();
   return { fixture, element: fixture.nativeElement as HTMLElement };
 }
@@ -187,6 +186,33 @@ describe('UserDetailsPage', () => {
     expect(load).toHaveBeenLastCalledWith(USER_ID);
     const notifications = TestBed.inject(AdminNotificationService).notifications();
     expect(notifications.at(-1)?.title).toBe('Permission revoked');
+  });
+
+  it('localizes the details for the active culture', () => {
+    setup({});
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const { element } = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('Informations');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('renders the details under the RTL culture without key leakage', () => {
+    setup({});
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const { element } = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('بيانات المستخدم');
+      expect(element.textContent).not.toContain('users.details.factsTitle');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 
   it('surfaces grant conflicts through an error toast without reload', () => {

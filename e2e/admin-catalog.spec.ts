@@ -784,4 +784,33 @@ test.describe('admin catalog authorization + localization (13.11)', () => {
     await expect(page.getByRole('link', { name: 'Produits' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Stock' })).toBeVisible();
   });
+
+  test('RTL chrome renders inventory lists without key leakage', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(
+      page,
+      'GET',
+      '/inventory',
+      200,
+      json({ items: [stock()], totalCount: 1, pageNumber: 1, pageSize: 20 }),
+    );
+    await mock(
+      page,
+      'GET',
+      '/inventory/reservations',
+      200,
+      json({ items: [reservation()], totalCount: 1, pageNumber: 1, pageSize: 20 }),
+    );
+    await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'ar'));
+    await page.goto('/inventory/stock');
+
+    await expect(page.getByRole('heading', { name: 'قائمة المخزون' })).toBeVisible();
+    await expect(page.getByText('inventory.stockList.heading')).toHaveCount(0);
+
+    await page.goto('/inventory/reservations');
+
+    await expect(page.getByRole('heading', { name: 'قائمة الحجوزات' })).toBeVisible();
+    await expect(page.getByText('inventory.reservationsList.heading')).toHaveCount(0);
+  });
 });

@@ -91,7 +91,6 @@ function setup(scenario: { page?: ResourceState<UserAdminPage> }): {
 
 function render(): HTMLElement {
   const fixture = TestBed.createComponent(UsersListPage);
-  TestBed.inject(CultureService).setCulture('en');
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }
@@ -177,5 +176,33 @@ describe('UsersListPage', () => {
     retry.click();
 
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('localizes the list for the active culture', () => {
+    setup({ page: pageState([row('user-1')]) });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('Liste des utilisateurs');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('renders the list under the RTL culture without key leakage', () => {
+    setup({ page: pageState([row('user-1')]) });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('قائمة المستخدمين');
+      expect(element.textContent).not.toContain('users.list.heading');
+      expect(element.querySelector('admin-pagination')).not.toBeNull();
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

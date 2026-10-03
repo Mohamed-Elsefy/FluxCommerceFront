@@ -67,7 +67,6 @@ function setup(scenario: { page?: ResourceState<AdminStockPage> }): {
 
 function render(): HTMLElement {
   const fixture = TestBed.createComponent(StockListPage);
-  TestBed.inject(CultureService).setCulture('en');
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }
@@ -152,5 +151,46 @@ describe('StockListPage', () => {
     retry.click();
 
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('localizes the list for the active culture', () => {
+    setup({
+      page: successResource<AdminStockPage>({
+        items: [row('AAA')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('Liste du stock');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('renders the list under the RTL culture without key leakage', () => {
+    setup({
+      page: successResource<AdminStockPage>({
+        items: [row('AAA')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('قائمة المخزون');
+      expect(element.textContent).not.toContain('inventory.stockList.heading');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

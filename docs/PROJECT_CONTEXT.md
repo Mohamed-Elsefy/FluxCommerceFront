@@ -1360,3 +1360,34 @@ The project must remain understandable, testable, maintainable, and evolvable.
 Do not introduce architectural complexity unless it solves a demonstrated problem.
 
 The primary frontend goal is not to reproduce backend architecture inside Angular. It is to provide a clean, performant, localized, accessible, and production-oriented client that respects the backend's boundaries.
+
+---
+
+# 41. Supplement S1 — Backend Contract Evolution (Adopted)
+
+Status: **Complete** — see `docs/completed/SUPPLEMENT_S1_COMPLETION_REPORT.md`,
+`docs/adr/031-backend-contract-evolution-alignment.md`,
+`docs/adr/032-permission-gated-admin-integration.md`, and
+`docs/phases/SUPPLEMENT_S1_BACKEND_CONTRACT_EVOLUTION.md` (steps S1.1–S1.11).
+
+The supplement is an optional addendum and leaves the core roadmap
+numbering untouched: Phases 0–14 stay complete as recorded above and
+**Phase 15 — Final QA & Optimization** remains the next core step,
+unaffected whether the supplement is adopted or not.
+
+Adopted scope (all against the real evolved backend contract, no
+fabricated permissions, endpoints, DTOs, filters, or business rules):
+
+```text
+S1.1  Contract alignment gate (audited callable tables, ADR-031)
+S1.2  Shared models & API endpoints (libs/models + libs/api)
+S1.3  Permission authorization (permissionGuard, SuperAdmin supremacy)
+S1.4  Profile editing (PUT /auth/profile, storefront)
+S1.5  Admin users & permissions (SuperAdmin-only)
+S1.6  Catalog catalog.manage migration + variant price/status
+S1.7  Inventory lists & counts
+S1.8  Admin orders upgrade + storefront status filter
+S1.9  Payments mine + admin + stats
+S1.10 Admin dashboard (GET /admin/dashboard)
+S1.11 Hardening, E2E & documentation (this step)
+```

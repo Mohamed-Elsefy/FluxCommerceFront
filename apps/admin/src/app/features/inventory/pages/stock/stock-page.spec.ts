@@ -153,4 +153,18 @@ describe('StockPage', () => {
       cultures.setCulture('en');
     }
   });
+
+  it('renders the lookup page under the RTL culture without key leakage', () => {
+    setup({});
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const { element } = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('المخزون');
+      expect(element.textContent).not.toContain('inventory.stock.heading');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
 });

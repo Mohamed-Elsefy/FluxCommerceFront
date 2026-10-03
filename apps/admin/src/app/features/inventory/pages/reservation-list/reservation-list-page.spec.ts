@@ -70,7 +70,6 @@ function setup(scenario: { page?: ResourceState<AdminReservationPage> }): {
 
 function render(): HTMLElement {
   const fixture = TestBed.createComponent(ReservationListPage);
-  TestBed.inject(CultureService).setCulture('en');
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }
@@ -156,5 +155,46 @@ describe('ReservationListPage', () => {
     retry.click();
 
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('localizes the list for the active culture', () => {
+    setup({
+      page: successResource<AdminReservationPage>({
+        items: [row('res-1')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('Liste des réservations');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('renders the list under the RTL culture without key leakage', () => {
+    setup({
+      page: successResource<AdminReservationPage>({
+        items: [row('res-1')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('قائمة الحجوزات');
+      expect(element.textContent).not.toContain('inventory.reservationsList.heading');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

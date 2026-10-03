@@ -356,60 +356,60 @@ Harden + verify the whole evolution as one shippable slice.
 
 ## Contract
 
-- [ ] Staged frontend-contract diff committed & reviewed
-- [ ] Permission catalog (§0.5) pinned in models
-- [ ] Identity endpoints 1.14–1.21 verified
-- [ ] Variant PUT expansion verified
-- [ ] Admin orders/payments/dashboard contracts verified
-- [ ] Inventory lists/counts verified
-- [ ] New error codes mapped status-first
-- [ ] Pagination matrix extended
+- [x] Staged frontend-contract diff committed & reviewed
+- [x] Permission catalog (§0.5) pinned in models
+- [x] Identity endpoints 1.14–1.21 verified
+- [x] Variant PUT expansion verified
+- [x] Admin orders/payments/dashboard contracts verified
+- [x] Inventory lists/counts verified
+- [x] New error codes mapped status-first
+- [x] Pagination matrix extended
 
 ## AuthZ
 
-- [ ] `permissions` signal + `hasPermission` + `isSuperAdmin`
-- [ ] `permissionGuard` created & tested
-- [ ] Shell + feature routes migrated
-- [ ] Navigation permission-filtered
-- [ ] SuperAdmin supremacy verified
+- [x] `permissions` signal + `hasPermission` + `isSuperAdmin`
+- [x] `permissionGuard` created & tested
+- [x] Shell + feature routes migrated
+- [x] Navigation permission-filtered
+- [x] SuperAdmin supremacy verified
 
 ## Features
 
-- [ ] Profile editing (storefront)
-- [ ] Admin users & permissions (SuperAdmin)
-- [ ] Catalog `catalog.manage` + variant price/status
-- [ ] Inventory lists + counts
-- [ ] Admin orders (list/counts/cancel/refund + filters)
-- [ ] Storefront orders `status` filter
-- [ ] Payments mine + admin + stats
-- [ ] Dashboard live API
+- [x] Profile editing (storefront)
+- [x] Admin users & permissions (SuperAdmin)
+- [x] Catalog `catalog.manage` + variant price/status
+- [x] Inventory lists & counts
+- [x] Admin orders (list/counts/cancel/refund + filters)
+- [x] Storefront orders `status` filter
+- [x] Payments mine + admin + stats
+- [x] Dashboard live API
 
 ## UX
 
-- [ ] Localization complete (5 cultures)
-- [ ] RTL/LTR verified
-- [ ] Responsive verified
-- [ ] Accessibility verified
-- [ ] Loading/empty/error states verified
+- [x] Localization complete (5 cultures)
+- [x] RTL/LTR verified
+- [x] Responsive verified
+- [x] Accessibility verified
+- [x] Loading/empty/error states verified
 
 ## Testing
 
-- [ ] Unit + component specs added
-- [ ] Guard + mapping specs added
-- [ ] E2E new suites green
-- [ ] Pre-existing suites re-verified green
-- [ ] Architecture audit green
-- [ ] Both builds green
+- [x] Unit + component specs added
+- [x] Guard + mapping specs added
+- [x] E2E new suites green
+- [x] Pre-existing suites re-verified green
+- [x] Architecture audit green
+- [x] Both builds green
 
 ## Architecture & Documentation
 
-- [ ] No direct component API access
-- [ ] No `libs/ui` additions
-- [ ] No cross-feature violations
-- [ ] ADR-031 + ADR-032 recorded
-- [ ] `PROJECT_CONTEXT.md` updated (supplement adoption noted; core numbering untouched)
-- [ ] `ARCHITECTURE.md` updated
-- [ ] Supplement S1 completion note written (only if adopted)
+- [x] No direct component API access
+- [x] No `libs/ui` additions
+- [x] No cross-feature violations
+- [x] ADR-031 + ADR-032 recorded
+- [x] `PROJECT_CONTEXT.md` updated (supplement adoption noted; core numbering untouched)
+- [x] `ARCHITECTURE.md` updated
+- [x] Supplement S1 completion note written (only if adopted)
 
 ---
 

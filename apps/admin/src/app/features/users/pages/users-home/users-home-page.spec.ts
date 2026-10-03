@@ -67,7 +67,6 @@ function setup(scenario: {
 
 function render(): HTMLElement {
   const fixture = TestBed.createComponent(UsersHomePage);
-  TestBed.inject(CultureService).setCulture('en');
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }
@@ -110,5 +109,32 @@ describe('UsersHomePage', () => {
 
     expect(element.querySelector('flux-error-state')).not.toBeNull();
     expect(element.textContent).toContain('User counts unavailable');
+  });
+
+  it('localizes the landing page for the active culture', () => {
+    setup({ status: 'success', data: counts() });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('fr');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('Utilisateurs');
+    } finally {
+      cultures.setCulture('en');
+    }
+  });
+
+  it('renders the landing page under the RTL culture without key leakage', () => {
+    setup({ status: 'success', data: counts() });
+    const cultures = TestBed.inject(CultureService);
+    cultures.setCulture('ar');
+    try {
+      const element = render();
+
+      expect(element.querySelector('h1')?.textContent).toBe('المستخدمون');
+      expect(element.textContent).not.toContain('users.home.heading');
+    } finally {
+      cultures.setCulture('en');
+    }
   });
 });

@@ -148,6 +148,21 @@ destinations, all against the real backend contracts with
 contract-honest omissions (no invented filters, sorts, history,
 linkage, mutations, or failure reasons).
 
+As built in Supplement S1 (see
+`docs/completed/SUPPLEMENT_S1_COMPLETION_REPORT.md` and
+`docs/adr/031–032`): the portal adds permission-gated business
+surfaces without changing the shell shape — users management
+(`SuperAdmin`-only list/counts/details/grant/revoke), inventory
+lists (paged stock + reservations with filters, counts cards,
+single-lookup pages kept as deep-link targets), platform-wide orders
+(list with filters, real counts, force-cancel, refund), payments
+(platform-wide list with filters, stats, unscoped details —
+read-only, no history, no mutations), and a live dashboard
+(`GET /admin/dashboard` snapshot with per-module cards plus the
+newest-5 drill-down). Guards stay UX-only (`permissionGuard` over
+`route.data['permissions']`, OR semantics, `SuperAdmin` bypass);
+the backend stays authoritative.
+
 ---
 
 ## 5. Feature-Based Architecture
@@ -1233,6 +1248,21 @@ customer→forbidden, French chrome, RTL chrome) run
 mocked-transport green in `e2e/admin-orders.spec.ts` (new
 `admin-orders-chromium` project); the pre-existing admin suites were
 re-verified green with the extended navigation.
+
+As built in Supplement S1 (see
+`docs/completed/SUPPLEMENT_S1_COMPLETION_REPORT.md`): new suites run
+mocked-transport green alongside extended pre-existing ones —
+`admin-users` (list/counts/details/grant/revoke, French + RTL
+chrome), extended `admin-orders` (platform-wide list with filters,
+counts, force-cancel, refund), `admin-payments` (stats, list with
+filters, details, failed status, French + RTL chrome),
+`payments-mine` (customer list with status filter, French + RTL
+unit/E2E chrome), `admin-dashboard` (live counts, drill-down,
+French + RTL chrome), inventory lists (stock/reservation lists with
+filters, French + RTL chrome), and profile editing; S1.11 added
+RTL unit coverage (users/inventory/profile/variant pages) and RTL
+E2E for users and inventory lists. Pre-existing suites re-verified
+green with the extended navigation.
 
 ### Testing Principle
 

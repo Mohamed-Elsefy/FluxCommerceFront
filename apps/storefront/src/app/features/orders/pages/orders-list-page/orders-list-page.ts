@@ -174,9 +174,18 @@ export class OrdersListPage implements OnInit {
       filterLabel: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listFilterLabel),
       filterAll: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listFilterAll),
       statusOptions: [
-        { value: 'Pending', label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderPending) },
-        { value: 'Cancelled', label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderCancelled) },
-        { value: 'Confirmed', label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderConfirmed) },
+        {
+          value: 'Pending',
+          label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderPending),
+        },
+        {
+          value: 'Cancelled',
+          label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderCancelled),
+        },
+        {
+          value: 'Confirmed',
+          label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusOrderConfirmed),
+        },
       ],
       loading: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listLoading),
       loadErrorTitle: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listLoadErrorTitle),

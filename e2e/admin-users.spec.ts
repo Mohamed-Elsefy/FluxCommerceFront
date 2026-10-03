@@ -338,4 +338,15 @@ test.describe('admin users journeys (S1.5)', () => {
 
     await expect(page.getByRole('heading', { name: 'Utilisateurs', exact: true })).toBeVisible();
   });
+
+  test('RTL chrome renders users journeys without key leakage', async ({ page }) => {
+    await seed(page, ['SuperAdmin']);
+    await mockSession(page, ['SuperAdmin']);
+    await mock(page, 'GET', '/admin/users/counts', 200, ok(counts()));
+    await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'ar'));
+    await page.goto('/users');
+
+    await expect(page.getByRole('heading', { name: 'المستخدمون', exact: true })).toBeVisible();
+    await expect(page.getByText('users.home.heading')).toHaveCount(0);
+  });
 });
