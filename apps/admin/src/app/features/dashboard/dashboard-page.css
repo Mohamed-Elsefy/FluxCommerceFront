@@ -26,7 +26,8 @@
 }
 
 .dashboard-session h2,
-.dashboard-modules-heading {
+.dashboard-card-title,
+.dashboard-recent h2 {
   margin: 0;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
@@ -58,4 +59,95 @@
   display: grid;
   gap: var(--spacing-md);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.dashboard-card {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.dashboard-card-fact {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-card-facts {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin: 0;
+}
+
+.dashboard-card-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.dashboard-card-facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-card-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-card-link {
+  justify-self: start;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-card-link:hover {
+  text-decoration: underline;
+}
+
+.dashboard-card-link:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.dashboard-recent {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.dashboard-recent-items {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-recent-items > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.dashboard-recent-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-recent-link:hover {
+  text-decoration: underline;
+}
+
+.dashboard-recent-link:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.dashboard-recent-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
 }

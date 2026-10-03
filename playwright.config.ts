@@ -80,6 +80,11 @@ export default defineConfig({
       use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
     },
     {
+      name: 'admin-dashboard-chromium',
+      testMatch: /admin-dashboard\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'payments-mine-chromium',
       testMatch: /payments-mine\.spec\.ts/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },

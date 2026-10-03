@@ -1,0 +1,326 @@
+/**
+ * Admin Dashboard E2E for Supplement S1, Step S1.10 — Admin Dashboard
+ * (Real API).
+ *
+ * Transports are fulfilled with contract-exact payloads because no live
+ * API runs here. Sessions are seeded through `localStorage`, then
+ * restoration + guards + the real dashboard slice run: the live
+ * snapshot (per-module counts plus the newest-5 drill-down), the
+ * empty/error states with retry, and localization.
+ *
+ * Contract-honest coverage notes (S1.1 audit):
+ * - `GET /admin/dashboard` composes the per-module overviews (each
+ *   section produced by its owning module); the suite asserts verbatim
+ *   counts, never derived values.
+ * - `recentOrders` drills into the existing admin order details
+ *   (`/orders/:id`) — no parallel detail view ships.
+ * - The users drill-down shows for SuperAdmin only (the users surface
+ *   stays `SuperAdmin`-only server-side too).
+ */
+
+import { expect, test, type Page, type Route } from '@playwright/test';
+
+const STORAGE_KEY = 'fluxcommerce.auth.session.v1';
+const API_ORIGIN = 'https://localhost:7119';
+
+const FULL_PERMISSIONS = [
+  'orders.read',
+  'orders.cancel',
+  'orders.refund',
+  'payments.read',
+  'payments.stats',
+  'inventory.read',
+  'inventory.manage',
+  'catalog.manage',
+  'dashboard.read',
+];
+
+function userWithRoles(roles: string[], permissions: string[] = []): Record<string, unknown> {
+  const granted =
+    permissions.length > 0
+      ? permissions
+      : roles.some((role) => role === 'Admin' || role === 'SuperAdmin')
+        ? [...FULL_PERMISSIONS]
+        : [];
+  return {
+    id: '22222222-2222-2222-2222-222222222222',
+    email: 'boss@flux.local',
+    roles,
+    isEmailVerified: true,
+    registeredAtUtc: '2026-09-06T12:00:00Z',
+    firstName: 'Boss',
+    lastName: 'Admin',
+    displayName: 'Boss Admin',
+    phoneNumber: null,
+    isPhoneVerified: false,
+    avatarUrl: null,
+    preferredLanguage: 'en',
+    timeZone: 'UTC',
+    status: 1,
+    permissions: granted,
+  };
+}
+
+function pairWithRoles(roles: string[]): Record<string, unknown> {
+  return {
+    userId: '22222222-2222-2222-2222-222222222222',
+    email: 'boss@flux.local',
+    roles,
+    accessToken: 'admin-access-2',
+    refreshToken: 'admin-refresh-2',
+    refreshTokenExpiresAtUtc: '2026-09-13T12:00:00Z',
+  };
+}
+
+function ok(data: unknown): string {
+  return JSON.stringify({ isSuccess: true, message: 'Operation completed successfully.', data });
+}
+
+function problem(status: number, detail: string): Record<string, unknown> {
+  return { type: 'about:blank', title: 'Error', status, detail, extensions: {} };
+}
+
+function snapshot(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    orders: { total: 7, pending: 4, confirmed: 2, cancelled: 1 },
+    payments: {
+      total: 7,
+      pending: 1,
+      processing: 1,
+      succeeded: 3,
+      failed: 1,
+      cancelled: 0,
+      refunded: 1,
+      totalsByCurrency: [{ currency: 'USD', succeededCount: 3, succeededTotalAmount: 179.94 }],
+    },
+    inventory: {
+      totalItems: 12,
+      totalOnHand: 100,
+      totalReserved: 5,
+      lowStockItems: 2,
+      pendingReservations: 1,
+      committedReservations: 0,
+      releasedReservations: 0,
+      expiredReservations: 0,
+    },
+    users: {
+      total: 3,
+      pending: 0,
+      active: 3,
+      suspended: 0,
+      locked: 0,
+      deleted: 0,
+      customers: 1,
+      admins: 1,
+      superAdmins: 1,
+      unverified: 0,
+      lockedOut: 0,
+    },
+    recentOrders: [
+      {
+        orderId: 'order-1',
+        orderNumber: 'ORD-ABC123',
+        status: 'Pending',
+        grandTotal: { amount: 59.98, currency: 'USD' },
+        itemCount: 2,
+        createdAtUtc: '2026-09-28T10:00:00Z',
+      },
+    ],
+    ...overrides,
+  };
+}
+
+async function seed(page: Page, roles: string[]): Promise<void> {
+  await page.addInitScript(
+    ({ key, session }) => window.localStorage.setItem(key, JSON.stringify(session)),
+    {
+      key: STORAGE_KEY,
+      session: {
+        refreshToken: 'admin-refresh-1',
+        user: { ...userWithRoles(roles), displayName: null },
+        authenticatedAtUtc: '2026-09-06T12:00:00.000Z',
+      },
+    },
+  );
+}
+
+async function mockSession(page: Page, roles: string[]): Promise<void> {
+  await page.route('**/auth/refresh', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: ok(pairWithRoles(roles)),
+    }),
+  );
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: ok(userWithRoles(roles)),
+    }),
+  );
+}
+
+async function mock(
+  page: Page,
+  method: string,
+  pathname: string,
+  status: number,
+  body: unknown,
+): Promise<void> {
+  await page.route(
+    (url) => url.origin === API_ORIGIN && url.pathname === pathname,
+    (route: Route) =>
+      route.request().method() === method
+        ? route.fulfill({
+            status,
+            contentType: 'application/json',
+            body: typeof body === 'string' ? body : JSON.stringify(body),
+          })
+        : route.fallback(),
+  );
+}
+
+test.describe('admin dashboard journeys (S1.10)', () => {
+  test('landing shows live counts plus recent orders with drill-down', async ({ page }) => {
+    await seed(page, ['SuperAdmin']);
+    await mockSession(page, ['SuperAdmin']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await mock(
+      page,
+      'GET',
+      '/admin/orders/order-1',
+      200,
+      ok({
+        orderId: 'order-1',
+        orderNumber: 'ORD-ABC123',
+        status: 'Pending',
+        subtotal: { amount: 59.98, currency: 'USD' },
+        shippingCost: { amount: 0, currency: 'USD' },
+        discount: { amount: 0, currency: 'USD' },
+        grandTotal: { amount: 59.98, currency: 'USD' },
+        itemCount: 2,
+        createdAtUtc: '2026-09-28T10:00:00Z',
+        shippingAddress: {
+          recipientName: 'Ada Lovelace',
+          line1: '1 Flux St',
+          line2: null,
+          city: 'Berlin',
+          region: 'BE',
+          postalCode: '10115',
+          countryCode: 'DE',
+        },
+        billingAddress: {
+          recipientName: 'Ada Lovelace',
+          line1: '1 Flux St',
+          line2: null,
+          city: 'Berlin',
+          region: 'BE',
+          postalCode: '10115',
+          countryCode: 'DE',
+        },
+        lineItems: [],
+      }),
+    );
+    await mock(page, 'GET', '/api/payments/by-order/order-1', 404, problem(404, 'Not found.'));
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByText('7 orders')).toBeVisible();
+    await expect(page.getByText('7 payments')).toBeVisible();
+    await expect(page.getByText('12 items')).toBeVisible();
+    await expect(page.getByText('3 users')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recent orders' })).toBeVisible();
+
+    await page.getByRole('link', { name: 'View order ORD-ABC123' }).click();
+    await expect(page).toHaveURL(/\/orders\/order-1$/);
+    await expect(page.getByRole('heading', { name: 'ORD-ABC123' })).toBeVisible();
+  });
+
+  test('landing renders the recent-orders empty state without rows', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot({ recentOrders: [] })));
+    await page.goto('/dashboard');
+
+    await expect(page.locator('#dashboard-recent-heading')).toBeVisible();
+    await expect(page.getByText('No recent orders.')).toBeVisible();
+  });
+
+  test('landing renders the error state with retry recovery', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    let calls = 0;
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/admin/dashboard',
+      (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          return route.fallback();
+        }
+        calls += 1;
+        return calls === 1
+          ? route.fulfill({
+              status: 403,
+              contentType: 'application/json',
+              body: JSON.stringify(problem(403, 'Forbidden.')),
+            })
+          : route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: ok(snapshot()),
+            });
+      },
+    );
+    await page.goto('/dashboard');
+
+    await expect(page.getByText('Could not load overview')).toBeVisible();
+    await page.getByRole('button', { name: 'Retry' }).click();
+
+    await expect(page.getByText('7 orders')).toBeVisible();
+  });
+
+  test('non-SuperAdmin admins see counts without the users drill-down', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await page.goto('/dashboard');
+
+    await expect(page.getByText('3 users')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View users list' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'View orders list' })).toBeVisible();
+  });
+});
+
+test.describe('admin dashboard authorization + localization (S1.10)', () => {
+  test('customers land on forbidden for the dashboard', async ({ page }) => {
+    await seed(page, ['Customer']);
+    await mockSession(page, ['Customer']);
+    await page.goto('/dashboard');
+
+    await expect(page).toHaveURL(/\/forbidden$/);
+  });
+
+  test('French chrome localizes dashboard journeys', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'fr'));
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible();
+    await expect(page.getByText('7 commandes')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Commandes récentes' })).toBeVisible();
+  });
+
+  test('RTL chrome renders dashboard journeys without key leakage', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'ar'));
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: 'لوحة التحكم' })).toBeVisible();
+    await expect(page.getByText('أحدث الطلبات')).toBeVisible();
+    await expect(page.getByText('dashboard.title')).toHaveCount(0);
+  });
+});

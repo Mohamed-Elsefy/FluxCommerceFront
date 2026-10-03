@@ -26,15 +26,105 @@
     </flux-card>
   }
 
-  <h2 class="dashboard-modules-heading">{{ copy().modulesHeading }}</h2>
-  <div class="dashboard-grid">
-    @for (module of copy().modules; track module.title) {
-      <app-dashboard-card
-        [title]="module.title"
-        [description]="module.description"
-        [badge]="copy().upcoming"
-        badgeVariant="info"
-      />
-    }
-  </div>
+  @if (slot().status === 'loading' || slot().status === 'idle') {
+    <flux-loading-indicator [label]="copy().snapshotLoading" />
+  } @else if (slot().status === 'error') {
+    <flux-error-state
+      [title]="copy().snapshotErrorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (slot().data !== null && facts() !== null) {
+    <div class="dashboard-grid">
+      <flux-card>
+        <article class="dashboard-card" [attr.aria-label]="copy().ordersTitle">
+          <h2 class="dashboard-card-title">{{ copy().ordersTitle }}</h2>
+          <p class="dashboard-card-fact">{{ copy().ordersTotal }}</p>
+          <dl class="dashboard-card-facts">
+            @for (fact of facts()!.orders; track fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+          <a class="dashboard-card-link" routerLink="/orders/list">{{ copy().ordersLink }}</a>
+        </article>
+      </flux-card>
+      <flux-card>
+        <article class="dashboard-card" [attr.aria-label]="copy().paymentsTitle">
+          <h2 class="dashboard-card-title">{{ copy().paymentsTitle }}</h2>
+          <p class="dashboard-card-fact">{{ copy().paymentsTotal }}</p>
+          <dl class="dashboard-card-facts">
+            @for (fact of facts()!.payments; track fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+          <a class="dashboard-card-link" routerLink="/payments/list">{{ copy().paymentsLink }}</a>
+        </article>
+      </flux-card>
+      <flux-card>
+        <article class="dashboard-card" [attr.aria-label]="copy().inventoryTitle">
+          <h2 class="dashboard-card-title">{{ copy().inventoryTitle }}</h2>
+          <p class="dashboard-card-fact">{{ copy().inventoryTotal }}</p>
+          <dl class="dashboard-card-facts">
+            @for (fact of facts()!.inventory; track fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+          <a class="dashboard-card-link" routerLink="/inventory/stock">{{
+            copy().inventoryLink
+          }}</a>
+        </article>
+      </flux-card>
+      <flux-card>
+        <article class="dashboard-card" [attr.aria-label]="copy().usersTitle">
+          <h2 class="dashboard-card-title">{{ copy().usersTitle }}</h2>
+          <p class="dashboard-card-fact">{{ copy().usersTotal }}</p>
+          <dl class="dashboard-card-facts">
+            @for (fact of facts()!.users; track fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+          @if (canBrowseUsers()) {
+            <a class="dashboard-card-link" routerLink="/users/list">{{ copy().usersLink }}</a>
+          }
+        </article>
+      </flux-card>
+    </div>
+
+    <flux-card>
+      <article class="dashboard-recent" aria-labelledby="dashboard-recent-heading">
+        <h2 id="dashboard-recent-heading">{{ copy().recentTitle }}</h2>
+        @if (recentOrders().length === 0) {
+          <flux-empty-state [title]="copy().recentTitle" [message]="copy().recentEmpty" />
+        } @else {
+          <ol class="dashboard-recent-items">
+            @for (order of recentOrders(); track order.orderId) {
+              <li>
+                <a
+                  class="dashboard-recent-link"
+                  [routerLink]="['/orders', order.orderId]"
+                  [attr.aria-label]="copy().recentLink + ' ' + order.orderNumber"
+                >
+                  {{ order.orderNumber }}
+                </a>
+                <span class="dashboard-recent-meta">{{ order.status }} · {{ order.total }}</span>
+              </li>
+            }
+          </ol>
+        }
+      </article>
+    </flux-card>
+  }
 </section>

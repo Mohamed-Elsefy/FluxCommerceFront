@@ -1,0 +1,51 @@
+/**
+ * Admin Dashboard feature models for Supplement S1, Step S1.10 — Admin
+ * Dashboard (Real API).
+ *
+ * Scope: canonical wire aliases for the dashboard snapshot only. The
+ * single declaration site stays `@flux/models` (S1.2 `dashboard`
+ * mirrors) — aliases here, never re-declarations, so no contract drift
+ * is possible.
+ *
+ * Backend-authoritative data rule (binds every later slice): every
+ * section echoes verbatim for display (never an input to math, never
+ * recomputed client-side), money echoes verbatim (no totals math),
+ * order `status` never implies payment `status` (and vice versa), and
+ * `recentOrders` drill-down links route to the existing admin order
+ * details (`/orders/:id`) — no parallel detail view ships. Pure types +
+ * pure functions: no Angular, no HTTP, no browser APIs — SSR-safe.
+ */
+
+import type {
+  AdminDashboardResponse,
+  AdminOrderCountsResponse,
+  DashboardQuery,
+  InventoryCountsResponse,
+  OrderSummaryResponse,
+  PaymentAdminStatsResponse,
+  UserAdminCountsResponse,
+} from '@flux/models';
+
+export type {
+  AdminDashboardResponse,
+  AdminOrderCountsResponse,
+  DashboardQuery,
+  InventoryCountsResponse,
+  OrderSummaryResponse,
+  PaymentAdminStatsResponse,
+  UserAdminCountsResponse,
+};
+
+/** One dashboard snapshot (`GET /admin/dashboard`, `dashboard.read`). */
+export type DashboardSnapshot = AdminDashboardResponse;
+
+/** One recent order behind the drill-down widget (newest 5, verbatim). */
+export type DashboardRecentOrder = OrderSummaryResponse;
+
+/**
+ * Whether the snapshot carries recent orders to drill into. Pure —
+ * throws nothing.
+ */
+export function hasRecentOrders(snapshot: DashboardSnapshot | null | undefined): boolean {
+  return (snapshot?.recentOrders.length ?? 0) > 0;
+}

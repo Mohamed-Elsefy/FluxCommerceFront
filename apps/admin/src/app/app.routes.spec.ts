@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { authGuard, permissionGuard, roleGuard } from '@flux/auth';
+import { DashboardApiService } from './features/dashboard/data-access/dashboard-api.service';
+import { DashboardState } from './features/dashboard/state/dashboard-state';
 import { AppLayout } from './layout/app-layout/app-layout';
 import { routes } from './app.routes';
 
@@ -33,6 +35,13 @@ describe('routes', () => {
     expect(typeof dashboard?.loadComponent).toBe('function');
     expect(dashboard?.canActivate).toEqual([permissionGuard]);
     expect(dashboard?.data?.['permissions']).toEqual(['dashboard.read']);
+  });
+
+  it('provides the dashboard transport seam and state on the dashboard entry', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const dashboard = shell?.children?.find((route) => route.path === 'dashboard');
+
+    expect(dashboard?.providers).toEqual([DashboardApiService, DashboardState]);
   });
 
   it('mounts the catalog feature as a lazy boundary inside the protected shell', () => {

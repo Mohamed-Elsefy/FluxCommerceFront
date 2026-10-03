@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard, permissionGuard, roleGuard } from '@flux/auth';
 import { ADMIN_PORTAL_ROLES } from './admin-navigation';
+import { DashboardApiService } from './features/dashboard/data-access/dashboard-api.service';
+import { DashboardState } from './features/dashboard/state/dashboard-state';
 import { AppLayout } from './layout/app-layout/app-layout';
 
 /**
@@ -68,6 +70,7 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
+        providers: [DashboardApiService, DashboardState],
         canActivate: [permissionGuard],
         data: { permissions: ['dashboard.read'] },
       },
