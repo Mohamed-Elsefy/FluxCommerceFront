@@ -47,6 +47,15 @@ describe('AdminHeader', () => {
     expect(element.querySelector('auth-nav')).not.toBeNull();
   });
 
+  it('routes post-logout navigation to the admin login', () => {
+    const { fixture } = setup();
+    const authNav = fixture.debugElement.query(
+      (node) => String(node.nativeElement?.tagName ?? '').toLowerCase() === 'auth-nav',
+    );
+
+    expect(authNav?.componentInstance?.logoutRedirectTo).toBe('/login');
+  });
+
   it('emits menuToggle when the drawer toggle is activated', () => {
     const { fixture, element } = setup();
     let emitted = 0;

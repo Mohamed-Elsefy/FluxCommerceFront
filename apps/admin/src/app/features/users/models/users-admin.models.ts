@@ -19,7 +19,11 @@
  */
 
 import type { PagedResult } from '@flux/api';
-import type { UserAdminCountsResponse, UserAdminResponse } from '@flux/models';
+import type {
+  RegisterAdminRequest,
+  UserAdminCountsResponse,
+  UserAdminResponse,
+} from '@flux/models';
 import { UserStatus } from '@flux/models';
 import type { BadgeVariant } from '@flux/ui';
 
@@ -35,6 +39,28 @@ export type UserAdminPage = PagedResult<UserAdminRow>;
  * display — never an input to math.
  */
 export type UsersOverview = UserAdminCountsResponse;
+
+/**
+ * Projects raw admin-creation form values into the
+ * `POST /auth/register-admin` body. Trims surrounding whitespace
+ * (the backend trims and lowercases email server-side); empty
+ * first/last names travel as-is so backend validation (`400` with
+ * `errors{}`) stays authoritative. Pure — throws nothing, performs no
+ * HTTP.
+ */
+export function toRegisterAdminRequest(
+  email: string | null | undefined,
+  password: string | null | undefined,
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+): RegisterAdminRequest {
+  return {
+    email: (email ?? '').trim(),
+    password: password ?? '',
+    firstName: (firstName ?? '').trim(),
+    lastName: (lastName ?? '').trim(),
+  };
+}
 
 /** Zero overview (no user data yet). */
 export function emptyUsersOverview(): UsersOverview {

@@ -79,6 +79,15 @@ export class AuthNav {
   @Input() logoutLabel = 'Logout';
   /** Logout progress text. */
   @Input() loggingOutLabel = 'Signing out…';
+  /**
+   * Post-logout destination (`AuthService.logout` `redirectTo`).
+   * Defaults to `/` (public home) when omitted — apps whose root is
+   * guarded (e.g. the Admin portal, where `/` requires a session) must
+   * pass their anonymous entry point (e.g. `/login`) so logout always
+   * lands on a reachable page instead of a same-url no-op that skips
+   * the guards.
+   */
+  @Input() logoutRedirectTo: string | null = null;
 
   /** Logout request in flight: action disabled with progress copy. */
   readonly isLoggingOut = signal(false);
@@ -89,7 +98,7 @@ export class AuthNav {
       return;
     }
     this.isLoggingOut.set(true);
-    this.auth.logout().subscribe({
+    this.auth.logout({ redirectTo: this.logoutRedirectTo ?? undefined }).subscribe({
       complete: () => this.isLoggingOut.set(false),
     });
   }

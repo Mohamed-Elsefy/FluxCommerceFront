@@ -1,0 +1,65 @@
+<section class="user-create-page" aria-labelledby="user-create-title">
+  <a class="user-create-page-back" routerLink="/users/list">{{ copy().back }}</a>
+  <header class="user-create-page-header">
+    <h1 id="user-create-title">{{ copy().heading }}</h1>
+    <p class="user-create-page-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  <form class="user-create-page-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <admin-text-input
+      [control]="emailControl"
+      [label]="copy().emailLabel"
+      fieldId="user-create-email"
+      type="email"
+      autocomplete="email"
+    />
+    <admin-text-input
+      [control]="passwordControl"
+      [label]="copy().passwordLabel"
+      fieldId="user-create-password"
+      type="password"
+      autocomplete="new-password"
+      [hint]="copy().passwordHint"
+    />
+    <admin-text-input
+      [control]="firstNameControl"
+      [label]="copy().firstNameLabel"
+      fieldId="user-create-first-name"
+      autocomplete="given-name"
+    />
+    <admin-text-input
+      [control]="lastNameControl"
+      [label]="copy().lastNameLabel"
+      fieldId="user-create-last-name"
+      autocomplete="family-name"
+    />
+    <button type="submit" class="user-create-page-submit" [disabled]="submitting()">
+      {{ submitting() ? copy().saving : copy().submit }}
+    </button>
+  </form>
+
+  @if (formError() !== null) {
+    <flux-error-state [title]="copy().formErrorTitle" [message]="formError()" [showRetry]="false" />
+  }
+
+  @if (result() !== null) {
+    <section aria-labelledby="user-create-result-title">
+      <h2 id="user-create-result-title">{{ copy().successResultTitle }}</h2>
+      <flux-card>
+        <dl class="user-create-page-facts">
+          <div>
+            <dt>{{ copy().emailLabel }}</dt>
+            <dd>{{ result()!.email }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().firstNameLabel }}</dt>
+            <dd>{{ result()!.firstName }} {{ result()!.lastName }}</dd>
+          </div>
+        </dl>
+      </flux-card>
+      <a class="user-create-page-view-user" [routerLink]="['/users', result()!.id]">{{
+        copy().viewUser
+      }}</a>
+    </section>
+  }
+</section>

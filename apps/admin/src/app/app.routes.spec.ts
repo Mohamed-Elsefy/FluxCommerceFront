@@ -26,12 +26,13 @@ describe('routes', () => {
     expect(shell?.data?.['roles']).toEqual(['Admin', 'SuperAdmin']);
   });
 
-  it('keeps the shell home and dashboard lazy inside the protected shell', () => {
+  it('redirects the shell root to the dashboard and keeps it lazy', () => {
     const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
-    const home = shell?.children?.find((route) => route.path === '');
+    const root = shell?.children?.find((route) => route.path === '');
     const dashboard = shell?.children?.find((route) => route.path === 'dashboard');
 
-    expect(typeof home?.loadComponent).toBe('function');
+    expect(root?.redirectTo).toBe('dashboard');
+    expect(root?.loadComponent).toBeUndefined();
     expect(typeof dashboard?.loadComponent).toBe('function');
     expect(dashboard?.canActivate).toEqual([permissionGuard]);
     expect(dashboard?.data?.['permissions']).toEqual(['dashboard.read']);

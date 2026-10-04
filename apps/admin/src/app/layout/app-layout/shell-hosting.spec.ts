@@ -62,7 +62,7 @@ async function setupAs(
     auth.setAuthenticated({
       user: adminUser(
         state === 'admin' ? ['Admin'] : ['Customer'],
-        state === 'admin' ? ['dashboard.read'] : [],
+        state === 'admin' ? ['dashboard.read', 'orders.read'] : [],
       ),
       accessToken: 'test-access-token',
     });
@@ -102,15 +102,24 @@ describe('AdminShell hosting', () => {
     expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Dashboard');
   });
 
+  it('redirects the portal root to the dashboard inside the shell', async () => {
+    const { fixture, router } = await setupAs('admin');
+
+    const element = await navigate(router, fixture, '/');
+    expect(router.url).toContain('/dashboard');
+    expect(element.querySelector('app-layout')).not.toBeNull();
+    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Dashboard');
+  });
+
   it('keeps the shell mounted while swapping nested features', async () => {
     const { fixture, router } = await setupAs('admin');
 
-    let element = await navigate(router, fixture, '/');
-    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Admin');
-
-    element = await navigate(router, fixture, '/dashboard');
-    expect(element.querySelector('app-layout')).not.toBeNull();
+    let element = await navigate(router, fixture, '/dashboard');
     expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Dashboard');
+
+    element = await navigate(router, fixture, '/orders/list');
+    expect(element.querySelector('app-layout')).not.toBeNull();
+    expect(element.querySelector('main#admin-main h1')?.textContent).toContain('Orders');
   });
 
   it('renders the login page outside the shell for anonymous visits', async () => {

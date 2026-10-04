@@ -19,7 +19,7 @@ import { AppLayout } from './layout/app-layout/app-layout';
  * /login      → anonymous entry point (public, outside the shell)
  * /forbidden  → denial destination (public, outside the shell)
  * / (+ children) → protected portal shell (Admin/SuperAdmin only)
- *     ├── ''         → shell home (protected, roles only)
+ *     ├── ''         → redirect to `dashboard` (no shell home page)
  *     ├── dashboard  → `dashboard.read` (+ SuperAdmin bypass)
  *     ├── catalog    → `catalog.manage` (+ SuperAdmin bypass)
  *     ├── inventory  → `inventory.read` (+ SuperAdmin bypass; in-page
@@ -64,7 +64,8 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage),
+        redirectTo: 'dashboard',
+        pathMatch: 'full',
       },
       {
         path: 'dashboard',

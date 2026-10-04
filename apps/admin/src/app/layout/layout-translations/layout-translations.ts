@@ -22,7 +22,6 @@ import {
 
 /** Admin layout translation key paths (`layout.*`). */
 export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
-  navHome: 'layout.nav.home',
   navDashboard: 'layout.nav.dashboard',
   navCatalog: 'layout.nav.catalog',
   navProducts: 'layout.nav.products',
@@ -35,7 +34,9 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navOrdersList: 'layout.nav.ordersList',
   navPayments: 'layout.nav.payments',
   navPaymentsList: 'layout.nav.paymentsList',
+  navNewItem: 'layout.nav.newItem',
   navUsers: 'layout.nav.users',
+  navUsersList: 'layout.nav.usersList',
   navSidebarLabel: 'layout.nav.sidebarLabel',
   headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
@@ -64,7 +65,6 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
 const EN_LAYOUT: TranslationDictionary = {
   layout: {
     nav: {
-      home: 'Home',
       dashboard: 'Dashboard',
       catalog: 'Catalog',
       products: 'Products',
@@ -77,7 +77,9 @@ const EN_LAYOUT: TranslationDictionary = {
       ordersList: 'Orders list',
       payments: 'Payments',
       paymentsList: 'Payments list',
+      newItem: 'New item',
       users: 'Users',
+      usersList: 'Users list',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -126,7 +128,6 @@ const EN_LAYOUT: TranslationDictionary = {
 const FR_LAYOUT: TranslationDictionary = {
   layout: {
     nav: {
-      home: 'Accueil',
       dashboard: 'Tableau de bord',
       catalog: 'Catalogue',
       products: 'Produits',
@@ -139,7 +140,9 @@ const FR_LAYOUT: TranslationDictionary = {
       ordersList: 'Liste des commandes',
       payments: 'Paiements',
       paymentsList: 'Liste des paiements',
+      newItem: 'Nouvel article',
       users: 'Utilisateurs',
+      usersList: 'Liste des utilisateurs',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -188,7 +191,6 @@ const FR_LAYOUT: TranslationDictionary = {
 const DE_LAYOUT: TranslationDictionary = {
   layout: {
     nav: {
-      home: 'Startseite',
       dashboard: 'Dashboard',
       catalog: 'Katalog',
       products: 'Produkte',
@@ -201,7 +203,9 @@ const DE_LAYOUT: TranslationDictionary = {
       ordersList: 'Bestellliste',
       payments: 'Zahlungen',
       paymentsList: 'Zahlungsliste',
+      newItem: 'Neuer Artikel',
       users: 'Benutzer',
+      usersList: 'Benutzerliste',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -250,7 +254,6 @@ const DE_LAYOUT: TranslationDictionary = {
 const ES_LAYOUT: TranslationDictionary = {
   layout: {
     nav: {
-      home: 'Inicio',
       dashboard: 'Panel',
       catalog: 'Catálogo',
       products: 'Productos',
@@ -263,7 +266,9 @@ const ES_LAYOUT: TranslationDictionary = {
       ordersList: 'Lista de pedidos',
       payments: 'Pagos',
       paymentsList: 'Lista de pagos',
+      newItem: 'Artículo nuevo',
       users: 'Usuarios',
+      usersList: 'Lista de usuarios',
       sidebarLabel: 'Admin',
     },
     header: {
@@ -312,7 +317,6 @@ const ES_LAYOUT: TranslationDictionary = {
 const AR_LAYOUT: TranslationDictionary = {
   layout: {
     nav: {
-      home: 'الرئيسية',
       dashboard: 'لوحة التحكم',
       catalog: 'الكتالوج',
       products: 'المنتجات',
@@ -325,7 +329,9 @@ const AR_LAYOUT: TranslationDictionary = {
       ordersList: 'قائمة الطلبات',
       payments: 'المدفوعات',
       paymentsList: 'قائمة المدفوعات',
+      newItem: 'صنف جديد',
       users: 'المستخدمون',
+      usersList: 'قائمة المستخدمين',
       sidebarLabel: 'الإدارة',
     },
     header: {

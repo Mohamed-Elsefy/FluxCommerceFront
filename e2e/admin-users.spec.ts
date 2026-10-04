@@ -5,9 +5,11 @@
  * fulfilled with contract-exact payloads because no live API runs here.
  * Sessions are seeded through `localStorage`, then restoration + guards
  * + the real feature slices run: users landing (counts), users list
- * with server-side pagination and filters, user details with lockout
- * facts and the permission section, grant/revoke with notifications,
- * and the SuperAdmin-only access control.
+ * with server-side pagination and filters, admin creation
+ * (`POST /auth/register-admin` with success + duplicate-email paths),
+ * user details with lockout facts and the permission section,
+ * grant/revoke with notifications, and the SuperAdmin-only access
+ * control.
  *
  * Contract-honest coverage notes (S1.1 audit):
  * - `GET /admin/users` is SuperAdmin-only with `status`/`role`/`search`
@@ -255,6 +257,50 @@ test.describe('admin users journeys (S1.5)', () => {
     await page.goto('/users/unknown-id');
 
     await expect(page.getByText('User unavailable')).toBeVisible();
+  });
+
+  test('super-admin creates an admin through the creation page', async ({ page }) => {
+    await seed(page, ['SuperAdmin']);
+    await mockSession(page, ['SuperAdmin']);
+    await mock(
+      page,
+      'POST',
+      '/auth/register-admin',
+      201,
+      ok(userWithRoles(['Admin'], [...FULL_PERMISSIONS])),
+    );
+    await page.goto('/users/new');
+
+    await expect(page.getByRole('heading', { name: 'Create admin' })).toBeVisible();
+    await page.getByLabel('Email').fill('boss@flux.local');
+    await page.getByLabel('Password').fill('Test123!');
+    await page.getByLabel('First name').fill('Boss');
+    await page.getByLabel('Last name').fill('Admin');
+    await page.getByRole('button', { name: 'Create admin', exact: true }).click();
+
+    await expect(page.getByText('Admin created')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View admin' })).toHaveAttribute(
+      'href',
+      `/users/${USER_ID}`,
+    );
+  });
+
+  test('duplicate admin email renders the form-level notice with input preserved', async ({
+    page,
+  }) => {
+    await seed(page, ['SuperAdmin']);
+    await mockSession(page, ['SuperAdmin']);
+    await mock(page, 'POST', '/auth/register-admin', 409, problem(409, 'Email taken.'));
+    await page.goto('/users/new');
+
+    await page.getByLabel('Email').fill('boss@flux.local');
+    await page.getByLabel('Password').fill('Test123!');
+    await page.getByLabel('First name').fill('Boss');
+    await page.getByLabel('Last name').fill('Admin');
+    await page.getByRole('button', { name: 'Create admin', exact: true }).click();
+
+    await expect(page.getByText('Could not create the admin')).toBeVisible();
+    await expect(page.getByLabel('Email')).toHaveValue('boss@flux.local');
   });
 
   test('grant permission notifies and reloads', async ({ page }) => {

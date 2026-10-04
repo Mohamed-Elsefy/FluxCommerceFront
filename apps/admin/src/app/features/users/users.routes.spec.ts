@@ -11,11 +11,11 @@ describe('usersRoutes', () => {
     expect(root?.providers).toEqual([UsersListState, UsersCountsState, UserDetailsState]);
   });
 
-  it('mounts the landing, list, and details pages without placeholders', () => {
+  it('mounts the landing, list, creation, and details pages without placeholders', () => {
     const root = usersRoutes.find((route) => route.path === '');
     const paths = root?.children?.map((route) => route.path);
 
-    expect(paths).toEqual(['', 'list', ':id']);
+    expect(paths).toEqual(['', 'list', 'new', ':id']);
     for (const child of root?.children ?? []) {
       expect(typeof child.loadComponent).toBe('function');
     }

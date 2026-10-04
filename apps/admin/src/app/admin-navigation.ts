@@ -46,13 +46,15 @@ export interface AdminDestination {
  * Sidebar destinations — only routes that exist. The catalog group grows
  * with the slices that create their routes (products in 13.3, categories
  * in 13.5); the inventory group grows the same way (stock, reservations,
- * and adjustments in 13.9–13.10); the orders group grows with the slices
- * that create their routes (list in 14.3; details arrive deep-linked in
- * 14.5 with no nav entry — like catalog details); the payments group
- * arrives with Supplement S1.9 (list with a deep-linked details page).
+ * adjustments, and item creation); the orders group grows with the
+ * slices that create their routes (list in 14.3; details arrive
+ * deep-linked in 14.5 with no nav entry — like catalog details); the
+ * payments group arrives with Supplement S1.9 (list with a deep-linked
+ * details page). Details pages (`:id` segments) stay deep-link-only.
+ * The portal root (`/`) redirects to `/dashboard`, so no home entry
+ * ships — the dashboard is the landing page.
  */
 export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
-  { labelKey: 'layout.nav.home', route: '/', icon: '⌂' },
   {
     labelKey: 'layout.nav.dashboard',
     route: '/dashboard',
@@ -82,6 +84,11 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
         route: '/inventory/adjustments',
         permissions: ['inventory.manage'],
       },
+      {
+        labelKey: 'layout.nav.newItem',
+        route: '/inventory/new',
+        permissions: ['inventory.manage'],
+      },
     ],
   },
   {
@@ -103,6 +110,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     route: '/users',
     icon: '◉',
     roles: ['SuperAdmin'],
+    children: [{ labelKey: 'layout.nav.usersList', route: '/users/list' }],
   },
 ];
 

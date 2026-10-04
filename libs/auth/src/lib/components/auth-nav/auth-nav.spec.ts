@@ -110,6 +110,7 @@ describe('AuthNav', () => {
     page.logout();
     page.logout();
     expect(logout).toHaveBeenCalledTimes(1);
+    expect(logout).toHaveBeenCalledWith({ redirectTo: undefined });
     expect(page.isLoggingOut()).toBe(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('button')?.textContent?.trim()).toBe('Signing out…');
@@ -118,6 +119,19 @@ describe('AuthNav', () => {
     pending.next();
     pending.complete();
     expect(page.isLoggingOut()).toBe(false);
+  });
+
+  it('forwards a custom post-logout destination to the session logout', () => {
+    auth.setAuthenticated({ user: USER, accessToken: 'access-token-1' });
+    const fixture = TestBed.createComponent(AuthNav);
+    const page = fixture.componentInstance;
+    page.logoutRedirectTo = '/login';
+    fixture.detectChanges();
+    const logout = vi.spyOn(auth, 'logout').mockReturnValue(new Subject<void>());
+
+    page.logout();
+
+    expect(logout).toHaveBeenCalledWith({ redirectTo: '/login' });
   });
 
   it('never renders token material', () => {

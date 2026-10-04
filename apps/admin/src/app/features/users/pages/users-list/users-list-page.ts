@@ -49,6 +49,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { ErrorState } from '@flux/ui';
 import {
@@ -72,6 +73,7 @@ import { USERS_TRANSLATION_KEYS, translateUsersKey } from '../../i18n/users-tran
   selector: 'app-users-list-page',
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     AdminDataTable,
     AdminFilterBar,
     AdminSearchInput,
@@ -188,6 +190,7 @@ export class UsersListPage implements OnInit {
     return {
       heading: translateUsersKey(culture, USERS_TRANSLATION_KEYS.listHeading),
       subheading: translateUsersKey(culture, USERS_TRANSLATION_KEYS.listSubheading),
+      createAdmin: translateUsersKey(culture, USERS_TRANSLATION_KEYS.createSubmit),
       caption: translateUsersKey(culture, USERS_TRANSLATION_KEYS.listCaption),
       loading: translateUsersKey(culture, USERS_TRANSLATION_KEYS.listLoading),
       emptyTitle: translateUsersKey(culture, USERS_TRANSLATION_KEYS.listEmptyTitle),

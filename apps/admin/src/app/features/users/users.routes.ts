@@ -14,14 +14,14 @@ import { UsersListState } from './state/users-list-state';
  * `SuperAdmin`-only server-side too).
  *
  * No feature data-access service: list/counts/details/permission reads
- * and submissions go through the shared `IdentityApiService`
- * (`@flux/api`, S1.2) directly — no façade duplicates a thin typed
- * transport that already exists (rules 12.11/Phase-12: no parallel
- * admin transport). The three feature states are provided once at the
- * feature root, so all users pages share one state family without root
- * singletons or a global store. Route order matters: the static `list`
- * segment precedes the `:id` sibling (top-down matching — `list` must
- * not parse as an id).
+ * and submissions (including admin creation via `registerAdmin`) go
+ * through the shared `IdentityApiService` (`@flux/api`, S1.2) directly —
+ * no façade duplicates a thin typed transport that already exists
+ * (rules 12.11/Phase-12: no parallel admin transport). The three feature
+ * states are provided once at the feature root, so all users pages share
+ * one state family without root singletons or a global store. Route order
+ * matters: the static `list` and `new` segments precede the `:id`
+ * sibling (top-down matching — neither must parse as an id).
  */
 export const usersRoutes: Routes = [
   {
@@ -37,6 +37,11 @@ export const usersRoutes: Routes = [
         path: 'list',
         loadComponent: () =>
           import('./pages/users-list/users-list-page').then((m) => m.UsersListPage),
+      },
+      {
+        path: 'new',
+        loadComponent: () =>
+          import('./pages/user-create/user-create-page').then((m) => m.UserCreatePage),
       },
       {
         path: ':id',

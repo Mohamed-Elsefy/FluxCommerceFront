@@ -20,6 +20,24 @@
   color: var(--color-text-muted);
 }
 
+.users-list-new {
+  align-self: start;
+  padding-inline: var(--spacing-lg);
+  padding-block: var(--spacing-sm);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.users-list-new:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
 .users-list-filters {
   margin: 0;
   padding: 0;

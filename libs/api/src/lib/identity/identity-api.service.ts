@@ -68,6 +68,7 @@ import type {
   LoginResponse,
   LogoutRequest,
   RefreshRequest,
+  RegisterAdminRequest,
   RegisterCustomerRequest,
   ResendVerificationRequest,
   ResendVerificationResponse,
@@ -107,6 +108,24 @@ export class IdentityApiService {
   ): Observable<ApiResponseWithData<UserResponse>> {
     return this.api.post<ApiResponseWithData<UserResponse>>(
       IDENTITY_ENDPOINTS.register.path,
+      body,
+      options,
+    );
+  }
+
+  /**
+   * `POST /auth/register-admin` — `SuperAdmin` JWT only. Creates an
+   * `Admin` (with the full permission bundle stored server-side).
+   * Success: `201 ApiResponse<UserResponse>` (via `Created()`).
+   * Failures: `400` validation (`errors{}`), `401` no/invalid JWT,
+   * `403` non-SuperAdmin, `409 Identity.DuplicateEmail`.
+   */
+  registerAdmin(
+    body: RegisterAdminRequest,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<UserResponse>> {
+    return this.api.post<ApiResponseWithData<UserResponse>>(
+      IDENTITY_ENDPOINTS.registerAdmin.path,
       body,
       options,
     );

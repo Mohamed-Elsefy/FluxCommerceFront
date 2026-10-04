@@ -110,6 +110,13 @@ describe('UsersListPage', () => {
     expect(element.textContent).toContain('user-1@flux.local');
   });
 
+  it('links to admin creation from the list header', () => {
+    setup({ page: pageState([row('user-1')]) });
+    const element = render();
+
+    expect(element.querySelector('.users-list-new')?.getAttribute('href')).toBe('/users/new');
+  });
+
   it('renders the status badge per row', () => {
     setup({ page: pageState([row('user-1', { status: 3 })]) });
     const element = render();

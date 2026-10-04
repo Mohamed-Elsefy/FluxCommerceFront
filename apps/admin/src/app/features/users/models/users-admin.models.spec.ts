@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { UserStatus } from '@flux/models';
-import { emptyUsersOverview, userStatusDisplay } from './users-admin.models';
+import {
+  emptyUsersOverview,
+  toRegisterAdminRequest,
+  userStatusDisplay,
+} from './users-admin.models';
 
 describe('users admin models', () => {
   it('builds a zeroed overview', () => {
@@ -46,6 +50,21 @@ describe('users admin models', () => {
     expect(userStatusDisplay(99)).toEqual({
       labelKey: 'users.status.unknown',
       variant: 'neutral',
+    });
+  });
+
+  it('projects raw creation values into the register-admin body', () => {
+    expect(toRegisterAdminRequest('  Boss@Flux.Local ', 'Test123!', ' Boss ', 'Admin ')).toEqual({
+      email: 'Boss@Flux.Local',
+      password: 'Test123!',
+      firstName: 'Boss',
+      lastName: 'Admin',
+    });
+    expect(toRegisterAdminRequest(null, undefined, '', null)).toEqual({
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
     });
   });
 });

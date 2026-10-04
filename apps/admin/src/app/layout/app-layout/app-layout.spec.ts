@@ -118,7 +118,6 @@ describe('AppLayout', () => {
       node.textContent?.trim(),
     );
     expect(labels).toEqual([
-      'Accueil',
       'Tableau de bord',
       'Catalogue',
       'Produits',
@@ -127,6 +126,7 @@ describe('AppLayout', () => {
       'Stock',
       'Réservations',
       'Ajustements',
+      'Nouvel article',
       'Commandes',
       'Liste des commandes',
     ]);
@@ -141,6 +141,6 @@ describe('AppLayout', () => {
       [...element.querySelectorAll('admin-sidebar flux-icon .icon')].map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(['⌂', '▦', '▤', '▣', '▨']);
+    ).toEqual(['▦', '▤', '▣', '▨']);
   });
 });

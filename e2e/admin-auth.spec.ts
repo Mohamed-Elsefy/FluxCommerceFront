@@ -123,7 +123,7 @@ test.describe('admin access control', () => {
   test('anonymous visits to the portal root land on the admin login', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveURL(/\/login\?returnUrl=%2F$/);
+    await expect(page).toHaveURL(/\/login\?returnUrl=%2Fdashboard$/);
     await expect(page.getByRole('heading', { name: 'Admin sign in' })).toBeVisible();
   });
 
@@ -197,6 +197,8 @@ test.describe('admin access control', () => {
 
     await page.getByRole('button', { name: 'Logout' }).click();
 
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('heading', { name: 'Admin sign in' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logout' })).toHaveCount(0);
     const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
     expect(stored).toBeNull();
@@ -233,32 +235,46 @@ test.describe('admin integrated journeys (12.10)', () => {
     expect(stored).not.toBeNull();
   });
 
+  test('portal root redirects to the dashboard', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockRefresh(page, ['Admin']);
+    await mockMe(page, ['Admin']);
+    await page.goto('/');
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.locator('app-layout')).toBeVisible();
+  });
+
   test('sidebar navigation swaps features with active state', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockRefresh(page, ['Admin']);
     await mockMe(page, ['Admin']);
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-
-    await page.getByRole('link', { name: 'Home' }).click();
-    await expect(page.getByRole('heading', { name: 'Admin' }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-
-    await page.getByRole('link', { name: 'Dashboard' }).click();
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
       'aria-current',
       'page',
     );
+
+    await page.getByRole('link', { name: 'Orders', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Orders', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+
+    await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('deep links render inside the shell', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockRefresh(page, ['Admin']);
     await mockMe(page, ['Admin']);
-    await page.goto('/');
+    await page.goto('/dashboard');
 
-    await expect(page.getByRole('heading', { name: 'Admin' }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.locator('app-layout')).toBeVisible();
   });
 
@@ -276,8 +292,8 @@ test.describe('admin integrated journeys (12.10)', () => {
     await page.getByRole('button', { name: 'Toggle navigation' }).click();
     await expect(sidebar).toBeVisible();
 
-    await page.getByRole('link', { name: 'Home' }).click();
-    await expect(page.getByRole('heading', { name: 'Admin' }).first()).toBeVisible();
+    await page.getByRole('link', { name: 'Orders', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
     await expect(sidebar).toBeHidden();
   });
 
@@ -288,9 +304,9 @@ test.describe('admin integrated journeys (12.10)', () => {
     await page.addInitScript(() => window.localStorage.setItem('fluxcommerce.culture.v1', 'fr'));
     await page.goto('/dashboard');
 
-    await expect(page.getByRole('link', { name: 'Accueil' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Tableau de bord' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Commandes', exact: true })).toBeVisible();
   });
 
   test('language switch drives RTL rendering', async ({ page }) => {
@@ -303,7 +319,7 @@ test.describe('admin integrated journeys (12.10)', () => {
     await page.locator('admin-culture-switch select').selectOption('ar');
 
     await expect.poll(() => page.evaluate(() => document.documentElement.dir)).toBe('rtl');
-    await expect(page.getByRole('link', { name: 'الرئيسية' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'لوحة التحكم' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'لوحة التحكم' })).toBeVisible();
   });
 

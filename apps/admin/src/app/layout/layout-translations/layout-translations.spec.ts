@@ -9,8 +9,12 @@ describe('translateAdminLayoutKey', () => {
     expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.navDashboard)).toBe(
       'Tableau de bord',
     );
-    expect(translateAdminLayoutKey('de', ADMIN_LAYOUT_TRANSLATION_KEYS.navHome)).toBe('Startseite');
-    expect(translateAdminLayoutKey('es', ADMIN_LAYOUT_TRANSLATION_KEYS.navHome)).toBe('Inicio');
+    expect(translateAdminLayoutKey('de', ADMIN_LAYOUT_TRANSLATION_KEYS.navNewItem)).toBe(
+      'Neuer Artikel',
+    );
+    expect(translateAdminLayoutKey('es', ADMIN_LAYOUT_TRANSLATION_KEYS.navUsersList)).toBe(
+      'Lista de usuarios',
+    );
     expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.switchLabel)).toBe('اللغة');
     expect(translateAdminLayoutKey('en', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe('Orders');
     expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe(
@@ -63,9 +67,21 @@ describe('translateAdminLayoutKey', () => {
     );
   });
 
+  it('covers destinations in every culture without key leakage', () => {
+    expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.navNewItem)).toBe(
+      'Nouvel article',
+    );
+    expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.navUsersList)).toBe(
+      'قائمة المستخدمين',
+    );
+    expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.navNewItem)).toBe(
+      'صنف جديد',
+    );
+  });
+
   it('falls back deterministically for unknown cultures and keys', () => {
-    expect(translateAdminLayoutKey('xx' as never, ADMIN_LAYOUT_TRANSLATION_KEYS.navHome)).toBe(
-      'Home',
+    expect(translateAdminLayoutKey('xx' as never, ADMIN_LAYOUT_TRANSLATION_KEYS.navDashboard)).toBe(
+      'Dashboard',
     );
     expect(translateAdminLayoutKey('en', 'layout.missing.key')).toBe('layout.missing.key');
   });
