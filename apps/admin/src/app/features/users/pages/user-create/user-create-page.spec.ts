@@ -135,6 +135,7 @@ describe('UserCreatePage', () => {
     const notifications = TestBed.inject(AdminNotificationService).notifications();
     expect(notifications.at(-1)?.type).toBe('success');
     expect(notifications.at(-1)?.title).toBe('Admin created');
+    expect(notifications.at(-1)?.message).toContain('with no permissions');
   });
 
   it('renders duplicate emails as the form-level notice with input preserved', () => {

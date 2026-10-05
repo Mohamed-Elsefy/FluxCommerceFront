@@ -8,8 +8,9 @@
  * server-side).
  *
  * Source of truth: `docs/frontend-contract/API_CONTRACT.md` §8
- * (`dashboard.read`; negative `lowStockThreshold` → `400
- * ValidationFailed`; first failing section's error surfaces).
+ * (adaptive: any authenticated JWT, nullable per-permission sections;
+ * negative `lowStockThreshold` → `400 ValidationFailed`; first failing
+ * entitled section's error surfaces).
  *
  * Layering (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
@@ -70,10 +71,11 @@ export class DashboardApiService {
    * overviews plus the newest 5 orders. `lowStockThreshold` defaults to
    * 5 server-side (inclusive available ceiling for the inventory
    * section); negative values → `400 ValidationFailed`.
-   * Success: `200 ApiResponse<AdminDashboardResponse>`.
-   * Failures: `400` validation, `401` anonymous, `403` missing
-   * `dashboard.read` (first failing section's error surfaces as
-   * mapped).
+   * Success: `200 ApiResponse<AdminDashboardResponse>` (always `200`
+   * for any authenticated JWT — sections the caller is not entitled
+   * to arrive `null`, `recentOrders` arrives `[]`).
+   * Failures: `400` validation, `401` anonymous (first failing
+   * entitled section's error surfaces as mapped).
    */
   getDashboard(
     query: DashboardQuery = {},

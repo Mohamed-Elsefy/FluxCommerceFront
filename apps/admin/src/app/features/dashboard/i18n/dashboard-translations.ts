@@ -3,8 +3,9 @@
  * in all five supported cultures (`en`/`fr`/`de`/`es`/`ar`).
  *
  * Covers the page header, the live session card, and the Supplement
- * S1.10 live snapshot: per-module overview cards (orders, payments,
- * inventory, users — backend-issued counts, display only) plus the
+ * S2.3 adaptive snapshot: per-entitlement overview cards (orders,
+ * payments, inventory, catalog, users — backend-issued counts, display
+ * only), the honest empty state (no entitled sections), plus the
  * recent-orders drill-down widget. Lookup runs through the Phase 4
  * `translate` engine (deterministic target → `en` → key-path fallback).
  * Pure data + pure lookup: no Angular, DOM, or storage access —
@@ -53,6 +54,15 @@ export const DASHBOARD_TRANSLATION_KEYS = {
   usersAdmins: 'dashboard.sections.usersAdmins',
   usersSuperAdmins: 'dashboard.sections.usersSuperAdmins',
   usersCustomers: 'dashboard.sections.usersCustomers',
+  catalogTitle: 'dashboard.sections.catalogTitle',
+  catalogLink: 'dashboard.sections.catalogLink',
+  catalogTotal: 'dashboard.sections.catalogTotal',
+  catalogProducts: 'dashboard.sections.catalogProducts',
+  catalogActiveProducts: 'dashboard.sections.catalogActiveProducts',
+  catalogCategories: 'dashboard.sections.catalogCategories',
+  catalogVariants: 'dashboard.sections.catalogVariants',
+  emptyTitle: 'dashboard.empty.title',
+  emptyMessage: 'dashboard.empty.message',
   recentTitle: 'dashboard.recent.title',
   recentEmpty: 'dashboard.recent.empty',
   recentLink: 'dashboard.recent.link',
@@ -98,6 +108,17 @@ const EN_DASHBOARD: TranslationDictionary = {
       usersAdmins: 'Admins',
       usersSuperAdmins: 'Super admins',
       usersCustomers: 'Customers',
+      catalogTitle: 'Catalog',
+      catalogLink: 'View products list',
+      catalogTotal: '{count} products',
+      catalogProducts: 'Products',
+      catalogActiveProducts: 'Active products',
+      catalogCategories: 'Categories',
+      catalogVariants: 'Variants',
+    },
+    empty: {
+      title: 'No sections available',
+      message: 'Your account has no dashboard permissions yet.',
     },
     recent: {
       title: 'Recent orders',
@@ -147,6 +168,17 @@ const FR_DASHBOARD: TranslationDictionary = {
       usersAdmins: 'Admins',
       usersSuperAdmins: 'Super admins',
       usersCustomers: 'Clients',
+      catalogTitle: 'Catalogue',
+      catalogLink: 'Voir la liste des produits',
+      catalogTotal: '{count} produits',
+      catalogProducts: 'Produits',
+      catalogActiveProducts: 'Produits actifs',
+      catalogCategories: 'Catégories',
+      catalogVariants: 'Variantes',
+    },
+    empty: {
+      title: 'Aucune section disponible',
+      message: 'Votre compte n’a pas encore d’autorisations de tableau de bord.',
     },
     recent: {
       title: 'Commandes récentes',
@@ -196,6 +228,17 @@ const DE_DASHBOARD: TranslationDictionary = {
       usersAdmins: 'Admins',
       usersSuperAdmins: 'Super-Admins',
       usersCustomers: 'Kunden',
+      catalogTitle: 'Katalog',
+      catalogLink: 'Produktliste ansehen',
+      catalogTotal: '{count} Produkte',
+      catalogProducts: 'Produkte',
+      catalogActiveProducts: 'Aktive Produkte',
+      catalogCategories: 'Kategorien',
+      catalogVariants: 'Varianten',
+    },
+    empty: {
+      title: 'Keine Bereiche verfügbar',
+      message: 'Ihr Konto hat noch keine Dashboard-Berechtigungen.',
     },
     recent: {
       title: 'Neueste Bestellungen',
@@ -245,6 +288,17 @@ const ES_DASHBOARD: TranslationDictionary = {
       usersAdmins: 'Admins',
       usersSuperAdmins: 'Superadmins',
       usersCustomers: 'Clientes',
+      catalogTitle: 'Catálogo',
+      catalogLink: 'Ver la lista de productos',
+      catalogTotal: '{count} productos',
+      catalogProducts: 'Productos',
+      catalogActiveProducts: 'Productos activos',
+      catalogCategories: 'Categorías',
+      catalogVariants: 'Variantes',
+    },
+    empty: {
+      title: 'Sin secciones disponibles',
+      message: 'Tu cuenta aún no tiene permisos de panel.',
     },
     recent: {
       title: 'Pedidos recientes',
@@ -294,6 +348,17 @@ const AR_DASHBOARD: TranslationDictionary = {
       usersAdmins: 'المشرفون',
       usersSuperAdmins: 'المشرفون العامون',
       usersCustomers: 'العملاء',
+      catalogTitle: 'الكتالوج',
+      catalogLink: 'عرض قائمة المنتجات',
+      catalogTotal: '{count} منتجات',
+      catalogProducts: 'المنتجات',
+      catalogActiveProducts: 'منتجات نشطة',
+      catalogCategories: 'الفئات',
+      catalogVariants: 'المتغيرات',
+    },
+    empty: {
+      title: 'لا توجد أقسام متاحة',
+      message: 'حسابك لا يملك صلاحيات لوحة التحكم بعد.',
     },
     recent: {
       title: 'أحدث الطلبات',

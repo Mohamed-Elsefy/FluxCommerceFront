@@ -59,7 +59,6 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     labelKey: 'layout.nav.dashboard',
     route: '/dashboard',
     icon: '▦',
-    permissions: ['dashboard.read'],
   },
   {
     labelKey: 'layout.nav.catalog',
@@ -109,7 +108,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     labelKey: 'layout.nav.users',
     route: '/users',
     icon: '◉',
-    roles: ['SuperAdmin'],
+    permissions: ['users.read', 'users.manage', 'admins.create'],
     children: [{ labelKey: 'layout.nav.usersList', route: '/users/list' }],
   },
 ];

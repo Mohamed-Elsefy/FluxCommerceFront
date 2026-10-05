@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { permissionGuard } from '@flux/auth';
 import { UserDetailsState } from './state/user-details-state';
 import { UsersCountsState } from './state/users-counts-state';
 import { UsersListState } from './state/users-list-state';
@@ -19,5 +20,17 @@ describe('usersRoutes', () => {
     for (const child of root?.children ?? []) {
       expect(typeof child.loadComponent).toBe('function');
     }
+  });
+
+  it('guards creation with admins.create (list and details inherit the mount gate)', () => {
+    const root = usersRoutes.find((route) => route.path === '');
+    const creation = root?.children?.find((route) => route.path === 'new');
+    const list = root?.children?.find((route) => route.path === 'list');
+    const details = root?.children?.find((route) => route.path === ':id');
+
+    expect(creation?.canActivate).toEqual([permissionGuard]);
+    expect(creation?.data?.['permissions']).toEqual(['admins.create']);
+    expect(list?.canActivate).toBeUndefined();
+    expect(details?.canActivate).toBeUndefined();
   });
 });

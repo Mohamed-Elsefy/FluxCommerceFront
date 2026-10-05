@@ -346,7 +346,7 @@ test('Journey 2 — orders list paginates through backend pages', async ({ page 
     'href',
     `/account/orders/${ORDER_A}`,
   );
-  await expect(page.getByText('Confirmed')).toBeVisible();
+  await expect(page.getByRole('article').getByText('Confirmed')).toBeVisible();
 
   // The pager commits page moves through state — the backend sees the
   // committed page number, and rows update to the new backend page.

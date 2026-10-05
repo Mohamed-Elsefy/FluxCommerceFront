@@ -1,24 +1,30 @@
 /**
- * Admin Users & Permissions E2E for Supplement S1, Step S1.5.
+ * Admin Users & Permissions E2E for Supplement S2, Step S2.4 —
+ * Delegated Users Management.
  *
  * Same backend reality as `admin-orders.spec.ts`: transports are
  * fulfilled with contract-exact payloads because no live API runs here.
  * Sessions are seeded through `localStorage`, then restoration + guards
  * + the real feature slices run: users landing (counts), users list
- * with server-side pagination and filters, admin creation
+ * with server-side pagination and filters, delegated admin creation
  * (`POST /auth/register-admin` with success + duplicate-email paths),
  * user details with lockout facts and the permission section,
- * grant/revoke with notifications, and the SuperAdmin-only access
+ * delegated grant/revoke with notifications (including the
+ * `Identity.Forbidden` toast path), and the permission-gated access
  * control.
  *
- * Contract-honest coverage notes (S1.1 audit):
- * - `GET /admin/users` is SuperAdmin-only with `status`/`role`/`search`
+ * Contract-honest coverage notes (S2.1 audit):
+ * - `GET /admin/users` takes `users.read` with `status`/`role`/`search`
  *   filters (case-insensitive) — the suite asserts the request query.
  * - Permission values render verbatim (stable identifiers, never
  *   localized) — assertions match raw values, never translations.
+ * - The grant affordance renders for SuperAdmin and `users.manage`
+ *   holders only (fully hidden otherwise); delegation denials surface
+ *   `403 Identity.Forbidden` as error toasts (no retry, no logout).
  * - Grant duplicates surface `409 PermissionAlreadyGranted` (no blind
  *   retry); revokes are idempotent; unknown permissions surface `400
  *   Identity.InvalidPermission` — all status-first, never message text.
+ * - Created admins start permission-less (grants happen afterwards).
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
@@ -28,9 +34,10 @@ const API_ORIGIN = 'https://localhost:7119';
 const USER_ID = '22222222-2222-2222-2222-222222222222';
 
 /**
- * Full permission bundle the backend stores when the `Admin` role is
- * assigned (`API_CONTRACT.md` §0.5). Mirrors the contract so admin
- * journeys exercise the permission-gated shell like production.
+ * Full v2 permission catalog (`API_CONTRACT.md` §0.5). Mirrors the
+ * contract so admin journeys exercise the permission-gated shell like
+ * production. Assigning the `Admin` role grants nothing by itself —
+ * every journey below passes explicit grants.
  */
 const FULL_PERMISSIONS = [
   'orders.read',
@@ -41,12 +48,17 @@ const FULL_PERMISSIONS = [
   'inventory.read',
   'inventory.manage',
   'catalog.manage',
-  'dashboard.read',
+  'users.read',
+  'users.manage',
+  'admins.create',
 ];
 
-function userWithRoles(roles: string[], permissions: string[] = []): Record<string, unknown> {
+function userWithRoles(
+  roles: string[],
+  permissions: string[] | null = null,
+): Record<string, unknown> {
   const granted =
-    permissions.length > 0
+    permissions !== null
       ? permissions
       : roles.some((role) => role === 'Admin' || role === 'SuperAdmin')
         ? [...FULL_PERMISSIONS]
@@ -129,21 +141,29 @@ function counts(): Record<string, unknown> {
   };
 }
 
-async function seed(page: Page, roles: string[]): Promise<void> {
+async function seed(
+  page: Page,
+  roles: string[],
+  permissions: string[] | null = null,
+): Promise<void> {
   await page.addInitScript(
     ({ key, session }) => window.localStorage.setItem(key, JSON.stringify(session)),
     {
       key: STORAGE_KEY,
       session: {
         refreshToken: 'admin-refresh-1',
-        user: { ...userWithRoles(roles), displayName: null },
+        user: { ...userWithRoles(roles, permissions), displayName: null },
         authenticatedAtUtc: '2026-09-06T12:00:00.000Z',
       },
     },
   );
 }
 
-async function mockSession(page: Page, roles: string[]): Promise<void> {
+async function mockSession(
+  page: Page,
+  roles: string[],
+  permissions: string[] | null = null,
+): Promise<void> {
   await page.route('**/auth/refresh', (route) =>
     route.fulfill({
       status: 200,
@@ -155,7 +175,7 @@ async function mockSession(page: Page, roles: string[]): Promise<void> {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: ok(userWithRoles(roles)),
+      body: ok(userWithRoles(roles, permissions)),
     }),
   );
 }
@@ -180,7 +200,7 @@ async function mock(
   );
 }
 
-test.describe('admin users journeys (S1.5)', () => {
+test.describe('admin users journeys (S2.4, delegated)', () => {
   test('users landing renders the backend-issued counts', async ({ page }) => {
     await seed(page, ['SuperAdmin']);
     await mockSession(page, ['SuperAdmin']);
@@ -283,6 +303,113 @@ test.describe('admin users journeys (S1.5)', () => {
       'href',
       `/users/${USER_ID}`,
     );
+  });
+
+  test('admins.create holder (non-SuperAdmin) creates permission-less admins', async ({ page }) => {
+    await seed(page, ['Admin'], ['admins.create', 'users.read']);
+    await mockSession(page, ['Admin'], ['admins.create', 'users.read']);
+    await mock(page, 'POST', '/auth/register-admin', 201, ok(userWithRoles(['Admin'], [])));
+    await page.goto('/users/new');
+
+    await expect(page).not.toHaveURL(/\/forbidden$/);
+    await expect(page.getByRole('heading', { name: 'Create admin' })).toBeVisible();
+    await page.getByLabel('Email').fill('new@flux.local');
+    await page.getByLabel('Password').fill('Test123!');
+    await page.getByLabel('First name').fill('New');
+    await page.getByLabel('Last name').fill('Admin');
+    await page.getByRole('button', { name: 'Create admin', exact: true }).click();
+
+    await expect(page.getByText('Admin created')).toBeVisible();
+    await expect(
+      page.getByText('was created as Admin with no permissions', { exact: false }),
+    ).toBeVisible();
+  });
+
+  test('users.read viewer browses users without any grant UI', async ({ page }) => {
+    await seed(page, ['Admin'], ['users.read']);
+    await mockSession(page, ['Admin'], ['users.read']);
+    await mock(
+      page,
+      'GET',
+      '/admin/users',
+      200,
+      ok({
+        items: [userRow('user-1')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    );
+    await mock(page, 'GET', '/admin/users/user-1', 200, ok(userRow('user-1')));
+    await mock(page, 'GET', '/admin/users/user-1/permissions', 200, ok(['orders.read']));
+    await mock(page, 'GET', '/admin/users/permissions', 403, problem(403, 'Forbidden.'));
+    await page.goto('/users/list');
+
+    await expect(page).not.toHaveURL(/\/forbidden$/);
+    await expect(page.getByText('user-1@flux.local')).toBeVisible();
+    await page.getByRole('link', { name: 'user-1@flux.local' }).click();
+
+    await expect(page).toHaveURL('/users/user-1');
+    await expect(page.getByText('orders.read')).toBeVisible();
+    await expect(page.locator('.user-grant-form')).toHaveCount(0);
+    await expect(page.locator('.user-permission-revoke')).toHaveCount(0);
+  });
+
+  test('users.manage holder grants and revokes end to end', async ({ page }) => {
+    await seed(page, ['Admin'], ['users.read', 'users.manage']);
+    await mockSession(page, ['Admin'], ['users.read', 'users.manage']);
+    await mock(page, 'GET', `/admin/users/${USER_ID}`, 200, ok(userWithRoles(['Admin'])));
+    await mock(page, 'GET', `/admin/users/${USER_ID}/permissions`, 200, ok(['orders.read']));
+    await mock(page, 'GET', '/admin/users/permissions', 200, ok(FULL_PERMISSIONS));
+    await mock(
+      page,
+      'POST',
+      `/admin/users/${USER_ID}/permissions`,
+      200,
+      ok(userWithRoles(['Admin'], ['orders.read', 'catalog.manage'])),
+    );
+    await mock(
+      page,
+      'DELETE',
+      `/admin/users/${USER_ID}/permissions/orders.read`,
+      200,
+      ok(userWithRoles(['Admin'], ['catalog.manage'])),
+    );
+    await page.goto(`/users/${USER_ID}`);
+
+    await expect(page.locator('.user-grant-form')).toBeVisible();
+    await page.getByLabel('Permission', { exact: true }).selectOption('catalog.manage');
+    await page.getByRole('button', { name: 'Grant', exact: true }).click();
+    await expect(page.getByText('Permission granted')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Revoke orders.read' }).click();
+    await page.getByRole('button', { name: 'Revoke', exact: true }).click();
+    await expect(page.getByText('Permission revoked')).toBeVisible();
+  });
+
+  test('delegation denial surfaces the Identity.Forbidden toast without logout', async ({
+    page,
+  }) => {
+    await seed(page, ['Admin'], ['users.read', 'users.manage']);
+    await mockSession(page, ['Admin'], ['users.read', 'users.manage']);
+    await mock(page, 'GET', `/admin/users/${USER_ID}`, 200, ok(userWithRoles(['Admin'])));
+    await mock(page, 'GET', `/admin/users/${USER_ID}/permissions`, 200, ok([]));
+    await mock(page, 'GET', '/admin/users/permissions', 200, ok(FULL_PERMISSIONS));
+    await mock(
+      page,
+      'POST',
+      `/admin/users/${USER_ID}/permissions`,
+      403,
+      problem(403, 'Delegation guard.'),
+    );
+    await page.goto(`/users/${USER_ID}`);
+
+    await page.getByLabel('Permission', { exact: true }).selectOption('orders.read');
+    await page.getByRole('button', { name: 'Grant', exact: true }).click();
+
+    await expect(page.getByText('Request failed')).toBeVisible();
+    await expect(page).not.toHaveURL(/\/login/);
+    await expect(page).not.toHaveURL(/\/forbidden$/);
   });
 
   test('duplicate admin email renders the form-level notice with input preserved', async ({

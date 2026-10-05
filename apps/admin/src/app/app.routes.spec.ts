@@ -34,8 +34,14 @@ describe('routes', () => {
     expect(root?.redirectTo).toBe('dashboard');
     expect(root?.loadComponent).toBeUndefined();
     expect(typeof dashboard?.loadComponent).toBe('function');
-    expect(dashboard?.canActivate).toEqual([permissionGuard]);
-    expect(dashboard?.data?.['permissions']).toEqual(['dashboard.read']);
+  });
+
+  it('leaves the dashboard open to every portal user (adaptive sections, no permission gate)', () => {
+    const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
+    const dashboard = shell?.children?.find((route) => route.path === 'dashboard');
+
+    expect(dashboard?.canActivate).toBeUndefined();
+    expect(dashboard?.data?.['permissions']).toBeUndefined();
   });
 
   it('provides the dashboard transport seam and state on the dashboard entry', () => {
@@ -81,13 +87,13 @@ describe('routes', () => {
     expect(payments?.data?.['permissions']).toEqual(['payments.read', 'payments.stats']);
   });
 
-  it('mounts the users feature as a SuperAdmin-only lazy boundary', () => {
+  it('mounts the users feature as a permission-gated lazy boundary', () => {
     const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
     const users = shell?.children?.find((route) => route.path === 'users');
 
     expect(typeof users?.loadChildren).toBe('function');
-    expect(users?.canActivate).toEqual([roleGuard]);
-    expect(users?.data?.['roles']).toEqual(['SuperAdmin']);
+    expect(users?.canActivate).toEqual([permissionGuard]);
+    expect(users?.data?.['permissions']).toEqual(['users.read', 'users.manage', 'admins.create']);
   });
 
   it('falls back to a lazy not-found page', () => {

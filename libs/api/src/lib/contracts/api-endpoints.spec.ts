@@ -35,8 +35,8 @@ describe('buildEndpointPath', () => {
   });
 });
 
-describe('supplement S1 endpoint tables (Step S1.2)', () => {
-  it('pins the identity growth rows (profile + SuperAdmin users/permissions)', () => {
+describe('supplement S2 endpoint tables (Step S2.2, v2 markers)', () => {
+  it('pins the identity growth rows (profile + permission-gated users/permissions)', () => {
     expect(IDENTITY_ENDPOINTS.updateProfile).toEqual({
       path: '/auth/profile',
       method: 'PUT',
@@ -45,21 +45,56 @@ describe('supplement S1 endpoint tables (Step S1.2)', () => {
     expect(IDENTITY_ENDPOINTS.listUsers).toEqual({
       path: '/admin/users',
       method: 'GET',
-      auth: 'super-admin',
+      auth: 'users.read',
     });
-    expect(IDENTITY_ENDPOINTS.userCounts.path).toBe('/admin/users/counts');
-    expect(IDENTITY_ENDPOINTS.getUser.path).toBe('/admin/users/{id}');
+    expect(IDENTITY_ENDPOINTS.userCounts).toEqual({
+      path: '/admin/users/counts',
+      method: 'GET',
+      auth: 'users.read',
+    });
+    expect(IDENTITY_ENDPOINTS.getUser).toEqual({
+      path: '/admin/users/{id}',
+      method: 'GET',
+      auth: 'users.read',
+    });
+    expect(IDENTITY_ENDPOINTS.listUserPermissions).toEqual({
+      path: '/admin/users/{id}/permissions',
+      method: 'GET',
+      auth: 'users.read',
+    });
     expect(IDENTITY_ENDPOINTS.grantPermission).toEqual({
       path: '/admin/users/{id}/permissions',
       method: 'POST',
-      auth: 'super-admin',
+      auth: 'users.manage',
     });
     expect(IDENTITY_ENDPOINTS.revokePermission).toEqual({
       path: '/admin/users/{id}/permissions/{permission}',
       method: 'DELETE',
-      auth: 'super-admin',
+      auth: 'users.manage',
     });
-    expect(IDENTITY_ENDPOINTS.permissionCatalog.path).toBe('/admin/users/permissions');
+    expect(IDENTITY_ENDPOINTS.permissionCatalog).toEqual({
+      path: '/admin/users/permissions',
+      method: 'GET',
+      auth: 'users.manage',
+    });
+  });
+
+  it('pins the delegated admin rows (register-admin + writes)', () => {
+    expect(IDENTITY_ENDPOINTS.registerAdmin).toEqual({
+      path: '/auth/register-admin',
+      method: 'POST',
+      auth: 'admins.create',
+    });
+    expect(IDENTITY_ENDPOINTS.assignRole).toEqual({
+      path: '/admin/users/{id}/roles',
+      method: 'POST',
+      auth: 'users.manage',
+    });
+    expect(IDENTITY_ENDPOINTS.unlockUser).toEqual({
+      path: '/admin/users/{id}/unlock',
+      method: 'POST',
+      auth: 'users.manage',
+    });
   });
 
   it('fills the revoke-permission template end to end', () => {
@@ -124,11 +159,11 @@ describe('supplement S1 endpoint tables (Step S1.2)', () => {
     expect(ADMIN_PAYMENTS_ENDPOINTS.getAdminPayment.auth).toBe('payments.read');
   });
 
-  it('pins the dashboard row', () => {
+  it('pins the adaptive dashboard row (any authenticated JWT)', () => {
     expect(DASHBOARD_ENDPOINTS.getDashboard).toEqual({
       path: '/admin/dashboard',
       method: 'GET',
-      auth: 'dashboard.read',
+      auth: 'authenticated',
     });
   });
 });

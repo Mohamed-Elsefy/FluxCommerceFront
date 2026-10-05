@@ -118,12 +118,11 @@ describe('DashboardApiService getDashboard', () => {
     expect(observed).toEqual(envelope);
   });
 
-  it('propagates validation 400s (negative threshold) and 401/403s untouched', () => {
+  it('propagates validation 400s (negative threshold) and 401s untouched', () => {
     const { service, api } = setup();
     for (const failure of [
       new ApiError({ status: 400, message: 'Negative threshold.' }),
       new ApiError({ status: 401, message: 'Anonymous.' }),
-      new ApiError({ status: 403, message: 'Missing dashboard.read.' }),
     ]) {
       vi.mocked(api.get).mockReturnValueOnce(throwError(() => failure));
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hasRecentOrders, type DashboardSnapshot } from './dashboard-admin.models';
+import {
+  hasEntitledSections,
+  hasRecentOrders,
+  type DashboardSnapshot,
+} from './dashboard-admin.models';
 
 function snapshot(recentOrders: DashboardSnapshot['recentOrders']): DashboardSnapshot {
   return {
@@ -41,7 +45,39 @@ function snapshot(recentOrders: DashboardSnapshot['recentOrders']): DashboardSna
   };
 }
 
-describe('dashboard-admin models (S1.10)', () => {
+describe('dashboard-admin models (S2.3, adaptive)', () => {
+  it('gates the honest empty state on entitled sections', () => {
+    expect(hasEntitledSections(snapshot([]))).toBe(true);
+    expect(
+      hasEntitledSections({
+        orders: null,
+        payments: null,
+        inventory: null,
+        catalog: {
+          totalProducts: 4,
+          activeProducts: 2,
+          totalCategories: 1,
+          totalVariants: 6,
+        },
+        users: null,
+        recentOrders: [],
+      }),
+    ).toBe(true);
+    expect(
+      hasEntitledSections({
+        orders: null,
+        payments: null,
+        inventory: null,
+        catalog: null,
+        users: null,
+        recentOrders: [],
+      }),
+    ).toBe(false);
+    expect(hasEntitledSections({ recentOrders: [] })).toBe(false);
+    expect(hasEntitledSections(null)).toBe(false);
+    expect(hasEntitledSections(undefined)).toBe(false);
+  });
+
   it('detects an empty drill-down widget', () => {
     expect(hasRecentOrders(snapshot([]))).toBe(false);
     expect(hasRecentOrders(null)).toBe(false);

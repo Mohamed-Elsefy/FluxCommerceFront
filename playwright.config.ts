@@ -96,7 +96,7 @@ export default defineConfig({
     },
     {
       name: 'catalog-chromium',
-      testMatch: /catalog\.spec\.ts/,
+      testMatch: /(^|\/)catalog\.spec\.ts$/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
     },
     {
@@ -116,12 +116,12 @@ export default defineConfig({
     },
     {
       name: 'payments-chromium',
-      testMatch: /payments\.spec\.ts/,
+      testMatch: /(^|\/)payments\.spec\.ts$/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
     },
     {
       name: 'orders-chromium',
-      testMatch: /orders\.spec\.ts/,
+      testMatch: /(^|\/)orders\.spec\.ts$/,
       use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
     },
     {

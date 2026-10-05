@@ -1,10 +1,11 @@
 /**
- * Behavior tests for the S1.10 `DashboardState`.
+ * Behavior tests for the S2.3 adaptive `DashboardState`.
  *
  * `DashboardApiService` (already covered by its own delegation spec) is
  * stubbed at its typed seam so these tests own the state logic: the
  * idle → loading → success | error lifecycle, verbatim snapshot
- * projection, duplicate-refresh prevention, retry after failure, and
+ * projection (including partial per-entitlement snapshots),
+ * duplicate-refresh prevention, retry after failure, and
  * contract-violation (dataless envelope) handling.
  */
 
@@ -40,6 +41,12 @@ function snapshot(totalOrders = 7) {
         committedReservations: 0,
         releasedReservations: 0,
         expiredReservations: 0,
+      },
+      catalog: {
+        totalProducts: 4,
+        activeProducts: 2,
+        totalCategories: 1,
+        totalVariants: 6,
       },
       users: {
         total: 3,
@@ -88,15 +95,45 @@ describe('DashboardState lifecycle', () => {
     expect(api.getDashboard).toHaveBeenCalledTimes(1);
     expect(api.getDashboard).toHaveBeenCalledWith({}, {});
     expect(state.snapshot().status).toBe('success');
-    expect(state.snapshot().data?.orders.total).toBe(7);
-    expect(state.snapshot().data?.payments.succeeded).toBe(3);
-    expect(state.snapshot().data?.inventory.totalItems).toBe(12);
-    expect(state.snapshot().data?.users.total).toBe(3);
+    expect(state.snapshot().data?.orders?.total).toBe(7);
+    expect(state.snapshot().data?.payments?.succeeded).toBe(3);
+    expect(state.snapshot().data?.inventory?.totalItems).toBe(12);
+    expect(state.snapshot().data?.catalog?.totalProducts).toBe(4);
+    expect(state.snapshot().data?.users?.total).toBe(3);
     expect(state.snapshot().error).toBeNull();
   });
 
+  it('projects a partial per-entitlement snapshot verbatim (null sections preserved)', () => {
+    const { state } = setup({
+      snapshot: () =>
+        of({
+          isSuccess: true,
+          message: 'Operation completed successfully.',
+          data: {
+            orders: null,
+            payments: null,
+            inventory: null,
+            catalog: {
+              totalProducts: 4,
+              activeProducts: 2,
+              totalCategories: 1,
+              totalVariants: 6,
+            },
+            users: null,
+            recentOrders: [],
+          },
+        }),
+    });
+    state.refresh();
+
+    expect(state.snapshot().status).toBe('success');
+    expect(state.snapshot().data?.orders ?? null).toBeNull();
+    expect(state.snapshot().data?.catalog?.totalProducts).toBe(4);
+    expect(state.snapshot().data?.recentOrders).toEqual([]);
+  });
+
   it('resolves to error and records the normalized failure', () => {
-    const failure = new ApiError({ status: 403, message: 'Missing dashboard.read.' });
+    const failure = new ApiError({ status: 500, message: 'Server error.' });
     const { state } = setup({ snapshot: () => throwError(() => failure) });
     state.refresh();
 
@@ -118,7 +155,7 @@ describe('DashboardState lifecycle', () => {
     resolveSnapshot(snapshot(5));
     return pending.then(() => {
       expect(state.snapshot().status).toBe('success');
-      expect(state.snapshot().data?.orders.total).toBe(5);
+      expect(state.snapshot().data?.orders?.total).toBe(5);
     });
   });
 
@@ -134,7 +171,7 @@ describe('DashboardState lifecycle', () => {
     state.refresh();
     expect(api.getDashboard).toHaveBeenCalledTimes(2);
     expect(state.snapshot().status).toBe('success');
-    expect(state.snapshot().data?.orders.total).toBe(2);
+    expect(state.snapshot().data?.orders?.total).toBe(2);
   });
 
   it('resolves a dataless envelope to error (contract violation)', () => {

@@ -86,6 +86,14 @@
  * handling, and NO idempotency-key minting. Client-side state is never
  * treated as domain truth.
  *
+ * Frozen S1-era record (Supplement S2, Step S2.2): the permission
+ * catalog below is the Phase 21 / 9-value table (`dashboard.read`
+ * included, `users.*` / `admins.create` absent) and stays byte-identical
+ * at runtime — S2.2 pins it to the local `SupplementS1Permission`
+ * union instead of the migrated v2 `Permission`. The v2 boundary lives
+ * in `supplement-s2-audit.ts`. Do not "fix" the `dashboard.read` rows
+ * here; they are history, not active gates.
+ *
  * Explicitly out of scope (later steps, must not appear here):
  * - S1.2 — no `domains/*` edits, no `api-endpoints.ts` edits, no
  *   `IdentityApiService` methods. (Done: canonical declarations now live
@@ -107,11 +115,26 @@
  */
 
 import type { Guid } from '../common/shared-types';
-import type { Permission } from '../common/enums';
 
 // ---------------------------------------------------------------------------
 // Permission catalog (API_CONTRACT.md §0.5, ENUM_REFERENCE.md Permissions)
 // ---------------------------------------------------------------------------
+
+/**
+ * Frozen S1-era permission union (backend Phase 21, 9 values).
+ * Pinned locally so this historical record stays byte-identical after
+ * the v2 catalog migration in `../common/enums` (Supplement S2).
+ */
+export type SupplementS1Permission =
+  | 'orders.read'
+  | 'orders.cancel'
+  | 'orders.refund'
+  | 'payments.read'
+  | 'payments.stats'
+  | 'inventory.read'
+  | 'inventory.manage'
+  | 'catalog.manage'
+  | 'dashboard.read';
 
 /**
  * Action-level permission catalog (backend Phase 21,
@@ -127,17 +150,18 @@ import type { Permission } from '../common/enums';
  * Enforcement failure → `403` (no `extensions.code` — match `status` +
  * endpoint context). Pure data — throws nothing.
  */
-export const SUPPLEMENT_S1_PERMISSION_ENDPOINTS: Record<Permission, readonly string[]> = {
-  'orders.read': ['/orders-list', '/orders/{orderId}', '/orders/counts'],
-  'orders.cancel': ['/orders/{orderId}/cancel'],
-  'orders.refund': ['/orders/{orderId}/refund'],
-  'payments.read': ['/payments', '/payments/{paymentId}'],
-  'payments.stats': ['/payments/stats'],
-  'inventory.read': ['GET /inventory/**'],
-  'inventory.manage': ['POST /inventory', 'PATCH /inventory/{sku}'],
-  'catalog.manage': ['catalog writes (reads stay anonymous)'],
-  'dashboard.read': ['/dashboard'],
-};
+export const SUPPLEMENT_S1_PERMISSION_ENDPOINTS: Record<SupplementS1Permission, readonly string[]> =
+  {
+    'orders.read': ['/orders-list', '/orders/{orderId}', '/orders/counts'],
+    'orders.cancel': ['/orders/{orderId}/cancel'],
+    'orders.refund': ['/orders/{orderId}/refund'],
+    'payments.read': ['/payments', '/payments/{paymentId}'],
+    'payments.stats': ['/payments/stats'],
+    'inventory.read': ['GET /inventory/**'],
+    'inventory.manage': ['POST /inventory', 'PATCH /inventory/{sku}'],
+    'catalog.manage': ['catalog writes (reads stay anonymous)'],
+    'dashboard.read': ['/dashboard'],
+  };
 
 /**
  * Endpoints only `SuperAdmin` may call (user/permission management itself

@@ -1,17 +1,23 @@
 import { Routes } from '@angular/router';
+import { permissionGuard } from '@flux/auth';
 import { UserDetailsState } from './state/user-details-state';
 import { UsersCountsState } from './state/users-counts-state';
 import { UsersListState } from './state/users-list-state';
 
 /**
- * Admin Users feature routes for Supplement S1, Step S1.5 — Admin Users
- * & Permissions (SuperAdmin-only management surface).
+ * Admin Users feature routes for Supplement S2, Step S2.4 — Delegated
+ * Users Management (permission-gated reads and delegated writes).
  *
  * Lazy feature boundary under the guarded portal shell (`path: 'users'`
- * in `app.routes.ts` — the mount carries `roleGuard` over
- * `['SuperAdmin']`, so only SuperAdmins arrive here; backend
- * authorization stays authoritative, and every users endpoint is
- * `SuperAdmin`-only server-side too).
+ * in `app.routes.ts` — the mount carries `permissionGuard` over
+ * `['users.read', 'users.manage', 'admins.create']` (OR semantics,
+ * SuperAdmin bypass), so readers, writers, and creators arrive here;
+ * backend authorization stays authoritative, and every users endpoint
+ * is permission-gated server-side too).
+ *
+ * The `new` child route additionally requires `admins.create`
+ * (delegation guard — the list page links there, but the route guard
+ * enforces it).
  *
  * No feature data-access service: list/counts/details/permission reads
  * and submissions (including admin creation via `registerAdmin`) go
@@ -42,6 +48,8 @@ export const usersRoutes: Routes = [
         path: 'new',
         loadComponent: () =>
           import('./pages/user-create/user-create-page').then((m) => m.UserCreatePage),
+        canActivate: [permissionGuard],
+        data: { permissions: ['admins.create'] },
       },
       {
         path: ':id',

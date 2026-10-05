@@ -20,7 +20,9 @@ import { AppLayout } from './layout/app-layout/app-layout';
  * /forbidden  → denial destination (public, outside the shell)
  * / (+ children) → protected portal shell (Admin/SuperAdmin only)
  *     ├── ''         → redirect to `dashboard` (no shell home page)
- *     ├── dashboard  → `dashboard.read` (+ SuperAdmin bypass)
+ *     ├── dashboard  → open to every portal user (adaptive
+ *     │                  per-permission sections; backend stays
+ *     │                  authoritative, always `200`)
  *     ├── catalog    → `catalog.manage` (+ SuperAdmin bypass)
  *     ├── inventory  → `inventory.read` (+ SuperAdmin bypass; in-page
  *     │                  writes additionally need `inventory.manage`)
@@ -31,7 +33,10 @@ import { AppLayout } from './layout/app-layout/app-layout';
  *     │                  + SuperAdmin bypass; list/details read through
  *     │                  `payments.read`, the stats landing through
  *     │                  `payments.stats`)
- *     └── users      → `SuperAdmin` role only (user/permission management)
+ *     └── users      → `users.read` / `users.manage` / `admins.create`
+ *                        (OR semantics + SuperAdmin bypass; reads through
+ *                        `users.read`, writes through `users.manage`,
+ *                        creation through `admins.create`)
  * ```
  *
  * The shell chain (`authGuard` + `roleGuard` over `ADMIN_PORTAL_ROLES`)
@@ -72,8 +77,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
         providers: [DashboardApiService, DashboardState],
-        canActivate: [permissionGuard],
-        data: { permissions: ['dashboard.read'] },
       },
       {
         path: 'catalog',
@@ -105,8 +108,8 @@ export const routes: Routes = [
       {
         path: 'users',
         loadChildren: () => import('./features/users/users.routes').then((m) => m.usersRoutes),
-        canActivate: [roleGuard],
-        data: { roles: ['SuperAdmin'] },
+        canActivate: [permissionGuard],
+        data: { permissions: ['users.read', 'users.manage', 'admins.create'] },
       },
     ],
   },

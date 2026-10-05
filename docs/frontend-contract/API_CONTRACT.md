@@ -71,9 +71,9 @@ Action-level permissions granted per admin by SuperAdmin (`area.action` strings,
 | `inventory.read` | All `GET /inventory/**` (item, reservation, lists, counts) |
 | `inventory.manage` | `POST /inventory`, `PATCH /inventory/{sku}` |
 | `catalog.manage` | All Catalog writes (reads stay anonymous) |
-| `dashboard.read` | `GET /admin/dashboard` |
+| `users.read` | `GET /admin/users`, `/counts`, `/{id}`, `/{id}/permissions` |
 
-Assigning the `Admin` role grants the full bundle automatically; user/permission management itself (`/admin/users/**`, `/admin/permissions`, `register-admin`) stays `SuperAdmin`-only. `SuperAdmin` passes every gate without holding permissions. Enforcement failure → `403` (no `extensions.code`, match `status` + endpoint context).
+Assigning the `Admin` role grants nothing by itself — every permission is granted manually afterwards (amended 2026-10-04); only the permission catalog document (`GET /admin/users/permissions`) stays `SuperAdmin`-only. `SuperAdmin` passes every gate without holding permissions. Enforcement failure → `403` (no `extensions.code`, match `status` + endpoint context).
 
 ---
 
@@ -91,7 +91,7 @@ Assigning the `Admin` role grants the full bundle automatically; user/permission
 | HTTPMethod | `POST` |
 | Authorization | `AllowAnonymous` |
 | Request | Body `RegisterCustomerRequest { email: string, password: string, firstName: string, lastName: string }` |
-| Response | `200 ApiResponse<UserResponse>` — `UserResponse { id: Guid, email: string, roles: string[], isEmailVerified: bool, registeredAtUtc: DateTime, firstName, lastName, displayName?: string, phoneNumber?: string, isPhoneVerified: bool, avatarUrl?: string, preferredLanguage: string, timeZone: string, status: UserStatus }` where `UserStatus = Pending\|Active\|Suspended\|Locked\|Deleted` |
+| Response | `200 ApiResponse<UserResponse>` — `UserResponse { id: Guid, email: string, roles: string[], isEmailVerified: bool, registeredAtUtc: DateTime, firstName, lastName, displayName?: string, phoneNumber?: string, isPhoneVerified: bool, avatarUrl?: string, preferredLanguage: string, timeZone: string, status: UserStatus, permissions: string[] }` where `UserStatus = Pending\|Active\|Suspended\|Locked\|Deleted` |
 | Status Codes | `200, 400, 409` |
 | Validation | email required+format (max 254, trimmed+lowercased); password policy 8..128 + upper+lower+digit+special `!@#$%^&*()-_=+[]{};:'",.<>/?\|`+"`"+`~`; firstName/lastName required, trimmed, max 100/201 displayName |
 | Errors | `400 ValidationProblemDetail`, `409 Identity.DuplicateEmail (Conflict)` |
@@ -299,7 +299,7 @@ Assigning the `Admin` role grants the full bundle automatically; user/permission
 |---|---|
 | Endpoint | `/admin/users/{id:guid}/permissions` |
 | HTTPMethod | `GET` |
-| Authorization | `Authorize(SuperAdminPolicy)` |
+| Authorization | `Authorize(users.read)` |
 | Request | Route `id: Guid` |
 | Response | `200 ApiResponse<string[]>` (granted permission values) |
 | Status Codes | `200, 401, 403, 404` |
@@ -341,7 +341,7 @@ Assigning the `Admin` role grants the full bundle automatically; user/permission
 |---|---|
 | Endpoint | `/admin/users` |
 | HTTPMethod | `GET` |
-| Authorization | `Authorize(SuperAdminPolicy)` |
+| Authorization | `Authorize(users.read)` |
 | Request | Query `pageNumber?: int, pageSize?: int, status?: Pending\|Active\|Suspended\|Locked\|Deleted, role?: Customer\|Admin\|SuperAdmin, search?: string (email/first/last substring)` |
 | Response | `200 ApiResponse<PagedResult<UserAdminResponse>>` newest-first (`UserAdminResponse` = `UserResponse` + `failedAccessAttemptCount: int, lockoutEndUtc?: DateTime\|null, isLocked: bool`) |
 | Status Codes | `200, 400, 401, 403` |
@@ -357,7 +357,7 @@ Assigning the `Admin` role grants the full bundle automatically; user/permission
 |---|---|
 | Endpoint | `/admin/users/counts` |
 | HTTPMethod | `GET` |
-| Authorization | `Authorize(SuperAdminPolicy)` |
+| Authorization | `Authorize(users.read)` |
 | Request | None |
 | Response | `200 ApiResponse<UserAdminCountsResponse { total, pending, active, suspended, locked, deleted, customers, admins, superAdmins, unverified, lockedOut: int }>` |
 | Status Codes | `200, 401, 403` |
@@ -371,7 +371,7 @@ Assigning the `Admin` role grants the full bundle automatically; user/permission
 |---|---|
 | Endpoint | `/admin/users/{id:guid}` |
 | HTTPMethod | `GET` |
-| Authorization | `Authorize(SuperAdminPolicy)` |
+| Authorization | `Authorize(users.read)` |
 | Request | Route `id: Guid` |
 | Response | `200 ApiResponse<UserAdminResponse>` (same as 1.19 items) |
 | Status Codes | `200, 401, 403, 404` |
@@ -379,7 +379,7 @@ Assigning the `Admin` role grants the full bundle automatically; user/permission
 | Errors | `404 UserNotFound` |
 | Pagination/Sorting/Filtering | — |
 
-> Assigning the `Admin` role (`1.12`) additionally stores the full §0.5 bundle on the user (Phase D). Grants apply to the access token on the user's next login/refresh.
+> Assigning the `Admin` role (`1.12`) grants nothing by itself — permissions are granted explicitly via `1.14` (amended 2026-10-04). Grants apply to the access token on the user's next login/refresh.
 
 ---
 
@@ -743,20 +743,25 @@ Note inconsistent `api/` prefix (other modules have none).
 
 ---
 
-## 8. Dashboard — Tag `Dashboard`, `[Route admin/dashboard][Authorize(dashboard.read)]`
+## 8. Dashboard — Tag `Dashboard`, `[Route admin/dashboard][Authorize]` (Phase 22: adaptive)
 
-Single read-only snapshot composing the per-module overviews (each section produced by its owning module; the host never touches another module's state). For admin landing cards + recent-orders widget; drill down via the §4.5/§6.5 lists.
+Single read-only snapshot for the post-login landing screen: any authenticated user receives `200`
+(never a bare forbidden screen); every section is included only when entitled, otherwise `null`
+(objects) or `[]` (recent orders). For admin landing cards + recent-orders widget; drill down via
+the §4.5/§6.5 lists. Section gates: `orders`+`recentOrders` ← `orders.read`; `payments` ←
+`payments.read` or `payments.stats`; `inventory` ← `inventory.read` (handler skipped when
+unauthorized); `catalog` ← `catalog.manage`; `users` ← `users.read`.
 
 | Field | Value |
 |---|---|
 | Endpoint | `/admin/dashboard` |
 | HTTPMethod | `GET` |
-| Authorization | `dashboard.read` (SuperAdmin passes) |
+| Authorization | Any authenticated JWT (`401` without token) |
 | Request | Query `lowStockThreshold?: int (default 5, inclusive available ceiling for the inventory section)` |
-| Response | `200 ApiResponse<AdminDashboardResponse { orders: AdminOrderCountsResponse, payments: PaymentAdminStatsResponse, inventory: InventoryCountsResponse, users: UserAdminCountsResponse, recentOrders: OrderSummaryResponse[5] (newest-first) }>` |
-| Status Codes | `200, 400, 401, 403` |
-| Validation | negative threshold → `400 ValidationFailed` |
-| Errors | First failing section's error surfaces (`400/404` as mapped) |
+| Response | `200 ApiResponse<AdminDashboardResponse { orders?: AdminOrderCountsResponse\|null, payments?: PaymentAdminStatsResponse\|null, inventory?: InventoryCountsResponse\|null, catalog?: CatalogCountsResponse\|null, users?: UserAdminCountsResponse\|null, recentOrders: OrderSummaryResponse[5] (newest-first, empty when unauthorized) }>` |
+| Status Codes | `200, 400, 401` |
+| Validation | negative threshold → `400 ValidationFailed` (rejected regardless of entitlement) |
+| Errors | First failing entitled section's error surfaces (`400/404` as mapped) |
 | Pagination/Sorting/Filtering | Fixed (`recentOrders` newest 5; full paging via list endpoints) |
 
 ---
@@ -772,10 +777,11 @@ Single read-only snapshot composing the per-module overviews (each section produ
 ## Appendix B — Frontend workflows (recommended call order)
 
 1. **Auth:** `POST /auth/register → POST /auth/verify-email (token from email link FrontendBaseUrl) → POST /auth/login (store access 15m in memory, refresh 7d opaque) → GET /auth/me`. Proactive refresh at ~13–14m; on `401` → `POST /auth/refresh` → retry once. `POST /auth/logout` revokes. `forgot → reset` via email token (reset `1h`). `change-password` needs JWT.
-2. **Catalog (storefront):** `GET /catalog?searchTerm&categoryId&status&visibility&sortBy&sortDirection&pageNumber&pageSize` for listing; `GET /catalog/products/{id}`, `GET /catalog/products/{id}/variants`, `GET .../images` (order by `displayOrder`), `GET .../attributes|specifications` for PDP. Admin CRUD mirrors same ids with `Admin` JWT; lifecycle `activate/deactivate/archive/soft-delete/restore` are `POST …→204`.
+2. **Catalog (storefront):** `GET /catalog?searchTerm&categoryId&status&visibility&sortBy&sortDirection&pageNumber&pageSize` for listing; `GET /catalog/products/{id}`, `GET /catalog/products/{id}/variants`, `GET .../images` (order by `displayOrder`), `GET .../attributes|specifications` for PDP. Admin CRUD mirrors same ids with a JWT carrying `catalog.manage`; lifecycle `activate/deactivate/archive/soft-delete/restore` are `POST …→204`.
 3. **Cart:** guest keeps `cartId` in localStorage (`POST /cart/guest → POST .../items → PUT/DELETE .../items/{variantId}`). After login: `POST /cart` (get-or-create auth cart) → `POST /cart/merge { guestCartId }` (atomic Lua, clears guest) → use `/cart*` auth endpoints. On `VersionConflict`/concurrency error: `GET` fresh cart and retry. Note cart `unitPriceAmount/currency` is a snapshot — checkout reprices from Catalog.
 4. **Checkout → Order → Payment:** `POST /orders/checkout { cartId, shipping, billing } + Idempotency-Key: <uuid>` (generate per checkout attempt, reuse same key+body on retry/network failure; new body = new key, else `409`). Returns `Pending` order → poll `GET /orders/{id}` (or list) until `Confirmed|Cancelled`. Payment status via `GET /api/payments/{paymentId}` (paymentId comes from saga/Stripe flow, not checkout response); Stripe.js uses backend `PublishableKey` + `ClientSecret` (backend-only `PaymentIntentResult`, no HTTP contract). Webhook is Stripe→API only, never SPA.
-5. **Errors/i18n:** send `Accept-Language` or `?culture=`; render `detail` (localized) + field `errors{}` map on 400; key logic on `status` + `extensions.code` (`Identity.*`, `Catalog.*`, `Cart.*`, `Order.*`, `Inventory.*`, `Payment.NotFound`). Include `X-Correlation-ID` per flow and echo `X-Correlation-ID/X-Request-ID/traceId` in bug reports. `404` on orders/payments also means “not yours” (IDOR-masked).
+5. **Errors/i18n:** send `Accept-Language` or `?culture=`; render `detail` (localized) + field `errors{}` map on 400; key logic on `status` (`Identity.*`, `Catalog.*`, `Cart.*`, `Order.*`, `Inventory.*`, `Payment.*` — business errors carry no `extensions.code`, only `detail`). Include `X-Correlation-ID` per flow and echo `X-Correlation-ID/X-Request-ID/traceId` in bug reports. `404` on orders/payments also means “not yours” (IDOR-masked). `403` means missing role/permission (never retry blindly; one refresh is legitimate for fresh grants, then show locked state).
+6. **Admin dashboard:** `GET /admin/dashboard` after login (any authenticated user, `200` always) → render cards per non-`null` section + `recentOrders`; drill down via admin lists. Re-read `me.permissions` after any grant flow.
 
 ## Appendix C — Enum reference (wire as strings for status, ints or strings per serializer for others)
 
@@ -788,6 +794,6 @@ Single read-only snapshot composing the per-module overviews (each section produ
 // Minimal TypeScript starter (adjust codegen from /swagger/v1/swagger.json)
 interface ApiResponse<T> { isSuccess: boolean; message?: string; data?: T }
 interface PagedResult<T> { items: T[]; totalCount: number; pageNumber: number; pageSize: number }
-interface UserResponse { id: string; email: string; roles: string[]; isEmailVerified: boolean; registeredAtUtc: string; firstName: string; lastName: string; displayName?: string|null; phoneNumber?: string|null; isPhoneVerified: boolean; avatarUrl?: string|null; preferredLanguage: string; timeZone: string; status: string }
+interface UserResponse { id: string; email: string; roles: string[]; isEmailVerified: boolean; registeredAtUtc: string; firstName: string; lastName: string; displayName?: string|null; phoneNumber?: string|null; isPhoneVerified: boolean; avatarUrl?: string|null; preferredLanguage: string; timeZone: string; status: string; permissions: string[] }
 interface CartResponse { cartId: string; userId?: string|null; version: number; createdAtUtc: string; updatedAtUtc: string; items: { productId: string; variantId: string; sku: string; productName: string; unitPriceAmount: number; currency: string; quantity: number }[]; isGuest: boolean; isAuthenticated: boolean }
 ```

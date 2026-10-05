@@ -110,6 +110,17 @@
   outline-offset: 0.125rem;
 }
 
+.dashboard-empty {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.dashboard-empty h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
 .dashboard-recent {
   display: grid;
   gap: var(--spacing-md);

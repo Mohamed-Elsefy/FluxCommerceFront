@@ -14,6 +14,7 @@ import {
   type ResourceState,
 } from '@flux/api';
 import { CultureService } from '@flux/i18n';
+import { AuthService } from '@flux/auth';
 import type { UserAdminResponse } from '@flux/models';
 import { IdentityApiService } from '@flux/api';
 import { AdminNotificationService } from '../../../../shared/notifications/notification-service';
@@ -53,6 +54,8 @@ function setup(scenario: {
   details?: ResourceState<UserAdminResponse>;
   permissions?: ResourceState<readonly string[]>;
   catalog?: ResourceState<readonly string[]>;
+  viewerRoles?: readonly string[];
+  viewerPermissions?: readonly string[];
 }): {
   load: ReturnType<typeof vi.fn>;
   loadCatalog: ReturnType<typeof vi.fn>;
@@ -98,6 +101,17 @@ function setup(scenario: {
     ],
   });
   window.localStorage.clear();
+  TestBed.inject(AuthService).setAuthenticated({
+    user: {
+      id: '11111111-1111-1111-1111-111111111111',
+      email: 'viewer@flux.local',
+      displayName: 'Viewer Admin',
+      roles: [...(scenario.viewerRoles ?? ['SuperAdmin'])],
+      permissions: [...(scenario.viewerPermissions ?? [])],
+      isEmailVerified: true,
+    },
+    accessToken: 'test-access-token',
+  });
   return { load, loadCatalog, reload, grantPermission, revokePermission };
 }
 
@@ -218,6 +232,45 @@ describe('UserDetailsPage', () => {
   it('surfaces grant conflicts through an error toast without reload', () => {
     const failure = new ApiError({ status: 409, message: 'Already granted.' });
     const { grantPermission, load } = setup({});
+    vi.mocked(grantPermission).mockReturnValue(throwError(() => failure));
+    const { element } = render();
+
+    const form = element.querySelector('.user-grant-form') as HTMLFormElement;
+    const select = element.querySelector('#user-grant-permission') as HTMLSelectElement;
+    select.value = 'catalog.manage';
+    select.dispatchEvent(new Event('change'));
+    form.dispatchEvent(new Event('submit'));
+
+    expect(grantPermission).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(1);
+    const notifications = TestBed.inject(AdminNotificationService).notifications();
+    expect(notifications.at(-1)?.title).toBe('Request failed');
+  });
+
+  it('shows grant and revoke affordances to users.manage holders', () => {
+    setup({ viewerRoles: ['Admin'], viewerPermissions: ['users.manage'] });
+    const { element } = render();
+
+    expect(element.querySelector('.user-grant-form')).not.toBeNull();
+    expect(element.querySelector('.user-permission-revoke')).not.toBeNull();
+    expect(element.textContent).toContain('orders.read');
+  });
+
+  it('hides grant and revoke affordances from read-only viewers', () => {
+    setup({ viewerRoles: ['Admin'], viewerPermissions: ['users.read'] });
+    const { element } = render();
+
+    expect(element.textContent).toContain('orders.read');
+    expect(element.querySelector('.user-grant-form')).toBeNull();
+    expect(element.querySelector('.user-permission-revoke')).toBeNull();
+  });
+
+  it('surfaces delegation denials (Identity.Forbidden 403) as error toasts', () => {
+    const failure = new ApiError({ status: 403, message: 'Delegation guard.' });
+    const { grantPermission, load } = setup({
+      viewerRoles: ['Admin'],
+      viewerPermissions: ['users.manage'],
+    });
     vi.mocked(grantPermission).mockReturnValue(throwError(() => failure));
     const { element } = render();
 

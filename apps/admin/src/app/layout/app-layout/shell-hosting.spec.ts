@@ -60,9 +60,11 @@ async function setupAs(
     auth.markInitializedAnonymous();
   } else {
     auth.setAuthenticated({
+      // No dashboard permission held on purpose: the adaptive landing
+      // stays open to every portal user (S2.3).
       user: adminUser(
         state === 'admin' ? ['Admin'] : ['Customer'],
-        state === 'admin' ? ['dashboard.read', 'orders.read'] : [],
+        state === 'admin' ? ['orders.read'] : [],
       ),
       accessToken: 'test-access-token',
     });

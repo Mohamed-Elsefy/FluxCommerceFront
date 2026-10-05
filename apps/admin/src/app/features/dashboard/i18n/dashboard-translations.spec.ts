@@ -42,6 +42,26 @@ describe('translateDashboardKey', () => {
     expect(
       translateDashboardKey('ar', DASHBOARD_TRANSLATION_KEYS.ordersTotal, { count: 7 }),
     ).toContain('7');
+    expect(translateDashboardKey('en', DASHBOARD_TRANSLATION_KEYS.catalogTotal, { count: 4 })).toBe(
+      '4 products',
+    );
+  });
+
+  it('resolves the catalog card and empty-state copy per culture', () => {
+    expect(translateDashboardKey('en', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('Catalog');
+    expect(translateDashboardKey('fr', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('Catalogue');
+    expect(translateDashboardKey('de', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('Katalog');
+    expect(translateDashboardKey('es', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('Catálogo');
+    expect(translateDashboardKey('ar', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('الكتالوج');
+    expect(translateDashboardKey('en', DASHBOARD_TRANSLATION_KEYS.emptyTitle)).toBe(
+      'No sections available',
+    );
+    expect(translateDashboardKey('ar', DASHBOARD_TRANSLATION_KEYS.emptyTitle)).toBe(
+      'لا توجد أقسام متاحة',
+    );
+    expect(translateDashboardKey('ar', DASHBOARD_TRANSLATION_KEYS.emptyMessage)).not.toBe(
+      DASHBOARD_TRANSLATION_KEYS.emptyMessage,
+    );
   });
 
   it('falls back deterministically for unknown cultures and keys', () => {

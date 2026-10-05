@@ -46,4 +46,31 @@ describe('users translation parity', () => {
       );
     }
   });
+
+  it('states the permission-less creation contract in every culture', () => {
+    const message = { email: 'boss@flux.local' };
+    expect(translateUsersKey('en', USERS_TRANSLATION_KEYS.createSuccessMessage, message)).toContain(
+      'with no permissions',
+    );
+    expect(translateUsersKey('fr', USERS_TRANSLATION_KEYS.createSuccessMessage, message)).toContain(
+      'sans autorisations',
+    );
+    expect(translateUsersKey('de', USERS_TRANSLATION_KEYS.createSuccessMessage, message)).toContain(
+      'ohne Berechtigungen',
+    );
+    expect(translateUsersKey('es', USERS_TRANSLATION_KEYS.createSuccessMessage, message)).toContain(
+      'sin permisos',
+    );
+    expect(translateUsersKey('ar', USERS_TRANSLATION_KEYS.createSuccessMessage, message)).toContain(
+      'بلا صلاحيات',
+    );
+    for (const culture of CULTURES) {
+      expect(translateUsersKey(culture, USERS_TRANSLATION_KEYS.createSuccessMessage)).not.toBe(
+        USERS_TRANSLATION_KEYS.createSuccessMessage,
+      );
+      expect(translateUsersKey(culture, USERS_TRANSLATION_KEYS.createSubheading)).not.toBe(
+        USERS_TRANSLATION_KEYS.createSubheading,
+      );
+    }
+  });
 });

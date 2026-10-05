@@ -12,13 +12,7 @@ const ADMIN_USER: CurrentUser = {
   email: 'boss@flux.local',
   displayName: 'Boss Admin',
   roles: ['Admin'],
-  permissions: [
-    'dashboard.read',
-    'catalog.manage',
-    'inventory.read',
-    'inventory.manage',
-    'orders.read',
-  ],
+  permissions: ['catalog.manage', 'inventory.read', 'inventory.manage', 'orders.read'],
   isEmailVerified: true,
 };
 

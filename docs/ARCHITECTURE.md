@@ -163,6 +163,19 @@ newest-5 drill-down). Guards stay UX-only (`permissionGuard` over
 `route.data['permissions']`, OR semantics, `SuperAdmin` bypass);
 the backend stays authoritative.
 
+As built in Supplement S2 (see
+`docs/completed/SUPPLEMENT_S2_COMPLETION_REPORT.md` and
+`docs/adr/034`): the portal adopts the Phase 22 contract without
+changing the shell shape — the dashboard mount drops its permission
+gate (open landing with nullable per-entitlement sections, the new
+catalog card, and the honest empty state; `users` drill-down stays
+`isSuperAdmin`-gated), users management migrates to delegated reads
+(`users.read`) and writes (`users.manage`, grant UI hidden
+otherwise) with creation under `admins.create` (permission-less
+accounts), and 403 discipline holds everywhere (interceptor stays
+401-only; failures render locked states with explicit retry, never a
+retry loop, never a logout).
+
 ---
 
 ## 5. Feature-Based Architecture

@@ -17,9 +17,13 @@
  *     ↓ Backend Identity API
  * ```
  *
- * Contract fidelity (S1.1 audit): identity, roles, status, lockout
+ * Contract fidelity (S2.1 audit): identity, roles, status, lockout
  * telemetry, and permission values render verbatim; the live JWT behind
  * a permission derives from the next login/refresh, never from this UI.
+ * The grant/revoke affordances render for `SuperAdmin` and
+ * `users.manage` holders only (fully hidden otherwise); delegation
+ * denials (`403 Identity.Forbidden` anti-escalation races) surface as
+ * error toasts, never retried, never logged out.
  * Grant is additive (duplicate → `409 PermissionAlreadyGranted`,
  * surfaced via error toast, never retried blindly); revoke is
  * idempotent and runs behind the confirm dialog (destructive action).
@@ -59,6 +63,7 @@ import {
   translateKey,
 } from '@flux/i18n';
 import { Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
+import { AuthService } from '@flux/auth';
 import { IdentityApiService, isApiError } from '@flux/api';
 import type { GrantPermissionRequest } from '@flux/models';
 import { AdminDialog } from '../../../../shared/dialog/dialog';
@@ -88,6 +93,7 @@ import { USERS_TRANSLATION_KEYS, translateUsersKey } from '../../i18n/users-tran
 export class UserDetailsPage {
   private readonly details = inject(UserDetailsState);
   private readonly identity = inject(IdentityApiService);
+  private readonly auth = inject(AuthService);
   private readonly cultures = inject(CultureService);
   private readonly notifications = inject(AdminNotificationService);
   private readonly formBuilder = inject(FormBuilder);
@@ -96,6 +102,17 @@ export class UserDetailsPage {
   private readonly userId = toSignal(
     inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id'))),
     { initialValue: null as string | null },
+  );
+
+  /**
+   * Whether the grant/revoke affordances render (recorded S2 product
+   * decision): visible to `SuperAdmin` and to holders of
+   * `users.manage`, fully hidden for everyone else (no disabled
+   * state, no placeholder). The granted list itself stays readable
+   * for display.
+   */
+  protected readonly canManagePermissions = computed(
+    () => this.auth.isSuperAdmin() || this.auth.hasPermission('users.manage')(),
   );
 
   /** Current user record (idle → loading → success | error). */

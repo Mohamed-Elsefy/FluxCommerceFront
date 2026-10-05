@@ -44,6 +44,12 @@ function snapshot(overrides: Partial<AdminDashboardResponse> = {}): AdminDashboa
       releasedReservations: 0,
       expiredReservations: 0,
     },
+    catalog: {
+      totalProducts: 4,
+      activeProducts: 2,
+      totalCategories: 1,
+      totalVariants: 6,
+    },
     users: {
       total: 3,
       pending: 0,
@@ -139,6 +145,7 @@ describe('DashboardPage', () => {
     expect(element.textContent).toContain('7 orders');
     expect(element.textContent).toContain('7 payments');
     expect(element.textContent).toContain('12 items');
+    expect(element.textContent).toContain('4 products');
     expect(element.textContent).toContain('3 users');
     expect(element.querySelector('.dashboard-recent-items')).not.toBeNull();
     expect(element.textContent).toContain('ORD-ABC123');
@@ -152,7 +159,13 @@ describe('DashboardPage', () => {
     const hrefs = [...element.querySelectorAll('.dashboard-card-link')].map((link) =>
       link.getAttribute('href'),
     );
-    expect(hrefs).toEqual(['/orders/list', '/payments/list', '/inventory/stock', '/users/list']);
+    expect(hrefs).toEqual([
+      '/orders/list',
+      '/payments/list',
+      '/inventory/stock',
+      '/catalog/products',
+      '/users/list',
+    ]);
     expect(element.querySelector('.dashboard-recent-link')?.getAttribute('href')).toBe(
       '/orders/order-1',
     );
@@ -165,8 +178,73 @@ describe('DashboardPage', () => {
     const hrefs = [...element.querySelectorAll('.dashboard-card-link')].map((link) =>
       link.getAttribute('href'),
     );
-    expect(hrefs).toEqual(['/orders/list', '/payments/list', '/inventory/stock']);
+    expect(hrefs).toEqual([
+      '/orders/list',
+      '/payments/list',
+      '/inventory/stock',
+      '/catalog/products',
+    ]);
     expect(element.textContent).toContain('3 users');
+  });
+
+  it('renders only the entitled sections for a catalog-only snapshot', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          orders: null,
+          payments: null,
+          inventory: null,
+          users: null,
+          recentOrders: [],
+        }),
+      ),
+    });
+    const element = render();
+
+    expect(element.querySelector('.dashboard-session')).not.toBeNull();
+    expect(element.textContent).toContain('Catalog');
+    expect(element.textContent).toContain('4 products');
+    expect(element.textContent).not.toContain('7 orders');
+    expect(element.textContent).not.toContain('7 payments');
+    expect(element.textContent).not.toContain('12 items');
+    expect(element.textContent).not.toContain('3 users');
+    expect(element.querySelector('.dashboard-empty')).toBeNull();
+    expect(element.querySelector('.dashboard-recent-items')).toBeNull();
+    expect(element.textContent).toContain('No recent orders.');
+    const hrefs = [...element.querySelectorAll('.dashboard-card-link')].map((link) =>
+      link.getAttribute('href'),
+    );
+    expect(hrefs).toEqual(['/catalog/products']);
+  });
+
+  it('renders the honest empty state when no section is entitled', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          orders: null,
+          payments: null,
+          inventory: null,
+          catalog: null,
+          users: null,
+          recentOrders: [],
+        }),
+      ),
+    });
+    const element = render();
+
+    expect(element.querySelector('.dashboard-session')).not.toBeNull();
+    expect(element.querySelector('.dashboard-grid')).toBeNull();
+    expect(element.querySelector('.dashboard-recent')).toBeNull();
+    expect(element.querySelector('.dashboard-empty')).not.toBeNull();
+    expect(element.textContent).toContain('No sections available');
+  });
+
+  it('hides the users card when the users section is absent', () => {
+    setup({ snapshot: successResource(snapshot({ users: null })), roles: ['SuperAdmin'] });
+    const element = render();
+
+    expect(element.textContent).not.toContain('3 users');
+    expect(element.textContent).toContain('7 orders');
   });
 
   it('renders the recent-orders empty state without rows', () => {
@@ -210,6 +288,7 @@ describe('DashboardPage', () => {
 
       expect(element.querySelector('h1')?.textContent).toBe('Tableau de bord');
       expect(element.textContent).toContain('7 commandes');
+      expect(element.textContent).toContain('4 produits');
       expect(element.textContent).toContain('Commandes récentes');
     } finally {
       cultures.setCulture('en');
@@ -225,8 +304,11 @@ describe('DashboardPage', () => {
 
       expect(element.querySelector('h1')?.textContent).toBe('لوحة التحكم');
       expect(element.textContent).toContain('أحدث الطلبات');
+      expect(element.textContent).toContain('الكتالوج');
       expect(element.textContent).not.toContain('dashboard.title');
       expect(element.textContent).not.toContain('dashboard.recent.title');
+      expect(element.textContent).not.toContain('dashboard.sections.catalogTitle');
+      expect(element.textContent).not.toContain('dashboard.empty.title');
     } finally {
       cultures.setCulture('en');
     }

@@ -114,11 +114,14 @@ export class IdentityApiService {
   }
 
   /**
-   * `POST /auth/register-admin` — `SuperAdmin` JWT only. Creates an
-   * `Admin` (with the full permission bundle stored server-side).
+   * `POST /auth/register-admin` — `admins.create` (SuperAdmin passes).
+   * Creates an `Admin` with NO permissions (verified 1:1 against
+   * `API_CONTRACT.md` §1.2: same 4-string body, `201
+   * ApiResponse<UserResponse>` via `Created()` — grants happen
+   * afterwards via `grantPermission`).
    * Success: `201 ApiResponse<UserResponse>` (via `Created()`).
    * Failures: `400` validation (`errors{}`), `401` no/invalid JWT,
-   * `403` non-SuperAdmin, `409 Identity.DuplicateEmail`.
+   * `403` missing `admins.create`, `409 Identity.DuplicateEmail`.
    */
   registerAdmin(
     body: RegisterAdminRequest,
@@ -282,12 +285,13 @@ export class IdentityApiService {
   }
 
   /**
-   * `POST /admin/users/{id}/roles` — SuperAdmin only. The id travels in the
-   * route, never in the body. Assigning `Admin` additionally stores the
-   * full permission bundle (effective on next login/refresh).
+   * `POST /admin/users/{id}/roles` — `users.manage` (under
+   * anti-escalation guards). The id travels in the route, never in the
+   * body. Assigning `Admin` grants nothing by itself (effective on next
+   * login/refresh; permissions are granted explicitly afterwards).
    * Success: `200 ApiResponse<UserResponse>`.
-   * Failures: `400 Identity.InvalidRole`, `404 UserNotFound`,
-   * `409 RoleAlreadyAssigned`.
+   * Failures: `400 Identity.InvalidRole`, `403 Identity.Forbidden`,
+   * `404 UserNotFound`, `409 RoleAlreadyAssigned`.
    */
   assignRole(
     userId: string,
@@ -302,9 +306,9 @@ export class IdentityApiService {
   }
 
   /**
-   * `POST /admin/users/{id}/unlock` — SuperAdmin only, no body.
+   * `POST /admin/users/{id}/unlock` — `users.manage`, no body.
    * Success: `200 ApiResponse<UserResponse>`.
-   * Failures: `404 UserNotFound`.
+   * Failures: `403 Identity.Forbidden`, `404 UserNotFound`.
    */
   unlockUser(
     userId: string,
@@ -318,8 +322,9 @@ export class IdentityApiService {
   }
 
   /**
-   * `GET /admin/users` — SuperAdmin only. Paged (`1/20 max 100`) newest-first
-   * with `status?/role?/search?` filters (unknown values → `400`).
+   * `GET /admin/users` — `users.read`. Paged (`1/20 max 100`)
+   * newest-first with `status?/role?/search?` filters (unknown values
+   * → `400`).
    * Success: `200 ApiResponse<PagedResult<UserAdminResponse>>`.
    * Failures: `400 ValidationFailed/InvalidRole`, `401`, `403`.
    */
@@ -334,7 +339,7 @@ export class IdentityApiService {
   }
 
   /**
-   * `GET /admin/users/counts` — SuperAdmin only.
+   * `GET /admin/users/counts` — `users.read`.
    * Success: `200 ApiResponse<UserAdminCountsResponse>`.
    * Failures: `401`, `403`.
    */
@@ -348,7 +353,7 @@ export class IdentityApiService {
   }
 
   /**
-   * `GET /admin/users/{id}` — SuperAdmin only.
+   * `GET /admin/users/{id}` — `users.read`.
    * Success: `200 ApiResponse<UserAdminResponse>`.
    * Failures: `404 UserNotFound`.
    */
@@ -363,11 +368,11 @@ export class IdentityApiService {
   }
 
   /**
-   * `POST /admin/users/{id}/permissions` — SuperAdmin only, one catalog
+   * `POST /admin/users/{id}/permissions` — `users.manage`, one catalog
    * value per call.
    * Success: `200 ApiResponse<UserResponse>` (with updated `permissions`).
-   * Failures: `400 Identity.InvalidPermission`, `404 UserNotFound`,
-   * `409 PermissionAlreadyGranted`.
+   * Failures: `400 Identity.InvalidPermission`, `403 Identity.Forbidden`,
+   * `404 UserNotFound`, `409 PermissionAlreadyGranted`.
    */
   grantPermission(
     userId: string,
@@ -382,10 +387,11 @@ export class IdentityApiService {
   }
 
   /**
-   * `DELETE /admin/users/{id}/permissions/{permission}` — SuperAdmin only,
-   * idempotent (absent permission still succeeds).
+   * `DELETE /admin/users/{id}/permissions/{permission}` —
+   * `users.manage`, idempotent (absent permission still succeeds).
    * Success: `200 ApiResponse<UserResponse>`.
-   * Failures: `400 Identity.InvalidPermission`, `404 UserNotFound`.
+   * Failures: `400 Identity.InvalidPermission`, `403 Identity.Forbidden`,
+   * `404 UserNotFound`.
    */
   revokePermission(
     userId: string,
@@ -399,7 +405,8 @@ export class IdentityApiService {
   }
 
   /**
-   * `GET /admin/users/{id}/permissions` — SuperAdmin only.
+   * `GET /admin/users/{id}/permissions` — `users.read` (readable for
+   * display).
    * Success: `200 ApiResponse<string[]>` (granted values).
    * Failures: `404 UserNotFound`.
    */
@@ -414,7 +421,8 @@ export class IdentityApiService {
   }
 
   /**
-   * `GET /admin/users/permissions` — SuperAdmin only.
+   * `GET /admin/users/permissions` — `users.manage` (whoever can grant
+   * must be able to list what is grantable).
    * Success: `200 ApiResponse<string[]>` (full catalog).
    * Failures: `401`, `403`.
    */

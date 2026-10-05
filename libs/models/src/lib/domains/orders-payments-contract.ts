@@ -342,7 +342,9 @@ export function supportsAdminOrdersSorting(_read: string | null | undefined): bo
 }
 
 /**
- * Filtering support, Supplement S1 matrix: `listAdminOrders` accepts
+ * Filtering support, Supplement S1 matrix (verified unchanged in
+ * Supplement S2, Step S2.2, against the amended contract — Phase 22
+ * touches users + dashboard only): `listAdminOrders` accepts
  * `status`/`customerId`/`search`/`from`/`to` and `listOrders` accepts
  * `status` (unknown values and `from > to` → backend `400`). Every
  * other order read takes ids only. Pure — throws nothing.
@@ -352,9 +354,10 @@ export function supportsAdminOrdersFiltering(read: string | null | undefined): b
 }
 
 /**
- * Payment filtering support, Supplement S1 matrix: `listAdminPayments`
- * accepts `status`/`orderId`/`customerId`/`from`/`to` and `listMine`
- * accepts `status` (unknown values and `from > to` → backend `400
+ * Payment filtering support, Supplement S1 matrix (verified unchanged
+ * in Supplement S2, Step S2.2): `listAdminPayments` accepts
+ * `status`/`orderId`/`customerId`/`from`/`to` and `listMine` accepts
+ * `status` (unknown values and `from > to` → backend `400
  * Payment.ValidationFailed`). Every other payment read takes ids only
  * or nothing (`paymentStats`). Pure — throws nothing.
  */

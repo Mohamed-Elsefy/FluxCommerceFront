@@ -1,23 +1,24 @@
 /**
  * Admin user creation page — creates one administrator account
- * (`POST /auth/register-admin`, SuperAdmin-only).
+ * (`POST /auth/register-admin`, `admins.create`).
  *
  * Smart page (route-level composition) within the users context
- * (`/users/new`): owns the creation form and the created admin result —
- * over the shared `IdentityApiService` transport seam (`@flux/api`,
- * S1.2) directly — no feature façade duplicates a thin typed transport
- * that already exists (rules 12.11/Phase-12: no parallel admin
- * transport). No feature state: submission locks and the result record
- * are page-local signals, the smallest appropriate scope.
+ * (`/users/new`, additionally guarded by `admins.create`): owns the
+ * creation form and the created admin result — over the shared
+ * `IdentityApiService` transport seam (`@flux/api`, S1.2) directly —
+ * no feature façade duplicates a thin typed transport that already
+ * exists (rules 12.11/Phase-12: no parallel admin transport). No
+ * feature state: submission locks and the result record are page-local
+ * signals, the smallest appropriate scope.
  *
  * Creation contract (API_CONTRACT.md §1.2 — only backend-exposed
  * operations): `{ email, password, firstName, lastName }` (all
- * non-nullable strings server-side); the full permission bundle is
- * stored automatically when the `Admin` role is assigned, so no
- * permission picker ships here. Duplicates surface as `409
- * Identity.DuplicateEmail`; field rules stay backend-owned and surface
- * through the form channels (`400` field maps project onto their
- * controls, everything else renders as the form-level notice).
+ * non-nullable strings server-side); the account starts
+ * permission-less (grants happen afterwards via the user details
+ * page), so no permission picker ships here. Duplicates surface as
+ * `409 Identity.DuplicateEmail`; field rules stay backend-owned and
+ * surface through the form channels (`400` field maps project onto
+ * their controls, everything else renders as the form-level notice).
  * Client validation covers presence, email shape, and the 8-char
  * password floor only — the full password policy (length ceiling plus
  * upper/lower/digit/special) stays backend-owned. Re-entrant submits

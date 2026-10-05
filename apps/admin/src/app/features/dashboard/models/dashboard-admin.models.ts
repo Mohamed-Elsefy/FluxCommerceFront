@@ -19,6 +19,7 @@
 import type {
   AdminDashboardResponse,
   AdminOrderCountsResponse,
+  CatalogCountsResponse,
   DashboardQuery,
   InventoryCountsResponse,
   OrderSummaryResponse,
@@ -29,6 +30,7 @@ import type {
 export type {
   AdminDashboardResponse,
   AdminOrderCountsResponse,
+  CatalogCountsResponse,
   DashboardQuery,
   InventoryCountsResponse,
   OrderSummaryResponse,
@@ -36,7 +38,11 @@ export type {
   UserAdminCountsResponse,
 };
 
-/** One dashboard snapshot (`GET /admin/dashboard`, `dashboard.read`). */
+/**
+ * One dashboard snapshot (`GET /admin/dashboard`, adaptive: any
+ * authenticated JWT, nullable per-permission sections — `null` means
+ * not entitled, `0` / `[]` means entitled but empty).
+ */
 export type DashboardSnapshot = AdminDashboardResponse;
 
 /** One recent order behind the drill-down widget (newest 5, verbatim). */
@@ -48,4 +54,22 @@ export type DashboardRecentOrder = OrderSummaryResponse;
  */
 export function hasRecentOrders(snapshot: DashboardSnapshot | null | undefined): boolean {
   return (snapshot?.recentOrders.length ?? 0) > 0;
+}
+
+/**
+ * Whether the snapshot carries at least one entitled section (the
+ * honest-empty-dashboard gate: all sections `null` / absent renders
+ * the empty state instead of the grid). Pure — throws nothing.
+ */
+export function hasEntitledSections(snapshot: DashboardSnapshot | null | undefined): boolean {
+  if (snapshot === null || snapshot === undefined) {
+    return false;
+  }
+  return [
+    snapshot.orders,
+    snapshot.payments,
+    snapshot.inventory,
+    snapshot.catalog,
+    snapshot.users,
+  ].some((section) => section !== null && section !== undefined);
 }

@@ -27,7 +27,7 @@ export interface RegisterCustomerRequest {
   lastName: string;
 }
 
-/** `POST /auth/register-admin` body (SuperAdmin only). */
+/** `POST /auth/register-admin` body (`admins.create`; creates permission-less admins). */
 export interface RegisterAdminRequest {
   email: string;
   password: string;
@@ -80,7 +80,8 @@ export interface ChangePasswordRequest {
 }
 
 /**
- * `POST /admin/users/{id}/roles` body (SuperAdmin only).
+ * `POST /admin/users/{id}/roles` body (`users.manage`, under
+ * anti-escalation guards).
  * The user id travels in the route, never in the body.
  */
 export interface AssignRoleRequest {
@@ -102,7 +103,7 @@ export interface UpdateProfileRequest {
 }
 
 /**
- * `POST /admin/users/{id}/permissions` body (SuperAdmin only).
+ * `POST /admin/users/{id}/permissions` body (`users.manage`).
  * The user id travels in the route, never in the body — one catalog
  * value per call (`Permission`, see `../common/enums`).
  */
@@ -149,7 +150,7 @@ export interface UserResponse {
 
 /**
  * `GET /admin/users/{id}` (+ `GET /admin/users` item) payload
- * (SuperAdmin only): `UserResponse` plus lockout telemetry.
+ * (`users.read`): `UserResponse` plus lockout telemetry.
  */
 export interface UserAdminResponse extends UserResponse {
   failedAccessAttemptCount: number;
@@ -157,7 +158,7 @@ export interface UserAdminResponse extends UserResponse {
   isLocked: boolean;
 }
 
-/** `GET /admin/users/counts` payload (SuperAdmin only, all `int`). */
+/** `GET /admin/users/counts` payload (`users.read`, all `int`). */
 export interface UserAdminCountsResponse {
   total: number;
   pending: number;
@@ -173,7 +174,7 @@ export interface UserAdminCountsResponse {
 }
 
 /**
- * `GET /admin/users` query (SuperAdmin only): paging +
+ * `GET /admin/users` query (`users.read`): paging +
  * `status?/role?/search?` (email/first/last substring, newest-first).
  * Unknown `status`/`role` → `400`.
  */
@@ -229,10 +230,11 @@ export function isValidUserListQuery(query: UserListQuery | null | undefined): b
 }
 
 /**
- * `POST /admin/users/{id}/permissions` submission (SuperAdmin only):
+ * `POST /admin/users/{id}/permissions` submission (`users.manage`):
  * the user id (route) plus one catalog permission (body). Unknown
  * permission → `400 Identity.InvalidPermission`; already-granted →
- * `409 Identity.PermissionAlreadyGranted`.
+ * `409 Identity.PermissionAlreadyGranted`; delegation-guard denial →
+ * `403 Identity.Forbidden`.
  */
 export interface PermissionGrantSubmission {
   readonly userId: Guid;

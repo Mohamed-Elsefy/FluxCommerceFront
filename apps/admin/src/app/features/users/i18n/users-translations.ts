@@ -123,7 +123,7 @@ const EN_USERS: TranslationDictionary = {
   users: {
     home: {
       heading: 'Users',
-      subheading: 'SuperAdmin user and permission management.',
+      subheading: 'User and permission management.',
       countsHeading: 'User counts',
       viewList: 'View users list',
       loading: 'Loading user counts…',
@@ -208,7 +208,7 @@ const EN_USERS: TranslationDictionary = {
     create: {
       heading: 'Create admin',
       subheading:
-        'Create an administrator account. The full permission bundle is granted automatically.',
+        'Create an administrator account. The account starts with no permissions — grant them afterwards.',
       emailLabel: 'Email',
       passwordLabel: 'Password',
       passwordHint: '8–128 characters: upper + lower + digit + special.',
@@ -218,7 +218,8 @@ const EN_USERS: TranslationDictionary = {
       saving: 'Creating…',
       formErrorTitle: 'Could not create the admin',
       successTitle: 'Admin created',
-      successMessage: '“{email}” was created as Admin.',
+      successMessage:
+        '“{email}” was created as Admin with no permissions — grant permissions afterwards.',
       viewUser: 'View admin',
       back: 'Back to users list',
     },
@@ -238,7 +239,7 @@ const FR_USERS: TranslationDictionary = {
   users: {
     home: {
       heading: 'Utilisateurs',
-      subheading: 'Gestion des utilisateurs et des autorisations (SuperAdmin).',
+      subheading: 'Gestion des utilisateurs et des autorisations.',
       countsHeading: 'Nombre d’utilisateurs',
       viewList: 'Voir la liste des utilisateurs',
       loading: 'Chargement des nombres…',
@@ -323,7 +324,7 @@ const FR_USERS: TranslationDictionary = {
     create: {
       heading: 'Créer un admin',
       subheading:
-        'Créer un compte administrateur. Le jeu complet d’autorisations est accordé automatiquement.',
+        'Créer un compte administrateur. Le compte démarre sans autorisations — accordez-les ensuite.',
       emailLabel: 'E-mail',
       passwordLabel: 'Mot de passe',
       passwordHint: '8–128 caractères : majuscule + minuscule + chiffre + spécial.',
@@ -333,7 +334,8 @@ const FR_USERS: TranslationDictionary = {
       saving: 'Création…',
       formErrorTitle: 'Impossible de créer l’admin',
       successTitle: 'Admin créé',
-      successMessage: '« {email} » a été créé comme Admin.',
+      successMessage:
+        '« {email} » a été créé comme Admin sans autorisations — accordez-les ensuite.',
       viewUser: 'Voir l’admin',
       back: 'Retour à la liste',
     },
@@ -353,7 +355,7 @@ const DE_USERS: TranslationDictionary = {
   users: {
     home: {
       heading: 'Benutzer',
-      subheading: 'Benutzer- und Berechtigungsverwaltung (SuperAdmin).',
+      subheading: 'Benutzer- und Berechtigungsverwaltung.',
       countsHeading: 'Benutzerzahlen',
       viewList: 'Benutzerliste ansehen',
       loading: 'Benutzerzahlen werden geladen…',
@@ -438,7 +440,7 @@ const DE_USERS: TranslationDictionary = {
     create: {
       heading: 'Admin erstellen',
       subheading:
-        'Ein Administratorkonto erstellen. Das volle Berechtigungsbündel wird automatisch erteilt.',
+        'Ein Administratorkonto erstellen. Das Konto startet ohne Berechtigungen — erteilen Sie sie danach.',
       emailLabel: 'E-Mail',
       passwordLabel: 'Passwort',
       passwordHint: '8–128 Zeichen: groß + klein + Ziffer + Sonderzeichen.',
@@ -448,7 +450,8 @@ const DE_USERS: TranslationDictionary = {
       saving: 'Wird erstellt…',
       formErrorTitle: 'Admin konnte nicht erstellt werden',
       successTitle: 'Admin erstellt',
-      successMessage: '„{email}“ wurde als Admin erstellt.',
+      successMessage:
+        '„{email}“ wurde als Admin ohne Berechtigungen erstellt — erteilen Sie sie danach.',
       viewUser: 'Admin ansehen',
       back: 'Zurück zur Liste',
     },
@@ -468,7 +471,7 @@ const ES_USERS: TranslationDictionary = {
   users: {
     home: {
       heading: 'Usuarios',
-      subheading: 'Gestión de usuarios y permisos (SuperAdmin).',
+      subheading: 'Gestión de usuarios y permisos.',
       countsHeading: 'Recuento de usuarios',
       viewList: 'Ver la lista de usuarios',
       loading: 'Cargando recuentos…',
@@ -553,7 +556,7 @@ const ES_USERS: TranslationDictionary = {
     create: {
       heading: 'Crear admin',
       subheading:
-        'Crear una cuenta de administrador. El paquete completo de permisos se concede automáticamente.',
+        'Crear una cuenta de administrador. La cuenta empieza sin permisos — concédelos después.',
       emailLabel: 'Correo',
       passwordLabel: 'Contraseña',
       passwordHint: '8–128 caracteres: mayúscula + minúscula + dígito + especial.',
@@ -563,7 +566,7 @@ const ES_USERS: TranslationDictionary = {
       saving: 'Creando…',
       formErrorTitle: 'No se pudo crear el admin',
       successTitle: 'Admin creado',
-      successMessage: '«{email}» fue creado como Admin.',
+      successMessage: '«{email}» fue creado como Admin sin permisos — concédelos después.',
       viewUser: 'Ver admin',
       back: 'Volver a la lista',
     },
@@ -583,7 +586,7 @@ const AR_USERS: TranslationDictionary = {
   users: {
     home: {
       heading: 'المستخدمون',
-      subheading: 'إدارة المستخدمين والصلاحيات (SuperAdmin).',
+      subheading: 'إدارة المستخدمين والصلاحيات.',
       countsHeading: 'إحصاءات المستخدمين',
       viewList: 'عرض قائمة المستخدمين',
       loading: 'جارٍ تحميل الإحصاءات…',
@@ -667,7 +670,7 @@ const AR_USERS: TranslationDictionary = {
     },
     create: {
       heading: 'إنشاء مشرف',
-      subheading: 'إنشاء حساب مشرف. تُمنح حزمة الصلاحيات الكاملة تلقائيًا.',
+      subheading: 'إنشاء حساب مشرف. يبدأ الحساب بلا صلاحيات — امنحها بعد ذلك.',
       emailLabel: 'البريد',
       passwordLabel: 'كلمة المرور',
       passwordHint: '8–128 حرفًا: كبير + صغير + رقم + خاص.',
@@ -677,7 +680,7 @@ const AR_USERS: TranslationDictionary = {
       saving: 'جارٍ الإنشاء…',
       formErrorTitle: 'تعذّر إنشاء المشرف',
       successTitle: 'تم إنشاء المشرف',
-      successMessage: 'تم إنشاء «{email}» كمشرف.',
+      successMessage: 'تم إنشاء «{email}» كمشرف بلا صلاحيات — امنح الصلاحيات بعد ذلك.',
       viewUser: 'عرض المشرف',
       back: 'عودة إلى القائمة',
     },

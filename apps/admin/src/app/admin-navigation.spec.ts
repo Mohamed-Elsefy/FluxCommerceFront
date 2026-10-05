@@ -55,26 +55,39 @@ describe('admin navigation', () => {
     expect(users?.children?.map((child) => child.labelKey)).toEqual(['layout.nav.usersList']);
   });
 
-  it('shows every entry to fully permissioned roles (users needs SuperAdmin)', () => {
-    const full = [
-      'dashboard.read',
-      'catalog.manage',
-      'inventory.read',
-      'orders.read',
-      'payments.read',
-    ];
+  it('shows every entry to fully permissioned roles (users needs a users permission)', () => {
+    const full = ['catalog.manage', 'inventory.read', 'orders.read', 'payments.read'];
     expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], full)).toHaveLength(5);
+    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], [...full, 'users.read'])).toHaveLength(
+      6,
+    );
     expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], full)).toHaveLength(6);
   });
 
-  it('hides every permission-gated entry without a matching permission', () => {
-    expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], [])).toHaveLength(0);
+  it('shows the users entry on any of its three permissions (OR semantics)', () => {
+    for (const permission of ['users.read', 'users.manage', 'admins.create']) {
+      expect(
+        visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], [permission]).map((item) => item.labelKey),
+      ).toContain('layout.nav.users');
+    }
+    expect(
+      visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['orders.read']).map((item) => item.labelKey),
+    ).not.toContain('layout.nav.users');
+  });
+
+  it('keeps the dashboard visible without any permission (adaptive landing)', () => {
+    const visible = visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], []);
+
+    expect(visible.map((item) => item.labelKey)).toEqual(['layout.nav.dashboard']);
   });
 
   it('shows entries matching held permissions (children inherit the group outcome)', () => {
     const visible = visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['inventory.read']);
 
-    expect(visible.map((item) => item.labelKey)).toEqual(['layout.nav.inventory']);
+    expect(visible.map((item) => item.labelKey)).toEqual([
+      'layout.nav.dashboard',
+      'layout.nav.inventory',
+    ]);
     const inventory = visible.find((item) => item.route === '/inventory');
     // Stock/reservations inherit the group grant; adjustments and item
     // creation need manage.
@@ -114,14 +127,8 @@ describe('admin navigation', () => {
     ).not.toContain('layout.nav.payments');
   });
 
-  it('shows the users entry to SuperAdmin only', () => {
-    const full = [
-      'dashboard.read',
-      'catalog.manage',
-      'inventory.read',
-      'orders.read',
-      'payments.read',
-    ];
+  it('keeps the users entry for SuperAdmin without held permissions (supremacy)', () => {
+    const full = ['catalog.manage', 'inventory.read', 'orders.read', 'payments.read'];
     expect(
       visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], full).map((item) => item.labelKey),
     ).not.toContain('layout.nav.users');
@@ -158,13 +165,7 @@ describe('admin navigation', () => {
       },
     ] as const;
     // Full menu grant: the roles dimension alone decides here.
-    const full = [
-      'dashboard.read',
-      'catalog.manage',
-      'inventory.read',
-      'orders.read',
-      'payments.read',
-    ];
+    const full = ['catalog.manage', 'inventory.read', 'orders.read', 'payments.read'];
 
     expect(visibleDestinations(items, ['Admin'], full).map((item) => item.labelKey)).toEqual([
       'layout.nav.dashboard',

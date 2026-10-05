@@ -88,30 +88,34 @@
           @for (permission of granted().data ?? []; track permission) {
             <li>
               <span class="user-permission-value">{{ permission }}</span>
-              <button
-                type="button"
-                class="user-permission-revoke"
-                [disabled]="submitting()"
-                (click)="askRevoke(permission)"
-                [attr.aria-label]="revokeActionLabel(permission)"
-              >
-                {{ revokeActionLabel(permission) }}
-              </button>
+              @if (canManagePermissions()) {
+                <button
+                  type="button"
+                  class="user-permission-revoke"
+                  [disabled]="submitting()"
+                  (click)="askRevoke(permission)"
+                  [attr.aria-label]="revokeActionLabel(permission)"
+                >
+                  {{ revokeActionLabel(permission) }}
+                </button>
+              }
             </li>
           }
         </ul>
       }
 
-      <form class="user-grant-form" [formGroup]="grantForm" (ngSubmit)="grant()">
-        <h3>{{ copy().grantTitle }}</h3>
-        <admin-select
-          [control]="grantControl"
-          [options]="grantOptions()"
-          [label]="copy().grantLabel"
-          fieldId="user-grant-permission"
-        />
-        <button type="submit" [disabled]="submitting()">{{ copy().grantSubmit }}</button>
-      </form>
+      @if (canManagePermissions()) {
+        <form class="user-grant-form" [formGroup]="grantForm" (ngSubmit)="grant()">
+          <h3>{{ copy().grantTitle }}</h3>
+          <admin-select
+            [control]="grantControl"
+            [options]="grantOptions()"
+            [label]="copy().grantLabel"
+            fieldId="user-grant-permission"
+          />
+          <button type="submit" [disabled]="submitting()">{{ copy().grantSubmit }}</button>
+        </form>
+      }
     </section>
   }
 

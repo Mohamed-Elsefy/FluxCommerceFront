@@ -1,21 +1,25 @@
 /**
- * Admin Dashboard E2E for Supplement S1, Step S1.10 — Admin Dashboard
- * (Real API).
+ * Admin Dashboard E2E for Supplement S2, Step S2.3 — Adaptive Dashboard
+ * Landing.
  *
  * Transports are fulfilled with contract-exact payloads because no live
  * API runs here. Sessions are seeded through `localStorage`, then
- * restoration + guards + the real dashboard slice run: the live
- * snapshot (per-module counts plus the newest-5 drill-down), the
- * empty/error states with retry, and localization.
+ * restoration + guards + the real dashboard slice run: the adaptive
+ * snapshot (per-entitlement sections plus the newest-5 drill-down),
+ * the partial/empty states, the error state with retry, and
+ * localization.
  *
- * Contract-honest coverage notes (S1.1 audit):
- * - `GET /admin/dashboard` composes the per-module overviews (each
- *   section produced by its owning module); the suite asserts verbatim
- *   counts, never derived values.
+ * Contract-honest coverage notes (S2.1 audit):
+ * - `GET /admin/dashboard` takes any authenticated JWT (always `200`);
+ *   sections arrive `null` when unauthorized — the suite asserts
+ *   per-entitlement rendering, never derived values.
+ * - A `catalog.manage`-only admin sees the catalog card (+ session
+ *   card) with no forbidden screen; an authorized-but-empty caller
+ *   sees the honest empty state.
  * - `recentOrders` drills into the existing admin order details
  *   (`/orders/:id`) — no parallel detail view ships.
- * - The users drill-down shows for SuperAdmin only (the users surface
- *   stays `SuperAdmin`-only server-side too).
+ * - The users drill-down shows for SuperAdmin only (the dashboard
+ *   `users` section is SuperAdmin-role sourced server-side too).
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
@@ -32,12 +36,17 @@ const FULL_PERMISSIONS = [
   'inventory.read',
   'inventory.manage',
   'catalog.manage',
-  'dashboard.read',
+  'users.read',
+  'users.manage',
+  'admins.create',
 ];
 
-function userWithRoles(roles: string[], permissions: string[] = []): Record<string, unknown> {
+function userWithRoles(
+  roles: string[],
+  permissions: string[] | null = null,
+): Record<string, unknown> {
   const granted =
-    permissions.length > 0
+    permissions !== null
       ? permissions
       : roles.some((role) => role === 'Admin' || role === 'SuperAdmin')
         ? [...FULL_PERMISSIONS]
@@ -103,6 +112,12 @@ function snapshot(overrides: Record<string, unknown> = {}): Record<string, unkno
       releasedReservations: 0,
       expiredReservations: 0,
     },
+    catalog: {
+      totalProducts: 4,
+      activeProducts: 2,
+      totalCategories: 1,
+      totalVariants: 6,
+    },
     users: {
       total: 3,
       pending: 0,
@@ -130,21 +145,29 @@ function snapshot(overrides: Record<string, unknown> = {}): Record<string, unkno
   };
 }
 
-async function seed(page: Page, roles: string[]): Promise<void> {
+async function seed(
+  page: Page,
+  roles: string[],
+  permissions: string[] | null = null,
+): Promise<void> {
   await page.addInitScript(
     ({ key, session }) => window.localStorage.setItem(key, JSON.stringify(session)),
     {
       key: STORAGE_KEY,
       session: {
         refreshToken: 'admin-refresh-1',
-        user: { ...userWithRoles(roles), displayName: null },
+        user: { ...userWithRoles(roles, permissions), displayName: null },
         authenticatedAtUtc: '2026-09-06T12:00:00.000Z',
       },
     },
   );
 }
 
-async function mockSession(page: Page, roles: string[]): Promise<void> {
+async function mockSession(
+  page: Page,
+  roles: string[],
+  permissions: string[] | null = null,
+): Promise<void> {
   await page.route('**/auth/refresh', (route) =>
     route.fulfill({
       status: 200,
@@ -156,7 +179,7 @@ async function mockSession(page: Page, roles: string[]): Promise<void> {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: ok(userWithRoles(roles)),
+      body: ok(userWithRoles(roles, permissions)),
     }),
   );
 }
@@ -181,7 +204,7 @@ async function mock(
   );
 }
 
-test.describe('admin dashboard journeys (S1.10)', () => {
+test.describe('admin dashboard journeys (S2.3, adaptive)', () => {
   test('landing shows live counts plus recent orders with drill-down', async ({ page }) => {
     await seed(page, ['SuperAdmin']);
     await mockSession(page, ['SuperAdmin']);
@@ -229,6 +252,7 @@ test.describe('admin dashboard journeys (S1.10)', () => {
     await expect(page.getByText('7 orders')).toBeVisible();
     await expect(page.getByText('7 payments')).toBeVisible();
     await expect(page.getByText('12 items')).toBeVisible();
+    await expect(page.getByText('4 products')).toBeVisible();
     await expect(page.getByText('3 users')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Recent orders' })).toBeVisible();
 
@@ -289,9 +313,71 @@ test.describe('admin dashboard journeys (S1.10)', () => {
     await expect(page.getByRole('link', { name: 'View users list' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'View orders list' })).toBeVisible();
   });
+
+  test('catalog-only admin sees only the catalog card with no forbidden screen', async ({
+    page,
+  }) => {
+    await seed(page, ['Admin'], ['catalog.manage']);
+    await mockSession(page, ['Admin'], ['catalog.manage']);
+    await mock(
+      page,
+      'GET',
+      '/admin/dashboard',
+      200,
+      ok({
+        orders: null,
+        payments: null,
+        inventory: null,
+        catalog: {
+          totalProducts: 4,
+          activeProducts: 2,
+          totalCategories: 1,
+          totalVariants: 6,
+        },
+        users: null,
+        recentOrders: [],
+      }),
+    );
+    await page.goto('/dashboard');
+
+    await expect(page).not.toHaveURL(/\/forbidden$/);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByText('Your session')).toBeVisible();
+    await expect(page.getByText('4 products')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View products list' })).toBeVisible();
+    await expect(page.getByText('7 orders')).toHaveCount(0);
+    await expect(page.getByText('7 payments')).toHaveCount(0);
+    await expect(page.getByText('12 items')).toHaveCount(0);
+    await expect(page.getByText('3 users')).toHaveCount(0);
+  });
+
+  test('authorized-but-empty caller sees the honest empty state', async ({ page }) => {
+    await seed(page, ['Admin'], []);
+    await mockSession(page, ['Admin'], []);
+    await mock(
+      page,
+      'GET',
+      '/admin/dashboard',
+      200,
+      ok({
+        orders: null,
+        payments: null,
+        inventory: null,
+        catalog: null,
+        users: null,
+        recentOrders: [],
+      }),
+    );
+    await page.goto('/dashboard');
+
+    await expect(page).not.toHaveURL(/\/forbidden$/);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.locator('#dashboard-empty-heading')).toBeVisible();
+    await expect(page.locator('.dashboard-grid')).toHaveCount(0);
+  });
 });
 
-test.describe('admin dashboard authorization + localization (S1.10)', () => {
+test.describe('admin dashboard authorization + localization (S2.3)', () => {
   test('customers land on forbidden for the dashboard', async ({ page }) => {
     await seed(page, ['Customer']);
     await mockSession(page, ['Customer']);
@@ -309,6 +395,7 @@ test.describe('admin dashboard authorization + localization (S1.10)', () => {
 
     await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible();
     await expect(page.getByText('7 commandes')).toBeVisible();
+    await expect(page.getByText('4 produits')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Commandes récentes' })).toBeVisible();
   });
 
@@ -321,6 +408,8 @@ test.describe('admin dashboard authorization + localization (S1.10)', () => {
 
     await expect(page.getByRole('heading', { name: 'لوحة التحكم' })).toBeVisible();
     await expect(page.getByText('أحدث الطلبات')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'الكتالوج' })).toBeVisible();
     await expect(page.getByText('dashboard.title')).toHaveCount(0);
+    await expect(page.getByText('dashboard.sections.catalogTitle')).toHaveCount(0);
   });
 });

@@ -20,8 +20,15 @@
  *
  * Supplement S1 (Phase 21 backend): catalog writes moved from `Admin` to
  * the `catalog.manage` permission; inventory split into `inventory.read`
- * (reads) / `inventory.manage` (writes); admin orders/payments/dashboard
- * rows carry their permission; user management stays `SuperAdmin`-only.
+ * (reads) / `inventory.manage` (writes); admin orders/payments rows
+ * carry their permission.
+ * Supplement S2 (Phase 22 backend): `POST /auth/register-admin` moved
+ * to `admins.create` (creates permission-less admins); `/admin/users`
+ * reads moved to `users.read`, writes (role assign, unlock, grant,
+ * revoke) plus the permission catalog document moved to
+ * `users.manage`; `GET /admin/dashboard` moved to any authenticated
+ * JWT (adaptive per-permission sections, never a bare forbidden
+ * screen); `dashboard.read` no longer exists.
  */
 
 import type { Permission } from '@flux/models';
@@ -40,10 +47,10 @@ export interface EndpointDefinition {
   readonly auth: EndpointAuth;
 }
 
-/** Identity endpoints (`API_CONTRACT.md` §1). */
+/** Identity endpoints (`API_CONTRACT.md` §1, Supplement S2 v2 markers). */
 export const IDENTITY_ENDPOINTS = {
   register: { path: '/auth/register', method: 'POST', auth: 'anonymous' },
-  registerAdmin: { path: '/auth/register-admin', method: 'POST', auth: 'super-admin' },
+  registerAdmin: { path: '/auth/register-admin', method: 'POST', auth: 'admins.create' },
   login: { path: '/auth/login', method: 'POST', auth: 'anonymous' },
   refresh: { path: '/auth/refresh', method: 'POST', auth: 'anonymous' },
   logout: { path: '/auth/logout', method: 'POST', auth: 'anonymous' },
@@ -53,24 +60,24 @@ export const IDENTITY_ENDPOINTS = {
   resetPassword: { path: '/auth/reset-password', method: 'POST', auth: 'anonymous' },
   changePassword: { path: '/auth/change-password', method: 'POST', auth: 'authenticated' },
   me: { path: '/auth/me', method: 'GET', auth: 'authenticated' },
-  assignRole: { path: '/admin/users/{id}/roles', method: 'POST', auth: 'super-admin' },
-  unlockUser: { path: '/admin/users/{id}/unlock', method: 'POST', auth: 'super-admin' },
+  assignRole: { path: '/admin/users/{id}/roles', method: 'POST', auth: 'users.manage' },
+  unlockUser: { path: '/admin/users/{id}/unlock', method: 'POST', auth: 'users.manage' },
   updateProfile: { path: '/auth/profile', method: 'PUT', auth: 'authenticated' },
-  listUsers: { path: '/admin/users', method: 'GET', auth: 'super-admin' },
-  userCounts: { path: '/admin/users/counts', method: 'GET', auth: 'super-admin' },
-  getUser: { path: '/admin/users/{id}', method: 'GET', auth: 'super-admin' },
-  grantPermission: { path: '/admin/users/{id}/permissions', method: 'POST', auth: 'super-admin' },
+  listUsers: { path: '/admin/users', method: 'GET', auth: 'users.read' },
+  userCounts: { path: '/admin/users/counts', method: 'GET', auth: 'users.read' },
+  getUser: { path: '/admin/users/{id}', method: 'GET', auth: 'users.read' },
+  grantPermission: { path: '/admin/users/{id}/permissions', method: 'POST', auth: 'users.manage' },
   revokePermission: {
     path: '/admin/users/{id}/permissions/{permission}',
     method: 'DELETE',
-    auth: 'super-admin',
+    auth: 'users.manage',
   },
   listUserPermissions: {
     path: '/admin/users/{id}/permissions',
     method: 'GET',
-    auth: 'super-admin',
+    auth: 'users.read',
   },
-  permissionCatalog: { path: '/admin/users/permissions', method: 'GET', auth: 'super-admin' },
+  permissionCatalog: { path: '/admin/users/permissions', method: 'GET', auth: 'users.manage' },
 } as const satisfies Record<string, EndpointDefinition>;
 
 /** Catalog endpoints (`API_CONTRACT.md` §2). Writes need `catalog.manage`; reads are anonymous. */
@@ -383,11 +390,12 @@ export const ADMIN_PAYMENTS_ENDPOINTS = {
 } as const satisfies Record<string, EndpointDefinition>;
 
 /**
- * Dashboard endpoint (`API_CONTRACT.md` §8, Supplement S1). Single
- * read-only snapshot composing the per-module overviews.
+ * Dashboard endpoint (`API_CONTRACT.md` §8, Supplement S2 adaptive).
+ * Single read-only snapshot composing the per-module overviews — any
+ * authenticated JWT (sections gate per permission server-side).
  */
 export const DASHBOARD_ENDPOINTS = {
-  getDashboard: { path: '/admin/dashboard', method: 'GET', auth: 'dashboard.read' },
+  getDashboard: { path: '/admin/dashboard', method: 'GET', auth: 'authenticated' },
 } as const satisfies Record<string, EndpointDefinition>;
 
 /** Health endpoints (`API_CONTRACT.md` §7) — no auth, no envelope. */

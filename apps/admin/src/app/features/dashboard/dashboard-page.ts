@@ -1,15 +1,17 @@
 /**
- * Admin dashboard page for Supplement S1, Step S1.10 — Admin Dashboard
- * (Real API).
+ * Admin dashboard page for Supplement S2, Step S2.3 — Adaptive
+ * Dashboard Landing.
  *
  * Smart page (route-level composition): reads the shared `AuthService`
  * for the live session card (no API call, no invented data) and the
  * feature-scoped `DashboardState` (route-provided on the `dashboard`
  * entry in `app.routes.ts` — never a global store) for the live
- * snapshot: per-module overview cards (orders, payments, inventory,
- * users — backend-issued counts, display only) plus the recent-orders
- * drill-down widget (newest 5, deep links to the existing admin order
- * details — no parallel detail view ships).
+ * snapshot: per-entitlement overview cards (orders, payments,
+ * inventory, catalog, users — backend-issued counts, display only;
+ * `null` sections render nothing), the honest empty state (no
+ * entitled sections), plus the recent-orders drill-down widget
+ * (newest 5, deep links to the existing admin order details — no
+ * parallel detail view ships).
  *
  * Data flow (`ARCHITECTURE.md` §10 — reused, never duplicated):
  *
@@ -21,14 +23,14 @@
  *     ↓ Backend Dashboard API
  * ```
  *
- * Display contract (S1.1 audit — only backend-exposed data): every
+ * Display contract (S2.1 audit — only backend-exposed data): every
  * section echoes verbatim for display (culture-formatted, never inputs
  * to math). Card links drill into the owning feature lists
- * (`/orders/list`, `/payments/list`, `/inventory/stock`, `/users/list`
- * for SuperAdmin only — the users surface stays `SuperAdmin`-only, so
- * other admins see counts without the link); recent rows link to the
- * existing admin order details (`/orders/:id`). Failures (including the
- * first failing snapshot section) resolve through
+ * (`/orders/list`, `/payments/list`, `/inventory/stock`,
+ * `/catalog/products`, `/users/list` for SuperAdmin only — the users
+ * drill-down stays `isSuperAdmin`-gated); recent rows link to the
+ * existing admin order details (`/orders/:id`). Failures (including
+ * the first failing entitled section) resolve through
  * `resolveApiErrorMessage` (never backend text) with retry.
  *
  * Copy is localized per the active `CultureService.culture()`: feature
@@ -52,6 +54,7 @@ import {
   translateKey,
 } from '@flux/i18n';
 import { Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
+import { hasEntitledSections } from './models/dashboard-admin.models';
 import { DashboardState } from './state/dashboard-state';
 import { DASHBOARD_TRANSLATION_KEYS, translateDashboardKey } from './i18n/dashboard-translations';
 
@@ -106,7 +109,7 @@ export class DashboardPage implements OnInit {
       ordersTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.ordersTitle),
       ordersLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.ordersLink),
       ordersTotal: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.ordersTotal, {
-        count: formatNumber(snapshot?.orders.total ?? 0, culture),
+        count: formatNumber(snapshot?.orders?.total ?? 0, culture),
       }),
       ordersPending: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.ordersPending),
       ordersConfirmed: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.ordersConfirmed),
@@ -114,7 +117,7 @@ export class DashboardPage implements OnInit {
       paymentsTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.paymentsTitle),
       paymentsLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.paymentsLink),
       paymentsTotal: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.paymentsTotal, {
-        count: formatNumber(snapshot?.payments.total ?? 0, culture),
+        count: formatNumber(snapshot?.payments?.total ?? 0, culture),
       }),
       paymentsSucceeded: translateDashboardKey(
         culture,
@@ -125,7 +128,7 @@ export class DashboardPage implements OnInit {
       inventoryTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryTitle),
       inventoryLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryLink),
       inventoryTotal: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryTotal, {
-        count: formatNumber(snapshot?.inventory.totalItems ?? 0, culture),
+        count: formatNumber(snapshot?.inventory?.totalItems ?? 0, culture),
       }),
       inventoryOnHand: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryOnHand),
       inventoryReserved: translateDashboardKey(
@@ -139,18 +142,39 @@ export class DashboardPage implements OnInit {
       usersTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.usersTitle),
       usersLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.usersLink),
       usersTotal: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.usersTotal, {
-        count: formatNumber(snapshot?.users.total ?? 0, culture),
+        count: formatNumber(snapshot?.users?.total ?? 0, culture),
       }),
       usersAdmins: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.usersAdmins),
       usersSuperAdmins: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.usersSuperAdmins),
       usersCustomers: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.usersCustomers),
+      catalogTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.catalogTitle),
+      catalogLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.catalogLink),
+      catalogTotal: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.catalogTotal, {
+        count: formatNumber(snapshot?.catalog?.totalProducts ?? 0, culture),
+      }),
+      catalogProducts: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.catalogProducts),
+      catalogActiveProducts: translateDashboardKey(
+        culture,
+        DASHBOARD_TRANSLATION_KEYS.catalogActiveProducts,
+      ),
+      catalogCategories: translateDashboardKey(
+        culture,
+        DASHBOARD_TRANSLATION_KEYS.catalogCategories,
+      ),
+      catalogVariants: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.catalogVariants),
+      emptyTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.emptyTitle),
+      emptyMessage: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.emptyMessage),
       recentTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentTitle),
       recentEmpty: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentEmpty),
       recentLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentLink),
     };
   });
 
-  /** Culture-formatted section facts (display only — never inputs to math). */
+  /**
+   * Culture-formatted section facts (display only — never inputs to
+   * math). A `null` entry means the caller is not entitled to that
+   * section and its card renders nothing.
+   */
   protected readonly facts = computed(() => {
     const culture = this.cultures.culture();
     const snapshot = this.slot().data;
@@ -158,50 +182,91 @@ export class DashboardPage implements OnInit {
       return null;
     }
     const copy = this.copy();
+    const orders = snapshot.orders;
+    const payments = snapshot.payments;
+    const inventory = snapshot.inventory;
+    const catalog = snapshot.catalog;
+    const users = snapshot.users;
     return {
-      orders: [
-        { label: copy.ordersPending, value: formatNumber(snapshot.orders.pending, culture) },
-        { label: copy.ordersConfirmed, value: formatNumber(snapshot.orders.confirmed, culture) },
-        { label: copy.ordersCancelled, value: formatNumber(snapshot.orders.cancelled, culture) },
-      ],
-      payments: [
-        {
-          label: copy.paymentsSucceeded,
-          value: formatNumber(snapshot.payments.succeeded, culture),
-        },
-        { label: copy.paymentsFailed, value: formatNumber(snapshot.payments.failed, culture) },
-        {
-          label: copy.paymentsRefunded,
-          value: formatNumber(snapshot.payments.refunded, culture),
-        },
-      ],
-      inventory: [
-        {
-          label: copy.inventoryOnHand,
-          value: formatNumber(snapshot.inventory.totalOnHand, culture),
-        },
-        {
-          label: copy.inventoryReserved,
-          value: formatNumber(snapshot.inventory.totalReserved, culture),
-        },
-        {
-          label: copy.inventoryLowStock,
-          value: formatNumber(snapshot.inventory.lowStockItems, culture),
-        },
-      ],
-      users: [
-        { label: copy.usersAdmins, value: formatNumber(snapshot.users.admins, culture) },
-        {
-          label: copy.usersSuperAdmins,
-          value: formatNumber(snapshot.users.superAdmins, culture),
-        },
-        {
-          label: copy.usersCustomers,
-          value: formatNumber(snapshot.users.customers, culture),
-        },
-      ],
+      orders:
+        orders === null || orders === undefined
+          ? null
+          : [
+              { label: copy.ordersPending, value: formatNumber(orders.pending, culture) },
+              { label: copy.ordersConfirmed, value: formatNumber(orders.confirmed, culture) },
+              { label: copy.ordersCancelled, value: formatNumber(orders.cancelled, culture) },
+            ],
+      payments:
+        payments === null || payments === undefined
+          ? null
+          : [
+              {
+                label: copy.paymentsSucceeded,
+                value: formatNumber(payments.succeeded, culture),
+              },
+              { label: copy.paymentsFailed, value: formatNumber(payments.failed, culture) },
+              {
+                label: copy.paymentsRefunded,
+                value: formatNumber(payments.refunded, culture),
+              },
+            ],
+      inventory:
+        inventory === null || inventory === undefined
+          ? null
+          : [
+              {
+                label: copy.inventoryOnHand,
+                value: formatNumber(inventory.totalOnHand, culture),
+              },
+              {
+                label: copy.inventoryReserved,
+                value: formatNumber(inventory.totalReserved, culture),
+              },
+              {
+                label: copy.inventoryLowStock,
+                value: formatNumber(inventory.lowStockItems, culture),
+              },
+            ],
+      catalog:
+        catalog === null || catalog === undefined
+          ? null
+          : [
+              {
+                label: copy.catalogProducts,
+                value: formatNumber(catalog.totalProducts, culture),
+              },
+              {
+                label: copy.catalogActiveProducts,
+                value: formatNumber(catalog.activeProducts, culture),
+              },
+              {
+                label: copy.catalogCategories,
+                value: formatNumber(catalog.totalCategories, culture),
+              },
+              {
+                label: copy.catalogVariants,
+                value: formatNumber(catalog.totalVariants, culture),
+              },
+            ],
+      users:
+        users === null || users === undefined
+          ? null
+          : [
+              { label: copy.usersAdmins, value: formatNumber(users.admins, culture) },
+              {
+                label: copy.usersSuperAdmins,
+                value: formatNumber(users.superAdmins, culture),
+              },
+              {
+                label: copy.usersCustomers,
+                value: formatNumber(users.customers, culture),
+              },
+            ],
     };
   });
+
+  /** Whether any section is entitled (the honest-empty-dashboard gate). */
+  protected readonly hasSections = computed(() => hasEntitledSections(this.slot().data));
 
   /** Preformatted recent-order rows (backend values only, newest 5). */
   protected readonly recentOrders = computed(() => {

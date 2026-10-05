@@ -1391,3 +1391,32 @@ S1.9  Payments mine + admin + stats
 S1.10 Admin dashboard (GET /admin/dashboard)
 S1.11 Hardening, E2E & documentation (this step)
 ```
+
+---
+
+# 42. Supplement S2 — Adaptive Dashboard & Delegated Admin (Adopted)
+
+Status: **Complete** — see `docs/completed/SUPPLEMENT_S2_COMPLETION_REPORT.md`,
+`docs/adr/034-supplement-s2-contract-alignment.md` (numbered 034
+because the phase document's "ADR-033" reference collides with the
+already-accepted `033-admin-shell-navigation-logout.md`), and
+`docs/phases/SUPPLEMENT_S2_ADAPTIVE_DASHBOARD_AND_DELEGATED_ADMIN.md`
+(steps S2.1–S2.7).
+
+The supplement is an optional addendum and leaves the core roadmap
+numbering untouched: Phases 0–14 stay complete as recorded above and
+**Phase 15 — Final QA & Optimization** remains the next core step,
+unaffected whether the supplement is adopted or not.
+
+Adopted scope (all against the real Phase 22 backend contract, no
+fabricated permissions, endpoints, DTOs, filters, or business rules):
+
+```text
+S2.1  Contract re-audit gate (v2 catalog, section gates, ADR-034)
+S2.2  Shared models & endpoints (v2 catalog, nullable dashboard, markers)
+S2.3  Adaptive dashboard landing (per-entitlement sections + catalog card)
+S2.4  Delegated users management (reads/writes/create permissions)
+S2.5  403 discipline verification (verification-only, no code changes)
+S2.6  New & extended E2E suites (dashboard + users, full re-verify)
+S2.7  Hardening, verification & documentation (this step)
+```
