@@ -74,19 +74,54 @@ describe('CategoryListState', () => {
     expect(state.page().data?.items.map((item) => item.id)).toEqual(['c1']);
   });
 
-  it('commits page moves and reloads the effective page', () => {
+  it('commits filters with a page reset', () => {
+    const { state, listCategories } = setup();
+    state.load({ pageNumber: 4 });
+    state.setFilters({ searchTerm: 'apparel', status: 0 });
+
+    expect(listCategories).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: 20,
+      searchTerm: 'apparel',
+      status: 0,
+    });
+  });
+
+  it('omits blank filter values (the backend 400s on empty strings)', () => {
+    const { state, listCategories } = setup();
+    state.setFilters({ searchTerm: '   ' });
+
+    expect(listCategories).toHaveBeenLastCalledWith({ pageNumber: 1, pageSize: 20 });
+  });
+
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, listCategories } = setup();
+    state.setFilters({ searchTerm: 'apparel', status: 1 });
+    state.setFilters({});
+
+    expect(listCategories).toHaveBeenLastCalledWith({ pageNumber: 1, pageSize: 20 });
+  });
+
+  it('preserves committed filters across pager moves', () => {
+    const { state, listCategories } = setup();
+    state.setFilters({ searchTerm: 'apparel' });
+    state.setPage(3);
+
+    expect(listCategories).toHaveBeenLastCalledWith({
+      pageNumber: 3,
+      pageSize: 20,
+      searchTerm: 'apparel',
+    });
+  });
+  it('reloads the current effective page', () => {
     const { state, listCategories } = setup((query) => {
       const pageNumber = (query as { pageNumber: number }).pageNumber;
       return of(page([`c${pageNumber}`], pageNumber, 25));
     });
-    state.load();
     state.setPage(2);
-
-    expect(listCategories).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 20 });
-    expect(state.page().data?.pageNumber).toBe(2);
     state.reload();
 
-    expect(listCategories).toHaveBeenCalledTimes(3);
+    expect(listCategories).toHaveBeenCalledTimes(2);
     expect(listCategories).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 20 });
   });
 

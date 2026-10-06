@@ -7,6 +7,28 @@
     <a class="categories-list-new" routerLink="new">{{ copy().new }}</a>
   </header>
 
+  <form class="categories-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <admin-filter-bar
+      [label]="copy().filterTitle"
+      [clearLabel]="copy().filterClear"
+      (clear)="clearFilters()"
+    >
+      <admin-search-input
+        [control]="filters.controls.search"
+        [label]="copy().filterSearch"
+        [placeholder]="copy().filterSearchPlaceholder"
+        fieldId="categories-filter-search"
+      />
+      <admin-select
+        [control]="filters.controls.status"
+        [options]="statusOptions()"
+        [label]="copy().filterStatus"
+        fieldId="categories-filter-status"
+      />
+      <button class="categories-list-apply" type="submit">{{ copy().filterApply }}</button>
+    </admin-filter-bar>
+  </form>
+
   @if (slot().isError) {
     <flux-error-state
       [title]="copy().errorTitle"

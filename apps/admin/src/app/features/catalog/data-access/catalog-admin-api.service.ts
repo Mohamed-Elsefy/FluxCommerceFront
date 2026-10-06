@@ -52,6 +52,8 @@ import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
 import type {
   AddProductImageRequest,
+  AdminCategoryListQuery,
+  AdminProductListQuery,
   CatalogProductListItem,
   CatalogSearchQuery,
   CategoryLifecycleAction,
@@ -79,7 +81,6 @@ import {
   type ApiRequestOptions,
   type ApiResponseWithData,
   type PagedApiResponse,
-  type PaginationRequest,
 } from '@flux/api';
 
 /**
@@ -97,12 +98,13 @@ export class CatalogAdminApiService {
 
   /**
    * `GET /catalog/products` — paged admin-shaped product list
-   * (`ProductResponse` items, non-deleted only, no sorting/filtering).
+   * (`ProductResponse` items, non-deleted only, no sorting) with optional
+   * `searchTerm`/`status`/`visibility`/`categoryId` filters.
    * Success: `200 ApiResponse<PagedResult<ProductResponse>>`.
    * Failures: `400` validation (`pageNumber >= 1`, `1 <= pageSize <= 100`).
    */
   listProducts(
-    query: PaginationRequest = {},
+    query: AdminProductListQuery = {},
     options: ApiRequestOptions = {},
   ): Observable<PagedApiResponse<ProductResponse>> {
     return this.api.get<PagedApiResponse<ProductResponse>>(CATALOG_ENDPOINTS.listProducts.path, {
@@ -127,14 +129,14 @@ export class CatalogAdminApiService {
   }
 
   /**
-   * `GET /catalog/categories` — paged category list (no
-   * sorting/filtering on the backend; hierarchy travels per row via
-   * nullable `parentId` only).
+   * `GET /catalog/categories` — paged category list (no sorting) with
+   * optional `searchTerm`/`status` filters; hierarchy travels per row via
+   * nullable `parentId` only.
    * Success: `200 ApiResponse<PagedResult<CategoryResponse>>`.
    * Failures: `400` validation.
    */
   listCategories(
-    query: PaginationRequest = {},
+    query: AdminCategoryListQuery = {},
     options: ApiRequestOptions = {},
   ): Observable<PagedApiResponse<CategoryResponse>> {
     return this.api.get<PagedApiResponse<CategoryResponse>>(CATALOG_ENDPOINTS.listCategories.path, {

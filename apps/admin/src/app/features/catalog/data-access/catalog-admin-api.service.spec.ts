@@ -65,6 +65,33 @@ describe('CatalogAdminApiService routes', () => {
     expect(calls.options).toEqual([{ params: { pageNumber: 1, pageSize: 1 } }]);
   });
 
+  it('lists products with filters funneled through query params', () => {
+    const { service, calls } = setup();
+    service
+      .listProducts({
+        pageNumber: 1,
+        pageSize: 20,
+        searchTerm: 'tee',
+        status: 1,
+        visibility: 0,
+        categoryId: 'cat-1',
+      })
+      .subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listProducts.path]);
+    expect(calls.options).toEqual([
+      {
+        params: {
+          pageNumber: 1,
+          pageSize: 20,
+          searchTerm: 'tee',
+          status: 1,
+          visibility: 0,
+          categoryId: 'cat-1',
+        },
+      },
+    ]);
+  });
   it('reads a single product through the canonical route template', () => {
     const { service, calls } = setup();
     service.getProduct('prod-1').subscribe();
@@ -79,6 +106,18 @@ describe('CatalogAdminApiService routes', () => {
 
     expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listCategories.path]);
     expect(calls.options).toEqual([{ params: { pageNumber: 1, pageSize: 20 } }]);
+  });
+
+  it('lists categories with filters funneled through query params', () => {
+    const { service, calls } = setup();
+    service
+      .listCategories({ pageNumber: 1, pageSize: 20, searchTerm: 'apparel', status: 0 })
+      .subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listCategories.path]);
+    expect(calls.options).toEqual([
+      { params: { pageNumber: 1, pageSize: 20, searchTerm: 'apparel', status: 0 } },
+    ]);
   });
 
   it('reads a single category through the canonical route template', () => {

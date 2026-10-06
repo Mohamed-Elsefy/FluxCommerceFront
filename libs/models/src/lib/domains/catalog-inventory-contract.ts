@@ -391,33 +391,44 @@ export function isValidAdminPagingQuery(
 // ---------------------------------------------------------------------------
 
 /**
- * Admin product-list query. `GET /catalog/products` accepts ONLY paging
- * (no `sortBy`/`sortDirection`, no filters) — sorting/filtering belongs to
- * `searchCatalog` (`AdminCatalogSearchQuery`). Nulls/omission mean
- * "server default" (`pageNumber 1`, `pageSize 20`).
+ * Admin product-list query. `GET /catalog/products` accepts paging plus
+ * `searchTerm` (name/slug, case-insensitive), `status`
+ * (`Draft|Active|Inactive|Archived`), `visibility` (`Visible|Hidden`),
+ * and `categoryId`. Enums travel as NUMBERS (the binder also accepts
+ * case-insensitive names). Nulls/omission mean "no filter" (server
+ * default). No `sortBy`/`sortDirection` — sorting stays
+ * `GET /catalog`-only.
  */
 export interface AdminProductListQuery {
   readonly pageNumber?: number;
   readonly pageSize?: number;
+  readonly searchTerm?: string;
+  readonly status?: number;
+  readonly visibility?: number;
+  readonly categoryId?: Guid;
 }
 
 /**
- * Admin category-list query. `GET /catalog/categories` accepts ONLY paging
- * (no sorting/filtering on the backend). The response is a flat paged list
- * — hierarchy (if any) is expressed per row via nullable `parentId` only;
- * there is NO tree endpoint, so no tree shape travels here.
+ * Admin category-list query. `GET /catalog/categories` accepts paging
+ * plus `searchTerm` (name/slug, case-insensitive) and `status`
+ * (`Active|Inactive`, numbers on the wire). The response is a flat paged
+ * list — hierarchy (if any) is expressed per row via nullable `parentId`
+ * only; there is NO tree endpoint, so no tree shape travels here.
  */
 export interface AdminCategoryListQuery {
   readonly pageNumber?: number;
   readonly pageSize?: number;
+  readonly searchTerm?: string;
+  readonly status?: number;
 }
 
 /**
  * Admin catalog-search query. `GET /catalog` is the ONLY read with
- * `searchTerm`/`categoryId`/`status`/`visibility` filters plus
- * `sortBy`/`sortDirection` sorting. Enums travel as NUMBERS in JSON but
- * the query binder also accepts case-insensitive names
- * (`?status=Active` ≡ `?status=1`).
+ * `sortBy`/`sortDirection` sorting; its `searchTerm`/`categoryId`/
+ * `status`/`visibility` filters are shared with `AdminProductListQuery`
+ * (which carries the same filters without sorting). Enums travel as
+ * NUMBERS in JSON but the query binder also accepts case-insensitive
+ * names (`?status=Active` ≡ `?status=1`).
  */
 export interface AdminCatalogSearchQuery extends AdminProductListQuery {
   readonly searchTerm?: string;

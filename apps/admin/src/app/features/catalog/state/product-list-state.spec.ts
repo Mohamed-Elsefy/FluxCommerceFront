@@ -76,19 +76,48 @@ describe('ProductListState', () => {
     expect(state.page().data?.items.map((item) => item.id)).toEqual(['p1']);
   });
 
-  it('commits page moves through setPage', () => {
-    const { state, listProducts } = setup((query) => {
-      const pageNumber = (query as { pageNumber: number }).pageNumber;
-      return of(page([`p${pageNumber}`], pageNumber, 25));
-    });
-    state.load();
-    state.setPage(2);
+  it('commits filters with a page reset', () => {
+    const { state, listProducts } = setup();
+    state.load({ pageNumber: 4 });
+    state.setFilters({ searchTerm: 'tee', status: 1, visibility: 0, categoryId: 'cat-1' });
 
-    expect(listProducts).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 20 });
-    expect(state.page().data?.pageNumber).toBe(2);
-    expect(state.page().data?.items.map((item) => item.id)).toEqual(['p2']);
+    expect(listProducts).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: 20,
+      searchTerm: 'tee',
+      status: 1,
+      visibility: 0,
+      categoryId: 'cat-1',
+    });
   });
 
+  it('omits blank filter values (the backend 400s on empty strings)', () => {
+    const { state, listProducts } = setup();
+    state.setFilters({ searchTerm: '   ', categoryId: '' });
+
+    expect(listProducts).toHaveBeenLastCalledWith({ pageNumber: 1, pageSize: 20 });
+  });
+
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, listProducts } = setup();
+    state.setFilters({ searchTerm: 'tee', status: 1 });
+    state.setFilters({});
+
+    expect(listProducts).toHaveBeenLastCalledWith({ pageNumber: 1, pageSize: 20 });
+  });
+
+  it('preserves committed filters across pager moves', () => {
+    const { state, listProducts } = setup();
+    state.setFilters({ searchTerm: 'tee', status: 1 });
+    state.setPage(3);
+
+    expect(listProducts).toHaveBeenLastCalledWith({
+      pageNumber: 3,
+      pageSize: 20,
+      searchTerm: 'tee',
+      status: 1,
+    });
+  });
   it('reloads the current effective page', () => {
     const { state, listProducts } = setup((query) => {
       const pageNumber = (query as { pageNumber: number }).pageNumber;

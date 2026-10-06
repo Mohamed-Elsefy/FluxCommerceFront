@@ -38,10 +38,12 @@ function row(id: string, name: string, parentId: string | null = null): Category
 function setup(scenario: { page: ResourceState<AdminCategoryPage> }): {
   load: ReturnType<typeof vi.fn>;
   setPage: ReturnType<typeof vi.fn>;
+  setFilters: ReturnType<typeof vi.fn>;
   reload: ReturnType<typeof vi.fn>;
 } {
   const load = vi.fn();
   const setPage = vi.fn();
+  const setFilters = vi.fn();
   const reload = vi.fn();
   TestBed.configureTestingModule({
     providers: [
@@ -56,7 +58,7 @@ function setup(scenario: { page: ResourceState<AdminCategoryPage> }): {
       provideRouter([]),
       {
         provide: CategoryListState,
-        useValue: { page: signal(scenario.page), load, setPage, reload },
+        useValue: { page: signal(scenario.page), load, setPage, setFilters, reload },
       },
       {
         provide: CategoryLookupState,
@@ -69,7 +71,7 @@ function setup(scenario: { page: ResourceState<AdminCategoryPage> }): {
     ],
   });
   window.localStorage.clear();
-  return { load, setPage, reload };
+  return { load, setPage, setFilters, reload };
 }
 
 function render(): HTMLElement {
@@ -106,6 +108,45 @@ describe('CategoriesListPage', () => {
     ]);
     expect(element.querySelector('admin-pagination')).not.toBeNull();
     expect(element.querySelector('.categories-list-new')?.getAttribute('href')).toBe('/new');
+  });
+
+  it('commits filters on apply', () => {
+    const { setFilters } = setup({ page: emptyResource<AdminCategoryPage>() });
+    const element = render();
+
+    const form = element.querySelector('.categories-list-filters') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+
+    expect(setFilters).toHaveBeenCalledTimes(1);
+    expect(setFilters).toHaveBeenCalledWith({ searchTerm: '' });
+  });
+
+  it('maps filter selections to wire values on apply', () => {
+    const { setFilters } = setup({ page: emptyResource<AdminCategoryPage>() });
+    const element = render();
+
+    const search = element.querySelector('#categories-filter-search') as HTMLInputElement;
+    search.value = 'apparel';
+    search.dispatchEvent(new Event('input'));
+    const status = element.querySelector('#categories-filter-status') as HTMLSelectElement;
+    status.value = '0';
+    status.dispatchEvent(new Event('change'));
+
+    const form = element.querySelector('.categories-list-filters') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+
+    expect(setFilters).toHaveBeenCalledWith({ searchTerm: 'apparel', status: 0 });
+  });
+
+  it('clears filters through the filter bar', () => {
+    const { setFilters } = setup({ page: loadingResource<AdminCategoryPage>() });
+    const element = render();
+
+    const clear = element.querySelector('.filter-bar-clear') as HTMLButtonElement;
+    expect(clear).not.toBeNull();
+    clear.click();
+
+    expect(setFilters).toHaveBeenCalledWith({});
   });
 
   it('commits pager moves through the state', () => {

@@ -2,10 +2,11 @@
  * Feature-owned category list state for Sub-Phase 13.5 — Category
  * Management.
  *
- * Scope: the paged category table only (`GET /catalog/categories` — the
- * endpoint exposes no sorting/filtering/search params, so the state owns
- * no query transitions beyond the committed page; see the list page docs
- * for the documented backend gap).
+ * Scope: the paged category table only (`GET /catalog/categories` —
+ * paging plus `searchTerm`/`status` filters, no sorting; see
+ * `docs/frontend-contract/API_CONTRACT.md` §2). Filter transitions
+ * commit through the explicit `setFilters()` (page resets to 1); page
+ * moves commit through `setPage()`.
  *
  * Locality rules (same convention as `catalog-overview-state`, 13.2):
  * `@Injectable()` WITHOUT `providedIn` (route-level providers only),
@@ -17,6 +18,7 @@
  *
  * Explicitly out of scope (later work, must not appear here):
  * - 13.6 — no image/specification slots or writes.
+ * - Sorting on category rows (no backend contract).
  */
 
 import { inject, Injectable, OnDestroy, type Signal } from '@angular/core';
@@ -28,11 +30,10 @@ import {
   UNKNOWN_ERROR_CODE,
   type ApiResponseWithData,
   type PagedApiResponse,
-  type PaginationRequest,
   type ResourceState,
   type ResourceStateStore,
 } from '@flux/api';
-import type { CategoryResponse } from '@flux/models';
+import type { AdminCategoryListQuery, CategoryResponse } from '@flux/models';
 import { CatalogAdminApiService } from '../data-access/catalog-admin-api.service';
 import type { AdminCategoryPage } from '../models/catalog-admin.models';
 
@@ -41,8 +42,8 @@ export const CATEGORY_LIST_PAGE_SIZE = 20;
 
 /**
  * Feature-scoped category list state. Provide at the catalog route level —
- * never at root. All selectors are readonly signals; page moves commit
- * through the explicit `setPage()` driven by the owning page.
+ * never at root. All selectors are readonly signals; filter and page
+ * moves commit through the explicit setters driven by the owning page.
  */
 @Injectable()
 export class CategoryListState implements OnDestroy {
@@ -55,23 +56,46 @@ export class CategoryListState implements OnDestroy {
   /** Current category page (idle → loading → success | empty | error). */
   readonly page: Signal<ResourceState<AdminCategoryPage>> = this.pageStore.state;
 
+  /** Currently committed filters (page moves preserve them). */
+  private committed: AdminCategoryListQuery = {};
+
   /**
-   * Loads the given page (response-effective values drive the pager, so
-   * callers pass committed page numbers only). A load issued while
-   * another is in flight supersedes it: the previous subscription is
-   * torn down first, so stale pages can never settle over newer ones.
+   * Loads the given page under the committed filters (response-effective
+   * values drive the pager, so callers pass committed page numbers
+   * only). A load issued while another is in flight supersedes it: the
+   * previous subscription is torn down first, so stale pages can never
+   * settle over newer ones. Blank filter values travel as omissions
+   * (the backend `400`s on empty strings).
    */
-  load(query: PaginationRequest = {}): void {
+  load(query: AdminCategoryListQuery = {}): void {
     this.loads.unsubscribe();
     this.loads = new Subscription();
+    this.committed = { ...this.committed, ...query };
+    const { pageNumber, pageSize, ...filters } = this.committed;
     const request: Observable<AdminCategoryPage> = this.catalogApi
-      .listCategories({ pageNumber: 1, pageSize: CATEGORY_LIST_PAGE_SIZE, ...query })
+      .listCategories({
+        pageNumber: pageNumber ?? 1,
+        pageSize: pageSize ?? CATEGORY_LIST_PAGE_SIZE,
+        ...omitBlankFilters(filters),
+      })
       .pipe(map(requireCategoryPage));
     this.loads.add(
       loadResourceState(this.pageStore, request, {
         isEmpty: (page) => page.items.length === 0,
       }),
     );
+  }
+
+  /**
+   * Commits new filters (filter-bar apply/clear re-enter here). The page
+   * resets to 1: filtered result sets never preserve the old page.
+   * Filters replace (never merge): omitted keys are cleared so
+   * `clearFilters()` really reloads unfiltered. The page size survives.
+   */
+  setFilters(filters: Omit<AdminCategoryListQuery, 'pageNumber' | 'pageSize'>): void {
+    const { pageSize } = this.committed;
+    this.committed = {};
+    this.load({ ...filters, pageNumber: 1, ...(pageSize === undefined ? {} : { pageSize }) });
   }
 
   /**
@@ -92,6 +116,21 @@ export class CategoryListState implements OnDestroy {
   ngOnDestroy(): void {
     this.loads.unsubscribe();
   }
+}
+
+/** Drops blank string filters (the backend rejects empty strings); numbers pass through. */
+function omitBlankFilters(
+  filters: Omit<AdminCategoryListQuery, 'pageNumber' | 'pageSize'>,
+): Omit<AdminCategoryListQuery, 'pageNumber' | 'pageSize'> {
+  const cleaned: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(filters)) {
+    if (typeof value === 'number') {
+      cleaned[key] = value;
+    } else if (typeof value === 'string' && value.trim() !== '') {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
 }
 
 /** Unwraps a paged envelope; a dataless `200` is a contract violation. */

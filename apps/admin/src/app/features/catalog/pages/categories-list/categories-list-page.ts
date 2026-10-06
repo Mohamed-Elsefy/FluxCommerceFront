@@ -8,16 +8,16 @@
  * primitives.
  *
  * Contract fidelity (13.1 audit — only backend-exposed options):
- * `GET /catalog/categories` exposes paging only — no `sortBy`, no
- * filters, no search. Sorting/filtering/search UI therefore does not
- * exist here by design; the table shows every backend-issued category
- * field the contract carries (name, slug, status, parent). Hierarchy
- * follows the flat backend model: per-row parent references resolved
- * through the lookup (raw-id fallback outside the first hundred) —
- * no tree widget exists because no tree endpoint exists. Pager values
- * always come from the RESPONSE envelope with page counts from the
- * shared `totalPagesOf` helper. Status renders as localized text with
- * the forward-compatible unknown fallback.
+ * `GET /catalog/categories` exposes paging plus `searchTerm` (name/slug,
+ * case-insensitive) and `status` filters — no `sortBy`, no other
+ * filters. Filter commits reset to page 1; blank values travel as
+ * omissions (the backend `400`s on empty strings). Hierarchy follows
+ * the flat backend model: per-row parent references resolved through
+ * the lookup (raw-id fallback outside the first hundred) — no tree
+ * widget exists because no tree endpoint exists. Pager values always
+ * come from the RESPONSE envelope with page counts from the shared
+ * `totalPagesOf` helper. Status renders as localized text with the
+ * forward-compatible unknown fallback.
  *
  * Resource states: idle → loading → success | empty | error through the
  * shared primitives with localized copy and retry (out-of-range pages
@@ -30,14 +30,18 @@
  *
  * Explicitly out of scope (later work, must not appear here):
  * - 13.6 — no image/specification management affordances.
- * - Sorting/filtering/search on category rows (no backend contract).
+ * - Sorting on category rows (no backend contract).
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { ErrorState } from '@flux/ui';
 import { AdminDataTable, type AdminDataColumn } from '../../../../shared/data-table/data-table';
+import { AdminFilterBar } from '../../../../shared/filters/filter-bar/filter-bar';
+import { AdminSearchInput } from '../../../../shared/filters/search-input/search-input';
+import { AdminSelect, type AdminSelectOption } from '../../../../shared/forms/select/select';
 import {
   AdminPagination,
   type AdminPaginationCopy,
@@ -51,9 +55,24 @@ import {
 } from '../../models/catalog-admin.models';
 import { CATALOG_TRANSLATION_KEYS, translateCatalogKey } from '../../i18n/catalog-translations';
 
+/** Backend wire values behind the category status filter names. */
+const CATEGORY_STATUS_NUMBERS: Readonly<Record<string, number>> = {
+  Active: 0,
+  Inactive: 1,
+};
+
 @Component({
   selector: 'app-categories-list-page',
-  imports: [RouterLink, AdminDataTable, AdminPagination, ErrorState],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    AdminDataTable,
+    AdminFilterBar,
+    AdminSearchInput,
+    AdminSelect,
+    AdminPagination,
+    ErrorState,
+  ],
   templateUrl: './categories-list-page.html',
   styleUrl: './categories-list-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,9 +81,19 @@ export class CategoriesListPage implements OnInit {
   private readonly categories = inject(CategoryListState);
   private readonly lookup = inject(CategoryLookupState);
   private readonly cultures = inject(CultureService);
+  private readonly formBuilder = inject(FormBuilder);
 
   /** Current category page (idle → loading → success | empty | error). */
   protected readonly slot = this.categories.page;
+
+  /**
+   * Filter form (search substring plus status select — `''` means "no
+   * filter" and travels as an omission).
+   */
+  protected readonly filters = this.formBuilder.nonNullable.group({
+    search: [''],
+    status: [''],
+  });
 
   /** Whether the table body shows the loading state. */
   protected readonly tableLoading = computed(() => {
@@ -102,6 +131,21 @@ export class CategoriesListPage implements OnInit {
     ];
   });
 
+  /** Localized status select options (All + backend status names). */
+  protected readonly statusOptions = computed((): readonly AdminSelectOption[] => {
+    const culture = this.cultures.culture();
+    return [
+      {
+        value: '',
+        label: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesFilterAll),
+      },
+      ...Object.keys(CATEGORY_STATUS_NUMBERS).map((status) => ({
+        value: String(CATEGORY_STATUS_NUMBERS[status] ?? -1),
+        label: this.statusText(CATEGORY_STATUS_NUMBERS[status] ?? -1),
+      })),
+    ];
+  });
+
   /** Current page rows (`[]` until settled). */
   protected readonly rows = computed(() => this.slot().data?.items ?? []);
 
@@ -121,6 +165,15 @@ export class CategoriesListPage implements OnInit {
       emptyMessage: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesEmptyMessage),
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesErrorTitle),
       retry: translateKey(culture, 'common.actions.retry'),
+      filterTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesFilterTitle),
+      filterSearch: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesFilterSearch),
+      filterSearchPlaceholder: translateCatalogKey(
+        culture,
+        CATALOG_TRANSLATION_KEYS.categoriesFilterSearchPlaceholder,
+      ),
+      filterStatus: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesFilterStatus),
+      filterClear: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesFilterClear),
+      filterApply: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesFilterApply),
     };
   });
 
@@ -144,6 +197,25 @@ export class CategoriesListPage implements OnInit {
   ngOnInit(): void {
     this.categories.load();
     this.lookup.load();
+  }
+
+  /**
+   * Commits the filter form (resets to page 1). The status select value
+   * is a numeric wire string (`''` = no filter, omitted); the search
+   * travels verbatim and blank values are omitted state-side.
+   */
+  protected applyFilters(): void {
+    const raw = this.filters.getRawValue();
+    this.categories.setFilters({
+      searchTerm: raw.search,
+      ...(raw.status.trim() === '' ? {} : { status: Number(raw.status) }),
+    });
+  }
+
+  /** Clears the filter form and reloads unfiltered. */
+  protected clearFilters(): void {
+    this.filters.reset({ search: '', status: '' });
+    this.categories.setFilters({});
   }
 
   /** Commits a pager move (response-effective values re-render the pager). */

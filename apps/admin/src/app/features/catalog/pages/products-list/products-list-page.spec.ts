@@ -44,10 +44,12 @@ function setup(scenario: {
 }): {
   load: ReturnType<typeof vi.fn>;
   setPage: ReturnType<typeof vi.fn>;
+  setFilters: ReturnType<typeof vi.fn>;
   reload: ReturnType<typeof vi.fn>;
 } {
   const load = vi.fn();
   const setPage = vi.fn();
+  const setFilters = vi.fn();
   const reload = vi.fn();
   const page = signal(scenario.page);
   const categories = signal(
@@ -77,7 +79,7 @@ function setup(scenario: {
       provideApi(),
       provideHttpClientTesting(),
       provideRouter([]),
-      { provide: ProductListState, useValue: { page, load, setPage, reload } },
+      { provide: ProductListState, useValue: { page, load, setPage, setFilters, reload } },
       {
         provide: CategoryLookupState,
         useValue: { categories, options: signal([]), load: vi.fn() },
@@ -85,7 +87,7 @@ function setup(scenario: {
     ],
   });
   window.localStorage.clear();
-  return { load, setPage, reload };
+  return { load, setPage, setFilters, reload };
 }
 
 function render(): HTMLElement {
@@ -122,6 +124,53 @@ describe('ProductsListPage', () => {
     ]);
     expect(element.querySelector('admin-pagination')).not.toBeNull();
     expect(element.querySelector('.products-list-new')?.getAttribute('href')).toBe('/new');
+  });
+
+  it('commits filters on apply', () => {
+    const { setFilters } = setup({ page: emptyResource<AdminProductPage>() });
+    const element = render();
+
+    const form = element.querySelector('.products-list-filters') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+
+    expect(setFilters).toHaveBeenCalledTimes(1);
+    expect(setFilters).toHaveBeenCalledWith({ searchTerm: '', categoryId: '' });
+  });
+
+  it('maps filter selections to wire values on apply', () => {
+    const { setFilters } = setup({ page: emptyResource<AdminProductPage>() });
+    const element = render();
+
+    const search = element.querySelector('#products-filter-search') as HTMLInputElement;
+    search.value = 'tee';
+    search.dispatchEvent(new Event('input'));
+    const status = element.querySelector('#products-filter-status') as HTMLSelectElement;
+    status.value = '1';
+    status.dispatchEvent(new Event('change'));
+    const visibility = element.querySelector('#products-filter-visibility') as HTMLSelectElement;
+    visibility.value = '0';
+    visibility.dispatchEvent(new Event('change'));
+
+    const form = element.querySelector('.products-list-filters') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+
+    expect(setFilters).toHaveBeenCalledWith({
+      searchTerm: 'tee',
+      status: 1,
+      visibility: 0,
+      categoryId: '',
+    });
+  });
+
+  it('clears filters through the filter bar', () => {
+    const { setFilters } = setup({ page: loadingResource<AdminProductPage>() });
+    const element = render();
+
+    const clear = element.querySelector('.filter-bar-clear') as HTMLButtonElement;
+    expect(clear).not.toBeNull();
+    clear.click();
+
+    expect(setFilters).toHaveBeenCalledWith({});
   });
 
   it('commits pager moves through the state', () => {

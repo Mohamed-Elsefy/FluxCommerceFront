@@ -10,16 +10,15 @@
  * adjustment with updated-state verification, plus the Supplement S1
  * stock/reservation lists (paged, filtered) and the counts overview.
  *
- * Contract-honest coverage notes (13.1 audit, Supplement S1.1 audit):
- * there is no product/category search, sort, or filter endpoint — so
- * those journeys assert single-resource lookups and the paged tables
- * instead of inventing list UX that the backend cannot serve. Stock
- * lists (`search`/`maxAvailable`, by-SKU order), reservation lists
+ * Contract-honest coverage notes (13.1 audit, Supplement S1.1 audit,
+ * backend filter evolution): product/category lists support the
+ * backend-issued `searchTerm`/`status` (`visibility`/`categoryId` on
+ * products) filters — those journeys assert rows and request queries.
+ * Stock lists (`search`/`maxAvailable`, by-SKU order), reservation lists
  * (`status`/`sku`/`orderId`, newest-first), and the counts snapshot
  * ARE backend contracts — those journeys assert rows, request queries,
- * and verbatim buckets. Reservation "filtering" (phase text) maps to
- * the supported list filters plus the single-id lookup. Quantities and
- * counts echo verbatim (never derived client-side).
+ * and verbatim buckets. Quantities and counts echo verbatim (never
+ * derived client-side).
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
@@ -314,6 +313,72 @@ test.describe('admin catalog journeys (13.11)', () => {
     await expect(page.getByRole('cell', { name: 'Active' }).first()).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Product pages' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'New product' })).toBeVisible();
+  });
+
+  test('product list narrows through search, status, and category filters', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mockCatalogReads(page);
+    const seen: Array<Record<string, string>> = [];
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/catalog/products',
+      async (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        seen.push(Object.fromEntries(new URL(route.request().url()).searchParams.entries()));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(json(paged([product()], 1))),
+        });
+      },
+    );
+    await page.goto('/catalog/products');
+
+    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
+    await page.getByLabel('Search').fill('tee');
+    await page.getByLabel('Status').selectOption('1');
+    await page.getByLabel('Visibility').selectOption('0');
+    await page.getByLabel('Category').selectOption('cat-1');
+    await page.getByRole('button', { name: 'Apply filters' }).click();
+
+    expect(seen.at(-1)?.['searchTerm']).toBe('tee');
+    expect(seen.at(-1)?.['status']).toBe('1');
+    expect(seen.at(-1)?.['visibility']).toBe('0');
+    expect(seen.at(-1)?.['categoryId']).toBe('cat-1');
+  });
+
+  test('category list narrows through search and status filters', async ({ page }) => {
+    await seed(page, ['Admin']);
+    await mockSession(page, ['Admin']);
+    await mockCatalogReads(page);
+    const seen: Array<Record<string, string>> = [];
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/catalog/categories',
+      async (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        seen.push(Object.fromEntries(new URL(route.request().url()).searchParams.entries()));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(json(paged([category()], 1))),
+        });
+      },
+    );
+    await page.goto('/catalog/categories');
+
+    await expect(page.getByRole('heading', { name: 'Categories' })).toBeVisible();
+    await page.getByLabel('Search').fill('alpha');
+    await page.getByLabel('Status').selectOption('0');
+    await page.getByRole('button', { name: 'Apply filters' }).click();
+
+    expect(seen.at(-1)?.['searchTerm']).toBe('alpha');
+    expect(seen.at(-1)?.['status']).toBe('0');
   });
 
   test('product creation notifies and lands on details', async ({ page }) => {
