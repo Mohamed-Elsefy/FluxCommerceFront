@@ -167,6 +167,28 @@ export function normalizeHttpError(
     });
   }
 
+  // Framework auto-400 (`[ApiController]` DataAnnotations violations) arrives
+  // as a validation shape WITHOUT `detail` (only `title` + `errors`, as the
+  // reported `customerId` case shows). Without this branch the whole field
+  // map was dropped and the UI fell back to "unexpected error".
+  if (
+    body !== null &&
+    typeof body['status'] === 'number' &&
+    body['errors'] !== undefined &&
+    asRecord(body['errors']) !== null
+  ) {
+    const extensions = asRecord(body['extensions']);
+    const code = extensions !== null ? stringField(extensions, 'code') : null;
+    return new ApiError({
+      status: error.status,
+      code: code ?? undefined,
+      message: stringField(body, 'title') ?? `Validation failed with status ${error.status}.`,
+      validationErrors: toValidationErrors(body['errors']),
+      correlationId,
+      traceId: stringField(body, 'traceId'),
+    });
+  }
+
   if (typeof error.error === 'string' && error.error.trim() !== '') {
     return new ApiError({
       status: error.status,

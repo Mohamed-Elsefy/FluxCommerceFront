@@ -197,6 +197,8 @@ describe('LoginPage', () => {
     page.submit();
 
     expect(page.form.controls.email.hasError('server')).toBe(true);
-    expect(page.formError()).toBe('Please correct the highlighted fields and try again.');
+    expect(page.formError()).toBe(
+      'Please correct the highlighted fields and try again. Email: Email is already taken.',
+    );
   });
 });

@@ -29,9 +29,12 @@
  *   `errors.unknown` message. Deterministic across cultures; never throws.
  *
  * UI contract: components rely exclusively on this resolver's output for
- * user-facing copy. Server-provided text (`ApiError.message`) stays
- * available for diagnostics but is never branched on or rendered as
- * business logic. Cancellation (`RequestCancelled`) resolves generically —
+ * user-facing copy. Server-provided text (`ApiError.message`, i.e. the
+ * `detail`/`title`) stays available for diagnostics but is never branched
+ * on or rendered as business logic; the structured field-error map
+ * (`ApiError.validationErrors`) IS rendered verbatim through
+ * `resolveApiErrorDetails` (already localized server-side per the request
+ * culture). Cancellation (`RequestCancelled`) resolves generically —
  * callers typically skip resolution for aborted requests entirely.
  *
  * Business-independent: only common codes and the generic fallback live
@@ -86,10 +89,40 @@ export function mapErrorCodeToTranslationKey(code: string | null | undefined): s
 }
 
 /**
+ * Flattens the structured 400 field-error map to displayable lines
+ * (`field: message`). Renders the backend-provided field messages
+ * verbatim (they are already localized server-side per the request
+ * culture) — never branched on, only listed. Empty when no field
+ * details exist. Never throws.
+ */
+export function resolveApiErrorDetails(error: ApiError | null | undefined): string[] {
+  const map = error?.validationErrors;
+  if (map === undefined || map === null) {
+    return [];
+  }
+  const details: string[] = [];
+  for (const [field, messages] of Object.entries(map)) {
+    if (!Array.isArray(messages)) {
+      continue;
+    }
+    for (const message of messages) {
+      if (typeof message !== 'string' || message.trim() === '') {
+        continue;
+      }
+      details.push(field.trim() !== '' ? `${field}: ${message}` : message);
+    }
+  }
+  return details;
+}
+
+/**
  * Resolves a normalized API error to its localized message for a culture.
  * Known codes use the mapping above; codeless `401`/`403`/validation-`400`
  * resolve by status and shape; everything else (including nullish errors)
- * resolves to the generic message. Never throws.
+ * resolves to the generic message. For validation `400`s the generic
+ * header is followed by the field details (when any), so list/filter
+ * failures name the offending field instead of hiding behind a generic
+ * line. Never throws.
  */
 export function resolveApiErrorMessage(
   error: ApiError | null | undefined,
@@ -106,11 +139,14 @@ export function resolveApiErrorMessage(
       return translateKey(culture, 'errors.unauthorized');
     case 403:
       return translateKey(culture, 'errors.forbidden');
-    case 400:
-      return translateKey(
-        culture,
-        error.validationErrors === undefined ? UNKNOWN_ERROR_TRANSLATION_KEY : 'errors.validation',
-      );
+    case 400: {
+      if (error.validationErrors === undefined) {
+        return translateKey(culture, UNKNOWN_ERROR_TRANSLATION_KEY);
+      }
+      const base = translateKey(culture, 'errors.validation');
+      const details = resolveApiErrorDetails(error);
+      return details.length === 0 ? base : `${base} ${details.join(' ')}`;
+    }
     default:
       return translateKey(culture, UNKNOWN_ERROR_TRANSLATION_KEY);
   }

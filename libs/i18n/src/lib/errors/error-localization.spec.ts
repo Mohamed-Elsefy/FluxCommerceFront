@@ -13,10 +13,16 @@ import type { Culture } from '../culture/culture';
 import {
   UNKNOWN_ERROR_TRANSLATION_KEY,
   mapErrorCodeToTranslationKey,
+  resolveApiErrorDetails,
   resolveApiErrorMessage,
 } from './error-localization';
 
-function apiError(init: { status: number; message: string; code?: string }): ApiError {
+function apiError(init: {
+  status: number;
+  message: string;
+  code?: string;
+  validationErrors?: Record<string, string[]>;
+}): ApiError {
   return new ApiError(init);
 }
 
@@ -101,7 +107,37 @@ describe('resolveApiErrorMessage', () => {
         new ApiError({ status: 400, message: 'x', validationErrors: { Email: ['Bad.'] } }),
         'en',
       ),
+    ).toBe('Please correct the highlighted fields and try again. Email: Bad.');
+  });
+
+  it('lists every field detail after the validation header', () => {
+    expect(
+      resolveApiErrorMessage(
+        apiError({
+          status: 400,
+          message: 'x',
+          validationErrors: {
+            customerId: ["The value 'سسس' is not valid."],
+            search: ['Too long.', 'Bad format.'],
+          },
+        }),
+        'en',
+      ),
+    ).toBe(
+      "Please correct the highlighted fields and try again. customerId: The value 'سسس' is not valid. search: Too long. search: Bad format.",
+    );
+  });
+
+  it('keeps the generic validation header when no field details exist', () => {
+    expect(
+      resolveApiErrorMessage(apiError({ status: 400, message: 'x', validationErrors: {} }), 'en'),
     ).toBe('Please correct the highlighted fields and try again.');
+    expect(resolveApiErrorDetails(apiError({ status: 400, message: 'x' }))).toEqual([]);
+    expect(
+      resolveApiErrorDetails(
+        apiError({ status: 400, message: 'x', validationErrors: { Email: ['Bad.'] } }),
+      ),
+    ).toEqual(['Email: Bad.']);
   });
 
   it('falls back deterministically for unmapped statuses, codes, and nullish errors', () => {

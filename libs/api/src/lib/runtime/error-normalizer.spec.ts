@@ -83,6 +83,26 @@ describe('normalizeHttpError', () => {
     });
   });
 
+  it('captures validation errors when detail is absent (framework auto-400 shape)', () => {
+    const error = normalizeHttpError(
+      httpError({
+        status: 400,
+        body: {
+          type: 'https://tools.ietf.org/html/rfc9110#section-15.5.1',
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { customerId: ["The value 'سسس' is not valid."] },
+          traceId: '00-2669e94a639662ae9b77e5562b31a620-cb81f623d29be17a-01',
+        },
+      }),
+    );
+
+    expect(error.status).toBe(400);
+    expect(error.code).toBeUndefined();
+    expect(error.validationErrors).toEqual({ customerId: ["The value 'سسس' is not valid."] });
+    expect(error.traceId).toBe('00-2669e94a639662ae9b77e5562b31a620-cb81f623d29be17a-01');
+  });
+
   it('normalizes 401 Unauthorized without inventing auth behavior', () => {
     const error = normalizeHttpError(
       httpError({
