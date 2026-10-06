@@ -55,7 +55,7 @@ describe('admin navigation', () => {
     expect(users?.children?.map((child) => child.labelKey)).toEqual(['layout.nav.usersList']);
   });
 
-  it('shows every entry to fully permissioned roles (users needs a users permission)', () => {
+  it('shows every entry to fully permissioned roles (users needs users.read)', () => {
     const full = ['catalog.manage', 'inventory.read', 'orders.read', 'payments.read'];
     expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], full)).toHaveLength(5);
     expect(visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], [...full, 'users.read'])).toHaveLength(
@@ -64,12 +64,10 @@ describe('admin navigation', () => {
     expect(visibleDestinations(ADMIN_NAV_ITEMS, ['SuperAdmin'], full)).toHaveLength(6);
   });
 
-  it('shows the users entry on any of its three permissions (OR semantics)', () => {
-    for (const permission of ['users.read', 'users.manage', 'admins.create']) {
-      expect(
-        visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], [permission]).map((item) => item.labelKey),
-      ).toContain('layout.nav.users');
-    }
+  it('shows the users entry on users.read only', () => {
+    expect(
+      visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['users.read']).map((item) => item.labelKey),
+    ).toContain('layout.nav.users');
     expect(
       visibleDestinations(ADMIN_NAV_ITEMS, ['Admin'], ['orders.read']).map((item) => item.labelKey),
     ).not.toContain('layout.nav.users');

@@ -14,6 +14,7 @@ import {
   type ResourceState,
 } from '@flux/api';
 import { CultureService } from '@flux/i18n';
+import { AuthService } from '@flux/auth';
 import type { UserAdminResponse } from '@flux/models';
 import { UsersListState } from '../../state/users-list-state';
 import type { UserAdminPage } from '../../models/users-admin.models';
@@ -52,7 +53,11 @@ function pageState(items: UserAdminResponse[]): ResourceState<UserAdminPage> {
   });
 }
 
-function setup(scenario: { page?: ResourceState<UserAdminPage> }): {
+function setup(scenario: {
+  page?: ResourceState<UserAdminPage>;
+  viewerRoles?: readonly string[];
+  viewerPermissions?: readonly string[];
+}): {
   load: ReturnType<typeof vi.fn>;
   setPage: ReturnType<typeof vi.fn>;
   setFilters: ReturnType<typeof vi.fn>;
@@ -86,6 +91,17 @@ function setup(scenario: { page?: ResourceState<UserAdminPage> }): {
     ],
   });
   window.localStorage.clear();
+  TestBed.inject(AuthService).setAuthenticated({
+    user: {
+      id: '11111111-1111-1111-1111-111111111111',
+      email: 'viewer@flux.local',
+      displayName: 'Viewer Admin',
+      roles: [...(scenario.viewerRoles ?? ['SuperAdmin'])],
+      permissions: [...(scenario.viewerPermissions ?? [])],
+      isEmailVerified: true,
+    },
+    accessToken: 'test-access-token',
+  });
   return { load, setPage, setFilters, reload };
 }
 
@@ -110,11 +126,23 @@ describe('UsersListPage', () => {
     expect(element.textContent).toContain('user-1@flux.local');
   });
 
-  it('links to admin creation from the list header', () => {
+  it('links to admin creation from the list header for SuperAdmin', () => {
     setup({ page: pageState([row('user-1')]) });
     const element = render();
 
     expect(element.querySelector('.users-list-new')?.getAttribute('href')).toBe('/users/new');
+  });
+
+  it('hides the creation link from users.read viewers', () => {
+    setup({
+      page: pageState([row('user-1')]),
+      viewerRoles: ['Admin'],
+      viewerPermissions: ['users.read'],
+    });
+    const element = render();
+
+    expect(element.querySelector('.users-list-new')).toBeNull();
+    expect(element.textContent).toContain('user-1@flux.local');
   });
 
   it('renders the status badge per row', () => {

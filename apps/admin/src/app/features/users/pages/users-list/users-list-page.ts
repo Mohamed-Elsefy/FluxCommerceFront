@@ -51,6 +51,7 @@ import {
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
+import { AuthService } from '@flux/auth';
 import { ErrorState } from '@flux/ui';
 import {
   AdminDataTable,
@@ -88,8 +89,16 @@ import { USERS_TRANSLATION_KEYS, translateUsersKey } from '../../i18n/users-tran
 })
 export class UsersListPage implements OnInit {
   private readonly users = inject(UsersListState);
+  private readonly auth = inject(AuthService);
   private readonly cultures = inject(CultureService);
   private readonly formBuilder = inject(FormBuilder);
+
+  /**
+   * Whether the creation link renders: creation is `SuperAdmin`-only
+   * (route-guarded too), so `users.read` viewers never see a dead
+   * link into `/forbidden`.
+   */
+  protected readonly canCreateAdmin = this.auth.isSuperAdmin;
 
   /** Status cell template (badge per row — resolved after view init). */
   private readonly statusCell =

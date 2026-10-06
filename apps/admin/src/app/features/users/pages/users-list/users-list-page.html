@@ -4,7 +4,9 @@
       <h1 id="users-list-title">{{ copy().heading }}</h1>
       <p class="users-list-subtitle">{{ copy().subheading }}</p>
     </div>
-    <a class="users-list-new" routerLink="/users/new">{{ copy().createAdmin }}</a>
+    @if (canCreateAdmin()) {
+      <a class="users-list-new" routerLink="/users/new">{{ copy().createAdmin }}</a>
+    }
   </header>
 
   <form class="users-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">

@@ -27,7 +27,7 @@ export interface RegisterCustomerRequest {
   lastName: string;
 }
 
-/** `POST /auth/register-admin` body (`admins.create`; creates permission-less admins). */
+/** `POST /auth/register-admin` body (`SuperAdmin` only; creates permission-less admins). */
 export interface RegisterAdminRequest {
   email: string;
   password: string;
@@ -80,8 +80,7 @@ export interface ChangePasswordRequest {
 }
 
 /**
- * `POST /admin/users/{id}/roles` body (`users.manage`, under
- * anti-escalation guards).
+ * `POST /admin/users/{id}/roles` body (`SuperAdmin` only).
  * The user id travels in the route, never in the body.
  */
 export interface AssignRoleRequest {
@@ -103,7 +102,7 @@ export interface UpdateProfileRequest {
 }
 
 /**
- * `POST /admin/users/{id}/permissions` body (`users.manage`).
+ * `POST /admin/users/{id}/permissions` body (`SuperAdmin` only).
  * The user id travels in the route, never in the body — one catalog
  * value per call (`Permission`, see `../common/enums`).
  */
@@ -230,11 +229,11 @@ export function isValidUserListQuery(query: UserListQuery | null | undefined): b
 }
 
 /**
- * `POST /admin/users/{id}/permissions` submission (`users.manage`):
- * the user id (route) plus one catalog permission (body). Unknown
- * permission → `400 Identity.InvalidPermission`; already-granted →
- * `409 Identity.PermissionAlreadyGranted`; delegation-guard denial →
- * `403 Identity.Forbidden`.
+ * `POST /admin/users/{id}/permissions` submission (`SuperAdmin`
+ * only): the user id (route) plus one catalog permission (body).
+ * Unknown permission → `400 Identity.InvalidPermission`;
+ * already-granted → `409 Identity.PermissionAlreadyGranted`; denial
+ * → plain `403` (no wire code).
  */
 export interface PermissionGrantSubmission {
   readonly userId: Guid;

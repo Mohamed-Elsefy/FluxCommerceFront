@@ -108,7 +108,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminDestination[] = [
     labelKey: 'layout.nav.users',
     route: '/users',
     icon: '◉',
-    permissions: ['users.read', 'users.manage', 'admins.create'],
+    permissions: ['users.read'],
     children: [{ labelKey: 'layout.nav.usersList', route: '/users/list' }],
   },
 ];

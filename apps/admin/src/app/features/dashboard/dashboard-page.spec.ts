@@ -171,7 +171,7 @@ describe('DashboardPage', () => {
     );
   });
 
-  it('hides the users drill-down for non-SuperAdmin roles', () => {
+  it('shows the users drill-down whenever the users section is present', () => {
     setup({ snapshot: successResource(snapshot()), roles: ['Admin'] });
     const element = render();
 
@@ -183,6 +183,7 @@ describe('DashboardPage', () => {
       '/payments/list',
       '/inventory/stock',
       '/catalog/products',
+      '/users/list',
     ]);
     expect(element.textContent).toContain('3 users');
   });

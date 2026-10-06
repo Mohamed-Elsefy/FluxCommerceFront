@@ -1,23 +1,23 @@
 import { Routes } from '@angular/router';
-import { permissionGuard } from '@flux/auth';
+import { roleGuard } from '@flux/auth';
 import { UserDetailsState } from './state/user-details-state';
 import { UsersCountsState } from './state/users-counts-state';
 import { UsersListState } from './state/users-list-state';
 
 /**
- * Admin Users feature routes for Supplement S2, Step S2.4 — Delegated
- * Users Management (permission-gated reads and delegated writes).
+ * Admin Users feature routes for Supplement S3, Step S3.3 — Users
+ * Write Re-centralization (delegated reads, SuperAdmin writes).
  *
  * Lazy feature boundary under the guarded portal shell (`path: 'users'`
  * in `app.routes.ts` — the mount carries `permissionGuard` over
- * `['users.read', 'users.manage', 'admins.create']` (OR semantics,
- * SuperAdmin bypass), so readers, writers, and creators arrive here;
- * backend authorization stays authoritative, and every users endpoint
- * is permission-gated server-side too).
+ * `['users.read']` (fail-closed, SuperAdmin bypass), so readers arrive
+ * here; backend authorization stays authoritative, and every users
+ * endpoint is gated server-side too (reads by `users.read`, writes by
+ * `SuperAdmin`).
  *
- * The `new` child route additionally requires `admins.create`
- * (delegation guard — the list page links there, but the route guard
- * enforces it).
+ * The `new` child route requires the `SuperAdmin` role (creation is
+ * not delegable — the list page links there only for SuperAdmins, but
+ * the route guard enforces it).
  *
  * No feature data-access service: list/counts/details/permission reads
  * and submissions (including admin creation via `registerAdmin`) go
@@ -48,8 +48,8 @@ export const usersRoutes: Routes = [
         path: 'new',
         loadComponent: () =>
           import('./pages/user-create/user-create-page').then((m) => m.UserCreatePage),
-        canActivate: [permissionGuard],
-        data: { permissions: ['admins.create'] },
+        canActivate: [roleGuard],
+        data: { roles: ['SuperAdmin'] },
       },
       {
         path: ':id',

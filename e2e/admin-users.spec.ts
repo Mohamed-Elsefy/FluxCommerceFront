@@ -1,26 +1,25 @@
 /**
- * Admin Users & Permissions E2E for Supplement S2, Step S2.4 —
- * Delegated Users Management.
+ * Admin Users & Permissions E2E for Supplement S3, Step S3.4 —
+ * Users Write Re-centralization.
  *
  * Same backend reality as `admin-orders.spec.ts`: transports are
  * fulfilled with contract-exact payloads because no live API runs here.
  * Sessions are seeded through `localStorage`, then restoration + guards
  * + the real feature slices run: users landing (counts), users list
- * with server-side pagination and filters, delegated admin creation
- * (`POST /auth/register-admin` with success + duplicate-email paths),
- * user details with lockout facts and the permission section,
- * delegated grant/revoke with notifications (including the
- * `Identity.Forbidden` toast path), and the permission-gated access
- * control.
+ * with server-side pagination and filters, SuperAdmin-only admin
+ * creation (`POST /auth/register-admin` with success + duplicate-email
+ * paths), user details with lockout facts and the permission section,
+ * SuperAdmin grant/revoke with notifications (including the generic
+ * 403 toast path), and the re-centralized access control.
  *
- * Contract-honest coverage notes (S2.1 audit):
+ * Contract-honest coverage notes (S3.1 delta audit):
  * - `GET /admin/users` takes `users.read` with `status`/`role`/`search`
  *   filters (case-insensitive) — the suite asserts the request query.
  * - Permission values render verbatim (stable identifiers, never
  *   localized) — assertions match raw values, never translations.
- * - The grant affordance renders for SuperAdmin and `users.manage`
- *   holders only (fully hidden otherwise); delegation denials surface
- *   `403 Identity.Forbidden` as error toasts (no retry, no logout).
+ * - The grant affordance and the creation link render for SuperAdmin
+ *   only (fully hidden otherwise); denials surface generic 403 error
+ *   toasts (no retry, no logout, no wire code depended upon).
  * - Grant duplicates surface `409 PermissionAlreadyGranted` (no blind
  *   retry); revokes are idempotent; unknown permissions surface `400
  *   Identity.InvalidPermission` — all status-first, never message text.
@@ -49,8 +48,6 @@ const FULL_PERMISSIONS = [
   'inventory.manage',
   'catalog.manage',
   'users.read',
-  'users.manage',
-  'admins.create',
 ];
 
 function userWithRoles(
@@ -200,7 +197,7 @@ async function mock(
   );
 }
 
-test.describe('admin users journeys (S2.4, delegated)', () => {
+test.describe('admin users journeys (S3.4, re-centralized)', () => {
   test('users landing renders the backend-issued counts', async ({ page }) => {
     await seed(page, ['SuperAdmin']);
     await mockSession(page, ['SuperAdmin']);
@@ -299,30 +296,41 @@ test.describe('admin users journeys (S2.4, delegated)', () => {
     await page.getByRole('button', { name: 'Create admin', exact: true }).click();
 
     await expect(page.getByText('Admin created')).toBeVisible();
+    await expect(
+      page.getByText('was created as Admin with no permissions', { exact: false }),
+    ).toBeVisible();
     await expect(page.getByRole('link', { name: 'View admin' })).toHaveAttribute(
       'href',
       `/users/${USER_ID}`,
     );
   });
 
-  test('admins.create holder (non-SuperAdmin) creates permission-less admins', async ({ page }) => {
-    await seed(page, ['Admin'], ['admins.create', 'users.read']);
-    await mockSession(page, ['Admin'], ['admins.create', 'users.read']);
-    await mock(page, 'POST', '/auth/register-admin', 201, ok(userWithRoles(['Admin'], [])));
-    await page.goto('/users/new');
+  test('users.read viewer never sees the creation link and cannot open creation', async ({
+    page,
+  }) => {
+    await seed(page, ['Admin'], ['users.read']);
+    await mockSession(page, ['Admin'], ['users.read']);
+    await mock(
+      page,
+      'GET',
+      '/admin/users',
+      200,
+      ok({
+        items: [userRow('user-1')],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      }),
+    );
+    await page.goto('/users/list');
 
     await expect(page).not.toHaveURL(/\/forbidden$/);
-    await expect(page.getByRole('heading', { name: 'Create admin' })).toBeVisible();
-    await page.getByLabel('Email').fill('new@flux.local');
-    await page.getByLabel('Password').fill('Test123!');
-    await page.getByLabel('First name').fill('New');
-    await page.getByLabel('Last name').fill('Admin');
-    await page.getByRole('button', { name: 'Create admin', exact: true }).click();
+    await expect(page.getByText('user-1@flux.local')).toBeVisible();
+    await expect(page.locator('.users-list-new')).toHaveCount(0);
 
-    await expect(page.getByText('Admin created')).toBeVisible();
-    await expect(
-      page.getByText('was created as Admin with no permissions', { exact: false }),
-    ).toBeVisible();
+    await page.goto('/users/new');
+
+    await expect(page).toHaveURL(/\/forbidden$/);
   });
 
   test('users.read viewer browses users without any grant UI', async ({ page }) => {
@@ -355,43 +363,9 @@ test.describe('admin users journeys (S2.4, delegated)', () => {
     await expect(page.locator('.user-permission-revoke')).toHaveCount(0);
   });
 
-  test('users.manage holder grants and revokes end to end', async ({ page }) => {
-    await seed(page, ['Admin'], ['users.read', 'users.manage']);
-    await mockSession(page, ['Admin'], ['users.read', 'users.manage']);
-    await mock(page, 'GET', `/admin/users/${USER_ID}`, 200, ok(userWithRoles(['Admin'])));
-    await mock(page, 'GET', `/admin/users/${USER_ID}/permissions`, 200, ok(['orders.read']));
-    await mock(page, 'GET', '/admin/users/permissions', 200, ok(FULL_PERMISSIONS));
-    await mock(
-      page,
-      'POST',
-      `/admin/users/${USER_ID}/permissions`,
-      200,
-      ok(userWithRoles(['Admin'], ['orders.read', 'catalog.manage'])),
-    );
-    await mock(
-      page,
-      'DELETE',
-      `/admin/users/${USER_ID}/permissions/orders.read`,
-      200,
-      ok(userWithRoles(['Admin'], ['catalog.manage'])),
-    );
-    await page.goto(`/users/${USER_ID}`);
-
-    await expect(page.locator('.user-grant-form')).toBeVisible();
-    await page.getByLabel('Permission', { exact: true }).selectOption('catalog.manage');
-    await page.getByRole('button', { name: 'Grant', exact: true }).click();
-    await expect(page.getByText('Permission granted')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Revoke orders.read' }).click();
-    await page.getByRole('button', { name: 'Revoke', exact: true }).click();
-    await expect(page.getByText('Permission revoked')).toBeVisible();
-  });
-
-  test('delegation denial surfaces the Identity.Forbidden toast without logout', async ({
-    page,
-  }) => {
-    await seed(page, ['Admin'], ['users.read', 'users.manage']);
-    await mockSession(page, ['Admin'], ['users.read', 'users.manage']);
+  test('denied grant surfaces the error toast without logout', async ({ page }) => {
+    await seed(page, ['SuperAdmin']);
+    await mockSession(page, ['SuperAdmin']);
     await mock(page, 'GET', `/admin/users/${USER_ID}`, 200, ok(userWithRoles(['Admin'])));
     await mock(page, 'GET', `/admin/users/${USER_ID}/permissions`, 200, ok([]));
     await mock(page, 'GET', '/admin/users/permissions', 200, ok(FULL_PERMISSIONS));
@@ -400,7 +374,7 @@ test.describe('admin users journeys (S2.4, delegated)', () => {
       'POST',
       `/admin/users/${USER_ID}/permissions`,
       403,
-      problem(403, 'Delegation guard.'),
+      problem(403, 'Forbidden.'),
     );
     await page.goto(`/users/${USER_ID}`);
 

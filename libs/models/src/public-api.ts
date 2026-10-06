@@ -12,3 +12,4 @@ export * from './lib/domains/catalog-inventory-contract';
 export * from './lib/domains/orders-payments-contract';
 export * from './lib/domains/contract-evolution-audit';
 export * from './lib/domains/supplement-s2-audit';
+export * from './lib/domains/supplement-s3-audit';

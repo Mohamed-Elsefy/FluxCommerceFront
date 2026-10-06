@@ -17,13 +17,13 @@
  *     ↓ Backend Identity API
  * ```
  *
- * Contract fidelity (S2.1 audit): identity, roles, status, lockout
- * telemetry, and permission values render verbatim; the live JWT behind
- * a permission derives from the next login/refresh, never from this UI.
- * The grant/revoke affordances render for `SuperAdmin` and
- * `users.manage` holders only (fully hidden otherwise); delegation
- * denials (`403 Identity.Forbidden` anti-escalation races) surface as
- * error toasts, never retried, never logged out.
+ * Contract fidelity (S3.1 delta audit): identity, roles, status,
+ * lockout telemetry, and permission values render verbatim; the live
+ * JWT behind a permission derives from the next login/refresh, never
+ * from this UI. The grant/revoke affordances render for `SuperAdmin`
+ * only (user writes are not delegable; fully hidden otherwise);
+ * denials surface as generic status-first error toasts, never
+ * retried, never logged out.
  * Grant is additive (duplicate → `409 PermissionAlreadyGranted`,
  * surfaced via error toast, never retried blindly); revoke is
  * idempotent and runs behind the confirm dialog (destructive action).
@@ -105,15 +105,13 @@ export class UserDetailsPage {
   );
 
   /**
-   * Whether the grant/revoke affordances render (recorded S2 product
-   * decision): visible to `SuperAdmin` and to holders of
-   * `users.manage`, fully hidden for everyone else (no disabled
-   * state, no placeholder). The granted list itself stays readable
-   * for display.
+   * Whether the grant/revoke affordances render (re-centralized S3
+   * rule): visible to `SuperAdmin` only — user writes are not
+   * delegable — fully hidden for everyone else (no disabled state, no
+   * placeholder). The granted list itself stays readable for display
+   * (`users.read`).
    */
-  protected readonly canManagePermissions = computed(
-    () => this.auth.isSuperAdmin() || this.auth.hasPermission('users.manage')(),
-  );
+  protected readonly canManagePermissions = computed(() => this.auth.isSuperAdmin());
 
   /** Current user record (idle → loading → success | error). */
   protected readonly record = this.details.details;

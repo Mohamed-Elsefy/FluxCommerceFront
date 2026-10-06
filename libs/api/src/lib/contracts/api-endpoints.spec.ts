@@ -35,8 +35,8 @@ describe('buildEndpointPath', () => {
   });
 });
 
-describe('supplement S2 endpoint tables (Step S2.2, v2 markers)', () => {
-  it('pins the identity growth rows (profile + permission-gated users/permissions)', () => {
+describe('supplement S3 endpoint tables (Step S3.2, v3 markers)', () => {
+  it('pins the identity rows (profile + users.read reads + SuperAdmin writes)', () => {
     expect(IDENTITY_ENDPOINTS.updateProfile).toEqual({
       path: '/auth/profile',
       method: 'PUT',
@@ -65,35 +65,35 @@ describe('supplement S2 endpoint tables (Step S2.2, v2 markers)', () => {
     expect(IDENTITY_ENDPOINTS.grantPermission).toEqual({
       path: '/admin/users/{id}/permissions',
       method: 'POST',
-      auth: 'users.manage',
+      auth: 'super-admin',
     });
     expect(IDENTITY_ENDPOINTS.revokePermission).toEqual({
       path: '/admin/users/{id}/permissions/{permission}',
       method: 'DELETE',
-      auth: 'users.manage',
+      auth: 'super-admin',
     });
     expect(IDENTITY_ENDPOINTS.permissionCatalog).toEqual({
       path: '/admin/users/permissions',
       method: 'GET',
-      auth: 'users.manage',
+      auth: 'super-admin',
     });
   });
 
-  it('pins the delegated admin rows (register-admin + writes)', () => {
+  it('pins the re-centralized write rows (register-admin + writes)', () => {
     expect(IDENTITY_ENDPOINTS.registerAdmin).toEqual({
       path: '/auth/register-admin',
       method: 'POST',
-      auth: 'admins.create',
+      auth: 'super-admin',
     });
     expect(IDENTITY_ENDPOINTS.assignRole).toEqual({
       path: '/admin/users/{id}/roles',
       method: 'POST',
-      auth: 'users.manage',
+      auth: 'super-admin',
     });
     expect(IDENTITY_ENDPOINTS.unlockUser).toEqual({
       path: '/admin/users/{id}/unlock',
       method: 'POST',
-      auth: 'users.manage',
+      auth: 'super-admin',
     });
   });
 

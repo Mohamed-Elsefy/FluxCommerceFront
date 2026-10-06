@@ -34,8 +34,6 @@ const FULL_PERMISSIONS = [
   'inventory.manage',
   'catalog.manage',
   'users.read',
-  'users.manage',
-  'admins.create',
 ];
 
 function userWithRoles(roles: string[], permissions: string[] = []): Record<string, unknown> {

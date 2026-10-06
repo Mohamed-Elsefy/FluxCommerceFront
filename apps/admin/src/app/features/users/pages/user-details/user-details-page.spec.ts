@@ -247,16 +247,7 @@ describe('UserDetailsPage', () => {
     expect(notifications.at(-1)?.title).toBe('Request failed');
   });
 
-  it('shows grant and revoke affordances to users.manage holders', () => {
-    setup({ viewerRoles: ['Admin'], viewerPermissions: ['users.manage'] });
-    const { element } = render();
-
-    expect(element.querySelector('.user-grant-form')).not.toBeNull();
-    expect(element.querySelector('.user-permission-revoke')).not.toBeNull();
-    expect(element.textContent).toContain('orders.read');
-  });
-
-  it('hides grant and revoke affordances from read-only viewers', () => {
+  it('hides grant and revoke affordances from users.read viewers', () => {
     setup({ viewerRoles: ['Admin'], viewerPermissions: ['users.read'] });
     const { element } = render();
 
@@ -265,12 +256,9 @@ describe('UserDetailsPage', () => {
     expect(element.querySelector('.user-permission-revoke')).toBeNull();
   });
 
-  it('surfaces delegation denials (Identity.Forbidden 403) as error toasts', () => {
-    const failure = new ApiError({ status: 403, message: 'Delegation guard.' });
-    const { grantPermission, load } = setup({
-      viewerRoles: ['Admin'],
-      viewerPermissions: ['users.manage'],
-    });
+  it('surfaces denials (plain 403) as error toasts without reload', () => {
+    const failure = new ApiError({ status: 403, message: 'Forbidden.' });
+    const { grantPermission, load } = setup({});
     vi.mocked(grantPermission).mockReturnValue(throwError(() => failure));
     const { element } = render();
 

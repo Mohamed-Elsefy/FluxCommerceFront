@@ -33,10 +33,10 @@ import { AppLayout } from './layout/app-layout/app-layout';
  *     │                  + SuperAdmin bypass; list/details read through
  *     │                  `payments.read`, the stats landing through
  *     │                  `payments.stats`)
- *     └── users      → `users.read` / `users.manage` / `admins.create`
- *                        (OR semantics + SuperAdmin bypass; reads through
- *                        `users.read`, writes through `users.manage`,
- *                        creation through `admins.create`)
+ *     └── users      → `users.read` (+ SuperAdmin bypass; reads through
+ *                        `users.read`, writes and creation are
+ *                        `SuperAdmin`-only, enforced on the child route
+ *                        and server-side)
  * ```
  *
  * The shell chain (`authGuard` + `roleGuard` over `ADMIN_PORTAL_ROLES`)
@@ -109,7 +109,7 @@ export const routes: Routes = [
         path: 'users',
         loadChildren: () => import('./features/users/users.routes').then((m) => m.usersRoutes),
         canActivate: [permissionGuard],
-        data: { permissions: ['users.read', 'users.manage', 'admins.create'] },
+        data: { permissions: ['users.read'] },
       },
     ],
   },

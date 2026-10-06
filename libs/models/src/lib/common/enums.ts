@@ -34,14 +34,17 @@ export enum UserStatus {
 export type UserRole = 'Customer' | 'Admin' | 'SuperAdmin';
 
 /**
- * Action-level permission catalog v2 (`Identity.Domain.Aggregates.PermissionCatalog`,
+/**
+ * Action-level permission catalog v3 (`Identity.Domain.Aggregates.PermissionCatalog`,
  * JWT claim type `"permission"` — one claim per granted permission).
- * `dashboard.read` was removed in the Phase 22 evolution; `users.read`,
- * `users.manage`, `admins.create` were added. Assigning the `Admin` role
- * grants nothing — every permission is granted manually afterwards;
- * grants apply on the next login/refresh; `SuperAdmin` bypasses every
- * gate without holding permissions. Source of truth:
- * `docs/frontend-contract/API_CONTRACT.md` §0.5 (Supplement S2, Step S2.2).
+ * `dashboard.read` was removed in the Phase 22 evolution and
+ * `users.manage` / `admins.create` were removed with it (user writes
+ * are not delegable — only `SuperAdmin` performs them); `users.read`
+ * remains for delegated reads. Assigning the `Admin` role grants
+ * nothing — every permission is granted manually afterwards; grants
+ * apply on the next login/refresh; `SuperAdmin` bypasses every gate
+ * without holding permissions. Source of truth:
+ * `docs/frontend-contract/API_CONTRACT.md` §0.5 (Supplement S3, Step S3.2).
  */
 export const PERMISSION_CATALOG = [
   'orders.read',
@@ -53,8 +56,6 @@ export const PERMISSION_CATALOG = [
   'inventory.manage',
   'catalog.manage',
   'users.read',
-  'users.manage',
-  'admins.create',
 ] as const;
 
 /** One action-level permission value. Strings, not an enum. */

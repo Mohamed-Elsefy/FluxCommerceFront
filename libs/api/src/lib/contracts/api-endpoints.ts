@@ -29,6 +29,11 @@
  * `users.manage`; `GET /admin/dashboard` moved to any authenticated
  * JWT (adaptive per-permission sections, never a bare forbidden
  * screen); `dashboard.read` no longer exists.
+ * Supplement S3 (users write re-centralization): `POST
+ * /auth/register-admin`, role assign, unlock, grant, revoke, and the
+ * permission catalog document moved back to `super-admin` (user
+ * writes are not delegable); users reads stay `users.read`;
+ * `users.manage` and `admins.create` no longer exist.
  */
 
 import type { Permission } from '@flux/models';
@@ -47,10 +52,10 @@ export interface EndpointDefinition {
   readonly auth: EndpointAuth;
 }
 
-/** Identity endpoints (`API_CONTRACT.md` §1, Supplement S2 v2 markers). */
+/** Identity endpoints (`API_CONTRACT.md` §1, Supplement S3 v3 markers). */
 export const IDENTITY_ENDPOINTS = {
   register: { path: '/auth/register', method: 'POST', auth: 'anonymous' },
-  registerAdmin: { path: '/auth/register-admin', method: 'POST', auth: 'admins.create' },
+  registerAdmin: { path: '/auth/register-admin', method: 'POST', auth: 'super-admin' },
   login: { path: '/auth/login', method: 'POST', auth: 'anonymous' },
   refresh: { path: '/auth/refresh', method: 'POST', auth: 'anonymous' },
   logout: { path: '/auth/logout', method: 'POST', auth: 'anonymous' },
@@ -60,24 +65,24 @@ export const IDENTITY_ENDPOINTS = {
   resetPassword: { path: '/auth/reset-password', method: 'POST', auth: 'anonymous' },
   changePassword: { path: '/auth/change-password', method: 'POST', auth: 'authenticated' },
   me: { path: '/auth/me', method: 'GET', auth: 'authenticated' },
-  assignRole: { path: '/admin/users/{id}/roles', method: 'POST', auth: 'users.manage' },
-  unlockUser: { path: '/admin/users/{id}/unlock', method: 'POST', auth: 'users.manage' },
+  assignRole: { path: '/admin/users/{id}/roles', method: 'POST', auth: 'super-admin' },
+  unlockUser: { path: '/admin/users/{id}/unlock', method: 'POST', auth: 'super-admin' },
   updateProfile: { path: '/auth/profile', method: 'PUT', auth: 'authenticated' },
   listUsers: { path: '/admin/users', method: 'GET', auth: 'users.read' },
   userCounts: { path: '/admin/users/counts', method: 'GET', auth: 'users.read' },
   getUser: { path: '/admin/users/{id}', method: 'GET', auth: 'users.read' },
-  grantPermission: { path: '/admin/users/{id}/permissions', method: 'POST', auth: 'users.manage' },
+  grantPermission: { path: '/admin/users/{id}/permissions', method: 'POST', auth: 'super-admin' },
   revokePermission: {
     path: '/admin/users/{id}/permissions/{permission}',
     method: 'DELETE',
-    auth: 'users.manage',
+    auth: 'super-admin',
   },
   listUserPermissions: {
     path: '/admin/users/{id}/permissions',
     method: 'GET',
     auth: 'users.read',
   },
-  permissionCatalog: { path: '/admin/users/permissions', method: 'GET', auth: 'users.manage' },
+  permissionCatalog: { path: '/admin/users/permissions', method: 'GET', auth: 'super-admin' },
 } as const satisfies Record<string, EndpointDefinition>;
 
 /** Catalog endpoints (`API_CONTRACT.md` §2). Writes need `catalog.manage`; reads are anonymous. */

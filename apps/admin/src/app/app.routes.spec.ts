@@ -87,13 +87,13 @@ describe('routes', () => {
     expect(payments?.data?.['permissions']).toEqual(['payments.read', 'payments.stats']);
   });
 
-  it('mounts the users feature as a permission-gated lazy boundary', () => {
+  it('mounts the users feature on the users.read permission gate', () => {
     const shell = routes.find((route) => route.path === '' && route.component === AppLayout);
     const users = shell?.children?.find((route) => route.path === 'users');
 
     expect(typeof users?.loadChildren).toBe('function');
     expect(users?.canActivate).toEqual([permissionGuard]);
-    expect(users?.data?.['permissions']).toEqual(['users.read', 'users.manage', 'admins.create']);
+    expect(users?.data?.['permissions']).toEqual(['users.read']);
   });
 
   it('falls back to a lazy not-found page', () => {

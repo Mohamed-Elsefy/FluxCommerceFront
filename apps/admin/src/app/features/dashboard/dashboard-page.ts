@@ -27,8 +27,8 @@
  * section echoes verbatim for display (culture-formatted, never inputs
  * to math). Card links drill into the owning feature lists
  * (`/orders/list`, `/payments/list`, `/inventory/stock`,
- * `/catalog/products`, `/users/list` for SuperAdmin only — the users
- * drill-down stays `isSuperAdmin`-gated); recent rows link to the
+ * `/catalog/products`, `/users/list` whenever the `users` section is
+ * present — section presence is the entitlement proof); recent rows link to the
  * existing admin order details (`/orders/:id`). Failures (including
  * the first failing entitled section) resolve through
  * `resolveApiErrorMessage` (never backend text) with retry.
@@ -83,8 +83,17 @@ export class DashboardPage implements OnInit {
     };
   });
 
-  /** Whether the users-list drill-down shows (users surface is SuperAdmin-only). */
-  protected readonly canBrowseUsers = this.auth.isSuperAdmin;
+  /**
+   * Whether the users-list drill-down shows: whenever the `users`
+   * section is present (section presence is itself the entitlement
+   * proof — `users.read` or `SuperAdmin`), plus a `SuperAdmin`
+   * allowance for the (backend-impossible) absent-section case.
+   */
+  protected readonly canBrowseUsers = computed(
+    () =>
+      this.auth.isSuperAdmin() ||
+      (this.slot().data?.users !== null && this.slot().data?.users !== undefined),
+  );
 
   /** Current snapshot (idle → loading → success | error). */
   protected readonly slot = this.overview.snapshot;

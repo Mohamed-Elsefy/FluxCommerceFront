@@ -37,8 +37,6 @@ const FULL_PERMISSIONS = [
   'inventory.manage',
   'catalog.manage',
   'users.read',
-  'users.manage',
-  'admins.create',
 ];
 
 function userWithRoles(
@@ -303,15 +301,52 @@ test.describe('admin dashboard journeys (S2.3, adaptive)', () => {
     await expect(page.getByText('7 orders')).toBeVisible();
   });
 
-  test('non-SuperAdmin admins see counts without the users drill-down', async ({ page }) => {
+  test('admins with the full grant see every card with drill-downs', async ({ page }) => {
     await seed(page, ['Admin']);
     await mockSession(page, ['Admin']);
     await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
     await page.goto('/dashboard');
 
     await expect(page.getByText('3 users')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View users list' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'View users list' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'View orders list' })).toBeVisible();
+  });
+
+  test('users.read viewer sees the users card with its drill-down link', async ({ page }) => {
+    await seed(page, ['Admin'], ['users.read']);
+    await mockSession(page, ['Admin'], ['users.read']);
+    await mock(
+      page,
+      'GET',
+      '/admin/dashboard',
+      200,
+      ok({
+        orders: null,
+        payments: null,
+        inventory: null,
+        catalog: null,
+        users: {
+          total: 3,
+          pending: 0,
+          active: 3,
+          suspended: 0,
+          locked: 0,
+          deleted: 0,
+          customers: 1,
+          admins: 1,
+          superAdmins: 1,
+          unverified: 0,
+          lockedOut: 0,
+        },
+        recentOrders: [],
+      }),
+    );
+    await page.goto('/dashboard');
+
+    await expect(page).not.toHaveURL(/\/forbidden$/);
+    await expect(page.getByText('3 users')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View users list' })).toBeVisible();
+    await expect(page.getByText('7 orders')).toHaveCount(0);
   });
 
   test('catalog-only admin sees only the catalog card with no forbidden screen', async ({

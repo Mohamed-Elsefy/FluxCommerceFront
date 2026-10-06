@@ -1,9 +1,9 @@
 /**
  * Admin user creation page — creates one administrator account
- * (`POST /auth/register-admin`, `admins.create`).
+ * (`POST /auth/register-admin`, `SuperAdmin` only).
  *
  * Smart page (route-level composition) within the users context
- * (`/users/new`, additionally guarded by `admins.create`): owns the
+ * (`/users/new`, additionally guarded by the `SuperAdmin` role): owns the
  * creation form and the created admin result — over the shared
  * `IdentityApiService` transport seam (`@flux/api`, S1.2) directly —
  * no feature façade duplicates a thin typed transport that already
