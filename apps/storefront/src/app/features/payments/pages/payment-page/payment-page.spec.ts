@@ -48,9 +48,9 @@ const TERMINAL = () =>
   throwError(
     () =>
       new ApiError({
-        status: 400,
-        code: 'Payment.OrderIdRequired',
-        message: 'Order id is required.',
+        status: 409,
+        code: 'Payment.NotPayable',
+        message: 'Payment can no longer be initialized.',
       }),
   );
 
@@ -251,8 +251,8 @@ describe('PaymentPage initialization flow', () => {
     expect(api.initializePayment).toHaveBeenCalledTimes(1);
     expect(api.initializePayment).toHaveBeenCalledWith({ orderId: ORDER_ID });
     expect(state.lifecycle()).toBe('failed');
-    expect(element.textContent).toContain('Payment is currently unavailable');
-    expect(element.textContent).not.toContain('OrderIdRequired');
+    expect(element.textContent).toContain('The backend reports the payment as failed.');
+    expect(element.textContent).not.toContain('NotPayable');
     expect(retryButton(element)).not.toBeNull();
   });
 
@@ -434,8 +434,8 @@ describe('PaymentPage recovery affordances (Sub-Phase 9.9)', () => {
     await settleAsync();
     fixture.detectChanges();
 
-    expect(element.textContent).toContain('Payment is currently unavailable');
-    expect(element.textContent).not.toContain('OrderIdRequired');
+    expect(element.textContent).toContain('The backend reports the payment as failed.');
+    expect(element.textContent).not.toContain('NotPayable');
     expect(retryButton(element)).not.toBeNull();
   });
 

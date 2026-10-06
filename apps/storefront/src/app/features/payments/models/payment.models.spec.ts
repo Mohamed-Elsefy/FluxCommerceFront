@@ -147,6 +147,15 @@ describe('isRetryableInitializationFailure', () => {
     expect(isRetryableInitializationFailure(failure(503))).toBe(true);
   });
 
+  it('retries provider-outage 400s on the bodiless by-order path', () => {
+    expect(isRetryableInitializationFailure(failure(400, 'Payment.ProviderUnavailable'))).toBe(
+      true,
+    );
+    expect(isRetryableInitializationFailure(new ApiError({ status: 400, message: 'x' }))).toBe(
+      true,
+    );
+  });
+
   it('retries saga-lag 404s of any code, including codeless and masked reads', () => {
     expect(isRetryableInitializationFailure(failure(404, 'Payment.NotFound'))).toBe(true);
     expect(isRetryableInitializationFailure(new ApiError({ status: 404, message: 'x' }))).toBe(
@@ -161,7 +170,6 @@ describe('isRetryableInitializationFailure', () => {
   });
 
   it('treats backend decisions as terminal', () => {
-    expect(isRetryableInitializationFailure(failure(400, 'Payment.OrderIdRequired'))).toBe(false);
     expect(isRetryableInitializationFailure(failure(401))).toBe(false);
     expect(isRetryableInitializationFailure(failure(403))).toBe(false);
   });

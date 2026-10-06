@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  hasDailySeries,
   hasEntitledSections,
   hasRecentOrders,
+  hasRecentPayments,
+  hasRecentUsers,
   type DashboardSnapshot,
 } from './dashboard-admin.models';
 
@@ -17,6 +20,7 @@ function snapshot(recentOrders: DashboardSnapshot['recentOrders']): DashboardSna
       cancelled: 0,
       refunded: 0,
       totalsByCurrency: [],
+      refundedTotalsByCurrency: [],
     },
     inventory: {
       totalItems: 1,
@@ -42,6 +46,9 @@ function snapshot(recentOrders: DashboardSnapshot['recentOrders']): DashboardSna
       lockedOut: 0,
     },
     recentOrders,
+    recentPayments: [],
+    recentUsers: [],
+    dailySeries: [],
   };
 }
 
@@ -61,6 +68,9 @@ describe('dashboard-admin models (S2.3, adaptive)', () => {
         },
         users: null,
         recentOrders: [],
+        recentPayments: [],
+        recentUsers: [],
+        dailySeries: [],
       }),
     ).toBe(true);
     expect(
@@ -71,9 +81,19 @@ describe('dashboard-admin models (S2.3, adaptive)', () => {
         catalog: null,
         users: null,
         recentOrders: [],
+        recentPayments: [],
+        recentUsers: [],
+        dailySeries: [],
       }),
     ).toBe(false);
-    expect(hasEntitledSections({ recentOrders: [] })).toBe(false);
+    expect(
+      hasEntitledSections({
+        recentOrders: [],
+        recentPayments: [],
+        recentUsers: [],
+        dailySeries: [],
+      }),
+    ).toBe(false);
     expect(hasEntitledSections(null)).toBe(false);
     expect(hasEntitledSections(undefined)).toBe(false);
   });
@@ -82,6 +102,15 @@ describe('dashboard-admin models (S2.3, adaptive)', () => {
     expect(hasRecentOrders(snapshot([]))).toBe(false);
     expect(hasRecentOrders(null)).toBe(false);
     expect(hasRecentOrders(undefined)).toBe(false);
+  });
+
+  it('detects recent payments, users, and series points', () => {
+    expect(hasRecentPayments(snapshot([]))).toBe(false);
+    expect(hasRecentUsers(snapshot([]))).toBe(false);
+    expect(hasDailySeries(snapshot([]))).toBe(false);
+    expect(hasRecentPayments(null)).toBe(false);
+    expect(hasRecentUsers(undefined)).toBe(false);
+    expect(hasDailySeries(null)).toBe(false);
   });
 
   it('detects recent orders to drill into', () => {

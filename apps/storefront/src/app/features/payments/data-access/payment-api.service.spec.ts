@@ -326,11 +326,11 @@ describe('PaymentApiService initializePayment (by-order read)', () => {
     expect(isApiError(observed)).toBe(true);
   });
 
-  it('propagates terminal 409s (NotPayable) and 500s untouched', () => {
+  it('propagates terminal 409s (NotPayable) and provider-outage 400s untouched', () => {
     const { service, api } = setup();
     for (const failure of [
       new ApiError({ status: 409, code: 'Payment.NotPayable', message: 'Terminal.' }),
-      new ApiError({ status: 500, code: 'Payment.ProviderUnavailable', message: 'Down.' }),
+      new ApiError({ status: 400, code: 'Payment.ProviderUnavailable', message: 'Down.' }),
       new ApiError({ status: 404, code: 'Payment.NotFound', message: 'Not found.' }),
       new ApiError({ status: 401, code: 'Payment.Unauthorized', message: 'Denied.' }),
     ]) {

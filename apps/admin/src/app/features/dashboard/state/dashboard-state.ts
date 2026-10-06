@@ -55,17 +55,18 @@ export class DashboardState implements OnDestroy {
   readonly snapshot: Signal<ResourceState<DashboardSnapshot>> = this.snapshotStore.state;
 
   /**
-   * (Re)loads the snapshot with the default threshold; landing retry
-   * re-enters here. A refresh issued while a load is in flight is a
-   * no-op (duplicate-submit prevention at the state level — the page
-   * holds no request flags).
+   * (Re)loads the snapshot with the fixed window (`lowStockThreshold:
+   * 5`, `days: 30` — the approved fixed window; no UI control ships).
+   * Landing retry re-enters here. A refresh issued while a load is in
+   * flight is a no-op (duplicate-submit prevention at the state level
+   * — the page holds no request flags).
    */
   refresh(options: ApiRequestOptions = {}): void {
     if (this.snapshotStore.isLoading()) {
       return;
     }
     const request: Observable<DashboardSnapshot> = this.dashboardApi
-      .getDashboard({}, options)
+      .getDashboard({ lowStockThreshold: 5, days: 30 }, options)
       .pipe(map(requireSnapshot));
     this.loads.add(loadResourceState(this.snapshotStore, request));
   }

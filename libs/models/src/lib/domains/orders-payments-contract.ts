@@ -34,15 +34,18 @@
  * - Customer payments (`[Route api/payments][Authorize]`, note the
  *   inconsistent `api/` prefix): `GET /api/payments/{paymentId}`
  *   (ownership-masked `404`), `GET /api/payments/by-order/{orderId}`
- *   (live client secret, `409 NotReady/NotPayable`, `500
- *   ProviderUnavailable`), `GET /api/payments/mine` (paged,
+ *   (live client secret, `409 NotReady/NotPayable`, `400
+ *   ProviderUnavailable` — `Failure` default branch, retry),
+ *   `GET /api/payments/mine` (paged,
  *   caller-owned, newest-first, paging plus optional `status`),
  *   `POST /api/payments/webhook` (Stripe→API only, never called by the
  *   SPA, never replicated).
  * - Admin payments (`[Route admin/payments]`, permission-gated):
  *   `GET /admin/payments` (paged, platform-wide, newest-first, paging
  *   plus `status`/`orderId`/`customerId`/`from`/`to`),
- *   `GET /admin/payments/stats` (totals + `totalsByCurrency`),
+ *   `GET /admin/payments/stats` (totals + `totalsByCurrency` +
+ *   `refundedTotalsByCurrency` — net revenue per currency is derived
+ *   client-side where displayed, per contract),
  *   `GET /admin/payments/{paymentId}` (no ownership scoping).
  *   Read-only: the admin never confirms cards and the live
  *   `clientSecret` is discarded at the mapping boundary.

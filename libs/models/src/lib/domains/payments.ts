@@ -69,7 +69,13 @@ export interface PaymentCurrencyTotalResponse {
   succeededTotalAmount: number;
 }
 
-/** `GET /admin/payments/stats` payload (`payments.stats`). */
+/**
+ * `GET /admin/payments/stats` payload (`payments.stats`).
+ * `totalsByCurrency` rolls up Succeeded payments;
+ * `refundedTotalsByCurrency` (same shape) rolls up Refunded ones —
+ * net revenue per currency is derived client-side where displayed
+ * (contract-sanctioned: `API_CONTRACT.md` Appendix B.6).
+ */
 export interface PaymentAdminStatsResponse {
   total: number;
   pending: number;
@@ -79,6 +85,58 @@ export interface PaymentAdminStatsResponse {
   cancelled: number;
   refunded: number;
   totalsByCurrency: PaymentCurrencyTotalResponse[];
+  refundedTotalsByCurrency: PaymentCurrencyTotalResponse[];
+}
+
+/**
+ * Per-currency net-revenue row (display only): Succeeded rollup minus
+ * the Refunded rollup for one currency. Computed client-side as the
+ * contract sanctions (`API_CONTRACT.md` Appendix B.6 — refunds are
+ * never netted server-side). Amounts echo verbatim except the net
+ * difference, which pages format for display and never feed back
+ * into requests.
+ */
+export interface NetRevenueEntry {
+  currency: string;
+  succeededCount: number;
+  succeededAmount: number;
+  refundedCount: number;
+  refundedAmount: number;
+  netAmount: number;
+}
+
+/**
+ * Joins Succeeded and Refunded per-currency rollups into net-revenue
+ * rows (union of both currency sets; a missing side counts as zero).
+ * Pure — throws nothing.
+ */
+export function netRevenueByCurrency(
+  succeeded: readonly PaymentCurrencyTotalResponse[] | null | undefined,
+  refunded: readonly PaymentCurrencyTotalResponse[] | null | undefined,
+): NetRevenueEntry[] {
+  const refundedByCurrency = new Map(
+    (refunded ?? []).map((entry) => [entry.currency, entry] as const),
+  );
+  const currencies = [
+    ...new Set([
+      ...(succeeded ?? []).map((entry) => entry.currency),
+      ...(refunded ?? []).map((entry) => entry.currency),
+    ]),
+  ];
+  return currencies.map((currency) => {
+    const won = (succeeded ?? []).find((entry) => entry.currency === currency);
+    const lost = refundedByCurrency.get(currency);
+    const succeededAmount = won?.succeededTotalAmount ?? 0;
+    const refundedAmount = lost?.succeededTotalAmount ?? 0;
+    return {
+      currency,
+      succeededCount: won?.succeededCount ?? 0,
+      succeededAmount,
+      refundedCount: lost?.succeededCount ?? 0,
+      refundedAmount,
+      netAmount: succeededAmount - refundedAmount,
+    };
+  });
 }
 
 /** Backend payment statuses accepted as the `status` filter (case-insensitive). */

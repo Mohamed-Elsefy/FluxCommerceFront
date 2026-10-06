@@ -57,6 +57,31 @@ export function hasRecentOrders(snapshot: DashboardSnapshot | null | undefined):
 }
 
 /**
+ * Whether the snapshot carries recent payments to drill into
+ * (`payments.read` holders only — stats-only viewers get `[]`).
+ * Pure — throws nothing.
+ */
+export function hasRecentPayments(snapshot: DashboardSnapshot | null | undefined): boolean {
+  return (snapshot?.recentPayments.length ?? 0) > 0;
+}
+
+/**
+ * Whether the snapshot carries recent users to drill into
+ * (`users.read` holders only). Pure — throws nothing.
+ */
+export function hasRecentUsers(snapshot: DashboardSnapshot | null | undefined): boolean {
+  return (snapshot?.recentUsers.length ?? 0) > 0;
+}
+
+/**
+ * Whether the snapshot carries any daily-series points. Pure —
+ * throws nothing.
+ */
+export function hasDailySeries(snapshot: DashboardSnapshot | null | undefined): boolean {
+  return (snapshot?.dailySeries.length ?? 0) > 0;
+}
+
+/**
  * Whether the snapshot carries at least one entitled section (the
  * honest-empty-dashboard gate: all sections `null` / absent renders
  * the empty state instead of the grid). Pure — throws nothing.

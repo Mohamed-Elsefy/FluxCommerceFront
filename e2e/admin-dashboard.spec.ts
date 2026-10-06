@@ -99,6 +99,9 @@ function snapshot(overrides: Record<string, unknown> = {}): Record<string, unkno
       cancelled: 0,
       refunded: 1,
       totalsByCurrency: [{ currency: 'USD', succeededCount: 3, succeededTotalAmount: 179.94 }],
+      refundedTotalsByCurrency: [
+        { currency: 'USD', succeededCount: 1, succeededTotalAmount: 59.98 },
+      ],
     },
     inventory: {
       totalItems: 12,
@@ -137,6 +140,51 @@ function snapshot(overrides: Record<string, unknown> = {}): Record<string, unkno
         grandTotal: { amount: 59.98, currency: 'USD' },
         itemCount: 2,
         createdAtUtc: '2026-09-28T10:00:00Z',
+      },
+    ],
+    recentPayments: [
+      {
+        id: 'pay-1',
+        orderId: 'order-1',
+        customerId: 'cust-1',
+        amount: 59.98,
+        currency: 'USD',
+        status: 'Succeeded',
+        providerPaymentIntentId: 'pi_123',
+        provider: 'stripe',
+        createdAtUtc: '2026-09-28T10:00:00Z',
+        updatedAtUtc: '2026-09-28T10:01:00Z',
+        version: 3,
+      },
+    ],
+    recentUsers: [
+      {
+        id: 'user-9',
+        email: 'ada@flux.local',
+        roles: ['Customer'],
+        isEmailVerified: true,
+        registeredAtUtc: '2026-09-28T10:00:00Z',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        displayName: 'Ada Lovelace',
+        phoneNumber: null,
+        isPhoneVerified: false,
+        avatarUrl: null,
+        preferredLanguage: 'en',
+        timeZone: 'UTC',
+        status: 1,
+        permissions: [],
+        failedAccessAttemptCount: 0,
+        lockoutEndUtc: null,
+        isLocked: false,
+      },
+    ],
+    dailySeries: [
+      { date: '2026-10-04', orders: 0, revenue: [] },
+      {
+        date: '2026-10-05',
+        orders: 2,
+        revenue: [{ currency: 'USD', amount: 140 }],
       },
     ],
     ...overrides,
@@ -312,6 +360,109 @@ test.describe('admin dashboard journeys (S2.3, adaptive)', () => {
     await expect(page.getByRole('link', { name: 'View orders list' })).toBeVisible();
   });
 
+  test('payments.read viewer sees recent payments with drill-down', async ({ page }) => {
+    await seed(page, ['Admin'], ['payments.read']);
+    await mockSession(page, ['Admin'], ['payments.read']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await mock(
+      page,
+      'GET',
+      '/admin/payments/pay-1',
+      200,
+      ok({
+        id: 'pay-1',
+        orderId: 'order-1',
+        customerId: 'cust-1',
+        amount: 59.98,
+        currency: 'USD',
+        status: 'Succeeded',
+        providerPaymentIntentId: 'pi_123',
+        provider: 'stripe',
+        createdAtUtc: '2026-09-28T10:00:00Z',
+        updatedAtUtc: '2026-09-28T10:01:00Z',
+        version: 3,
+      }),
+    );
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: 'Recent payments' })).toBeVisible();
+    await page.getByRole('link', { name: 'View payment order-1' }).click();
+    await expect(page).toHaveURL(/\/payments\/pay-1$/);
+  });
+
+  test('stats-only viewer keeps stats but sees no payments list', async ({ page }) => {
+    await seed(page, ['Admin'], ['payments.stats']);
+    await mockSession(page, ['Admin'], ['payments.stats']);
+    await mock(
+      page,
+      'GET',
+      '/admin/dashboard',
+      200,
+      ok(snapshot({ payments: snapshot()['payments'], recentPayments: [] })),
+    );
+    await page.goto('/dashboard');
+
+    await expect(page.getByText('7 payments')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recent payments' })).toHaveCount(0);
+  });
+
+  test('users.read viewer sees recent users with drill-down', async ({ page }) => {
+    await seed(page, ['Admin'], ['users.read']);
+    await mockSession(page, ['Admin'], ['users.read']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: 'Recent users' })).toBeVisible();
+    await expect(page.getByText('Ada Lovelace')).toBeVisible();
+  });
+
+  test('landing renders the daily-series chart with verbatim dates', async ({ page }) => {
+    await seed(page, ['Admin'], ['orders.read']);
+    await mockSession(page, ['Admin'], ['orders.read']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: /last 30 days/ })).toBeVisible();
+    await expect(page.locator('app-series-chart rect')).toHaveCount(2);
+    await expect(page.getByText('2026-10-05')).toBeVisible();
+  });
+
+  test('landing requests the fixed window (threshold 5, days 30)', async ({ page }) => {
+    await seed(page, ['Admin'], ['orders.read']);
+    await mockSession(page, ['Admin'], ['orders.read']);
+    const seen: Array<Record<string, string>> = [];
+    await page.route(
+      (url) => url.origin === API_ORIGIN && url.pathname === '/admin/dashboard',
+      async (route: Route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        seen.push(Object.fromEntries(new URL(route.request().url()).searchParams.entries()));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: ok(snapshot()),
+        });
+      },
+    );
+    await page.goto('/dashboard');
+
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    expect(seen.at(-1)?.['lowStockThreshold']).toBe('5');
+    expect(seen.at(-1)?.['days']).toBe('30');
+  });
+
+  test('landing renders net revenue on the payments card', async ({ page }) => {
+    await seed(page, ['Admin'], ['payments.read']);
+    await mockSession(page, ['Admin'], ['payments.read']);
+    await mock(page, 'GET', '/admin/dashboard', 200, ok(snapshot()));
+    await page.goto('/dashboard');
+
+    await expect(page.getByText('USD · Net')).toBeVisible();
+    await expect(page.getByText('$119.96', { exact: true })).toBeVisible();
+  });
+
   test('users.read viewer sees the users card with its drill-down link', async ({ page }) => {
     await seed(page, ['Admin'], ['users.read']);
     await mockSession(page, ['Admin'], ['users.read']);
@@ -432,6 +583,8 @@ test.describe('admin dashboard authorization + localization (S2.3)', () => {
     await expect(page.getByText('7 commandes')).toBeVisible();
     await expect(page.getByText('4 produits')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Commandes récentes' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Paiements récents' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Utilisateurs récents' })).toBeVisible();
   });
 
   test('RTL chrome renders dashboard journeys without key leakage', async ({ page }) => {
@@ -444,7 +597,10 @@ test.describe('admin dashboard authorization + localization (S2.3)', () => {
     await expect(page.getByRole('heading', { name: 'لوحة التحكم' })).toBeVisible();
     await expect(page.getByText('أحدث الطلبات')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'الكتالوج' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'أحدث المدفوعات' })).toBeVisible();
     await expect(page.getByText('dashboard.title')).toHaveCount(0);
     await expect(page.getByText('dashboard.sections.catalogTitle')).toHaveCount(0);
+    await expect(page.getByText('dashboard.recent.paymentsTitle')).toHaveCount(0);
+    await expect(page.getByText('dashboard.series.title')).toHaveCount(0);
   });
 });

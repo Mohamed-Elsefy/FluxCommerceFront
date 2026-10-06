@@ -47,6 +47,7 @@ const STATS_BODY: PaymentAdminStatsResponse = {
   cancelled: 0,
   refunded: 1,
   totalsByCurrency: [{ currency: 'USD', succeededCount: 3, succeededTotalAmount: 179.94 }],
+  refundedTotalsByCurrency: [],
 };
 
 interface ApiCalls {

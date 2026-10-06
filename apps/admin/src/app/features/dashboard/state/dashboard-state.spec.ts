@@ -93,7 +93,7 @@ describe('DashboardState lifecycle', () => {
     state.refresh();
 
     expect(api.getDashboard).toHaveBeenCalledTimes(1);
-    expect(api.getDashboard).toHaveBeenCalledWith({}, {});
+    expect(api.getDashboard).toHaveBeenCalledWith({ lowStockThreshold: 5, days: 30 }, {});
     expect(state.snapshot().status).toBe('success');
     expect(state.snapshot().data?.orders?.total).toBe(7);
     expect(state.snapshot().data?.payments?.succeeded).toBe(3);

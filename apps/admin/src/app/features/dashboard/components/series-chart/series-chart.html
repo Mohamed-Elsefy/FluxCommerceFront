@@ -1,0 +1,22 @@
+<svg
+  class="series-chart-bars"
+  viewBox="0 0 100 40"
+  preserveAspectRatio="none"
+  aria-hidden="true"
+  focusable="false"
+>
+  @for (bar of bars(); track bar.date) {
+    <rect [attr.x]="bar.x" y="0" [attr.width]="bar.width" [attr.height]="bar.height" />
+  }
+</svg>
+<ol class="series-chart-points">
+  @for (point of points; track point.date) {
+    <li>
+      <span class="series-chart-date">{{ point.date }}</span>
+      <span class="series-chart-orders">{{ ordersText(point.orders) }}</span>
+      @for (slice of point.revenue; track slice.currency) {
+        <span class="series-chart-revenue">{{ revenueText(slice.currency, slice.amount) }}</span>
+      }
+    </li>
+  }
+</ol>

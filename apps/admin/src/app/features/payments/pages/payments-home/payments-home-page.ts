@@ -42,6 +42,7 @@ import {
   translateKey,
 } from '@flux/i18n';
 import { Card, ErrorState, LoadingIndicator } from '@flux/ui';
+import { netRevenueByCurrency } from '@flux/models';
 import { PaymentsStatsState } from '../../state/payments-stats-state';
 import { PAYMENTS_TRANSLATION_KEYS, translatePaymentsKey } from '../../i18n/payments-translations';
 
@@ -73,6 +74,13 @@ export class PaymentsHomePage implements OnInit {
         culture,
         PAYMENTS_TRANSLATION_KEYS.statsByCurrencyTitle,
       ),
+      refundedTotal: (count: number, amount: string) =>
+        translatePaymentsKey(culture, PAYMENTS_TRANSLATION_KEYS.statsRefundedTotal, {
+          count: formatNumber(count, culture),
+          amount,
+        }),
+      netRevenue: (amount: string) =>
+        translatePaymentsKey(culture, PAYMENTS_TRANSLATION_KEYS.statsNetRevenue, { amount }),
       statusPending: translatePaymentsKey(culture, PAYMENTS_TRANSLATION_KEYS.statusPending),
       statusProcessing: translatePaymentsKey(culture, PAYMENTS_TRANSLATION_KEYS.statusProcessing),
       statusSucceeded: translatePaymentsKey(culture, PAYMENTS_TRANSLATION_KEYS.statusSucceeded),
@@ -108,17 +116,43 @@ export class PaymentsHomePage implements OnInit {
     ];
   });
 
-  /** Culture-formatted per-currency succeeded totals (display only). */
+  /**
+   * Culture-formatted per-currency totals (display only): succeeded
+   * rows plus refunded and net-revenue rows, joined through the
+   * shared `netRevenueByCurrency` helper. Net revenue is succeeded −
+   * refunded per currency — computed client-side as the contract
+   * sanctions (`API_CONTRACT.md` Appendix B.6; refunds are never
+   * netted server-side). Display only, never an input to math.
+   */
   protected readonly currencyTotals = computed(() => {
     const culture = this.cultures.culture();
     const data = this.slot().data;
     if (data === null) {
       return [];
     }
-    return data.totalsByCurrency.map((entry) => ({
-      label: entry.currency,
-      value: `${formatNumber(entry.succeededCount, culture)} · ${formatCurrency(entry.succeededTotalAmount, entry.currency, culture)}`,
-    }));
+    const copy = this.copy();
+    return netRevenueByCurrency(data.totalsByCurrency, data.refundedTotalsByCurrency).flatMap(
+      (entry) => [
+        {
+          kind: 'succeeded',
+          label: entry.currency,
+          value: `${formatNumber(entry.succeededCount, culture)} · ${formatCurrency(entry.succeededAmount, entry.currency, culture)}`,
+        },
+        {
+          kind: 'refunded',
+          label: entry.currency,
+          value: copy.refundedTotal(
+            entry.refundedCount,
+            formatCurrency(entry.refundedAmount, entry.currency, culture),
+          ),
+        },
+        {
+          kind: 'net',
+          label: entry.currency,
+          value: copy.netRevenue(formatCurrency(entry.netAmount, entry.currency, culture)),
+        },
+      ],
+    );
   });
 
   ngOnInit(): void {

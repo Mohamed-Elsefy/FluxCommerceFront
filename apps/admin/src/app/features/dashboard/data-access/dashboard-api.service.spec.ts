@@ -28,6 +28,7 @@ const SNAPSHOT_BODY: AdminDashboardResponse = {
     cancelled: 0,
     refunded: 0,
     totalsByCurrency: [],
+    refundedTotalsByCurrency: [],
   },
   inventory: {
     totalItems: 1,
@@ -53,6 +54,9 @@ const SNAPSHOT_BODY: AdminDashboardResponse = {
     lockedOut: 0,
   },
   recentOrders: [],
+  recentPayments: [],
+  recentUsers: [],
+  dailySeries: [],
 };
 
 interface ApiCalls {
@@ -77,13 +81,13 @@ function setup(): { service: DashboardApiService; api: ApiClient; calls: ApiCall
 }
 
 describe('DashboardApiService getDashboard', () => {
-  it('reads the canonical dashboard route with the threshold as query params', () => {
+  it('reads the canonical dashboard route with the threshold and days as query params', () => {
     const { service, calls } = setup();
-    service.getDashboard({ lowStockThreshold: 5 }).subscribe();
+    service.getDashboard({ lowStockThreshold: 5, days: 30 }).subscribe();
 
     expect(calls.paths).toEqual([DASHBOARD_ENDPOINTS.getDashboard.path]);
     expect(calls.paths).toEqual(['/admin/dashboard']);
-    expect(calls.options).toEqual([{ params: { lowStockThreshold: 5 } }]);
+    expect(calls.options).toEqual([{ params: { lowStockThreshold: 5, days: 30 } }]);
   });
 
   it('omits the threshold when unset (backend default 5 applies)', () => {

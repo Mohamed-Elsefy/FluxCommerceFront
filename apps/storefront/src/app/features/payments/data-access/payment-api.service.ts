@@ -35,8 +35,9 @@
  * - The service never unwraps `ApiResponse.data`, never catches or
  *   remaps errors, and never attaches tokens: the envelope stays intact
  *   for feature state (9.4) to map, failures (`401` anonymous, `404`
- *   unknown-or-foreign id, `400` validation, `409 Payment.NotReady` /
- *   `Payment.NotPayable`, `500 Payment.ProviderUnavailable`) flow
+ *   unknown-or-foreign id, `400` validation (incl. `Payment.OrderIdRequired`
+ *   and `Payment.ProviderUnavailable` — `Failure` default branch),
+ *   `409 Payment.NotReady` / `Payment.NotPayable`) flow
  *   untouched through the Observable error channel to the Phase 1 error
  *   normalizer, and `Authorization` stays owned by the interceptor
  *   pipeline.
@@ -140,10 +141,11 @@ export class PaymentApiService {
    * for status polling, runtime-only `clientSecret`, `paymentReference`
    * `pi_*` for support, `status` — expect `Pending`, never success).
    * Failures: `401` anonymous, `404` unknown-or-foreign id, `400`
-   * `Payment.OrderIdRequired`, `409 Payment.NotReady` (saga lag —
-   * manual retry), `409 Payment.NotPayable` (terminal payment),
-   * `500 Payment.ProviderUnavailable` — all propagate untouched through
-   * the error channel for feature state (9.4) to map.
+   * `Payment.OrderIdRequired` / `Payment.ProviderUnavailable`
+   * (`Failure` default branch — provider outage, poll-retry),
+   * `409 Payment.NotReady` (saga lag — manual retry), `409
+   * Payment.NotPayable` (terminal payment) — all propagate untouched
+   * through the error channel for feature state (9.4) to map.
    */
   initializePayment(
     request: PaymentInitializationRequest,

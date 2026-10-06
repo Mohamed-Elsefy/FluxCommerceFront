@@ -54,13 +54,15 @@ import {
   translateKey,
 } from '@flux/i18n';
 import { Card, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
+import { netRevenueByCurrency } from '@flux/models';
 import { hasEntitledSections } from './models/dashboard-admin.models';
 import { DashboardState } from './state/dashboard-state';
+import { SeriesChart } from './components/series-chart/series-chart';
 import { DASHBOARD_TRANSLATION_KEYS, translateDashboardKey } from './i18n/dashboard-translations';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [RouterLink, Card, EmptyState, ErrorState, LoadingIndicator],
+  imports: [RouterLink, Card, EmptyState, ErrorState, LoadingIndicator, SeriesChart],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -93,6 +95,23 @@ export class DashboardPage implements OnInit {
     () =>
       this.auth.isSuperAdmin() ||
       (this.slot().data?.users !== null && this.slot().data?.users !== undefined),
+  );
+
+  /**
+   * Whether the recent-payments widget shows: `payments.read` holders
+   * (or `SuperAdmin`) only — stats-only viewers get the stats card
+   * but no list.
+   */
+  protected readonly canViewPaymentsList = computed(
+    () => this.auth.isSuperAdmin() || this.auth.hasPermission('payments.read')(),
+  );
+
+  /**
+   * Whether the recent-users widget shows: `users.read` holders (or
+   * `SuperAdmin`) only.
+   */
+  protected readonly canViewUsersList = computed(
+    () => this.auth.isSuperAdmin() || this.auth.hasPermission('users.read')(),
   );
 
   /** Current snapshot (idle → loading → success | error). */
@@ -134,6 +153,7 @@ export class DashboardPage implements OnInit {
       ),
       paymentsFailed: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.paymentsFailed),
       paymentsRefunded: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.paymentsRefunded),
+      paymentsNet: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.paymentsNet),
       inventoryTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryTitle),
       inventoryLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryLink),
       inventoryTotal: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.inventoryTotal, {
@@ -176,6 +196,23 @@ export class DashboardPage implements OnInit {
       recentTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentTitle),
       recentEmpty: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentEmpty),
       recentLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentLink),
+      recentPaymentsTitle: translateDashboardKey(
+        culture,
+        DASHBOARD_TRANSLATION_KEYS.recentPaymentsTitle,
+      ),
+      recentPaymentsEmpty: translateDashboardKey(
+        culture,
+        DASHBOARD_TRANSLATION_KEYS.recentPaymentsEmpty,
+      ),
+      recentPaymentsLink: translateDashboardKey(
+        culture,
+        DASHBOARD_TRANSLATION_KEYS.recentPaymentsLink,
+      ),
+      recentUsersTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentUsersTitle),
+      recentUsersEmpty: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentUsersEmpty),
+      recentUsersLink: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.recentUsersLink),
+      seriesTitle: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.seriesTitle),
+      seriesEmpty: translateDashboardKey(culture, DASHBOARD_TRANSLATION_KEYS.seriesEmpty),
     };
   });
 
@@ -218,6 +255,13 @@ export class DashboardPage implements OnInit {
                 label: copy.paymentsRefunded,
                 value: formatNumber(payments.refunded, culture),
               },
+              ...netRevenueByCurrency(
+                payments.totalsByCurrency,
+                payments.refundedTotalsByCurrency,
+              ).map((entry) => ({
+                label: `${entry.currency} · ${copy.paymentsNet}`,
+                value: formatCurrency(entry.netAmount, entry.currency, culture),
+              })),
             ],
       inventory:
         inventory === null || inventory === undefined
@@ -289,6 +333,32 @@ export class DashboardPage implements OnInit {
       created: formatDate(order.createdAtUtc, culture),
     }));
   });
+
+  /** Preformatted recent-payment rows (backend values only, newest 5). */
+  protected readonly recentPayments = computed(() => {
+    const culture = this.cultures.culture();
+    return (this.slot().data?.recentPayments ?? []).map((payment) => ({
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      status: payment.status,
+      total: formatCurrency(payment.amount, payment.currency, culture),
+      created: formatDate(payment.createdAtUtc, culture),
+    }));
+  });
+
+  /** Preformatted recent-user rows (backend values only, newest 5). */
+  protected readonly recentUsers = computed(() => {
+    const culture = this.cultures.culture();
+    return (this.slot().data?.recentUsers ?? []).map((user) => ({
+      userId: user.id,
+      email: user.email,
+      displayName: user.displayName ?? `${user.firstName} ${user.lastName}`.trim(),
+      roles: user.roles.join(', '),
+    }));
+  });
+
+  /** Trailing-days series points (backend values only, oldest-first). */
+  protected readonly seriesPoints = computed(() => this.slot().data?.dailySeries ?? []);
 
   /** Localized failure message (never backend text). */
   protected readonly errorMessage = computed(() =>

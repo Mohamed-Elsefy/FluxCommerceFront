@@ -33,7 +33,7 @@
         <article class="payments-home-card" [attr.aria-label]="copy().byCurrencyTitle">
           <h2 class="payments-home-card-title">{{ copy().byCurrencyTitle }}</h2>
           <dl class="payments-home-facts">
-            @for (fact of currencyTotals(); track fact.label) {
+            @for (fact of currencyTotals(); track fact.kind + fact.label) {
               <div>
                 <dt>{{ fact.label }}</dt>
                 <dd>{{ fact.value }}</dd>

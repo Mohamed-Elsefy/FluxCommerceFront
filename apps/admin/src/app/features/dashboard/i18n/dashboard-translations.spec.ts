@@ -47,6 +47,22 @@ describe('translateDashboardKey', () => {
     );
   });
 
+  it('resolves the recent-widgets, series, and net copy per culture', () => {
+    expect(translateDashboardKey('en', DASHBOARD_TRANSLATION_KEYS.recentPaymentsTitle)).toBe(
+      'Recent payments',
+    );
+    expect(translateDashboardKey('fr', DASHBOARD_TRANSLATION_KEYS.recentUsersTitle)).toBe(
+      'Utilisateurs récents',
+    );
+    expect(translateDashboardKey('ar', DASHBOARD_TRANSLATION_KEYS.seriesTitle)).toBe(
+      'الطلبات والإيرادات (آخر 30 يومًا)',
+    );
+    expect(translateDashboardKey('de', DASHBOARD_TRANSLATION_KEYS.seriesEmpty)).toBe(
+      'Keine Aktivität in diesem Zeitraum.',
+    );
+    expect(translateDashboardKey('es', DASHBOARD_TRANSLATION_KEYS.paymentsNet)).toBe('Neto');
+  });
+
   it('resolves the catalog card and empty-state copy per culture', () => {
     expect(translateDashboardKey('en', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('Catalog');
     expect(translateDashboardKey('fr', DASHBOARD_TRANSLATION_KEYS.catalogTitle)).toBe('Catalogue');

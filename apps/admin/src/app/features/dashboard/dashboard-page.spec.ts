@@ -33,6 +33,7 @@ function snapshot(overrides: Partial<AdminDashboardResponse> = {}): AdminDashboa
       cancelled: 0,
       refunded: 1,
       totalsByCurrency: [{ currency: 'USD', succeededCount: 3, succeededTotalAmount: 179.94 }],
+      refundedTotalsByCurrency: [],
     },
     inventory: {
       totalItems: 12,
@@ -73,6 +74,9 @@ function snapshot(overrides: Partial<AdminDashboardResponse> = {}): AdminDashboa
         createdAtUtc: '2026-09-28T10:00:00Z',
       },
     ],
+    recentPayments: [],
+    recentUsers: [],
+    dailySeries: [],
     ...overrides,
   };
 }
@@ -80,6 +84,7 @@ function snapshot(overrides: Partial<AdminDashboardResponse> = {}): AdminDashboa
 function setup(scenario: {
   snapshot?: ResourceState<AdminDashboardResponse>;
   roles?: readonly string[];
+  permissions?: readonly string[];
 }): { refresh: ReturnType<typeof vi.fn> } {
   const refresh = vi.fn();
   TestBed.configureTestingModule({
@@ -111,7 +116,7 @@ function setup(scenario: {
       email: 'boss@flux.local',
       displayName: 'Boss Admin',
       roles: [...(scenario.roles ?? ['Admin'])],
-      permissions: [],
+      permissions: [...(scenario.permissions ?? [])],
       isEmailVerified: true,
     },
     accessToken: 'test-access-token',
@@ -313,5 +318,118 @@ describe('DashboardPage', () => {
     } finally {
       cultures.setCulture('en');
     }
+  });
+
+  it('renders the net-revenue row on the payments card', () => {
+    setup({ snapshot: successResource(snapshot()) });
+    const element = render();
+
+    expect(element.textContent).toContain('USD · Net');
+    expect(element.textContent).toContain('$179.94');
+  });
+
+  it('renders recent payments with drill-down for payments.read holders', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          recentPayments: [
+            {
+              id: 'pay-1',
+              orderId: 'order-1',
+              customerId: 'cust-1',
+              amount: 59.98,
+              currency: 'USD',
+              status: 'Succeeded',
+              providerPaymentIntentId: 'pi_123',
+              provider: 'stripe',
+              createdAtUtc: '2026-09-28T10:00:00Z',
+              updatedAtUtc: '2026-09-28T10:01:00Z',
+              version: 3,
+            },
+          ],
+        }),
+      ),
+      permissions: ['payments.read'],
+    });
+    const element = render();
+
+    expect(element.querySelector('#dashboard-recent-payments-heading')?.textContent).toBe(
+      'Recent payments',
+    );
+    const widget = element.querySelector('#dashboard-recent-payments-heading')?.closest('article');
+    expect(widget?.querySelector('.dashboard-recent-link')?.getAttribute('href')).toBe(
+      '/payments/pay-1',
+    );
+  });
+
+  it('hides recent payments from stats-only viewers', () => {
+    setup({
+      snapshot: successResource(snapshot()),
+      permissions: ['payments.stats'],
+    });
+    const element = render();
+
+    expect(element.textContent).toContain('7 payments');
+    expect(element.querySelector('#dashboard-recent-payments-heading')).toBeNull();
+  });
+
+  it('renders recent users with drill-down for users.read holders', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          recentUsers: [
+            {
+              id: 'user-9',
+              email: 'ada@flux.local',
+              roles: ['Customer'],
+              isEmailVerified: true,
+              registeredAtUtc: '2026-09-28T10:00:00Z',
+              firstName: 'Ada',
+              lastName: 'Lovelace',
+              displayName: 'Ada Lovelace',
+              phoneNumber: null,
+              isPhoneVerified: false,
+              avatarUrl: null,
+              preferredLanguage: 'en',
+              timeZone: 'UTC',
+              status: 1,
+              permissions: [],
+              failedAccessAttemptCount: 0,
+              lockoutEndUtc: null,
+              isLocked: false,
+            },
+          ],
+        }),
+      ),
+      permissions: ['users.read'],
+    });
+    const element = render();
+
+    expect(element.querySelector('#dashboard-recent-users-heading')?.textContent).toBe(
+      'Recent users',
+    );
+    expect(element.textContent).toContain('Ada Lovelace');
+  });
+
+  it('renders the daily-series chart with verbatim dates', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          dailySeries: [
+            { date: '2026-10-04', orders: 0, revenue: [] },
+            {
+              date: '2026-10-05',
+              orders: 2,
+              revenue: [{ currency: 'USD', amount: 140 }],
+            },
+          ],
+        }),
+      ),
+    });
+    const element = render();
+
+    expect(element.querySelector('#dashboard-series-heading')?.textContent).toContain('last 30');
+    expect(element.querySelectorAll('app-series-chart rect')).toHaveLength(2);
+    expect(element.textContent).toContain('2026-10-05');
   });
 });

@@ -1,0 +1,36 @@
+.series-chart-bars {
+  inline-size: 100%;
+  block-size: 6rem;
+  color: var(--color-primary);
+}
+
+.series-chart-bars rect {
+  fill: currentcolor;
+}
+
+.series-chart-points {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.series-chart-points > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.series-chart-date,
+.series-chart-orders,
+.series-chart-revenue {
+  overflow-wrap: anywhere;
+}
+
+.series-chart-date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

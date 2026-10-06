@@ -180,13 +180,20 @@ export const INIT_POLL_MAX_ATTEMPTS = 15 as const;
  * Whether an initialization failure is worth another `by-order` tick
  * inside the poll budget (status-first, never message text):
  * - retryable — transient or not-yet states: transport loss (`status
- *   0`), rate/overload (`408`/`429`/`5xx`), saga lag (`404` of any code,
- *   including codeless and masked-ownership reads), and `409` ONLY with
- *   code `Payment.NotReady`.
- * - terminal — backend decisions that a retry cannot change: `400`
- *   validation, `401`/`403` auth, any other `409` (notably
+ *   0`), rate/overload (`408`/`429`/`5xx`), provider outage (`400
+ *   Payment.ProviderUnavailable` — `Failure` default branch, retry per
+ *   contract; the only other `400` on this bodiless endpoint is
+ *   `OrderIdRequired` for an empty guid, which the UI flow can never
+ *   send since the id comes from checkout), saga lag (`404` of any
+ *   code, including codeless and masked-ownership reads), and `409`
+ *   ONLY with code `Payment.NotReady`.
+ * - terminal — backend decisions that a retry cannot change:
+ *   `401`/`403` auth, any other `409` (notably
  *   `Payment.NotPayable`), and non-`ApiError` throwables (programming
  *   errors — never spin the budget on a bug).
+ *
+ * The 15-attempt budget bounds every retryable path, so a surprising
+ * `400` can waste ticks but never loop.
  *
  * Pure — throws nothing, performs no HTTP.
  */
@@ -195,7 +202,7 @@ export function isRetryableInitializationFailure(error: unknown): boolean {
     return false;
   }
   const status = readStatus(error);
-  if (status === 0 || status === 408 || status === 429 || status >= 500) {
+  if (status === 0 || status === 400 || status === 408 || status === 429 || status >= 500) {
     return true;
   }
   if (status === 404) {

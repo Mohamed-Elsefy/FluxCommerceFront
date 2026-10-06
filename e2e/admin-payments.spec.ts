@@ -118,6 +118,7 @@ function paymentStats(overrides: Record<string, unknown> = {}): Record<string, u
     cancelled: 0,
     refunded: 1,
     totalsByCurrency: [{ currency: 'USD', succeededCount: 3, succeededTotalAmount: 179.94 }],
+    refundedTotalsByCurrency: [{ currency: 'USD', succeededCount: 1, succeededTotalAmount: 59.98 }],
     ...overrides,
   };
 }
@@ -191,6 +192,8 @@ test.describe('admin payments journeys (S1.9)', () => {
     await expect(page.getByRole('heading', { name: 'Payments' })).toBeVisible();
     await expect(page.getByText('7 payments')).toBeVisible();
     await expect(page.getByText('Succeeded totals by currency')).toBeVisible();
+    await expect(page.getByText('1 refunded')).toBeVisible();
+    await expect(page.getByText('Net $119.96')).toBeVisible();
   });
 
   test('payments list renders rows with pager and navigates to details', async ({ page }) => {

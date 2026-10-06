@@ -17,7 +17,7 @@ import type { PaymentAdminStatsResponse } from '@flux/models';
 import { PaymentsStatsState } from '../../state/payments-stats-state';
 import { PaymentsHomePage } from './payments-home-page';
 
-function stats(): PaymentAdminStatsResponse {
+function stats(overrides: Partial<PaymentAdminStatsResponse> = {}): PaymentAdminStatsResponse {
   return {
     total: 7,
     pending: 1,
@@ -27,6 +27,8 @@ function stats(): PaymentAdminStatsResponse {
     cancelled: 0,
     refunded: 1,
     totalsByCurrency: [{ currency: 'USD', succeededCount: 3, succeededTotalAmount: 179.94 }],
+    refundedTotalsByCurrency: [],
+    ...overrides,
   };
 }
 
@@ -81,6 +83,22 @@ describe('PaymentsHomePage', () => {
     expect(facts).toContain('Succeeded: 3');
     expect(facts).toContain('Refunded: 1');
     expect(element.textContent).toContain('USD');
+  });
+
+  it('renders refunded and net-revenue rows per currency', () => {
+    setup({
+      stats: successResource(
+        stats({
+          refundedTotalsByCurrency: [
+            { currency: 'USD', succeededCount: 1, succeededTotalAmount: 59.98 },
+          ],
+        }),
+      ),
+    });
+    const element = render();
+
+    expect(element.textContent).toContain('1 refunded');
+    expect(element.textContent).toContain('Net $119.96');
   });
 
   it('renders the loading state while the overview loads', () => {

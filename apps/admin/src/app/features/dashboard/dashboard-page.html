@@ -163,6 +163,75 @@
           }
         </article>
       </flux-card>
+
+      @if (canViewPaymentsList()) {
+        <flux-card>
+          <article class="dashboard-recent" aria-labelledby="dashboard-recent-payments-heading">
+            <h2 id="dashboard-recent-payments-heading">{{ copy().recentPaymentsTitle }}</h2>
+            @if (recentPayments().length === 0) {
+              <flux-empty-state
+                [title]="copy().recentPaymentsTitle"
+                [message]="copy().recentPaymentsEmpty"
+              />
+            } @else {
+              <ol class="dashboard-recent-items">
+                @for (payment of recentPayments(); track payment.paymentId) {
+                  <li>
+                    <a
+                      class="dashboard-recent-link"
+                      [routerLink]="['/payments', payment.paymentId]"
+                      [attr.aria-label]="copy().recentPaymentsLink + ' ' + payment.orderId"
+                    >
+                      {{ payment.orderId }}
+                    </a>
+                    <span class="dashboard-recent-meta"
+                      >{{ payment.status }} · {{ payment.total }}</span
+                    >
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        </flux-card>
+      }
+
+      @if (canViewUsersList()) {
+        <flux-card>
+          <article class="dashboard-recent" aria-labelledby="dashboard-recent-users-heading">
+            <h2 id="dashboard-recent-users-heading">{{ copy().recentUsersTitle }}</h2>
+            @if (recentUsers().length === 0) {
+              <flux-empty-state
+                [title]="copy().recentUsersTitle"
+                [message]="copy().recentUsersEmpty"
+              />
+            } @else {
+              <ol class="dashboard-recent-items">
+                @for (user of recentUsers(); track user.userId) {
+                  <li>
+                    <a
+                      class="dashboard-recent-link"
+                      [routerLink]="['/users', user.userId]"
+                      [attr.aria-label]="copy().recentUsersLink + ' ' + user.email"
+                    >
+                      {{ user.displayName }}
+                    </a>
+                    <span class="dashboard-recent-meta">{{ user.email }}</span>
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        </flux-card>
+      }
+
+      @if (seriesPoints().length > 0) {
+        <flux-card>
+          <article class="dashboard-series" aria-labelledby="dashboard-series-heading">
+            <h2 id="dashboard-series-heading">{{ copy().seriesTitle }}</h2>
+            <app-series-chart [points]="seriesPoints()" />
+          </article>
+        </flux-card>
+      }
     }
   }
 </section>
