@@ -98,6 +98,16 @@ export class DashboardPage implements OnInit {
   );
 
   /**
+   * Whether the recent-orders widget shows: `orders.read` holders
+   * (or `SuperAdmin`) only — mirrors the `orders` + `recentOrders`
+   * backend gate. Without it an admin with unrelated permissions
+   * would see another team's orders.
+   */
+  protected readonly canViewOrdersList = computed(
+    () => this.auth.isSuperAdmin() || this.auth.hasPermission('orders.read')(),
+  );
+
+  /**
    * Whether the recent-payments widget shows: `payments.read` holders
    * (or `SuperAdmin`) only — stats-only viewers get the stats card
    * but no list.
@@ -357,8 +367,10 @@ export class DashboardPage implements OnInit {
     }));
   });
 
-  /** Trailing-days series points (backend values only, oldest-first). */
-  protected readonly seriesPoints = computed(() => this.slot().data?.dailySeries ?? []);
+  /** Trailing-days series points, newest-first for display (backend sends oldest-first). */
+  protected readonly seriesPoints = computed(() =>
+    [...(this.slot().data?.dailySeries ?? [])].reverse(),
+  );
 
   /** Localized failure message (never backend text). */
   protected readonly errorMessage = computed(() =>

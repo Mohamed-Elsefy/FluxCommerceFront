@@ -142,7 +142,10 @@ describe('DashboardPage', () => {
   });
 
   it('loads the snapshot on init and renders every section verbatim', () => {
-    const { refresh } = setup({ snapshot: successResource(snapshot()) });
+    const { refresh } = setup({
+      snapshot: successResource(snapshot()),
+      permissions: ['orders.read'],
+    });
     const element = render();
 
     expect(refresh).toHaveBeenCalledTimes(1);
@@ -204,6 +207,7 @@ describe('DashboardPage', () => {
           recentOrders: [],
         }),
       ),
+      permissions: ['catalog.manage'],
     });
     const element = render();
 
@@ -215,8 +219,10 @@ describe('DashboardPage', () => {
     expect(element.textContent).not.toContain('12 items');
     expect(element.textContent).not.toContain('3 users');
     expect(element.querySelector('.dashboard-empty')).toBeNull();
+    // Gated: no orders.read → the recent-orders widget (incl. its empty state) stays hidden.
+    expect(element.querySelector('#dashboard-recent-heading')).toBeNull();
     expect(element.querySelector('.dashboard-recent-items')).toBeNull();
-    expect(element.textContent).toContain('No recent orders.');
+    expect(element.textContent).not.toContain('No recent orders.');
     const hrefs = [...element.querySelectorAll('.dashboard-card-link')].map((link) =>
       link.getAttribute('href'),
     );
@@ -254,7 +260,10 @@ describe('DashboardPage', () => {
   });
 
   it('renders the recent-orders empty state without rows', () => {
-    setup({ snapshot: successResource(snapshot({ recentOrders: [] })) });
+    setup({
+      snapshot: successResource(snapshot({ recentOrders: [] })),
+      permissions: ['orders.read'],
+    });
     const element = render();
 
     expect(element.querySelector('.dashboard-recent-items')).toBeNull();
@@ -286,7 +295,7 @@ describe('DashboardPage', () => {
   });
 
   it('localizes the dashboard for the active culture', () => {
-    setup({ snapshot: successResource(snapshot()) });
+    setup({ snapshot: successResource(snapshot()), permissions: ['orders.read'] });
     const cultures = TestBed.inject(CultureService);
     cultures.setCulture('fr');
     try {
@@ -302,7 +311,7 @@ describe('DashboardPage', () => {
   });
 
   it('renders the dashboard under the RTL culture without key leakage', () => {
-    setup({ snapshot: successResource(snapshot()) });
+    setup({ snapshot: successResource(snapshot()), permissions: ['orders.read'] });
     const cultures = TestBed.inject(CultureService);
     cultures.setCulture('ar');
     try {
@@ -431,5 +440,51 @@ describe('DashboardPage', () => {
     expect(element.querySelector('#dashboard-series-heading')?.textContent).toContain('last 30');
     expect(element.querySelectorAll('app-series-chart rect')).toHaveLength(2);
     expect(element.textContent).toContain('2026-10-05');
+  });
+
+  it('hides recent orders from viewers without orders.read', () => {
+    setup({
+      snapshot: successResource(snapshot()),
+      permissions: ['catalog.manage'],
+    });
+    const element = render();
+
+    expect(element.querySelector('#dashboard-recent-heading')).toBeNull();
+    expect(element.querySelector('.dashboard-recent-items')).toBeNull();
+    expect(element.textContent).not.toContain('ORD-ABC123');
+  });
+
+  it('renders recent orders for orders.read holders', () => {
+    setup({
+      snapshot: successResource(snapshot()),
+      permissions: ['orders.read'],
+    });
+    const element = render();
+
+    expect(element.querySelector('#dashboard-recent-heading')).not.toBeNull();
+    expect(element.textContent).toContain('ORD-ABC123');
+  });
+
+  it('renders the daily-series newest-first', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          dailySeries: [
+            { date: '2026-10-04', orders: 0, revenue: [] },
+            {
+              date: '2026-10-05',
+              orders: 2,
+              revenue: [{ currency: 'USD', amount: 140 }],
+            },
+          ],
+        }),
+      ),
+    });
+    const element = render();
+
+    const dates = [...element.querySelectorAll('.series-chart-points > li .series-chart-date')].map(
+      (node) => node.textContent?.trim(),
+    );
+    expect(dates).toEqual(['2026-10-05', '2026-10-04']);
   });
 });

@@ -38,7 +38,7 @@ export interface SeriesChartBar {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SeriesChart {
-  /** Trailing-day points, oldest-first (backend order, verbatim). */
+  /** Trailing-day points, newest-first (display order from the owning page). */
   @Input() points: readonly DailySeriesPointResponse[] = [];
 
   private readonly cultures = inject(CultureService);

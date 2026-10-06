@@ -140,29 +140,33 @@
         }
       </div>
 
-      <flux-card>
-        <article class="dashboard-recent" aria-labelledby="dashboard-recent-heading">
-          <h2 id="dashboard-recent-heading">{{ copy().recentTitle }}</h2>
-          @if (recentOrders().length === 0) {
-            <flux-empty-state [title]="copy().recentTitle" [message]="copy().recentEmpty" />
-          } @else {
-            <ol class="dashboard-recent-items">
-              @for (order of recentOrders(); track order.orderId) {
-                <li>
-                  <a
-                    class="dashboard-recent-link"
-                    [routerLink]="['/orders', order.orderId]"
-                    [attr.aria-label]="copy().recentLink + ' ' + order.orderNumber"
-                  >
-                    {{ order.orderNumber }}
-                  </a>
-                  <span class="dashboard-recent-meta">{{ order.status }} · {{ order.total }}</span>
-                </li>
-              }
-            </ol>
-          }
-        </article>
-      </flux-card>
+      @if (canViewOrdersList()) {
+        <flux-card>
+          <article class="dashboard-recent" aria-labelledby="dashboard-recent-heading">
+            <h2 id="dashboard-recent-heading">{{ copy().recentTitle }}</h2>
+            @if (recentOrders().length === 0) {
+              <flux-empty-state [title]="copy().recentTitle" [message]="copy().recentEmpty" />
+            } @else {
+              <ol class="dashboard-recent-items">
+                @for (order of recentOrders(); track order.orderId) {
+                  <li>
+                    <a
+                      class="dashboard-recent-link"
+                      [routerLink]="['/orders', order.orderId]"
+                      [attr.aria-label]="copy().recentLink + ' ' + order.orderNumber"
+                    >
+                      {{ order.orderNumber }}
+                    </a>
+                    <span class="dashboard-recent-meta"
+                      >{{ order.status }} · {{ order.total }}</span
+                    >
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        </flux-card>
+      }
 
       @if (canViewPaymentsList()) {
         <flux-card>
