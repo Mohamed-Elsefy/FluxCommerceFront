@@ -176,6 +176,17 @@ accounts), and 403 discipline holds everywhere (interceptor stays
 401-only; failures render locked states with explicit retry, never a
 retry loop, never a logout).
 
+As built in Supplement S3 (see
+`docs/completed/SUPPLEMENT_S3_COMPLETION_REPORT.md` and
+`docs/adr/035`): the portal adopts the re-centralized contract
+without changing the shell shape — user writes (role assign, unlock,
+grant/revoke, permission catalog document) and admin creation return
+to `SuperAdmin`-only (grant UI and the creation link hidden
+otherwise), users reads stay delegated (`users.read`), and the
+dashboard `users` section (with its drill-down link) now follows
+`users.read` instead of the `SuperAdmin` role. S1/S2 records stay
+frozen as history.
+
 ---
 
 ## 5. Feature-Based Architecture

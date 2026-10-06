@@ -283,58 +283,58 @@ docs.
 
 ## Contract
 
-- [ ] Amended frontend-contract diff reviewed (S3.1 delta audit)
-- [ ] Permission catalog v3 (9 values) pinned in models
-- [ ] Writes + permission catalog document verified SuperAdmin-only
-- [ ] Reads verified `users.read` (list/counts/get/per-user-perms)
-- [ ] Register-admin verified SuperAdmin (permission-less creation kept)
-- [ ] Dashboard `users` section gate move verified (`users.read`)
-- [ ] `Identity.Forbidden` retirement recorded; generic 403 discipline pinned
+- [x] Amended frontend-contract diff reviewed (S3.1 delta audit)
+- [x] Permission catalog v3 (9 values) pinned in models
+- [x] Writes + permission catalog document verified SuperAdmin-only
+- [x] Reads verified `users.read` (list/counts/get/per-user-perms)
+- [x] Register-admin verified SuperAdmin (permission-less creation kept)
+- [x] Dashboard `users` section gate move verified (`users.read`)
+- [x] `Identity.Forbidden` retirement recorded; generic 403 discipline pinned
 
 ## AuthZ
 
-- [ ] Users mount on `permissionGuard(['users.read'])` (SuperAdmin bypass)
-- [ ] `new` user route guarded by `roleGuard(SuperAdmin)`
-- [ ] Navigation users entry on `users.read`
-- [ ] Creation link hidden for non-SuperAdmin
-- [ ] SuperAdmin supremacy verified
+- [x] Users mount on `permissionGuard(['users.read'])` (SuperAdmin bypass)
+- [x] `new` user route guarded by `roleGuard(SuperAdmin)`
+- [x] Navigation users entry on `users.read`
+- [x] Creation link hidden for non-SuperAdmin
+- [x] SuperAdmin supremacy verified
 
 ## Features
 
-- [ ] Users reads delegated (list/counts/details browsable with `users.read`)
-- [ ] Grant UI visible to SuperAdmin only, hidden otherwise
-- [ ] Generic 403 toast path covered (no wire code depended upon)
-- [ ] Admin creation SuperAdmin-only via `/users/new`
-- [ ] Dashboard users card + drill-down link for `users.read` holders
-- [ ] Honest empty/partial dashboard states preserved
+- [x] Users reads delegated (list/counts/details browsable with `users.read`)
+- [x] Grant UI visible to SuperAdmin only, hidden otherwise
+- [x] Generic 403 toast path covered (no wire code depended upon)
+- [x] Admin creation SuperAdmin-only via `/users/new`
+- [x] Dashboard users card + drill-down link for `users.read` holders
+- [x] Honest empty/partial dashboard states preserved
 
 ## UX
 
-- [ ] Localization complete (5 cultures, changed keys only)
-- [ ] RTL/LTR verified
-- [ ] Responsive verified
-- [ ] Accessibility verified
-- [ ] Loading/empty/error/locked states verified
+- [x] Localization complete (5 cultures, changed keys only)
+- [x] RTL/LTR verified
+- [x] Responsive verified
+- [x] Accessibility verified
+- [x] Loading/empty/error/locked states verified
 
 ## Testing
 
-- [ ] Unit + component specs added/updated
-- [ ] Guard + mapping specs updated
-- [ ] E2E updated/extended suites green
-- [ ] Pre-existing suites re-verified green
-- [ ] Architecture audit green
-- [ ] Both builds green
+- [x] Unit + component specs added/updated
+- [x] Guard + mapping specs updated
+- [x] E2E updated/extended suites green
+- [x] Pre-existing suites re-verified green
+- [x] Architecture audit green
+- [x] Both builds green
 
 ## Architecture & Documentation
 
-- [ ] No direct component API access
-- [ ] No `libs/ui` additions
-- [ ] No cross-feature violations
-- [ ] S1/S2 records frozen (not rewritten)
-- [ ] ADR-035 recorded
-- [ ] `PROJECT_CONTEXT.md` updated (§43; core numbering untouched)
-- [ ] `ARCHITECTURE.md` updated
-- [ ] Supplement S3 completion note written (only if adopted)
+- [x] No direct component API access
+- [x] No `libs/ui` additions
+- [x] No cross-feature violations
+- [x] S1/S2 records frozen (not rewritten)
+- [x] ADR-035 recorded
+- [x] `PROJECT_CONTEXT.md` updated (§43; core numbering untouched)
+- [x] `ARCHITECTURE.md` updated
+- [x] Supplement S3 completion note written (only if adopted)
 
 ---
 

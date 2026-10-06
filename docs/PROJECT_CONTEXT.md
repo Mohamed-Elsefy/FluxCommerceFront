@@ -1420,3 +1420,32 @@ S2.5  403 discipline verification (verification-only, no code changes)
 S2.6  New & extended E2E suites (dashboard + users, full re-verify)
 S2.7  Hardening, verification & documentation (this step)
 ```
+
+---
+
+# 43. Supplement S3 — Users Write Re-centralization (Adopted)
+
+Status: **Complete** — see `docs/completed/SUPPLEMENT_S3_COMPLETION_REPORT.md`,
+`docs/adr/035-supplement-s3-contract-delta.md`, and
+`docs/phases/SUPPLEMENT_S3_USERS_WRITE_RECENTRALIZATION.md` (steps
+S3.1–S3.7).
+
+The supplement is an optional addendum and leaves the core roadmap
+numbering untouched: Phases 0–14 stay complete as recorded above and
+**Phase 15 — Final QA & Optimization** remains the next core step,
+unaffected whether the supplement is adopted or not. Supplements S1
+and S2 stay frozen as historical records.
+
+Adopted scope (all against the real re-centralized backend contract,
+no fabricated permissions, endpoints, DTOs, filters, or business
+rules):
+
+```text
+S3.1  Contract delta re-audit gate (v3 catalog, retired codes, ADR-035)
+S3.2  Shared models & endpoints (v3 catalog, SuperAdmin markers)
+S3.3  Routes & navigation (users.read mount, SuperAdmin creation)
+S3.4  Pages (SuperAdmin grant UI, hidden creation link, users link)
+S3.5  403 discipline verification (verification-only, no code changes)
+S3.6  Updated E2E suites (users + dashboard, full re-verify)
+S3.7  Hardening, verification & documentation (this step)
+```
