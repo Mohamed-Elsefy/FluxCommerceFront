@@ -100,6 +100,17 @@ describe('OrderListState lifecycle', () => {
     });
   });
 
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, api } = setup({ orders: () => of(page(1, 1)) });
+    state.setFilters({ status: 'Pending', customerId: 'cust-1', search: 'ORD' });
+    state.setFilters({});
+
+    expect(api.listOrders).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: ORDER_LIST_PAGE_SIZE,
+    });
+  });
+
   it('preserves committed filters across pager moves', () => {
     const { state, api } = setup({ orders: () => of(page(25, 1, 3)) });
     state.setFilters({ status: 'Confirmed' });

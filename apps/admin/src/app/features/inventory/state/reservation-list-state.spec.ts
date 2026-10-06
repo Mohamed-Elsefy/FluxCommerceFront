@@ -90,6 +90,17 @@ describe('ReservationListState lifecycle', () => {
     });
   });
 
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, api } = setup({ reservations: () => of(page(1, 1)) });
+    state.setFilters({ status: 'Pending', sku: 'TEE-BLK-M', orderId: 'order-1' });
+    state.setFilters({});
+
+    expect(api.listReservations).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: RESERVATION_LIST_PAGE_SIZE,
+    });
+  });
+
   it('commits pager moves through setPage while preserving filters', () => {
     const { state, api } = setup({ reservations: () => of(page(25, 1, 3)) });
     state.setFilters({ status: 'Committed' });

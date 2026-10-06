@@ -97,6 +97,17 @@ describe('UsersListState lifecycle', () => {
     });
   });
 
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, api } = setup({ users: () => of(page(1, 1)) });
+    state.setFilters({ status: 'Locked', role: 'Customer', search: 'ada' });
+    state.setFilters({});
+
+    expect(api.listUsers).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: USER_LIST_PAGE_SIZE,
+    });
+  });
+
   it('commits pager moves through setPage while preserving filters', () => {
     const { state, api } = setup({ users: () => of(page(25, 1, 3)) });
     state.setFilters({ status: 'Active' });

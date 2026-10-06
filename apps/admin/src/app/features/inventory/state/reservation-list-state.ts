@@ -107,9 +107,13 @@ export class ReservationListState implements OnDestroy {
   /**
    * Commits new filters (filter-bar apply/clear re-enter here). The page
    * resets to 1: filtered result sets never preserve the old page.
+   * Filters replace (never merge): omitted keys are cleared so
+   * `clearFilters()` really reloads unfiltered. The page size survives.
    */
   setFilters(filters: Omit<ReservationListQuery, 'pageNumber' | 'pageSize'>): void {
-    this.load({ ...filters, pageNumber: 1 });
+    const { pageSize } = this.committed;
+    this.committed = {};
+    this.load({ ...filters, pageNumber: 1, ...(pageSize === undefined ? {} : { pageSize }) });
   }
 
   /**

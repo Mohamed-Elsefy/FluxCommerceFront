@@ -84,6 +84,17 @@ describe('StockListState lifecycle', () => {
     });
   });
 
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, api } = setup({ items: () => of(page(1, 1)) });
+    state.setFilters({ search: 'TEE', maxAvailable: 5 });
+    state.setFilters({});
+
+    expect(api.listItems).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: STOCK_LIST_PAGE_SIZE,
+    });
+  });
+
   it('commits pager moves through setPage while preserving filters', () => {
     const { state, api } = setup({ items: () => of(page(25, 1, 3)) });
     state.setFilters({ search: 'TEE' });

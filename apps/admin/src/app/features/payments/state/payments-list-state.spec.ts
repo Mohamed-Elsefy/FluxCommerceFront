@@ -105,6 +105,17 @@ describe('PaymentsListState lifecycle', () => {
     });
   });
 
+  it('clears stale filters on setFilters({}) so clear reloads unfiltered', () => {
+    const { state, api } = setup({ payments: () => of(page(1, 1)) });
+    state.setFilters({ status: 'Failed', orderId: 'order-1', customerId: 'cust-1' });
+    state.setFilters({});
+
+    expect(api.listPayments).toHaveBeenLastCalledWith({
+      pageNumber: 1,
+      pageSize: PAYMENT_LIST_PAGE_SIZE,
+    });
+  });
+
   it('preserves committed filters across pager moves', () => {
     const { state, api } = setup({ payments: () => of(page(25, 1, 3)) });
     state.setFilters({ status: 'Succeeded' });
