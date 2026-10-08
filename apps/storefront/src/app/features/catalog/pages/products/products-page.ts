@@ -38,7 +38,6 @@ import {
 } from '@flux/models';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { CatalogState } from '../../state/catalog-state';
-import { CategoryNav } from '../../components/category-nav/category-nav';
 import { FilterSelect, type FilterOption } from '../../components/filter-select/filter-select';
 import { ProductGrid } from '../../components/product-grid/product-grid';
 import {
@@ -75,7 +74,6 @@ export const PRODUCTS_SEARCH_DEBOUNCE_MS = 300;
   selector: 'app-products-page',
   imports: [
     RouterLink,
-    CategoryNav,
     ProductGrid,
     ProductPagination,
     SearchInput,
@@ -101,7 +99,6 @@ export class ProductsPage implements OnInit {
   private readonly searchText = new Subject<string>();
   private listingTeardown: (() => void) | undefined;
 
-  readonly categories = this.state.categories;
   readonly productList = this.state.products;
 
   readonly queryState = toSignal(this.route.queryParamMap.pipe(map(queryStateFromRouteParams)), {
@@ -324,9 +321,6 @@ export class ProductsPage implements OnInit {
 
   ngOnInit(): void {
     this.applyMetadata();
-    if (this.isBrowser) {
-      this.state.loadCategories({ pageNumber: 1, pageSize: 100 });
-    }
   }
 
   private applyMetadata(): void {

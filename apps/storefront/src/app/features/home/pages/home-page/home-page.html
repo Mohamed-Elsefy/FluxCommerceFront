@@ -1,79 +1,91 @@
-<!-- Kinetic landing (DESIGN §6.2/6.9) — hero + perks + featured + discovery entries.
-     Keeps the legacy discovery/cart sections (ids + routerLinks) so existing
-     specs and E2E stay green. -->
+<!-- Kinetic landing (DESIGN §6.2/6.9) — welcome hero, perks, CTA band. -->
 <h1 class="visually-hidden">Storefront</h1>
 
 <section class="hero surface" aria-labelledby="hero-title">
   <div class="hero-copy">
-    <p class="section-index">{{ copy().heroIndex }}</p>
     <h2 id="hero-title" class="hero-title">{{ copy().heroTitle }}</h2>
     <p class="hero-subtitle">{{ copy().heroSubtitle }}</p>
     <div class="hero-actions">
-      <a class="btn btn--primary" routerLink="/catalog">{{ copy().heroPrimary }}</a>
-      <a class="btn btn--glass" routerLink="/catalog">{{ copy().heroSecondary }}</a>
+      <a class="btn btn--primary" routerLink="/products">{{ copy().heroPrimary }}</a>
     </div>
     <p class="hero-note">{{ copy().heroNote }}</p>
   </div>
-  <div class="hero-visual" aria-hidden="true">
-    <div class="orb orb--lime"></div>
-    <div class="orb orb--violet"></div>
+  <div class="hero-visual">
+    <img
+      class="hero-image"
+      src="/assets/hero.jpg"
+      [attr.alt]="copy().heroImageAlt"
+      loading="eager"
+      decoding="async"
+      fetchpriority="high"
+    />
+  </div>
+</section>
+
+<section class="perks" aria-labelledby="perks-title">
+  <h2 id="perks-title" class="section-title">{{ copy().perksTitle }}</h2>
+  <div class="perks-grid">
     <flux-card>
-      <div class="pod-demo">
-        <div class="pod-media"></div>
-        <flux-badge variant="drop">Drop</flux-badge>
-        <p class="pod-title">Flux Pod 001</p>
-        <div class="pod-footer">
-          <span class="price">$49.00</span>
-          <span class="btn btn--quick">Add</span>
-        </div>
+      <div class="perk">
+        <span class="perk-icon" aria-hidden="true"><flux-icon glyph="✈" /></span>
+        <p class="perk-num">01</p>
+        <h3>{{ copy().perksFastTitle }}</h3>
+        <p>{{ copy().perksFastText }}</p>
+      </div>
+    </flux-card>
+    <flux-card>
+      <div class="perk">
+        <span class="perk-icon" aria-hidden="true"><flux-icon glyph="✔" /></span>
+        <p class="perk-num">02</p>
+        <h3>{{ copy().perksSecureTitle }}</h3>
+        <p>{{ copy().perksSecureText }}</p>
+      </div>
+    </flux-card>
+    <flux-card>
+      <div class="perk">
+        <span class="perk-icon" aria-hidden="true"><flux-icon glyph="↺" /></span>
+        <p class="perk-num">03</p>
+        <h3>{{ copy().perksReturnTitle }}</h3>
+        <p>{{ copy().perksReturnText }}</p>
+      </div>
+    </flux-card>
+    <flux-card>
+      <div class="perk">
+        <span class="perk-icon" aria-hidden="true"><flux-icon glyph="Aa" /></span>
+        <p class="perk-num">04</p>
+        <h3>{{ copy().perksLangTitle }}</h3>
+        <p>{{ copy().perksLangText }}</p>
       </div>
     </flux-card>
   </div>
 </section>
 
-<section class="perks" aria-label="{{ copy().perksTitle }}">
-  <flux-card>
-    <h3>{{ copy().perksFastTitle }}</h3>
-    <p>{{ copy().perksFastText }}</p>
-  </flux-card>
-  <flux-card>
-    <h3>{{ copy().perksSecureTitle }}</h3>
-    <p>{{ copy().perksSecureText }}</p>
-  </flux-card>
-  <flux-card>
-    <h3>{{ copy().perksReturnTitle }}</h3>
-    <p>{{ copy().perksReturnText }}</p>
-  </flux-card>
-</section>
-
-<section class="featured" aria-labelledby="featured-title">
+<section class="cta" aria-labelledby="cta-title">
   <div class="section-head">
-    <p class="section-index">{{ copy().featuredIndex }}</p>
-    <h2 id="featured-title" class="section-title">{{ copy().featuredTitle }}</h2>
-    <p class="section-subtitle">{{ copy().featuredSubtitle }}</p>
+    <p class="section-index">{{ copy().ctaIndex }}</p>
+    <h2 id="cta-title" class="section-title">{{ copy().ctaTitle }}</h2>
   </div>
-  <div class="chip-row" role="group" aria-label="filters">
-    <flux-chip [selected]="true">All</flux-chip>
-    <flux-chip>New</flux-chip>
-    <flux-chip tone="urgency">Drops</flux-chip>
+  <div class="cta-grid">
+    <flux-card>
+      <h3>{{ copy().ctaShopTitle }}</h3>
+      <p>{{ copy().ctaShopText }}</p>
+      <p>
+        <a class="btn btn--primary" routerLink="/products">{{ copy().ctaShopLink }}</a>
+      </p>
+    </flux-card>
+    <flux-card>
+      <h3>{{ copy().ctaTrackTitle }}</h3>
+      <p>{{ copy().ctaTrackText }}</p>
+      <p>
+        <a class="btn btn--glass" routerLink="/account/orders">{{ copy().ctaTrackLink }}</a>
+      </p>
+    </flux-card>
+    <flux-card>
+      <h3>{{ copy().ctaAccountTitle }}</h3>
+      <p>{{ copy().ctaAccountText }}</p>
+      <p>
+        <a class="btn btn--glass" routerLink="/account/profile">{{ copy().ctaAccountLink }}</a>
+      </p>
+    </flux-card>
   </div>
-  <p>
-    <a class="btn btn--secondary" routerLink="/catalog">{{ copy().featuredLink }}</a>
-  </p>
-</section>
-
-<section aria-labelledby="discovery-title">
-  <h2 id="discovery-title">{{ copy().title }}</h2>
-  <p>{{ copy().subtitle }}</p>
-  <p>
-    <a routerLink="/catalog">{{ copy().link }}</a>
-  </p>
-</section>
-
-<section aria-labelledby="cart-title">
-  <h2 id="cart-title">{{ copy().cartTitle }}</h2>
-  <p>{{ copy().cartSubtitle }}</p>
-  <p>
-    <a routerLink="/cart">{{ copy().cartLink }}</a>
-  </p>
 </section>

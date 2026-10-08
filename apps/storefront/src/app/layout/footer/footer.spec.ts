@@ -17,7 +17,9 @@ describe('StorefrontFooter', () => {
   it('renders the brand, explore group, and copyright line', () => {
     const element = setup();
 
-    expect(element.querySelector('.brand')?.textContent).toBe('fluxcommerce.');
+    expect(element.querySelector('.brand-logo')?.getAttribute('src')).toBe(
+      '/assets/fluxCommerce-logo.png',
+    );
     expect(element.querySelector('.group h2')?.textContent).toBe('Explore');
     expect(
       [...element.querySelectorAll('.group .nav a')].map((link) => link.textContent?.trim()),

@@ -59,6 +59,13 @@ describe('routes', () => {
     expect(typeof discovery?.loadComponent).toBe('function');
   });
 
+  it('aliases category browsing and the shelf under the catalog boundary', () => {
+    const children = catalogRoutes[0]?.children ?? [];
+    const paths = children.map((route) => route.path).sort();
+
+    expect(paths).toEqual(['', 'categories', 'products']);
+  });
+
   it('mounts the independent products shelf under the shell', async () => {
     const root = routes.find((route) => route.path === '');
     const products = root?.children?.find((route) => route.path === 'products');

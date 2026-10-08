@@ -64,6 +64,16 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Prerender,
   },
   {
+    // Catalog aliases (same idle shells as their primaries — no backend
+    // at build time, data loads in the browser after hydration).
+    path: 'catalog/categories',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'catalog/products',
+    renderMode: RenderMode.Prerender,
+  },
+  {
     path: 'catalog/products',
     renderMode: RenderMode.Prerender,
   },

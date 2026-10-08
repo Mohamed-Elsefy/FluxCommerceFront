@@ -31,6 +31,21 @@ export const catalogRoutes: Routes = [
         loadComponent: () =>
           import('./pages/categories/categories-page').then((m) => m.CategoriesPage),
       },
+      {
+        // Alias: `/catalog/categories` serves the same discovery page as
+        // `/catalog` (single component, two addresses — the canonical
+        // stays `/catalog`, see `canonicalForQuery`).
+        path: 'categories',
+        loadComponent: () =>
+          import('./pages/categories/categories-page').then((m) => m.CategoriesPage),
+      },
+      {
+        // Alias: `/catalog/products` serves the same shelf as `/products`
+        // (single component, two addresses — the canonical stays
+        // `/products`, see `PRODUCTS_BASE_PATH`).
+        path: 'products',
+        loadComponent: () => import('./pages/products/products-page').then((m) => m.ProductsPage),
+      },
       // Sub-Phase 5.3 — Product Listing pages.
     ],
   },

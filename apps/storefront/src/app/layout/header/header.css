@@ -1,11 +1,15 @@
-/* Kinetic glass header (DESIGN §6.4) — sticky frosted bar + pill chrome. */
+/* Kinetic floating header (DESIGN §6.4) — detached glass pill, sticky. */
 .header {
   position: sticky;
-  top: 0;
+  top: var(--s-sm);
   z-index: var(--z-index-sticky);
+  margin-inline: var(--s-md);
+  margin-block-start: var(--s-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
   background: var(--surface-glass);
   backdrop-filter: var(--blur);
-  border-block-end: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
 }
 
 .bar {
@@ -16,17 +20,19 @@
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
   min-inline-size: 0;
-  text-transform: lowercase;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: block;
+  inline-size: 15rem;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
 }
 
 .brand:focus-visible {
@@ -130,10 +136,6 @@
   .desktop-search {
     display: none;
   }
-}
-
-.brand-dot {
-  color: var(--primary-text);
 }
 
 .visually-hidden {

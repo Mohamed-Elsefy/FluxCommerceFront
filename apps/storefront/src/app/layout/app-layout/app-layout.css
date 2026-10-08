@@ -23,5 +23,14 @@
 
 main {
   display: block;
-  padding-block: var(--spacing-lg);
+  padding-block: var(--s-xl);
+}
+
+/* Consistent page gutter on every screen: centered column with the
+   shared container padding (DESIGN §4.3 margins). */
+.page {
+  inline-size: 100%;
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
 }

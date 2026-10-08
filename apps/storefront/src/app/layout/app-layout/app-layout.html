@@ -1,18 +1,20 @@
 <a class="skip-link" href="#main-content">{{ skipLabel() }}</a>
 <storefront-header />
 <main id="main-content">
-  @if (navigationFailed()) {
-    <flux-error-state
-      title="This page could not be loaded"
-      message="Check your connection and try again."
-      retryLabel="Retry"
-      (retry)="retryNavigation()"
-    />
-  } @else {
-    <router-outlet />
-  }
-  @if (navigating()) {
-    <flux-loading-indicator label="Loading page…" />
-  }
+  <div class="page">
+    @if (navigationFailed()) {
+      <flux-error-state
+        title="This page could not be loaded"
+        message="Check your connection and try again."
+        retryLabel="Retry"
+        (retry)="retryNavigation()"
+      />
+    } @else {
+      <router-outlet />
+    }
+    @if (navigating()) {
+      <flux-loading-indicator label="Loading page…" />
+    }
+  </div>
 </main>
 <storefront-footer />

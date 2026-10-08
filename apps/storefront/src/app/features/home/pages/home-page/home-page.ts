@@ -10,7 +10,7 @@ import { DOCUMENT } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { CultureService } from '@flux/i18n';
-import { Badge, Card, Chip } from '@flux/ui';
+import { Card, Icon } from '@flux/ui';
 import { FALLBACK_SOCIAL_IMAGE, setCanonicalUrl } from '@flux/utils';
 import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-translations';
 
@@ -41,7 +41,7 @@ import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-transla
  */
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, Badge, Card, Chip],
+  imports: [RouterLink, Card, Icon],
   templateUrl: './home-page.html',
   styleUrl: './home-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,29 +58,32 @@ export class HomePage implements OnInit {
     const t = (k: string): string => translateHomeKey(culture, k);
     const k = HOME_TRANSLATION_KEYS;
     return {
-      heroIndex: t(k.heroIndex),
       heroTitle: t(k.heroTitle),
       heroSubtitle: t(k.heroSubtitle),
       heroPrimary: t(k.heroPrimary),
-      heroSecondary: t(k.heroSecondary),
+      heroImageAlt: t(k.heroImageAlt),
       heroNote: t(k.heroNote),
       perksTitle: t(k.perksTitle),
+      perksIndex: t(k.perksIndex),
       perksFastTitle: t(k.perksFastTitle),
       perksFastText: t(k.perksFastText),
       perksSecureTitle: t(k.perksSecureTitle),
       perksSecureText: t(k.perksSecureText),
       perksReturnTitle: t(k.perksReturnTitle),
       perksReturnText: t(k.perksReturnText),
-      featuredIndex: t(k.featuredIndex),
-      featuredTitle: t(k.featuredTitle),
-      featuredSubtitle: t(k.featuredSubtitle),
-      featuredLink: t(k.featuredLink),
-      title: t(k.discoveryTitle),
-      subtitle: t(k.discoverySubtitle),
-      link: t(k.discoveryLink),
-      cartTitle: t(k.cartTitle),
-      cartSubtitle: t(k.cartSubtitle),
-      cartLink: t(k.cartLink),
+      perksLangTitle: t(k.perksLangTitle),
+      perksLangText: t(k.perksLangText),
+      ctaIndex: t(k.ctaIndex),
+      ctaTitle: t(k.ctaTitle),
+      ctaShopTitle: t(k.ctaShopTitle),
+      ctaShopText: t(k.ctaShopText),
+      ctaShopLink: t(k.ctaShopLink),
+      ctaTrackTitle: t(k.ctaTrackTitle),
+      ctaTrackText: t(k.ctaTrackText),
+      ctaTrackLink: t(k.ctaTrackLink),
+      ctaAccountTitle: t(k.ctaAccountTitle),
+      ctaAccountText: t(k.ctaAccountText),
+      ctaAccountLink: t(k.ctaAccountLink),
     };
   });
 
@@ -103,7 +106,7 @@ export class HomePage implements OnInit {
   /**
    * Applies home metadata (11.3 title/description strategy): the document
    * title follows the `{label} | FluxCommerce` workspace convention, the
-   * description reuses the localized discovery subtitle, and the canonical
+   * description reuses the localized hero subtitle, and the canonical
    * is the home path. `Title`/`Meta` update tags in place, and
    * `setCanonicalUrl` keeps a single canonical tag, so re-runs never
    * duplicate metadata.
@@ -114,17 +117,17 @@ export class HomePage implements OnInit {
    */
   private applyMetadata(): void {
     const copy = this.copy();
-    const title = `${copy.title} | FluxCommerce`;
+    const title = `${copy.heroTitle} | FluxCommerce`;
     this.title.setTitle(title);
-    this.meta.updateTag({ name: 'description', content: copy.subtitle });
+    this.meta.updateTag({ name: 'description', content: copy.heroSubtitle });
     this.meta.updateTag({ property: 'og:title', content: title });
-    this.meta.updateTag({ property: 'og:description', content: copy.subtitle });
+    this.meta.updateTag({ property: 'og:description', content: copy.heroSubtitle });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ property: 'og:url', content: '/' });
     this.meta.updateTag({ property: 'og:image', content: FALLBACK_SOCIAL_IMAGE });
     this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
     this.meta.updateTag({ name: 'twitter:title', content: title });
-    this.meta.updateTag({ name: 'twitter:description', content: copy.subtitle });
+    this.meta.updateTag({ name: 'twitter:description', content: copy.heroSubtitle });
     setCanonicalUrl(this.document, '/');
   }
 }

@@ -2,8 +2,8 @@
   <flux-container>
     <div class="bar">
       <a class="brand" routerLink="/" [attr.aria-label]="copy().brandLabel"
-        >fluxcommerce<span class="brand-dot" aria-hidden="true">.</span></a
-      >
+        ><img class="brand-logo" src="/assets/fluxCommerce-logo.png" alt="" width="160" height="40"
+      /></a>
       <storefront-nav class="desktop-nav" [items]="mainNav()" [label]="copy().navLabel" />
       <form class="search desktop-search" role="search" (ngSubmit)="submitSearch()">
         <label class="visually-hidden" for="storefront-search">{{ copy().searchLabel }}</label>

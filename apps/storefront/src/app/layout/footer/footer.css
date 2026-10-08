@@ -16,13 +16,12 @@
   padding-block: var(--s-xl);
 }
 
-.brand {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  text-transform: lowercase;
+.brand-logo {
+  display: block;
+  inline-size: 15rem;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
 }
 
 .tagline {

@@ -68,20 +68,6 @@
   backdrop-filter: var(--blur);
 }
 
-.btn--secondary {
-  background: var(--secondary-soft);
-  color: var(--secondary-soft-text);
-  border-color: var(--secondary);
-}
-
-.btn--quick {
-  min-block-size: 32px;
-  padding-inline: var(--s-md);
-  background: var(--primary);
-  color: var(--text-on-accent);
-  font-size: 0.75rem;
-}
-
 .hero-note {
   font-size: 0.875rem;
   color: var(--text-faint);
@@ -92,72 +78,76 @@
   min-block-size: 16rem;
 }
 
-.orb {
-  position: absolute;
-  inline-size: 12rem;
-  block-size: 12rem;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.5;
-}
-
-.orb--lime {
-  background: var(--glow-primary);
-  inset-block-start: 0;
-  inset-inline-end: 10%;
-}
-
-.orb--violet {
-  background: var(--glow-secondary);
-  inset-block-end: 0;
-  inset-inline-start: 5%;
-}
-
-.pod-demo {
-  display: grid;
-  gap: var(--s-xs);
-}
-
-.pod-media {
-  aspect-ratio: 1 / 1;
+.hero-image {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 16rem;
+  max-block-size: 28rem;
+  object-fit: cover;
+  display: block;
   border-radius: var(--r-lg);
-  background:
-    radial-gradient(circle at 50% 30%, var(--glow-secondary), transparent 60%), var(--surface-2);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
 }
 
-.pod-title {
-  font-weight: 700;
-  margin: 0;
-}
-
-.pod-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.5rem 0.5rem 1rem;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-}
-
-.perks {
-  display: grid;
-  gap: var(--s-md);
-  margin-block-start: var(--s-xl);
-}
-
-.featured {
+.cta {
   margin-block-start: var(--s-2xl);
 }
 
-.section-subtitle {
-  color: var(--text-muted);
+.cta-grid {
+  display: grid;
+  gap: var(--s-md);
 }
 
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-xs);
-  margin-block: var(--s-md);
+.perks {
+  margin-block-start: var(--s-2xl);
+}
+
+.perks-grid {
+  display: grid;
+  gap: var(--s-md);
+}
+
+/* Stat tile (DESIGN §6.8) — icon circle, mono numeral, title, caption. */
+.perk {
+  display: grid;
+  gap: var(--s-2xs);
+}
+
+.perk-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--primary-text);
+  font-size: 1.25rem;
+  margin-block-end: var(--s-xs);
+}
+
+.perk-num {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.perk h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.perk p:last-child {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 
 @media (min-width: 48rem) {
@@ -166,7 +156,19 @@
     align-items: center;
   }
 
-  .perks {
+  .perks-grid,
+  .cta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .perks-grid,
+  .cta-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .cta-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
