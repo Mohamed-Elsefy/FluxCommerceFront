@@ -44,6 +44,13 @@ export const routes: Routes = [
           import('./features/catalog/catalog.routes').then((m) => m.catalogRoutes),
       },
       {
+        // Products shelf — catalog-owned listing UI mounted at an
+        // independent `/products` URL (search target + store shelf).
+        path: 'products',
+        loadChildren: () =>
+          import('./features/catalog/products.routes').then((m) => m.productsRoutes),
+      },
+      {
         // Sub-Phase 7.4 — customer cart area serving /cart (lazy feature
         // boundary with route-provided CartState; identity establishment
         // and merge wiring arrive in Sub-Phases 7.5–7.7).

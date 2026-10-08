@@ -17,23 +17,35 @@ export interface NavDestination {
   readonly labelKey: string;
   /** Application route path. */
   readonly route: string;
+  /** When true, the shell shows this entry to authenticated users only. */
+  readonly authenticatedOnly?: boolean;
 }
 
-/** Primary header/mobile destinations. */
+/** Primary header/mobile destinations (cart lives alongside the links). */
 export const MAIN_NAV_ITEMS: readonly NavDestination[] = [
   { labelKey: 'layout.nav.home', route: '/' },
-  { labelKey: 'layout.nav.catalog', route: '/catalog' },
+  { labelKey: 'layout.nav.products', route: '/products' },
+  { labelKey: 'layout.nav.cart', route: '/cart' },
+  { labelKey: 'layout.nav.orders', route: '/account/orders', authenticatedOnly: true },
 ];
 
-/** Footer Explore destinations (mirrors the header). */
+/** Footer Explore destinations (discovery path — no overlap with Shop). */
 export const EXPLORE_NAV_ITEMS: readonly NavDestination[] = [
   { labelKey: 'layout.nav.home', route: '/' },
   { labelKey: 'layout.nav.catalog', route: '/catalog' },
-  { labelKey: 'layout.nav.cart', route: '/cart' },
 ];
 
-/** Header quick-access cart destination. */
-export const CART_NAV_ITEM: NavDestination = {
-  labelKey: 'layout.nav.cart',
-  route: '/cart',
-};
+/** Footer Shop destinations (purchase path — no overlap with Explore). */
+export const SHOP_NAV_ITEMS: readonly NavDestination[] = [
+  { labelKey: 'layout.nav.products', route: '/products' },
+  { labelKey: 'layout.nav.cart', route: '/cart' },
+  { labelKey: 'layout.nav.checkout', route: '/checkout' },
+];
+
+/** Footer Account destinations (authenticated area + entry point). */
+export const ACCOUNT_NAV_ITEMS: readonly NavDestination[] = [
+  { labelKey: 'layout.nav.profile', route: '/account/profile' },
+  { labelKey: 'layout.nav.orders', route: '/account/orders' },
+  { labelKey: 'layout.nav.payments', route: '/payment/mine' },
+  { labelKey: 'layout.nav.login', route: '/login' },
+];

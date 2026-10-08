@@ -68,6 +68,12 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Prerender,
   },
   {
+    // Products shelf — static listing shell prerenders idle (same SSR
+    // posture as the catalog discovery page: no backend at build time).
+    path: 'products',
+    renderMode: RenderMode.Prerender,
+  },
+  {
     path: 'checkout',
     renderMode: RenderMode.Prerender,
   },

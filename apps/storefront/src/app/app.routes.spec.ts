@@ -3,6 +3,7 @@ import { AppLayout } from './layout/app-layout/app-layout';
 import { routes } from './app.routes';
 import { authRoutes } from './features/auth/auth.routes';
 import { catalogRoutes } from './features/catalog/catalog.routes';
+import { productsRoutes } from './features/catalog/products.routes';
 import { checkoutRoutes } from './features/checkout/checkout.routes';
 import { paymentsRoutes } from './features/payments/payments.routes';
 import { accountRoutes } from './features/orders/account.routes';
@@ -56,6 +57,18 @@ describe('routes', () => {
     const discovery = catalogRoutes[0]?.children?.find((route) => route.path === '');
 
     expect(typeof discovery?.loadComponent).toBe('function');
+  });
+
+  it('mounts the independent products shelf under the shell', async () => {
+    const root = routes.find((route) => route.path === '');
+    const products = root?.children?.find((route) => route.path === 'products');
+
+    expect(typeof products?.loadChildren).toBe('function');
+    expect(productsRoutes).toHaveLength(1);
+    expect(productsRoutes[0]?.path).toBe('');
+
+    const loaded = await products?.loadChildren?.();
+    expect(loaded).toBe(productsRoutes);
   });
 
   it('mounts the lazy auth-guarded checkout feature boundary under the shell', async () => {

@@ -1,21 +1,42 @@
+/* Kinetic ghost circle (DESIGN §6.1) — quiet theme action, violet halo. */
 .toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding-block: var(--spacing-xs);
-  padding-inline: var(--spacing-xs);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-full);
+  inline-size: 44px;
+  block-size: 44px;
+  padding-block: 0;
+  padding-inline: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
   background: transparent;
-  color: var(--color-text);
+  color: var(--text);
   cursor: pointer;
+  transform: translateY(-4px);
+  transition:
+    transform 0.2s var(--spring),
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .toggle:hover {
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.toggle:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-inset-press);
 }
 
 .toggle:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle {
+    transition: none;
+    transform: none;
+  }
 }

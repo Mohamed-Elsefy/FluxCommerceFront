@@ -1,12 +1,21 @@
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { describe, expect, it } from 'vitest';
+import { provideRouter, Router } from '@angular/router';
+import { describe, expect, it, vi } from 'vitest';
 import { provideApi, provideAppEnvironment } from '@flux/api';
-import { provideAuthRecovery } from '@flux/auth';
+import { AuthService, provideAuthRecovery, type CurrentUser } from '@flux/auth';
 import { CultureService } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
 import { StorefrontHeader } from './header';
+
+const USER: CurrentUser = {
+  id: 'cccccccc-3333-4333-8333-333333333333',
+  email: 'ada@flux.local',
+  displayName: 'Ada Lovelace',
+  roles: ['Customer'],
+  permissions: [],
+  isEmailVerified: true,
+};
 
 function setup(): { fixture: ComponentFixture<StorefrontHeader>; element: HTMLElement } {
   TestBed.configureTestingModule({
@@ -37,31 +46,32 @@ describe('StorefrontHeader', () => {
     const desktopLinks = [...element.querySelectorAll('.desktop-nav .nav a')].map((link) =>
       link.textContent?.trim(),
     );
-    expect(desktopLinks).toEqual(['Home', 'Catalog']);
-    expect(element.querySelector('auth-nav')).not.toBeNull();
+    expect(desktopLinks).toEqual(['Home', 'Products', 'Cart']);
+    expect(element.querySelector('a.login-pill')).not.toBeNull();
   });
 
-  it('exposes the cart quick-access link to the existing cart route', () => {
+  it('exposes the cart destination alongside the other links', () => {
     const { element } = setup();
-    const cart = element.querySelector('a.cart-link');
+    const cart = [...element.querySelectorAll('.desktop-nav .nav a')].find(
+      (link) => link.getAttribute('href') === '/cart',
+    );
 
-    expect(cart?.getAttribute('href')).toBe('/cart');
     expect(cart?.textContent?.trim()).toBe('Cart');
+    expect(element.querySelector('a.cart-link')).toBeNull();
   });
 
-  it('wires the language picker to the central culture state', () => {
+  it('cycles the language pill to the next supported culture', () => {
     const { fixture, element } = setup();
     const cultures = TestBed.inject(CultureService);
-    const select = element.querySelector('storefront-culture-switch select') as HTMLSelectElement;
+    const pill = element.querySelector('button.lang-button') as HTMLButtonElement;
 
-    expect(select.value).toBe('en');
-    expect(select.querySelectorAll('option')).toHaveLength(5);
+    expect(pill?.textContent).toContain('English');
 
-    select.value = 'ar';
-    select.dispatchEvent(new Event('change'));
+    pill.click();
     fixture.detectChanges();
 
-    expect(cultures.culture()).toBe('ar');
+    expect(cultures.culture()).toBe('fr');
+    expect(element.querySelector('button.lang-button')?.textContent).toContain('Français');
     cultures.setCulture('en');
   });
 
@@ -75,8 +85,7 @@ describe('StorefrontHeader', () => {
         link.textContent?.trim(),
       );
 
-      expect(desktopLinks).toEqual(['Accueil', 'Catalogue']);
-      expect(element.querySelector('a.cart-link')?.textContent?.trim()).toBe('Panier');
+      expect(desktopLinks).toEqual(['Accueil', 'Produits', 'Panier']);
       expect(element.querySelector('.brand')?.getAttribute('aria-label')).toBe(
         'FluxCommerce accueil',
       );
@@ -105,17 +114,17 @@ describe('StorefrontHeader', () => {
     expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('offers cart and language quick access inside the mobile panel', () => {
+  it('offers navigation, search, and language access inside the mobile panel', () => {
     const { fixture, element } = setup();
 
     (element.querySelector('button.menu-toggle') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     const panel = element.querySelector('.mobile-panel');
-    expect(panel?.querySelector('a.cart-link')?.getAttribute('href')).toBe('/cart');
-    expect(
-      panel?.querySelector('storefront-culture-switch select option')?.textContent?.trim(),
-    ).toBe('English');
+    expect([...panel!.querySelectorAll('.nav a')].map((link) => link.getAttribute('href'))).toEqual(
+      ['/', '/products', '/cart'],
+    );
+    expect(panel?.querySelector('button.lang-button')).not.toBeNull();
   });
 
   it('dismisses the mobile panel on Escape and returns focus to the toggle', () => {
@@ -148,5 +157,47 @@ describe('StorefrontHeader', () => {
     expect(
       element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
     ).toBe('Switch to dark theme');
+  });
+
+  it('shows a single login pill for anonymous visitors', () => {
+    const { element } = setup();
+
+    expect(element.querySelector('a.login-pill')?.getAttribute('href')).toBe('/login');
+    expect(element.querySelector('a.avatar')).toBeNull();
+  });
+
+  it('reveals orders navigation and links the avatar straight to the profile', () => {
+    const { fixture, element } = setup();
+    TestBed.inject(AuthService).setAuthenticated({ user: USER, accessToken: 'test-token' });
+    fixture.detectChanges();
+
+    const desktopLinks = [...element.querySelectorAll('.desktop-nav .nav a')].map((link) =>
+      link.textContent?.trim(),
+    );
+    expect(desktopLinks).toEqual(['Home', 'Products', 'Cart', 'Orders']);
+    expect(element.querySelector('a.login-pill')).toBeNull();
+
+    const avatar = element.querySelector('a.avatar') as HTMLAnchorElement;
+    expect(avatar?.getAttribute('href')).toBe('/account/profile');
+    expect(avatar?.textContent?.trim()).toBe('A');
+    expect(element.querySelector('.account-menu')).toBeNull();
+  });
+
+  it('submits header search to the products shelf', () => {
+    const { fixture, element } = setup();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    (
+      fixture.componentInstance as unknown as { searchText: { set: (v: string) => void } }
+    ).searchText.set('linen');
+    fixture.detectChanges();
+    (element.querySelector('.desktop-search') as HTMLFormElement).dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith(['/products'], {
+      queryParams: { searchTerm: 'linen' },
+    });
   });
 });

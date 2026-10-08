@@ -17,21 +17,42 @@ describe('StorefrontFooter', () => {
   it('renders the brand, explore group, and copyright line', () => {
     const element = setup();
 
-    expect(element.querySelector('.brand')?.textContent).toBe('FluxCommerce');
+    expect(element.querySelector('.brand')?.textContent).toBe('fluxcommerce.');
     expect(element.querySelector('.group h2')?.textContent).toBe('Explore');
     expect(
       [...element.querySelectorAll('.group .nav a')].map((link) => link.textContent?.trim()),
-    ).toEqual(['Home', 'Catalog', 'Cart']);
+    ).toEqual([
+      'Home',
+      'Catalog',
+      'Products',
+      'Cart',
+      'Checkout',
+      'Profile',
+      'Orders',
+      'Payments',
+      'Login',
+    ]);
+    expect(element.querySelector('.description')?.textContent).toContain('enterprise-grade');
     expect(element.querySelector('.legal')?.textContent).toContain(`${new Date().getFullYear()}`);
+  });
+
+  it('renders shop, account, and the reserved personal placeholder', () => {
+    const element = setup();
+    const headings = [...element.querySelectorAll('.group h2')].map((h) => h.textContent);
+
+    expect(headings).toEqual(['Explore', 'Shop', 'Account', 'About']);
+    expect(element.querySelector('.personal .placeholder')?.textContent).toBe(
+      'Personal info coming soon.',
+    );
   });
 
   it('localizes explore chrome per active culture', () => {
     const element = setup('de');
 
     expect(element.querySelector('.group h2')?.textContent).toBe('Entdecken');
-    expect(
-      [...element.querySelectorAll('.group .nav a')].map((link) => link.textContent?.trim()),
-    ).toEqual(['Startseite', 'Katalog', 'Warenkorb']);
+    expect(element.querySelector('.personal .placeholder')?.textContent).toBe(
+      'Persönliche Infos folgen in Kürze.',
+    );
     expect(element.querySelector('.legal')?.textContent).toContain('Alle Rechte vorbehalten.');
 
     TestBed.resetTestingModule();

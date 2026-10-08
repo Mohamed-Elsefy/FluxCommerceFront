@@ -1,30 +1,18 @@
 /**
- * Storefront header for Sub-Phase 3.6 — Storefront Application Shell.
+ * Storefront header — Kinetic glass bar (DESIGN §6.4).
  *
- * Composition only: brand wordmark, desktop `StorefrontNav`, mobile menu
- * toggle with a vertical `StorefrontNav` panel, and the Phase 2 `AuthNav`
- * for Anonymous/Authenticated entry points. No auth logic lives here —
- * `AuthService` signals stay inside `AuthNav`; this shell never replicates
- * them.
+ * Composition only: brand wordmark, segmented main nav (Home / Products /
+ * Cart / Orders), pill search (navigates to the `/products` shelf), a
+ * language-cycle pill (steps to the next supported culture), the theme
+ * toggle, and the account entry — anonymous sees a single Primary login
+ * pill (registration lives on the login page), authenticated sees an
+ * avatar circle linking straight to the profile (account actions live
+ * there, including logout).
  *
- * The mobile panel is the same `StorefrontNav` component in vertical
- * orientation (one component, responsive placement — no device duplicates).
- * Closed by default on server and client alike, so SSR and hydration render
- * identical markup. Styling is token-driven with a CSS-only breakpoint:
- * the desktop nav shows from tablet widths up, the toggle below that.
- *
- * Theme switching is composed here (Sub-Phase 3.10): the shared dumb
- * `ThemeToggle` reflects `ThemeService` state and forwards activations to
- * it — this shell owns no theme logic.
- *
- * Culture switching is composed here the same way: the shell-owned dumb
- * `StorefrontCultureSwitch` reflects `CultureService` state and forwards
- * selections to it. Quick-access links (Cart) and feature destinations
- * (Catalog) dock here as plain routes — only routes that exist, never
- * dead links.
- *
- * SSR/hydration safe: local toggle signal only, no browser APIs. RTL safe:
- * logical properties and direction-aware flex flow only.
+ * Auth state reads central `AuthService` signals (never replicated);
+ * culture writes go through `CultureService`. SSR/hydration safe: local
+ * toggle signals only, no browser APIs. RTL safe: logical properties and
+ * direction-aware flex flow only.
  */
 
 import {
@@ -37,14 +25,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { AuthNav } from '@flux/auth';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '@flux/auth';
 import { CultureService, SUPPORTED_CULTURE_METADATA } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
 import { Container, ThemeToggle } from '@flux/ui';
-import { StorefrontCultureSwitch } from '../culture-switch/culture-switch';
 import { StorefrontNav, type StorefrontNavItem } from '../navigation/navigation';
-import { CART_NAV_ITEM, MAIN_NAV_ITEMS } from '../../storefront-navigation';
+import { MAIN_NAV_ITEMS } from '../../storefront-navigation';
 import {
   LAYOUT_TRANSLATION_KEYS,
   translateLayoutKey,
@@ -52,29 +40,26 @@ import {
 
 @Component({
   selector: 'storefront-header',
-  imports: [RouterLink, StorefrontNav, StorefrontCultureSwitch, AuthNav, Container, ThemeToggle],
+  imports: [RouterLink, FormsModule, StorefrontNav, ThemeToggle, Container],
   templateUrl: './header.html',
   styleUrl: './header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StorefrontHeader {
   /**
-   * Main destinations with localized labels for the active culture
-   * (routes stay app-composed; labels resolve through the layout
-   * bundle — never hardcoded, never duplicated).
+   * Main destinations with localized labels for the active culture.
+   * Authenticated-only entries stay hidden from anonymous visitors
+   * (they reach those areas through the login pill + guard return).
    */
-  protected readonly mainNav = computed(() =>
-    MAIN_NAV_ITEMS.map((item): StorefrontNavItem => ({
-      label: translateLayoutKey(this.cultures.culture(), item.labelKey),
-      route: item.route,
-    })),
-  );
-
-  /** Localized quick-access cart destination. */
-  protected readonly cartNav = computed((): StorefrontNavItem => ({
-    label: translateLayoutKey(this.cultures.culture(), CART_NAV_ITEM.labelKey),
-    route: CART_NAV_ITEM.route,
-  }));
+  protected readonly mainNav = computed(() => {
+    const authenticated = this.auth.isAuthenticated();
+    return MAIN_NAV_ITEMS.filter((item) => !item.authenticatedOnly || authenticated).map(
+      (item): StorefrontNavItem => ({
+        label: translateLayoutKey(this.cultures.culture(), item.labelKey),
+        route: item.route,
+      }),
+    );
+  });
 
   /** Localized shell chrome for the active culture. */
   protected readonly copy = computed(() => {
@@ -82,31 +67,67 @@ export class StorefrontHeader {
     return {
       brandLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.brandLabel),
       menuLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.menuLabel),
+      searchLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.searchLabel),
+      searchPlaceholder: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.searchPlaceholder),
+      searchButton: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.searchButton),
       switchLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.switchLabel),
       navLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.navMainLabel),
-      authChecking: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authChecking),
-      authNavLabel: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authNavLabel),
       authLogin: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authLogin),
-      authRegister: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authRegister),
       authAccount: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authAccount),
-      authLogout: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authLogout),
-      authLoggingOut: translateLayoutKey(culture, LAYOUT_TRANSLATION_KEYS.authLoggingOut),
     };
   });
 
-  /** Supported cultures offered by the language picker (single source of truth). */
+  /** Supported cultures in cycle order (single source of truth). */
   protected readonly languages = SUPPORTED_CULTURE_METADATA;
 
-  /** Central culture state (read-only here; switched through the picker). */
+  /** Current culture display name shown on the cycle pill. */
+  protected readonly currentLanguage = computed(() => {
+    const culture = this.cultures.culture();
+    return this.languages.find((item) => item.code === culture)?.displayName ?? culture;
+  });
+
+  /** Central culture state (read-only here; stepped through the pill). */
   protected readonly cultures = inject(CultureService);
 
   /** Central theme state (read-only here; toggled through the shared control). */
   protected readonly themes = inject(ThemeService);
 
+  /** Central authentication state (read-only here; entry point only). */
+  protected readonly auth = inject(AuthService);
+
+  private readonly router = inject(Router);
+
+  /** Header search text (local UI state; committed to `/products` on submit). */
+  protected readonly searchText = signal('');
+
   /** Mobile menu visibility (local UI state; closed on server and client). */
   readonly menuOpen = signal(false);
 
+  /** Avatar initial (first letter of the display name or email, fallback `•`). */
+  protected readonly avatarInitial = computed(() => {
+    const user = this.auth.currentUser();
+    const name = user?.displayName ?? user?.email ?? '';
+    const first = name.trim().charAt(0);
+    return first !== '' ? first.toUpperCase() : '•';
+  });
+
   private readonly menuToggle = viewChild<ElementRef<HTMLButtonElement>>('menuToggle');
+
+  /** Submits the header search to the products shelf. */
+  submitSearch(): void {
+    const searchTerm = this.searchText().trim();
+    this.closeMenu();
+    void this.router.navigate(['/products'], {
+      queryParams: searchTerm !== '' ? { searchTerm } : {},
+    });
+  }
+
+  /** Steps to the next supported culture (wraps around). */
+  cycleCulture(): void {
+    const codes = this.languages.map((item) => item.code);
+    const next = codes[(codes.indexOf(this.cultures.culture()) + 1) % codes.length];
+    this.cultures.setCulture(next);
+  }
 
   /** Toggles the mobile navigation panel. */
   toggleMenu(): void {

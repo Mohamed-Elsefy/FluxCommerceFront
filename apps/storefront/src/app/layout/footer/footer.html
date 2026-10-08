@@ -1,7 +1,11 @@
 <footer class="footer">
   <flux-container>
     <div class="inner">
-      <p class="brand">FluxCommerce</p>
+      <div class="brand-block">
+        <p class="brand">fluxcommerce<span aria-hidden="true">.</span></p>
+        <p class="tagline">{{ copy().tagline }}</p>
+        <p class="description">{{ copy().description }}</p>
+      </div>
       <div class="group">
         <h2>{{ copy().exploreHeading }}</h2>
         <storefront-nav
@@ -9,6 +13,22 @@
           [label]="copy().exploreLabel"
           orientation="vertical"
         />
+      </div>
+      <div class="group">
+        <h2>{{ copy().shopHeading }}</h2>
+        <storefront-nav [items]="shopNav()" [label]="copy().shopHeading" orientation="vertical" />
+      </div>
+      <div class="group">
+        <h2>{{ copy().accountHeading }}</h2>
+        <storefront-nav
+          [items]="accountNav()"
+          [label]="copy().accountHeading"
+          orientation="vertical"
+        />
+      </div>
+      <div class="group personal">
+        <h2>{{ copy().personalHeading }}</h2>
+        <p class="placeholder">{{ copy().personalPlaceholder }}</p>
       </div>
     </div>
     <p class="legal">{{ copy().legal }}</p>

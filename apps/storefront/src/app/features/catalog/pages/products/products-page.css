@@ -1,0 +1,32 @@
+.products-page {
+  display: grid;
+  gap: var(--s-md);
+  padding-block: var(--s-lg);
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs);
+  align-items: end;
+}
+
+.filters-clear {
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.filters-clear:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}

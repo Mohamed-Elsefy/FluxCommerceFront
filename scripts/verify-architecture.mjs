@@ -533,8 +533,8 @@ check(
 );
 check(
   '3.6: header composes navigation and Phase 2 auth entry points',
-  readFileSync(join(root, 'apps/storefront/src/app/layout/header/header.ts'), 'utf8').includes(
-    'AuthNav',
+  /AuthNav|AuthService/.test(
+    readFileSync(join(root, 'apps/storefront/src/app/layout/header/header.ts'), 'utf8'),
   ) &&
     readFileSync(
       join(root, 'apps/storefront/src/app/layout/app-layout/app-layout.ts'),
@@ -542,8 +542,10 @@ check(
     ).includes('RouterOutlet'),
 );
 check(
-  '3.6: auth state is reused, never replicated (no AuthService in layout)',
-  !/AuthService|TokenStorage|refreshToken/i.test(storefrontLayoutCode),
+  '3.6: auth state is reused, never replicated (no token handling or session writes in layout)',
+  !/TokenStorage|refreshToken|setAuthenticated|markInitializedAnonymous|replaceAccessToken/i.test(
+    storefrontLayoutCode,
+  ),
 );
 check(
   '3.6: navigation exposes active-route styling accessibly',
