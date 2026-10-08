@@ -1,5 +1,66 @@
-<h1>Storefront</h1>
-<p>Application shell ready. Business features arrive in later phases.</p>
+<!-- Kinetic landing (DESIGN §6.2/6.9) — hero + perks + featured + discovery entries.
+     Keeps the legacy discovery/cart sections (ids + routerLinks) so existing
+     specs and E2E stay green. -->
+<h1 class="visually-hidden">Storefront</h1>
+
+<section class="hero surface" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <p class="section-index">{{ copy().heroIndex }}</p>
+    <h2 id="hero-title" class="hero-title">{{ copy().heroTitle }}</h2>
+    <p class="hero-subtitle">{{ copy().heroSubtitle }}</p>
+    <div class="hero-actions">
+      <a class="btn btn--primary" routerLink="/catalog">{{ copy().heroPrimary }}</a>
+      <a class="btn btn--glass" routerLink="/catalog">{{ copy().heroSecondary }}</a>
+    </div>
+    <p class="hero-note">{{ copy().heroNote }}</p>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="orb orb--lime"></div>
+    <div class="orb orb--violet"></div>
+    <flux-card>
+      <div class="pod-demo">
+        <div class="pod-media"></div>
+        <flux-badge variant="drop">Drop</flux-badge>
+        <p class="pod-title">Flux Pod 001</p>
+        <div class="pod-footer">
+          <span class="price">$49.00</span>
+          <span class="btn btn--quick">Add</span>
+        </div>
+      </div>
+    </flux-card>
+  </div>
+</section>
+
+<section class="perks" aria-label="{{ copy().perksTitle }}">
+  <flux-card>
+    <h3>{{ copy().perksFastTitle }}</h3>
+    <p>{{ copy().perksFastText }}</p>
+  </flux-card>
+  <flux-card>
+    <h3>{{ copy().perksSecureTitle }}</h3>
+    <p>{{ copy().perksSecureText }}</p>
+  </flux-card>
+  <flux-card>
+    <h3>{{ copy().perksReturnTitle }}</h3>
+    <p>{{ copy().perksReturnText }}</p>
+  </flux-card>
+</section>
+
+<section class="featured" aria-labelledby="featured-title">
+  <div class="section-head">
+    <p class="section-index">{{ copy().featuredIndex }}</p>
+    <h2 id="featured-title" class="section-title">{{ copy().featuredTitle }}</h2>
+    <p class="section-subtitle">{{ copy().featuredSubtitle }}</p>
+  </div>
+  <div class="chip-row" role="group" aria-label="filters">
+    <flux-chip [selected]="true">All</flux-chip>
+    <flux-chip>New</flux-chip>
+    <flux-chip tone="urgency">Drops</flux-chip>
+  </div>
+  <p>
+    <a class="btn btn--secondary" routerLink="/catalog">{{ copy().featuredLink }}</a>
+  </p>
+</section>
 
 <section aria-labelledby="discovery-title">
   <h2 id="discovery-title">{{ copy().title }}</h2>

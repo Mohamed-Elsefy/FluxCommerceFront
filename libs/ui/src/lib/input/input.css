@@ -1,49 +1,64 @@
 .field {
   display: grid;
-  gap: var(--spacing-xs);
+  gap: var(--s-2xs);
 }
 
 .label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font:
+    800 0.625rem/0.75rem var(--font-body),
+    system-ui;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
+[lang='ar'] .label {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Kinetic pill input (DESIGN §6.5) — 48px, halo on focus. */
 .control {
   inline-size: 100%;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-md);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
+  min-block-size: 48px;
+  padding-block: 0;
+  padding-inline: var(--s-lg);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--text);
   font: inherit;
 }
 
+:root[data-theme='light'] .control {
+  background: var(--surface-1);
+}
+
 .control::placeholder {
-  color: var(--color-text-muted);
+  color: var(--text-faint);
 }
 
 .control:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 1px;
-  border-color: var(--color-primary);
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
 }
 
 .control[aria-invalid='true'] {
-  border-color: var(--color-danger);
+  border-color: var(--error);
 }
 
 .control:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .hint {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 
 .error {
-  font-size: var(--font-size-sm);
-  color: var(--color-danger);
+  font-size: 0.875rem;
+  color: var(--error);
 }

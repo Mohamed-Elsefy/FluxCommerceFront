@@ -1,0 +1,55 @@
+<section class="preview">
+  <p class="section-index">00 // Kinetic preview</p>
+  <h1 class="section-title">Design preview</h1>
+  <p class="muted">
+    Toggle the theme in the header to verify dark/light parity. <a routerLink="/">Back home</a>
+  </p>
+
+  <h2>Buttons</h2>
+  <div class="row">
+    <flux-button variant="primary">Checkout</flux-button>
+    <flux-button variant="secondary">Secondary</flux-button>
+    <flux-button variant="glass">Glass</flux-button>
+    <flux-button variant="ghost">Ghost</flux-button>
+    <flux-button variant="quick">Quick</flux-button>
+  </div>
+
+  <h2>Badges</h2>
+  <div class="row">
+    <flux-badge variant="drop">Drop</flux-badge>
+    <flux-badge variant="verified">Verified</flux-badge>
+    <flux-badge variant="primary">Turbo</flux-badge>
+    <flux-badge variant="rarity">#014/100</flux-badge>
+    <flux-badge variant="count">3</flux-badge>
+    <flux-badge variant="success">In stock</flux-badge>
+  </div>
+
+  <h2>Chips</h2>
+  <div class="row">
+    <flux-chip [selected]="true">All</flux-chip>
+    <flux-chip>New</flux-chip>
+    <flux-chip tone="urgency">Drops</flux-chip>
+  </div>
+
+  <h2>Cards</h2>
+  <div class="grid">
+    <flux-card
+      ><h3>Pod</h3>
+      <p class="muted">Squircle, lifted, lime rim on hover.</p></flux-card
+    >
+    <flux-card
+      ><h3>Glass</h3>
+      <p class="muted">Frosted surface with blur.</p></flux-card
+    >
+  </div>
+
+  <h2>Inputs</h2>
+  <flux-input label="Email" placeholder="you@example.com" />
+  <flux-alert variant="info" title="Halo check">Focus the input — lime halo, not blue.</flux-alert>
+
+  <h2>Loading</h2>
+  <div class="row">
+    <flux-spinner />
+    <flux-skeleton />
+  </div>
+</section>

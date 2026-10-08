@@ -10,6 +10,7 @@ import { DOCUMENT } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { CultureService } from '@flux/i18n';
+import { Badge, Card, Chip } from '@flux/ui';
 import { FALLBACK_SOCIAL_IMAGE, setCanonicalUrl } from '@flux/utils';
 import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-translations';
 
@@ -40,8 +41,9 @@ import { HOME_TRANSLATION_KEYS, translateHomeKey } from '../../i18n/home-transla
  */
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink],
+  imports: [RouterLink, Badge, Card, Chip],
   templateUrl: './home-page.html',
+  styleUrl: './home-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePage implements OnInit {
@@ -53,13 +55,32 @@ export class HomePage implements OnInit {
   /** Localized discovery entry copy for the active culture. */
   protected readonly copy = computed(() => {
     const culture = this.cultures.culture();
+    const t = (k: string): string => translateHomeKey(culture, k);
+    const k = HOME_TRANSLATION_KEYS;
     return {
-      title: translateHomeKey(culture, HOME_TRANSLATION_KEYS.discoveryTitle),
-      subtitle: translateHomeKey(culture, HOME_TRANSLATION_KEYS.discoverySubtitle),
-      link: translateHomeKey(culture, HOME_TRANSLATION_KEYS.discoveryLink),
-      cartTitle: translateHomeKey(culture, HOME_TRANSLATION_KEYS.cartTitle),
-      cartSubtitle: translateHomeKey(culture, HOME_TRANSLATION_KEYS.cartSubtitle),
-      cartLink: translateHomeKey(culture, HOME_TRANSLATION_KEYS.cartLink),
+      heroIndex: t(k.heroIndex),
+      heroTitle: t(k.heroTitle),
+      heroSubtitle: t(k.heroSubtitle),
+      heroPrimary: t(k.heroPrimary),
+      heroSecondary: t(k.heroSecondary),
+      heroNote: t(k.heroNote),
+      perksTitle: t(k.perksTitle),
+      perksFastTitle: t(k.perksFastTitle),
+      perksFastText: t(k.perksFastText),
+      perksSecureTitle: t(k.perksSecureTitle),
+      perksSecureText: t(k.perksSecureText),
+      perksReturnTitle: t(k.perksReturnTitle),
+      perksReturnText: t(k.perksReturnText),
+      featuredIndex: t(k.featuredIndex),
+      featuredTitle: t(k.featuredTitle),
+      featuredSubtitle: t(k.featuredSubtitle),
+      featuredLink: t(k.featuredLink),
+      title: t(k.discoveryTitle),
+      subtitle: t(k.discoverySubtitle),
+      link: t(k.discoveryLink),
+      cartTitle: t(k.cartTitle),
+      cartSubtitle: t(k.cartSubtitle),
+      cartLink: t(k.cartLink),
     };
   });
 

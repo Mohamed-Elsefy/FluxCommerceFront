@@ -1,0 +1,70 @@
+/**
+ * Local font subsets — Kinetic Bubble Neo (DESIGN §3).
+ * Latin + Arabic subsets only (per approved scope).
+ *
+ * Place woff2 files under `apps/<app>/public/fonts/`:
+ *   syne-700.woff2, syne-800.woff2,
+ *   jakarta-400.woff2, jakarta-700.woff2, jakarta-800.woff2,
+ *   spacemono-400.woff2, spacemono-700.woff2,
+ *   cairo-700.woff2, cairo-800.woff2,
+ *   plexarabic-400.woff2, plexarabic-700.woff2
+ * Until the binaries land, the system fallback stacks in tokens.css apply —
+ * layout never breaks, only the display voice upgrades once files exist.
+ */
+
+@font-face {
+  font-family: 'Syne';
+  src: url('/fonts/syne-800.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Syne';
+  src: url('/fonts/syne-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/jakarta-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/jakarta-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/fonts/spacemono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/fonts/spacemono-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/fonts/cairo-800.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  src: url('/fonts/plexarabic-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

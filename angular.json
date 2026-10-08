@@ -64,6 +64,7 @@
             ],
             "styles": [
               "libs/theming/src/lib/reset.css",
+              "libs/theming/src/lib/fonts.css",
               "libs/theming/src/lib/tokens.css",
               "apps/storefront/src/styles.css"
             ],
@@ -176,6 +177,7 @@
             ],
             "styles": [
               "libs/theming/src/lib/reset.css",
+              "libs/theming/src/lib/fonts.css",
               "libs/theming/src/lib/tokens.css",
               "apps/admin/src/styles.css"
             ]

@@ -39,69 +39,69 @@ beforeEach(() => {
 });
 
 describe('ThemeService on the browser platform', () => {
-  it('initializes with the default theme and applies the root attribute', () => {
+  it('initializes with the dark default and applies the root attribute', () => {
     const service = setup();
 
-    expect(service.theme()).toBe('light');
+    expect(service.theme()).toBe('dark');
     expect(attribute()).toBeNull();
 
     service.initialize();
 
-    expect(service.theme()).toBe('light');
-    expect(attribute()).toBe('light');
-  });
-
-  it('restores the persisted choice on initialize', () => {
-    window.localStorage.setItem(THEME_STORAGE_KEY, 'dark');
-    const service = setup();
-
     expect(service.theme()).toBe('dark');
-
-    service.initialize();
-
     expect(attribute()).toBe('dark');
   });
 
-  it('falls back to the default theme for invalid persisted values', () => {
+  it('restores the persisted choice on initialize', () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    const service = setup();
+
+    expect(service.theme()).toBe('light');
+
+    service.initialize();
+
+    expect(attribute()).toBe('light');
+  });
+
+  it('falls back to the dark default for invalid persisted values', () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'midnight');
     const service = setup();
 
     service.initialize();
 
-    expect(service.theme()).toBe('light');
-    expect(attribute()).toBe('light');
+    expect(service.theme()).toBe('dark');
+    expect(attribute()).toBe('dark');
   });
 
   it('setTheme updates state, root attribute, and persistence atomically', () => {
     const service = setup();
     service.initialize();
 
-    service.setTheme('dark');
-
-    expect(service.theme()).toBe('dark');
-    expect(attribute()).toBe('dark');
-    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
-
     service.setTheme('light');
 
     expect(service.theme()).toBe('light');
     expect(attribute()).toBe('light');
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+
+    service.setTheme('dark');
+
+    expect(service.theme()).toBe('dark');
+    expect(attribute()).toBe('dark');
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
   });
 
-  it('toggleTheme flips between Light and Dark', () => {
+  it('toggleTheme flips between Dark and Light', () => {
     const service = setup();
     service.initialize();
 
     service.toggleTheme();
 
-    expect(service.theme()).toBe('dark');
-    expect(attribute()).toBe('dark');
+    expect(service.theme()).toBe('light');
+    expect(attribute()).toBe('light');
 
     service.toggleTheme();
 
-    expect(service.theme()).toBe('light');
-    expect(attribute()).toBe('light');
+    expect(service.theme()).toBe('dark');
+    expect(attribute()).toBe('dark');
   });
 
   it('applies the startup theme from the bootstrap initializer without manual initialize', () => {
@@ -109,12 +109,12 @@ describe('ThemeService on the browser platform', () => {
     // instantiation, so the persisted choice must be seeded before injection.
     TestBed.resetTestingModule();
     configureModule({ initializer: true });
-    window.localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
 
     const service = TestBed.inject(ThemeService);
 
-    expect(service.theme()).toBe('dark');
-    expect(attribute()).toBe('dark');
+    expect(service.theme()).toBe('light');
+    expect(attribute()).toBe('light');
   });
 });
 
@@ -123,7 +123,7 @@ describe('ThemeService on the server platform (SSR)', () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
     const service = setup({ platform: 'server' });
 
-    expect(service.theme()).toBe('light');
+    expect(service.theme()).toBe('dark');
 
     expect(() => service.initialize()).not.toThrow();
     expect(() => service.setTheme('dark')).not.toThrow();

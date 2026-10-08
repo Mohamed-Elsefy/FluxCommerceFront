@@ -25,8 +25,8 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import type { ComponentSize } from '../ui-primitives';
 import { Spinner } from '../spinner/spinner';
 
-/** Visual emphasis. `primary` for the single main action, `ghost` for quiet actions. */
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+/** Visual emphasis (DESIGN §6.1). `primary` for the single main action per view. */
+export type ButtonVariant = 'primary' | 'secondary' | 'glass' | 'ghost' | 'quick' | 'fab';
 
 @Component({
   selector: 'flux-button',

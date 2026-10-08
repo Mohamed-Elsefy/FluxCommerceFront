@@ -1,0 +1,172 @@
+/* Home landing — Kinetic composition. Logical properties only. */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.hero {
+  display: grid;
+  gap: var(--s-xl);
+  padding: var(--s-xl);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-block: var(--s-sm) var(--s-md);
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: var(--text-muted);
+  max-inline-size: 34rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  margin-block-start: var(--s-lg);
+}
+
+/* Local button skins mirroring libs/ui so the landing needs no feature CSS drift. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  transform: translateY(-4px);
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: var(--text-on-accent);
+  border: 2px solid var(--primary);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+}
+
+.btn--glass {
+  background: var(--surface-glass);
+  color: var(--text);
+  border-color: var(--border);
+  backdrop-filter: var(--blur);
+}
+
+.btn--secondary {
+  background: var(--secondary-soft);
+  color: var(--secondary-soft-text);
+  border-color: var(--secondary);
+}
+
+.btn--quick {
+  min-block-size: 32px;
+  padding-inline: var(--s-md);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.75rem;
+}
+
+.hero-note {
+  font-size: 0.875rem;
+  color: var(--text-faint);
+}
+
+.hero-visual {
+  position: relative;
+  min-block-size: 16rem;
+}
+
+.orb {
+  position: absolute;
+  inline-size: 12rem;
+  block-size: 12rem;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.5;
+}
+
+.orb--lime {
+  background: var(--glow-primary);
+  inset-block-start: 0;
+  inset-inline-end: 10%;
+}
+
+.orb--violet {
+  background: var(--glow-secondary);
+  inset-block-end: 0;
+  inset-inline-start: 5%;
+}
+
+.pod-demo {
+  display: grid;
+  gap: var(--s-xs);
+}
+
+.pod-media {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(circle at 50% 30%, var(--glow-secondary), transparent 60%), var(--surface-2);
+}
+
+.pod-title {
+  font-weight: 700;
+  margin: 0;
+}
+
+.pod-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+.perks {
+  display: grid;
+  gap: var(--s-md);
+  margin-block-start: var(--s-xl);
+}
+
+.featured {
+  margin-block-start: var(--s-2xl);
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs);
+  margin-block: var(--s-md);
+}
+
+@media (min-width: 48rem) {
+  .hero {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+  }
+
+  .perks {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

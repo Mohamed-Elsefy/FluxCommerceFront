@@ -1,34 +1,38 @@
+/* Kinetic glass header (DESIGN §6.4) — sticky frosted bar + pill chrome. */
 .header {
   position: sticky;
   top: 0;
   z-index: var(--z-index-sticky);
-  background: var(--color-surface);
-  border-block-end: var(--border-width-thin) solid var(--color-border);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  border-block-end: 1.5px solid var(--border);
 }
 
 .bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  padding-block: var(--spacing-sm);
+  gap: var(--s-md);
+  padding-block: var(--s-xs);
 }
 
 .brand {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-inline-size: 0;
+  text-transform: lowercase;
 }
 
 .brand:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
 }
 
 .desktop-nav {
@@ -38,62 +42,74 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
   min-inline-size: 0;
   margin-inline-start: auto;
 }
 
+/* Bag pill + count bubble (DESIGN §6.3). */
 .cart-link {
-  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  min-block-size: 44px;
+  padding-block: 0;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  color: var(--text);
   text-decoration: none;
   white-space: nowrap;
-  padding-block: var(--spacing-xs);
-  padding-inline: var(--spacing-sm);
-  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .cart-link:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 0.25rem;
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
 }
 
 .cart-link:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
 }
 
 .menu-toggle {
   display: inline-flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--spacing-xs);
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
+  align-items: center;
+  gap: 5px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding-inline: var(--s-xs);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
   background: transparent;
+  color: var(--text);
   cursor: pointer;
 }
 
 .menu-toggle span {
   display: block;
   inline-size: 1.25rem;
-  block-size: var(--border-width-medium);
+  block-size: 2px;
   background: currentColor;
-  border-radius: var(--radius-full);
+  border-radius: var(--r-pill);
 }
 
 .menu-toggle:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
 }
 
 .mobile-panel-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  padding-block: var(--spacing-sm);
+  gap: var(--s-md);
+  padding-block: var(--s-sm);
 }
 
 @media (min-width: 48rem) {
@@ -108,7 +124,6 @@
 }
 
 @media (max-width: 47.99rem) {
-  /* Narrow bar yields cart and language space to the mobile panel. */
   .bar-cart-link,
   .bar-culture-switch {
     display: none;

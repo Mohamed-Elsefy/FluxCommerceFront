@@ -853,6 +853,7 @@ const approvedUiModules = new Set([
   'error-state',
   'retry-button',
   'theme-toggle',
+  'chip',
 ]);
 check(
   '3.10: libs/ui holds only approved shared modules (ownership rule)',
@@ -876,6 +877,7 @@ check(
 // text contrast (4.5:1) computed from the token values in both themes.
 const focusVisibleStylesheets = [
   'libs/ui/src/lib/button/button.css',
+  'libs/ui/src/lib/chip/chip.css',
   'libs/ui/src/lib/retry-button/retry-button.css',
   'libs/ui/src/lib/input/input.css',
   'libs/ui/src/lib/theme-toggle/theme-toggle.css',
@@ -951,17 +953,25 @@ function contrastRatio(foreground, background) {
   const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
   return (lighter + 0.05) / (darker + 0.05);
 }
-const lightThemeBlock = tokensCss.slice(0, tokensCss.indexOf('[data-theme='));
-const darkThemeBlock = tokensCss.slice(tokensCss.indexOf('[data-theme='));
+const lightMarker = ":root[data-theme='light']";
+const lightIdx = tokensCss.lastIndexOf(lightMarker);
+const lightThemeBlock =
+  lightIdx !== -1
+    ? tokensCss.slice(lightIdx)
+    : tokensCss.slice(0, tokensCss.indexOf('[data-theme='));
+const darkThemeBlock = lightIdx !== -1 ? tokensCss.slice(0, lightIdx) : tokensCss;
+// Kinetic canonical pairs (DESIGN §2.4): body text, muted, status on surfaces,
+// fills with their contrast text. Lime-as-text is dark-only by design and is
+// excluded (light uses --primary-text olive instead).
 const contrastPairs = [
-  ['text', 'surface'],
-  ['text-muted', 'surface'],
-  ['primary-contrast', 'primary'],
-  ['success', 'surface'],
-  ['warning', 'surface'],
-  ['danger', 'surface'],
-  ['info', 'surface'],
-  ['primary', 'surface'],
+  ['text', 'surface-1'],
+  ['text-muted', 'surface-1'],
+  ['text-on-accent', 'primary'],
+  ['text-on-violet', 'secondary'],
+  ['success', 'surface-1'],
+  ['warning', 'surface-1'],
+  ['error', 'surface-1'],
+  ['info', 'surface-1'],
 ];
 const lowContrast = [];
 for (const [blockName, block] of [
@@ -969,12 +979,12 @@ for (const [blockName, block] of [
   ['dark', darkThemeBlock],
 ]) {
   for (const [foreground, background] of contrastPairs) {
-    const foregroundValue = tokenValue(block, `--color-${foreground}`);
-    const backgroundValue = tokenValue(block, `--color-${background}`);
+    const foregroundValue = tokenValue(block, `--${foreground}`);
+    const backgroundValue = tokenValue(block, `--${background}`);
     if (foregroundValue === null || backgroundValue === null) {
-      lowContrast.push(`${blockName}: --color-${foreground} unresolved`);
+      lowContrast.push(`${blockName}: --${foreground} unresolved`);
     } else if (contrastRatio(foregroundValue, backgroundValue) < 4.5) {
-      lowContrast.push(`${blockName}: --color-${foreground} on --color-${background} below 4.5:1`);
+      lowContrast.push(`${blockName}: --${foreground} on --${background} below 4.5:1`);
     }
   }
 }

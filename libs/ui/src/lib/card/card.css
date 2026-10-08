@@ -1,8 +1,25 @@
+/* Kinetic Pod surface (DESIGN §6.2) — squircle card, lifted acrylic. */
 .card {
-  background: var(--color-surface);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding-block: var(--spacing-lg);
-  padding-inline: var(--spacing-lg);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  padding-block: var(--s-md);
+  padding-inline: var(--s-md);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+    transform: none;
+  }
 }

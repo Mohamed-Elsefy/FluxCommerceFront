@@ -35,11 +35,12 @@
 
 import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Badge } from '@flux/ui';
 import type { ProductListItem } from '../../models/catalog.models';
 
 @Component({
   selector: 'catalog-product-card',
-  imports: [RouterLink],
+  imports: [RouterLink, Badge],
   templateUrl: './product-card.html',
   styleUrl: './product-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

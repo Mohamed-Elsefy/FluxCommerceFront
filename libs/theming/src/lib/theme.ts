@@ -14,8 +14,8 @@ export function isTheme(value: unknown): value is Theme {
   return value === 'light' || value === 'dark';
 }
 
-/** Theme applied before the user selects one. */
-export const DEFAULT_THEME: Theme = 'light';
+/** Theme applied before the user selects one — Kinetic dark-first (DESIGN §1). */
+export const DEFAULT_THEME: Theme = 'dark';
 
 /** Root attribute carrying the active theme (e.g. `<html data-theme="dark">`). */
 export const THEME_ATTRIBUTE = 'data-theme';

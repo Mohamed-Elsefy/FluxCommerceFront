@@ -136,17 +136,17 @@ describe('StorefrontHeader', () => {
     const { fixture, element } = setup();
     const themes = TestBed.inject(ThemeService);
 
-    expect(themes.theme()).toBe('light');
-    expect(
-      element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
-    ).toBe('Switch to dark theme');
-
-    (element.querySelector('flux-theme-toggle button.toggle') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
     expect(themes.theme()).toBe('dark');
     expect(
       element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
     ).toBe('Switch to light theme');
+
+    (element.querySelector('flux-theme-toggle button.toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(themes.theme()).toBe('light');
+    expect(
+      element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
+    ).toBe('Switch to dark theme');
   });
 });

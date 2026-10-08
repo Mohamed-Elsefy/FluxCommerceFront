@@ -96,15 +96,15 @@ describe('AdminHeader', () => {
     const { fixture, element } = setup();
     const themes = TestBed.inject(ThemeService);
 
-    expect(themes.theme()).toBe('light');
+    expect(themes.theme()).toBe('dark');
 
     (element.querySelector('flux-theme-toggle button.toggle') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(themes.theme()).toBe('dark');
+    expect(themes.theme()).toBe('light');
     expect(
       element.querySelector('flux-theme-toggle button.toggle')?.getAttribute('aria-label'),
-    ).toBe('Switch to light theme');
+    ).toBe('Switch to dark theme');
   });
 
   it('offers language selection through the culture switch', () => {

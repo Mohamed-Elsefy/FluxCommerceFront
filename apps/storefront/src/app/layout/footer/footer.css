@@ -1,35 +1,52 @@
+/* Kinetic glass footer (DESIGN §6.11) — single panel, top radius. */
 .footer {
-  border-block-start: var(--border-width-thin) solid var(--color-border);
-  background: var(--color-surface);
+  margin-block-start: var(--s-2xl);
+  margin-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  border-block-end: none;
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-ambient);
 }
 
 .inner {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-  padding-block: var(--spacing-xl);
+  gap: var(--s-lg);
+  padding-block: var(--s-xl);
 }
 
 .brand {
   margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+.tagline {
+  margin: var(--s-2xs) 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 
 .group h2 {
   margin: 0;
-  margin-block-end: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  margin-block-end: var(--s-xs);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
 }
 
 .legal {
   margin: 0;
-  padding-block: var(--spacing-md);
-  border-block-start: var(--border-width-thin) solid var(--color-border);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  padding-block: var(--s-md);
+  border-block-start: 1.5px solid var(--border);
+  font-size: 0.875rem;
+  color: var(--text-faint);
 }
 
 @media (min-width: 48rem) {

@@ -50,7 +50,10 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { DEFAULT_THEME, isTheme, THEME_ATTRIBUTE, type Theme } from './theme';
 
 /** `localStorage` key for the theme choice. A visual preference, not a secret. */
-export const THEME_STORAGE_KEY = 'fluxcommerce.theme.v1';
+export const THEME_STORAGE_KEY = 'fluxcommerce.theme.v2';
+
+/** Previous key — read once as fallback so existing users keep their choice. */
+const LEGACY_THEME_STORAGE_KEY = 'fluxcommerce.theme.v1';
 
 /**
  * Sole owner of theme state. `providedIn: 'root'` (singleton per app);
@@ -103,8 +106,17 @@ export class ThemeService {
       return null;
     }
     try {
-      const raw = window.localStorage.getItem(THEME_STORAGE_KEY);
-      return isTheme(raw) ? raw : null;
+      const raw =
+        window.localStorage.getItem(THEME_STORAGE_KEY) ??
+        window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+      if (isTheme(raw)) {
+        return raw;
+      }
+      // First visit: respect the OS preference (DESIGN §1), default dark.
+      if (typeof window.matchMedia === 'function') {
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
+      return null;
     } catch {
       return null;
     }

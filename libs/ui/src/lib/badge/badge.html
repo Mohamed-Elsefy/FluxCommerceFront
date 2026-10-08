@@ -1,1 +1,6 @@
-<span class="badge" [attr.data-variant]="variant"><ng-content /></span>
+<span class="badge" [attr.data-variant]="variant">
+  @if (variant === 'drop') {
+    <span class="badge-dot" aria-hidden="true"></span>
+  }
+  <ng-content
+/></span>

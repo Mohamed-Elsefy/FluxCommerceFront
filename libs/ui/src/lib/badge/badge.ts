@@ -19,8 +19,18 @@
 
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
-/** Status emphasis. `neutral` for plain counts, status values for meaning. */
-export type BadgeVariant = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+/** Status emphasis (DESIGN §6.7). `drop|verified|rarity|count` are Kinetic stickers. */
+export type BadgeVariant =
+  | 'neutral'
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'drop'
+  | 'verified'
+  | 'rarity'
+  | 'count';
 
 @Component({
   selector: 'flux-badge',

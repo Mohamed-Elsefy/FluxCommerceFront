@@ -20,6 +20,11 @@ export const routes: Routes = [
           import('./features/home/pages/home-page/home-page').then((m) => m.HomePage),
       },
       {
+        path: 'design-preview',
+        loadComponent: () =>
+          import('./features/design-preview/design-preview-page').then((m) => m.DesignPreviewPage),
+      },
+      {
         path: '',
         loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
       },
