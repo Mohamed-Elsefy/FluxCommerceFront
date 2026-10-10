@@ -84,6 +84,7 @@ import {
   type ProductImage,
   type ProductSpecification,
   type ProductVariant,
+  type SimilarProduct,
 } from '../models/product-details.models';
 
 /** Options for every `ProductDetailsState` load: cancellation only, never mapping. */
@@ -111,6 +112,8 @@ export class ProductDetailsState {
     createResourceState<ProductImage[]>();
   private readonly variantsStore: ResourceStateStore<ProductVariant[]> =
     createResourceState<ProductVariant[]>();
+  private readonly similarProductsStore: ResourceStateStore<SimilarProduct[]> =
+    createResourceState<SimilarProduct[]>();
 
   /**
    * Add-to-cart submission slot (`POST /cart/items`). Object-shaped payload
@@ -166,6 +169,16 @@ export class ProductDetailsState {
    * product slot.
    */
   readonly variants: Signal<ResourceState<ProductVariant[]>> = this.variantsStore.state;
+
+  /**
+   * Similar products from the same category
+   * (`GET /catalog/products?categoryId=`, current product dropped
+   * client-side, rail capped by the caller). An empty list resolves to
+   * `empty` (the page hides the rail); failures resolve to `error`
+   * without touching the product slot.
+   */
+  readonly similarProducts: Signal<ResourceState<SimilarProduct[]>> =
+    this.similarProductsStore.state;
 
   /**
    * Selected variant id. Set only through `selectVariant` (validated
@@ -254,6 +267,7 @@ export class ProductDetailsState {
     this.specificationsStore.reset();
     this.imagesStore.reset();
     this.variantsStore.reset();
+    this.similarProductsStore.reset();
     this.selectedVariantIdStore.set(null);
     this.quantityStore.set(INITIAL_QUANTITY);
     this.addToCartStore.reset();
@@ -337,6 +351,43 @@ export class ProductDetailsState {
         tap((variants) => this.storeTransferred(key, variants)),
       );
     return loadResourceState(this.variantsStore, request, { signal: options.signal });
+  }
+
+  /**
+   * Loads same-category products into the `similarProducts` slot,
+   * excluding `excludeProductId` and capping the rail at `limit`
+   * client-side (the backend offers no exclusion parameter — 5–6 rail
+   * cards need one over-fetched page). A dataless envelope resolves to
+   * `error` (contract violation); an empty remainder resolves to `empty`;
+   * aborts leave state untouched. Blank ids are rejected without
+   * fetching; the slot stays `idle`.
+   *
+   * Hydration: same single-use `TransferState` reuse as `loadProduct`,
+   * keyed by category (the rail is category-scoped, not product-scoped).
+   */
+  loadSimilarProducts(
+    categoryId: string,
+    excludeProductId: string,
+    limit: number,
+    options: ProductDetailsLoadOptions = {},
+  ): Subscription {
+    if (categoryId.trim() === '') {
+      return Subscription.EMPTY;
+    }
+    const key = makeStateKey<SimilarProduct[]>(`product-details.similar.${categoryId}.${limit}`);
+    if (this.consumeTransferredList(key, this.similarProductsStore)) {
+      return Subscription.EMPTY;
+    }
+    const request: Observable<SimilarProduct[]> = this.detailsApi
+      .listSimilarProducts(categoryId, limit + 1, toApiOptions(options))
+      .pipe(
+        map(requireEnvelopeData),
+        map((page) =>
+          page.items.filter((item) => item.id !== excludeProductId).slice(0, Math.max(limit, 0)),
+        ),
+        tap((items) => this.storeTransferred(key, items)),
+      );
+    return loadResourceState(this.similarProductsStore, request, { signal: options.signal });
   }
 
   /**

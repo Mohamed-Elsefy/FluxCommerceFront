@@ -62,12 +62,6 @@
     ></catalog-filter-select>
   </div>
 
-  @if (activeCategoryId() !== null) {
-    <p>
-      <a routerLink="/catalog">Catalog categories</a>
-    </p>
-  }
-
   @if (productList().isLoading) {
     <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
   } @else if (productList().isError) {

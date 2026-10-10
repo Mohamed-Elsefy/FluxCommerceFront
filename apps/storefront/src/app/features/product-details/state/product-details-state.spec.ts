@@ -137,6 +137,7 @@ function setup(flows: {
   listSpecifications?: () => ReturnType<ProductDetailsApiService['listSpecifications']>;
   listProductImages?: () => ReturnType<ProductDetailsApiService['listProductImages']>;
   listProductVariants?: () => ReturnType<ProductDetailsApiService['listProductVariants']>;
+  listSimilarProducts?: () => ReturnType<ProductDetailsApiService['listSimilarProducts']>;
   addAuthenticatedCartItem?: () => ReturnType<ProductDetailsApiService['addAuthenticatedCartItem']>;
   addGuestCartItem?: () => ReturnType<ProductDetailsApiService['addGuestCartItem']>;
 }): {
@@ -146,6 +147,7 @@ function setup(flows: {
   specificationIds: unknown[];
   imageIds: unknown[];
   variantIds: unknown[];
+  similarCalls: { categoryId: unknown; pageSize: unknown }[];
   cartBodies: unknown[];
   guestCartPosts: { cartId: unknown; body: unknown }[];
 } {
@@ -154,6 +156,7 @@ function setup(flows: {
   const specificationIds: unknown[] = [];
   const imageIds: unknown[] = [];
   const variantIds: unknown[] = [];
+  const similarCalls: { categoryId: unknown; pageSize: unknown }[] = [];
   const cartBodies: unknown[] = [];
   const guestCartPosts: { cartId: unknown; body: unknown }[] = [];
   const apiStub = {
@@ -177,6 +180,21 @@ function setup(flows: {
       seenSignals.push(options.signal);
       return flows.listProductVariants?.() ?? of(variantsEnvelope());
     }) as ProductDetailsApiService['listProductVariants'],
+    listSimilarProducts: (
+      categoryId: unknown,
+      pageSize: unknown,
+      options: { signal?: AbortSignal } = {},
+    ) => {
+      similarCalls.push({ categoryId, pageSize });
+      seenSignals.push(options.signal);
+      return (
+        flows.listSimilarProducts?.() ??
+        of({
+          isSuccess: true,
+          data: { items: [], totalCount: 0, pageNumber: 1, pageSize: 7 },
+        })
+      );
+    },
     addAuthenticatedCartItem: (body: unknown, options: { signal?: AbortSignal } = {}) => {
       cartBodies.push(body);
       seenSignals.push(options.signal);
@@ -199,6 +217,7 @@ function setup(flows: {
     specificationIds,
     imageIds,
     variantIds,
+    similarCalls,
     cartBodies,
     guestCartPosts,
   };
@@ -515,6 +534,86 @@ describe('ProductDetailsState variants', () => {
 
     expect(seenSignals).toEqual([controller.signal]);
     expect(state.variants().status).toBe('success');
+  });
+});
+
+describe('ProductDetailsState similar products', () => {
+  const CATEGORY_ID = '22222222-2222-2222-2222-222222222222';
+
+  function similarItem(id: string, name: string): ProductResponse {
+    return { ...PRODUCT, id, name, slug: name.toLowerCase() };
+  }
+
+  function similarPage(items: ProductResponse[]) {
+    return {
+      isSuccess: true,
+      data: { items, totalCount: items.length, pageNumber: 1, pageSize: 7 },
+    };
+  }
+
+  it('starts idle and resolves to success excluding the current product', () => {
+    const { state, similarCalls } = setup({
+      listSimilarProducts: () =>
+        of(
+          similarPage([
+            similarItem(PRODUCT_ID, 'Tee'),
+            similarItem('55555555-5555-5555-5555-555555555555', 'Hoodie'),
+            similarItem('66666666-6666-6666-6666-666666666666', 'Cap'),
+          ]),
+        ),
+    });
+    expect(state.similarProducts().status).toBe('idle');
+
+    state.loadSimilarProducts(CATEGORY_ID, PRODUCT_ID, 6);
+
+    expect(similarCalls).toEqual([{ categoryId: CATEGORY_ID, pageSize: 7 }]);
+    const snapshot = state.similarProducts();
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.data?.map((item) => item.name)).toEqual(['Hoodie', 'Cap']);
+  });
+
+  it('caps the rail at the requested limit', () => {
+    const { state } = setup({
+      listSimilarProducts: () =>
+        of(
+          similarPage([
+            similarItem('a1111111-1111-4111-8111-111111111111', 'One'),
+            similarItem('b2222222-2222-4222-8222-222222222222', 'Two'),
+            similarItem('c3333333-3333-4333-8333-333333333333', 'Three'),
+          ]),
+        ),
+    });
+    state.loadSimilarProducts(CATEGORY_ID, PRODUCT_ID, 2);
+
+    expect(state.similarProducts().status).toBe('success');
+    expect(state.similarProducts().data?.map((item) => item.name)).toEqual(['One', 'Two']);
+  });
+
+  it('resolves to empty when only the current product matches', () => {
+    const { state } = setup({
+      listSimilarProducts: () => of(similarPage([similarItem(PRODUCT_ID, 'Tee')])),
+    });
+    state.loadSimilarProducts(CATEGORY_ID, PRODUCT_ID, 6);
+
+    expect(state.similarProducts().status).toBe('empty');
+  });
+
+  it('resolves to error on failures without touching the product slot', () => {
+    const rejection = new ApiError({ status: 500, message: 'Server error.' });
+    const { state } = setup({ listSimilarProducts: () => throwError(() => rejection) });
+    state.loadProduct(PRODUCT_ID);
+    state.loadSimilarProducts(CATEGORY_ID, PRODUCT_ID, 6);
+
+    expect(state.similarProducts().status).toBe('error');
+    expect(state.product().status).toBe('success');
+  });
+
+  it('rejects blank category ids without fetching and leaves state idle', () => {
+    const { state, similarCalls } = setup({});
+    state.loadSimilarProducts('   ', PRODUCT_ID, 6);
+
+    expect(similarCalls).toHaveLength(0);
+    expect(state.similarProducts().status).toBe('idle');
   });
 });
 

@@ -54,6 +54,7 @@ import type {
   ProductImage,
   ProductSpecification,
   ProductVariant,
+  SimilarProduct,
 } from '../../models/product-details.models';
 import { ProductDetailsPage } from './product-details-page';
 
@@ -120,6 +121,7 @@ function setup(options: {
   specificationsSnapshot?: ResourceState<ProductSpecification[]>;
   imagesSnapshot?: ResourceState<ProductImage[]>;
   variantsSnapshot?: ResourceState<ProductVariant[]>;
+  similarSnapshot?: ResourceState<SimilarProduct[]>;
   selectedVariantId?: string | null;
   selectedVariant?: ProductVariant | null;
   quantity?: number;
@@ -137,6 +139,7 @@ function setup(options: {
   loadSpecificationsCalls: unknown[];
   loadImagesCalls: unknown[];
   loadVariantsCalls: unknown[];
+  loadSimilarCalls: { categoryId: unknown; excludeProductId: unknown; limit: unknown }[];
   selectCalls: unknown[];
   quantityCalls: unknown[];
   clearSelectionCalls: number;
@@ -153,6 +156,7 @@ function setup(options: {
   const loadSpecificationsCalls: unknown[] = [];
   const loadImagesCalls: unknown[] = [];
   const loadVariantsCalls: unknown[] = [];
+  const loadSimilarCalls: { categoryId: unknown; excludeProductId: unknown; limit: unknown }[] = [];
   const selectCalls: unknown[] = [];
   const quantityCalls: unknown[] = [];
   const selectedVariant = signal<ProductVariant | null>(options.selectedVariant ?? null);
@@ -171,6 +175,7 @@ function setup(options: {
     ),
     images: signal(options.imagesSnapshot ?? idleResource<ProductImage[]>()),
     variants: signal(options.variantsSnapshot ?? idleResource<ProductVariant[]>()),
+    similarProducts: signal(options.similarSnapshot ?? idleResource<SimilarProduct[]>()),
     selectedVariantId: signal(options.selectedVariantId ?? null),
     selectedVariant,
     selectedVariantSelectable: computed(() => {
@@ -192,6 +197,9 @@ function setup(options: {
     loadProductVariants: ((id: unknown) => {
       loadVariantsCalls.push(id);
     }) as ProductDetailsState['loadProductVariants'],
+    loadSimilarProducts: ((categoryId: unknown, excludeProductId: unknown, limit: unknown) => {
+      loadSimilarCalls.push({ categoryId, excludeProductId, limit });
+    }) as ProductDetailsState['loadSimilarProducts'],
     selectVariant: ((id: unknown) => {
       selectCalls.push(id);
     }) as ProductDetailsState['selectVariant'],
@@ -275,6 +283,7 @@ function setup(options: {
     loadSpecificationsCalls,
     loadImagesCalls,
     loadVariantsCalls,
+    loadSimilarCalls,
     selectCalls,
     quantityCalls,
     clearSelectionCalls,
@@ -375,7 +384,9 @@ describe('ProductDetailsPage resource states', () => {
 
     expect(element.querySelector('flux-empty-state')).not.toBeNull();
     expect(element.querySelector('flux-error-state')).toBeNull();
-    expect(element.querySelector('.product-details-back a')?.getAttribute('href')).toBe('/catalog');
+    expect(element.querySelector('.product-details-back a')?.getAttribute('href')).toBe(
+      '/products',
+    );
     expect(loadCalls).toEqual([PRODUCT_ID]);
 
     fixture.detectChanges();
@@ -517,6 +528,61 @@ describe('ProductDetailsPage information', () => {
     expect(element.querySelector('h1')?.textContent).toBe('Tee');
     expect(element.querySelector('.product-details-specs')).toBeNull();
     expect(element.querySelector('flux-error-state')).toBeNull();
+  });
+});
+
+describe('ProductDetailsPage similar products', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  const HOODIE: SimilarProduct = {
+    ...PRODUCT,
+    id: '55555555-5555-5555-5555-555555555555',
+    name: 'Hoodie',
+    slug: 'hoodie',
+  };
+
+  it('loads the same-category rail excluding the current product', () => {
+    const { loadSimilarCalls } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+    });
+
+    expect(loadSimilarCalls).toEqual([
+      {
+        categoryId: '22222222-2222-2222-2222-222222222222',
+        excludeProductId: PRODUCT_ID,
+        limit: 6,
+      },
+    ]);
+  });
+
+  it('renders rail cards with a show-more entry into the filtered shelf', () => {
+    const { element } = setup({
+      productId: PRODUCT_ID,
+      snapshot: successResource(PRODUCT),
+      similarSnapshot: successResource([HOODIE]),
+    });
+
+    expect(element.querySelector('#product-details-similar-title')?.textContent?.trim()).toBe(
+      'Similar products',
+    );
+    expect(
+      [...element.querySelectorAll('.similar-products-card h3')].map((node) =>
+        node.textContent?.trim(),
+      ),
+    ).toEqual(['Hoodie']);
+    expect(element.querySelector('.similar-products-more a')?.getAttribute('href')).toBe(
+      '/products?categoryId=22222222-2222-2222-2222-222222222222',
+    );
+  });
+
+  it('hides the rail while the product has not settled', () => {
+    const { element } = setup({ productId: PRODUCT_ID });
+
+    expect(element.querySelector('.product-details-similar')).toBeNull();
+    expect(element.querySelector('product-details-similar-products')).toBeNull();
   });
 });
 

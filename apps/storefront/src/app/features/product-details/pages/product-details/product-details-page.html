@@ -14,7 +14,7 @@
       [message]="copy().notFoundMessage"
     ></flux-empty-state>
     <p class="product-details-back">
-      <a routerLink="/catalog">{{ copy().backToCatalog }}</a>
+      <a routerLink="/products">{{ copy().backToProducts }}</a>
     </p>
   } @else if (product().isError) {
     <flux-error-state
@@ -24,56 +24,67 @@
       (retry)="reload()"
     ></flux-error-state>
   } @else if (product().isSuccess) {
-    @if (images().isSuccess || images().isEmpty) {
-      <product-details-gallery
-        [images]="images().data ?? []"
-        [productName]="product().data?.name ?? null"
-      ></product-details-gallery>
-    } @else if (images().isLoading) {
-      <flux-loading-indicator [label]="copy().galleryLoading"></flux-loading-indicator>
-    }
-    <section class="product-details-info" aria-labelledby="product-details-description-title">
-      <h2 id="product-details-description-title">{{ copy().descriptionTitle }}</h2>
-      <p class="product-details-description">
-        {{ product().data?.description ?? copy().noDescription }}
-      </p>
-    </section>
-    @if (variants().isSuccess && (variants().data?.length ?? 0) > 0) {
-      <product-details-variant-selector
-        [variants]="variants().data ?? []"
-        [selectedVariantId]="selectedVariantId()"
-        [label]="copy().selectorTitle"
-        [unavailableLabel]="copy().selectorUnavailable"
-        (selectionChange)="onVariantSelect($event)"
-      ></product-details-variant-selector>
-      <product-details-variant-commercial
-        [variant]="selectedVariant()"
-        [title]="copy().commercialTitle"
-        [skuLabel]="copy().commercialSkuLabel"
-        [priceLabel]="copy().commercialPriceLabel"
-        [priceText]="unitPriceText()"
-        [selectPrompt]="copy().commercialSelectPrompt"
-        [unavailableMessage]="copy().commercialUnavailable"
-      ></product-details-variant-commercial>
-      <product-details-quantity-selector
-        [quantity]="quantity()"
-        [label]="copy().quantityTitle"
-        [decreaseLabel]="copy().quantityDecrease"
-        [increaseLabel]="copy().quantityIncrease"
-        [invalidMessage]="copy().quantityInvalid"
-        (quantityChange)="onQuantityChange($event)"
-      ></product-details-quantity-selector>
-      <product-details-add-to-cart
-        [status]="addStatus()"
-        [disabled]="!canSubmit()"
-        [addLabel]="copy().addToCartAdd"
-        [addingLabel]="copy().addToCartAdding"
-        [addedLabel]="copy().addToCartAdded"
-        [errorMessage]="addErrorMessage()"
-        [retryLabel]="copy().retry"
-        (add)="onAddToCart()"
-      ></product-details-add-to-cart>
-    }
+    <p class="product-details-back">
+      <a routerLink="/products">{{ copy().backToProducts }}</a>
+    </p>
+    <div class="product-details-hero">
+      <div class="product-details-gallery-col">
+        @if (images().isSuccess || images().isEmpty) {
+          <product-details-gallery
+            [images]="images().data ?? []"
+            [productName]="product().data?.name ?? null"
+          ></product-details-gallery>
+        } @else if (images().isLoading) {
+          <flux-loading-indicator [label]="copy().galleryLoading"></flux-loading-indicator>
+        }
+      </div>
+      <div class="product-details-buy">
+        <section class="product-details-info" aria-labelledby="product-details-description-title">
+          <h2 id="product-details-description-title">{{ copy().descriptionTitle }}</h2>
+          <p class="product-details-description">
+            {{ product().data?.description ?? copy().noDescription }}
+          </p>
+        </section>
+        @if (variants().isSuccess && (variants().data?.length ?? 0) > 0) {
+          <product-details-variant-selector
+            [variants]="variants().data ?? []"
+            [selectedVariantId]="selectedVariantId()"
+            [label]="copy().selectorTitle"
+            [unavailableLabel]="copy().selectorUnavailable"
+            (selectionChange)="onVariantSelect($event)"
+          ></product-details-variant-selector>
+          <product-details-variant-commercial
+            [variant]="selectedVariant()"
+            [title]="copy().commercialTitle"
+            [skuLabel]="copy().commercialSkuLabel"
+            [priceLabel]="copy().commercialPriceLabel"
+            [priceText]="unitPriceText()"
+            [selectPrompt]="copy().commercialSelectPrompt"
+            [unavailableMessage]="copy().commercialUnavailable"
+          ></product-details-variant-commercial>
+          <div class="product-details-purchase">
+            <product-details-quantity-selector
+              [quantity]="quantity()"
+              [label]="copy().quantityTitle"
+              [decreaseLabel]="copy().quantityDecrease"
+              [increaseLabel]="copy().quantityIncrease"
+              [invalidMessage]="copy().quantityInvalid"
+              (quantityChange)="onQuantityChange($event)"
+            ></product-details-quantity-selector>
+            <product-details-add-to-cart
+              [status]="addStatus()"
+              [disabled]="!canSubmit()"
+              [addLabel]="copy().addToCartAdd"
+              [addingLabel]="copy().addToCartAdding"
+              [addedLabel]="copy().addToCartAdded"
+              [errorMessage]="addErrorMessage()"
+              [retryLabel]="copy().retry"
+              (add)="onAddToCart()"
+            ></product-details-add-to-cart>
+          </div>
+        }
+      </div>
+    </div>
     @if (specifications().isSuccess) {
       <section class="product-details-specs" aria-labelledby="product-details-specs-title">
         <h2 id="product-details-specs-title">{{ copy().specsTitle }}</h2>
@@ -85,6 +96,24 @@
             </div>
           }
         </dl>
+      </section>
+    }
+    @if (similarProducts().isLoading) {
+      <flux-loading-indicator [label]="copy().similarLoading"></flux-loading-indicator>
+    } @else if (similarProducts().isSuccess) {
+      <section class="product-details-similar" aria-labelledby="product-details-similar-title">
+        <div class="section-head">
+          <h2 id="product-details-similar-title" class="section-title">
+            {{ copy().similarTitle }}
+          </h2>
+          <p class="section-subtitle">{{ copy().similarSubtitle }}</p>
+        </div>
+        <product-details-similar-products
+          [products]="similarProducts().data ?? []"
+          [categoryId]="similarCategoryId() ?? ''"
+          [label]="copy().similarTitle"
+          [linkLabel]="copy().similarLink"
+        ></product-details-similar-products>
       </section>
     }
   }

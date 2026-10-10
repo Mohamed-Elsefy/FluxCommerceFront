@@ -62,6 +62,18 @@ describe('ProductDetailsApiService routes', () => {
     expect(calls.options).toEqual([{ pathParams: { id: '11111111-1111-1111-1111-111111111111' } }]);
   });
 
+  it('lists similar products through the canonical list route template', () => {
+    const { service, calls } = setup();
+    service.listSimilarProducts('22222222-2222-2222-2222-222222222222', 6).subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listProducts.path]);
+    expect(calls.options).toEqual([
+      {
+        params: { categoryId: '22222222-2222-2222-2222-222222222222', pageNumber: 1, pageSize: 6 },
+      },
+    ]);
+  });
+
   it('lists specifications through the canonical route template', () => {
     const { service, calls } = setup();
     service.listSpecifications('11111111-1111-1111-1111-111111111111').subscribe();

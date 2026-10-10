@@ -15,8 +15,8 @@
 
 .product-gallery-main-image {
   inline-size: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: contain;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
   background-color: var(--color-surface);
   border: var(--border-width-thin) solid var(--color-border);
   border-radius: var(--radius-md);

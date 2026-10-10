@@ -111,6 +111,7 @@ import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { AddToCart } from '../../components/add-to-cart/add-to-cart';
 import { ProductGallery } from '../../components/product-gallery/product-gallery';
 import { QuantitySelector } from '../../components/quantity-selector/quantity-selector';
+import { SimilarProducts } from '../../components/similar-products/similar-products';
 import { VariantCommercial } from '../../components/variant-commercial/variant-commercial';
 import { VariantSelector } from '../../components/variant-selector/variant-selector';
 import {
@@ -130,6 +131,9 @@ import {
   translateProductDetailsKey,
 } from '../../i18n/product-details-translations';
 
+/** Similar-products rail size (one over-fetched page covers self-exclusion). */
+export const SIMILAR_PRODUCTS_LIMIT = 6;
+
 @Component({
   selector: 'app-product-details-page',
   imports: [
@@ -142,6 +146,7 @@ import {
     VariantCommercial,
     QuantitySelector,
     AddToCart,
+    SimilarProducts,
   ],
   templateUrl: './product-details-page.html',
   styleUrl: './product-details-page.css',
@@ -172,6 +177,17 @@ export class ProductDetailsPage implements OnInit {
 
   /** Variants resource (`GET .../variants`, flat backend list). */
   readonly variants = this.state.variants;
+
+  /**
+   * Similar products rail (`GET /catalog/products?categoryId=`, current
+   * product dropped, capped — see `SIMILAR_PRODUCTS_LIMIT`).
+   */
+  readonly similarProducts = this.state.similarProducts;
+
+  /** Category driving the similar rail (`null` until the product settles). */
+  protected readonly similarCategoryId = computed(() =>
+    this.product().isSuccess ? (this.product().data?.categoryId ?? null) : null,
+  );
 
   /** Selected variant id (`null` = no explicit selection). */
   readonly selectedVariantId = this.state.selectedVariantId;
@@ -228,9 +244,9 @@ export class ProductDetailsPage implements OnInit {
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.notFoundMessage,
       ),
-      backToCatalog: translateProductDetailsKey(
+      backToProducts: translateProductDetailsKey(
         culture,
-        PRODUCT_DETAILS_TRANSLATION_KEYS.notFoundBackToCatalog,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.notFoundBackToProducts,
       ),
       descriptionTitle: translateProductDetailsKey(
         culture,
@@ -300,6 +316,26 @@ export class ProductDetailsPage implements OnInit {
       addToCartAdded: translateProductDetailsKey(
         culture,
         PRODUCT_DETAILS_TRANSLATION_KEYS.addToCartAdded,
+      ),
+      similarIndex: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.similarIndex,
+      ),
+      similarTitle: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.similarTitle,
+      ),
+      similarSubtitle: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.similarSubtitle,
+      ),
+      similarLink: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.similarLink,
+      ),
+      similarLoading: translateProductDetailsKey(
+        culture,
+        PRODUCT_DETAILS_TRANSLATION_KEYS.similarLoading,
       ),
       retry: translateKey(culture, 'common.actions.retry'),
     };
@@ -406,6 +442,27 @@ export class ProductDetailsPage implements OnInit {
     // first SSR pass.
     effect(() => {
       this.applyMetadata();
+    });
+
+    // Similar rail: once the product settles successfully, load the
+    // same-category shelf (excluding this product, capped). Depends on
+    // the route id plus the settled category only — the rail slot itself
+    // is never read, so settled responses cannot reschedule the effect.
+    // Product change resets every slot (rail included) through the
+    // id-driven effect above before this one runs.
+    effect((onCleanup) => {
+      const id = this.productId();
+      const categoryId = this.similarCategoryId();
+      untracked(() => {
+        if (id === null || categoryId === null) {
+          return;
+        }
+        const controller = new AbortController();
+        this.state.loadSimilarProducts(categoryId, id, SIMILAR_PRODUCTS_LIMIT, {
+          signal: controller.signal,
+        });
+        onCleanup(() => controller.abort());
+      });
     });
   }
 

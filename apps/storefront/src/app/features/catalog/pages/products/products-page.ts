@@ -25,7 +25,7 @@ import {
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
@@ -77,7 +77,6 @@ export const PRODUCTS_CATEGORY_PAGE_SIZE = 100;
 @Component({
   selector: 'app-products-page',
   imports: [
-    RouterLink,
     Chip,
     ProductGrid,
     ProductPagination,

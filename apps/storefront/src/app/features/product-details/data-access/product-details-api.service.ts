@@ -50,8 +50,10 @@ import {
   ApiClient,
   CART_ENDPOINTS,
   CATALOG_ENDPOINTS,
+  toQueryParams,
   type ApiRequestOptions,
   type ApiResponseWithData,
+  type PagedApiResponse,
 } from '@flux/api';
 
 /**
@@ -128,6 +130,25 @@ export class ProductDetailsApiService {
       CATALOG_ENDPOINTS.listVariants.path,
       { ...options, pathParams: { productId, ...(options.pathParams ?? {}) } },
     );
+  }
+
+  /**
+   * `GET /catalog/products?categoryId=&pageSize=` — anonymous. Same-category
+   * shelf used for the similar-products rail (full `ProductResponse` items
+   * with `primaryImage`; the page drops the current product client-side
+   * and caps the rail — the backend offers no exclusion parameter).
+   * Success: `200 ApiResponse<PagedResult<ProductResponse>>`.
+   * Failures: `400` validation.
+   */
+  listSimilarProducts(
+    categoryId: string,
+    pageSize: number,
+    options: ApiRequestOptions = {},
+  ): Observable<PagedApiResponse<ProductResponse>> {
+    return this.api.get<PagedApiResponse<ProductResponse>>(CATALOG_ENDPOINTS.listProducts.path, {
+      ...options,
+      params: toQueryParams({ categoryId, pageNumber: 1, pageSize }),
+    });
   }
 
   /**

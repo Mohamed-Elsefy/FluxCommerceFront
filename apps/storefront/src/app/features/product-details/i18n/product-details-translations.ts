@@ -38,7 +38,7 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   invalidIdMessage: 'productDetails.invalidId.message',
   notFoundTitle: 'productDetails.notFound.title',
   notFoundMessage: 'productDetails.notFound.message',
-  notFoundBackToCatalog: 'productDetails.notFound.backToCatalog',
+  notFoundBackToProducts: 'productDetails.notFound.backToProducts',
   descriptionTitle: 'productDetails.info.descriptionTitle',
   noDescription: 'productDetails.info.noDescription',
   specsTitle: 'productDetails.specs.title',
@@ -61,6 +61,11 @@ export const PRODUCT_DETAILS_TRANSLATION_KEYS = {
   addToCartAdd: 'productDetails.addToCart.add',
   addToCartAdding: 'productDetails.addToCart.adding',
   addToCartAdded: 'productDetails.addToCart.added',
+  similarIndex: 'productDetails.similar.index',
+  similarTitle: 'productDetails.similar.title',
+  similarSubtitle: 'productDetails.similar.subtitle',
+  similarLink: 'productDetails.similar.link',
+  similarLoading: 'productDetails.similar.loading',
 } as const;
 
 /** English (`en`) product-details vocabulary. Also the deterministic fallback source. */
@@ -78,7 +83,7 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
     notFound: {
       title: 'Product not found',
       message: 'This product does not exist or is no longer available.',
-      backToCatalog: 'Back to catalog',
+      backToProducts: 'Back to products',
     },
     info: {
       descriptionTitle: 'Description',
@@ -116,6 +121,13 @@ const EN_PRODUCT_DETAILS: TranslationDictionary = {
       adding: 'Adding…',
       added: 'Added to cart.',
     },
+    similar: {
+      index: '06 // Similar',
+      title: 'Similar products',
+      subtitle: 'More from the same category.',
+      link: 'Show more',
+      loading: 'Loading similar products…',
+    },
   },
 };
 
@@ -134,7 +146,7 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
     notFound: {
       title: 'Produit introuvable',
       message: "Ce produit n'existe pas ou n'est plus disponible.",
-      backToCatalog: 'Retour au catalogue',
+      backToProducts: 'Retour aux produits',
     },
     info: {
       descriptionTitle: 'Description',
@@ -172,6 +184,13 @@ const FR_PRODUCT_DETAILS: TranslationDictionary = {
       adding: 'Ajout en cours…',
       added: 'Ajouté au panier.',
     },
+    similar: {
+      index: '06 // Similaires',
+      title: 'Produits similaires',
+      subtitle: 'D’autres produits de la même catégorie.',
+      link: 'Voir plus',
+      loading: 'Chargement des produits similaires…',
+    },
   },
 };
 
@@ -190,7 +209,7 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
     notFound: {
       title: 'Produkt nicht gefunden',
       message: 'Dieses Produkt existiert nicht oder ist nicht mehr verfügbar.',
-      backToCatalog: 'Zurück zum Katalog',
+      backToProducts: 'Zurück zu den Produkten',
     },
     info: {
       descriptionTitle: 'Beschreibung',
@@ -228,6 +247,13 @@ const DE_PRODUCT_DETAILS: TranslationDictionary = {
       adding: 'Wird hinzugefügt…',
       added: 'Zum Warenkorb hinzugefügt.',
     },
+    similar: {
+      index: '06 // Ähnlich',
+      title: 'Ähnliche Produkte',
+      subtitle: 'Weitere Produkte aus derselben Kategorie.',
+      link: 'Mehr anzeigen',
+      loading: 'Ähnliche Produkte werden geladen…',
+    },
   },
 };
 
@@ -246,7 +272,7 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
     notFound: {
       title: 'Producto no encontrado',
       message: 'Este producto no existe o ya no está disponible.',
-      backToCatalog: 'Volver al catálogo',
+      backToProducts: 'Volver a los productos',
     },
     info: {
       descriptionTitle: 'Descripción',
@@ -284,6 +310,13 @@ const ES_PRODUCT_DETAILS: TranslationDictionary = {
       adding: 'Añadiendo…',
       added: 'Añadido al carrito.',
     },
+    similar: {
+      index: '06 // Similares',
+      title: 'Productos similares',
+      subtitle: 'Más productos de la misma categoría.',
+      link: 'Mostrar más',
+      loading: 'Cargando productos similares…',
+    },
   },
 };
 
@@ -302,7 +335,7 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
     notFound: {
       title: 'المنتج غير موجود',
       message: 'هذا المنتج غير موجود أو لم يعد متاحًا.',
-      backToCatalog: 'العودة إلى الكتالوج',
+      backToProducts: 'العودة إلى المنتجات',
     },
     info: {
       descriptionTitle: 'الوصف',
@@ -339,6 +372,13 @@ const AR_PRODUCT_DETAILS: TranslationDictionary = {
       add: 'أضف إلى السلة',
       adding: 'جارٍ الإضافة…',
       added: 'تمت الإضافة إلى السلة.',
+    },
+    similar: {
+      index: '٠٦ // مشابه',
+      title: 'منتجات مشابهة',
+      subtitle: 'المزيد من نفس الفئة.',
+      link: 'عرض المزيد',
+      loading: 'جارٍ تحميل المنتجات المشابهة…',
     },
   },
 };

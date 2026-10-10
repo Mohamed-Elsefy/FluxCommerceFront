@@ -108,6 +108,14 @@ export type ProductImage = ProductImageResponse;
  */
 export type ProductVariant = VariantResponse;
 
+/**
+ * Similar product read model (`GET /catalog/products` items: full
+ * `ProductResponse` with `primaryImage`). Re-exported, not re-declared.
+ * The rail drops the current product client-side — the backend offers no
+ * exclusion parameter.
+ */
+export type SimilarProduct = ProductResponse;
+
 /** Route parameter carrying the product id (`/catalog/products/:id`). */
 export const PRODUCT_DETAILS_ID_PARAM = 'id';
 
