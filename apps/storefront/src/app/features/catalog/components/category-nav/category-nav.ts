@@ -43,4 +43,11 @@ export class CategoryNav {
 
   /** Accessible landmark name for the nav (page-localized, required). */
   @Input({ required: true }) label!: string;
+
+  /**
+   * Listing base path category links target (`/catalog` for discovery,
+   * `/products` for the shelf). Query keys stay identical — only the
+   * base differs, so deep links keep working on both surfaces.
+   */
+  @Input() basePath = '/catalog';
 }

@@ -14,7 +14,7 @@ import { PLATFORM_ID, TransferState } from '@angular/core';
 import { describe, expect, it } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '@flux/api';
-import type { CatalogProductListItem, CategoryResponse } from '@flux/models';
+import type { CatalogProductListItem, CategoryResponse, ProductResponse } from '@flux/models';
 import { CatalogApiService } from '../data-access/catalog-api.service';
 import { CatalogState } from './catalog-state';
 
@@ -43,12 +43,17 @@ function productPage(totalCount: number, items: CatalogProductListItem[] = [PROD
   return { isSuccess: true, data: { items, totalCount, pageNumber: 1, pageSize: 20 } };
 }
 
+function listedPage(totalCount: number, items: ProductResponse[]) {
+  return { isSuccess: true, data: { items, totalCount, pageNumber: 1, pageSize: 20 } };
+}
+
 function categoryPage(totalCount: number, items: CategoryResponse[] = [CATEGORY]) {
   return { isSuccess: true, data: { items, totalCount, pageNumber: 1, pageSize: 20 } };
 }
 
 function setup(flows: {
   searchCatalog?: () => ReturnType<CatalogApiService['searchCatalog']>;
+  listProducts?: () => ReturnType<CatalogApiService['listProducts']>;
   listCategories?: () => ReturnType<CatalogApiService['listCategories']>;
   getProduct?: () => ReturnType<CatalogApiService['getProduct']>;
   getCategory?: () => ReturnType<CatalogApiService['getCategory']>;
@@ -62,6 +67,10 @@ function setup(flows: {
       recordSignal(args[1]);
       return flows.searchCatalog?.() ?? of(productPage(1));
     }) as CatalogApiService['searchCatalog'],
+    listProducts: ((...args: [unknown, { signal?: AbortSignal }?]) => {
+      recordSignal(args[1]);
+      return flows.listProducts?.() ?? of(productPage(1));
+    }) as CatalogApiService['listProducts'],
     listCategories: ((...args: [unknown, { signal?: AbortSignal }?]) => {
       recordSignal(args[1]);
       return flows.listCategories?.() ?? of(categoryPage(1));
@@ -138,6 +147,33 @@ describe('CatalogState products', () => {
     state.loadProducts({});
 
     expect(state.products().status).toBe('error');
+  });
+
+  it('loads full product records with images through listProducts', () => {
+    const full: ProductResponse = {
+      ...PRODUCT_ITEM,
+      seo: null,
+      status: 1,
+      visibility: 0,
+      isDeleted: false,
+      createdAtUtc: '2026-09-04T10:00:00Z',
+      deletedAtUtc: null,
+      primaryImage: {
+        id: 'img-1',
+        imageUrl: '/cdn/tee.jpg',
+        altText: 'Tee',
+        displayOrder: 0,
+        isPrimary: true,
+      },
+    };
+    const { state } = setup({
+      listProducts: () => of(listedPage(1, [full])),
+    });
+    state.loadListedProducts({ searchTerm: 'tee' });
+
+    const snapshot = state.products();
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.data?.items[0]).toMatchObject({ status: 1 });
   });
 
   it('stays stable on non-protocol failures (never throws, always normalized)', () => {

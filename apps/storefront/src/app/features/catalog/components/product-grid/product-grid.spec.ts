@@ -10,7 +10,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
-import type { ProductListItem } from '../../models/catalog.models';
+import { ProductStatus } from '@flux/models';
+import type { ProductCardItem, ProductListItem } from '../../models/catalog.models';
 import { ProductGrid } from './product-grid';
 
 function item(id: string, name: string): ProductListItem {
@@ -74,5 +75,23 @@ describe('ProductGrid', () => {
 
     expect(element.querySelector('ul.product-grid')).not.toBeNull();
     expect(element.querySelector('catalog-product-card')).toBeNull();
+  });
+
+  it('forwards backend status stickers with page-localized labels', () => {
+    const items: readonly ProductCardItem[] = [
+      {
+        ...item('11111111-1111-1111-1111-111111111111', 'Tee'),
+        status: ProductStatus.Draft,
+      },
+    ];
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(ProductGrid);
+    fixture.componentRef.setInput('products', items);
+    fixture.componentRef.setInput('statusLabels', { [ProductStatus.Draft]: 'Draft' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.sticker flux-badge')?.textContent?.trim()).toBe(
+      'Draft',
+    );
   });
 });

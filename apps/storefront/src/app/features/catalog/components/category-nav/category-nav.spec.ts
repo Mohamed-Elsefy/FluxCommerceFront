@@ -39,7 +39,11 @@ const CATEGORIES: readonly Category[] = [
   },
 ];
 
-function setup(input: { categories?: readonly Category[]; activeCategoryId?: string | null }): {
+function setup(input: {
+  categories?: readonly Category[];
+  activeCategoryId?: string | null;
+  basePath?: string;
+}): {
   fixture: ComponentFixture<CategoryNav>;
   element: HTMLElement;
 } {
@@ -48,6 +52,9 @@ function setup(input: { categories?: readonly Category[]; activeCategoryId?: str
   fixture.componentRef.setInput('categories', input.categories ?? CATEGORIES);
   fixture.componentRef.setInput('activeCategoryId', input.activeCategoryId ?? null);
   fixture.componentRef.setInput('label', 'Categories');
+  if (input.basePath !== undefined) {
+    fixture.componentRef.setInput('basePath', input.basePath);
+  }
   fixture.detectChanges();
   return { fixture, element: fixture.nativeElement as HTMLElement };
 }
@@ -101,5 +108,14 @@ describe('CategoryNav', () => {
     expect(element.querySelector('nav.category-nav')?.getAttribute('aria-label')).toBe(
       'Categories',
     );
+  });
+
+  it('targets a custom listing base path when provided', () => {
+    const { element } = setup({ basePath: '/products' });
+
+    expect(links(element).map((link) => link.getAttribute('href'))).toEqual([
+      '/products?categoryId=22222222-2222-2222-2222-222222222222',
+      '/products?categoryId=33333333-3333-3333-3333-333333333333',
+    ]);
   });
 });

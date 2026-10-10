@@ -17,7 +17,8 @@
  */
 
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import type { ProductListItem } from '../../models/catalog.models';
+import type { ProductStatus } from '@flux/models';
+import type { ProductCardItem } from '../../models/catalog.models';
 import { ProductCard } from '../product-card/product-card';
 
 @Component({
@@ -29,5 +30,19 @@ import { ProductCard } from '../product-card/product-card';
 })
 export class ProductGrid {
   /** Products to render (one reusable card each, backend order kept). */
-  @Input({ required: true }) products: readonly ProductListItem[] = [];
+  @Input({ required: true }) products: readonly ProductCardItem[] = [];
+
+  /**
+   * Localized status labels by backend status (page-localized).
+   * Missing entries render no sticker — same as unknown status.
+   */
+  @Input() statusLabels: Readonly<Partial<Record<ProductStatus, string>>> = {};
+
+  /** Localized sticker label for a status (`null` renders no sticker). */
+  protected statusLabelFor(status: ProductStatus | null | undefined): string | null {
+    if (status === null || status === undefined) {
+      return null;
+    }
+    return this.statusLabels[status] ?? null;
+  }
 }

@@ -1,15 +1,16 @@
 /**
  * Products listing page — the storefront shelf (`/products`).
  *
- * Listing-first sibling of the catalog discovery page: same coherent
- * `CatalogQueryState` funnel, same `CatalogState` slots, same backend
- * contract — but the listing loads unconditionally (the default query
- * fetches page 1) instead of waiting for a category/search scope.
+ * Listing-first sibling of the catalog discovery page: the same coherent
+ * `CatalogQueryState` funnel over `GET /catalog/products` (full
+ * `ProductResponse` items), loading unconditionally instead of waiting
+ * for a category/search scope. Search text arrives from the header
+ * search (URL `searchTerm`) — this page owns no search box.
  * Category discovery stays on `/catalog`; this page links back there.
  *
  * Commits serialize to `/products` (canonicals included). Component
- * ownership stays catalog-internal (CategoryNav, ProductGrid, SearchInput,
- * FilterSelect, ProductPagination), so no cross-feature imports exist.
+ * ownership stays catalog-internal (ProductGrid, FilterSelect,
+ * ProductPagination), so no cross-feature imports exist.
  */
 
 import {
@@ -23,10 +24,10 @@ import {
   untracked,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
-import { debounceTime, distinctUntilChanged, map, Subject } from 'rxjs';
+import { map } from 'rxjs';
 import { CultureService, resolveApiErrorMessage, translateKey } from '@flux/i18n';
 import { buildQueryString } from '@flux/api';
 import { FALLBACK_SOCIAL_IMAGE, setCanonicalUrl } from '@flux/utils';
@@ -36,7 +37,7 @@ import {
   ProductStatus,
   ProductVisibility,
 } from '@flux/models';
-import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
+import { Chip, EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
 import { CatalogState } from '../../state/catalog-state';
 import { FilterSelect, type FilterOption } from '../../components/filter-select/filter-select';
 import { ProductGrid } from '../../components/product-grid/product-grid';
@@ -44,7 +45,6 @@ import {
   ProductPagination,
   type PaginationCopy,
 } from '../../components/product-pagination/product-pagination';
-import { SearchInput } from '../../components/search-input/search-input';
 import {
   decodeSortSelection,
   encodeSortSelection,
@@ -52,9 +52,10 @@ import {
   parseProductStatus,
   parseProductVisibility,
   queryStateFromRouteParams,
+  setQueryCategory,
   setQueryFilters,
   setQueryPage,
-  setQuerySearch,
+  setQueryPageSize,
   setQuerySort,
   toBackendQuery,
   toRouteQueryParams,
@@ -67,16 +68,19 @@ import { PRODUCTS_TRANSLATION_KEYS, translateProductsKey } from '../../i18n/prod
 /** Base path for query commits and canonicals from this page. */
 export const PRODUCTS_BASE_PATH = '/products';
 
-/** Quiet period before raw keystrokes become a query. */
-export const PRODUCTS_SEARCH_DEBOUNCE_MS = 300;
+/** Page-size choices offered by the per-page control (contract max 100). */
+export const PRODUCTS_PAGE_SIZES = [12, 24, 48] as const;
+
+/** Category strip fetch size (single page — the strip scrolls horizontally). */
+export const PRODUCTS_CATEGORY_PAGE_SIZE = 100;
 
 @Component({
   selector: 'app-products-page',
   imports: [
     RouterLink,
+    Chip,
     ProductGrid,
     ProductPagination,
-    SearchInput,
     FilterSelect,
     LoadingIndicator,
     EmptyState,
@@ -96,10 +100,12 @@ export class ProductsPage implements OnInit {
   private readonly meta = inject(Meta);
   private readonly document = inject(DOCUMENT);
 
-  private readonly searchText = new Subject<string>();
   private listingTeardown: (() => void) | undefined;
 
   readonly productList = this.state.products;
+
+  /** Category strip result (`GET /catalog/categories`, single wide page). */
+  readonly categoryList = this.state.categories;
 
   readonly queryState = toSignal(this.route.queryParamMap.pipe(map(queryStateFromRouteParams)), {
     initialValue: defaultCatalogQueryState(),
@@ -117,21 +123,9 @@ export class ProductsPage implements OnInit {
       onCleanup(() => this.cancelListingLoad());
     });
 
-    this.searchText
-      .pipe(debounceTime(PRODUCTS_SEARCH_DEBOUNCE_MS), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe((search) => this.applySearch(search));
-
     effect(() => {
       this.applyMetadata();
     });
-  }
-
-  onSearchChange(search: string): void {
-    this.searchText.next(search);
-  }
-
-  private applySearch(search: string): void {
-    this.commitQuery(setQuerySearch(this.queryState(), search));
   }
 
   private commitQuery(next: CatalogQueryState): void {
@@ -159,6 +153,15 @@ export class ProductsPage implements OnInit {
     this.commitQuery(setQuerySort(this.queryState(), decodeSortSelection(value)));
   }
 
+  onCategoryChange(value: string): void {
+    this.selectCategory(value === '' ? null : value);
+  }
+
+  /** Selects a strip category (page reset included, other criteria kept). */
+  selectCategory(categoryId: string | null): void {
+    this.commitQuery(setQueryCategory(this.queryState(), categoryId));
+  }
+
   clearFilters(): void {
     this.commitQuery(
       setQuerySort(setQueryFilters(this.queryState(), { status: null, visibility: null }), {
@@ -175,14 +178,6 @@ export class ProductsPage implements OnInit {
       loading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingLoading),
       errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.listingErrorTitle),
       retry: translateKey(culture, 'common.actions.retry'),
-    };
-  });
-
-  protected readonly searchCopy = computed(() => {
-    const culture = this.cultures.culture();
-    return {
-      label: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.searchLabel),
-      placeholder: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.searchPlaceholder),
     };
   });
 
@@ -263,6 +258,54 @@ export class ProductsPage implements OnInit {
     },
   ]);
 
+  /** Localized sticker labels by backend status (missing entries show no sticker). */
+  protected readonly statusLabels = computed((): Partial<Record<ProductStatus, string>> => ({
+    [ProductStatus.Draft]: this.filtersCopy().statusDraft,
+    [ProductStatus.Active]: this.filtersCopy().statusActive,
+    [ProductStatus.Inactive]: this.filtersCopy().statusInactive,
+    [ProductStatus.Archived]: this.filtersCopy().statusArchived,
+  }));
+
+  /** Per-page choices (numeric tokens as strings for the select). */
+  protected readonly pageSizeOptions = computed((): readonly FilterOption[] =>
+    PRODUCTS_PAGE_SIZES.map((size) => ({ value: String(size), label: String(size) })),
+  );
+
+  /** Current page-size token. */
+  protected readonly pageSizeValue = computed(() => String(this.queryState().pageSize));
+
+  /** Localized per-page control label. */
+  protected readonly pageSizeLabel = computed(() =>
+    translateProductsKey(this.cultures.culture(), PRODUCTS_TRANSLATION_KEYS.pageSize),
+  );
+
+  /** Localized "all categories" strip chip label. */
+  protected readonly allCategoriesLabel = computed(() =>
+    translateProductsKey(this.cultures.culture(), PRODUCTS_TRANSLATION_KEYS.allCategories),
+  );
+
+  /** Commits a page-size change (page reset included). */
+  onPageSizeChange(value: string): void {
+    const parsed = Number.parseInt(value, 10);
+    this.commitQuery(setQueryPageSize(this.queryState(), Number.isFinite(parsed) ? parsed : 20));
+  }
+
+  /** Localized category browser copy for the active culture. */
+  protected readonly categoriesCopy = computed(() => {
+    const culture = this.cultures.culture();
+    return {
+      title: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesTitle),
+      loading: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesLoading),
+      errorTitle: translateCatalogKey(culture, CATALOG_TRANSLATION_KEYS.categoriesErrorTitle),
+      retry: translateKey(culture, 'common.actions.retry'),
+    };
+  });
+
+  /** Localized category browser failure message (never backend text). */
+  protected readonly categoriesErrorMessage = computed(() =>
+    resolveApiErrorMessage(this.categoryList().error, this.cultures.culture()),
+  );
+
   protected readonly statusValue = computed(() => {
     const status = this.queryState().filters.status;
     return status === null ? '' : String(status);
@@ -321,6 +364,9 @@ export class ProductsPage implements OnInit {
 
   ngOnInit(): void {
     this.applyMetadata();
+    if (this.isBrowser) {
+      this.reloadCategories();
+    }
   }
 
   private applyMetadata(): void {
@@ -352,6 +398,14 @@ export class ProductsPage implements OnInit {
     this.startListingLoad(this.queryState());
   }
 
+  /** (Re)loads the category strip (single wide page); retry re-enters here. */
+  reloadCategories(): void {
+    this.state.loadCategories({
+      pageNumber: 1,
+      pageSize: PRODUCTS_CATEGORY_PAGE_SIZE,
+    });
+  }
+
   private cancelListingLoad(): void {
     this.listingTeardown?.();
     this.listingTeardown = undefined;
@@ -360,7 +414,7 @@ export class ProductsPage implements OnInit {
   private startListingLoad(query: CatalogQueryState): void {
     this.cancelListingLoad();
     const controller = new AbortController();
-    this.state.loadProducts(toBackendQuery(query), { signal: controller.signal });
+    this.state.loadListedProducts(toBackendQuery(query), { signal: controller.signal });
     this.listingTeardown = () => controller.abort();
   }
 }

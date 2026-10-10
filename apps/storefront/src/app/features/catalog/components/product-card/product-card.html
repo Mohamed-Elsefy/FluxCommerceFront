@@ -16,7 +16,11 @@
         <div class="product-image-fallback" aria-hidden="true"></div>
       }
       <span class="sticker">
-        <flux-badge variant="verified">New</flux-badge>
+        @if (showStatus()) {
+          <flux-badge variant="verified">{{ statusLabel }}</flux-badge>
+        } @else {
+          <flux-badge variant="verified">New</flux-badge>
+        }
       </span>
     </div>
     <p class="meta">{{ product.slug }}</p>

@@ -208,6 +208,7 @@ export interface ProductResponse {
   isDeleted: boolean;
   createdAtUtc: IsoDateString;
   deletedAtUtc?: IsoDateString | null;
+  primaryImage?: CatalogImageSummary | null;
 }
 
 /** `GET /catalog/categories/{id}` (+ paged list item) payload. */
@@ -360,6 +361,21 @@ export interface CatalogCategoryTree {
  * case-insensitive names (`?status=Active` ≡ `?status=1`).
  */
 export interface CatalogSearchQuery {
+  searchTerm?: string;
+  categoryId?: Guid;
+  status?: ProductStatus;
+  visibility?: ProductVisibility;
+  sortBy?: CatalogProductSortBy;
+  sortDirection?: CatalogProductSortDirection;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+/**
+ * `GET /catalog/products` (paged product list) query — same filters and
+ * sorting as the storefront search (DTO_REFERENCE §2.6).
+ */
+export interface ProductListQuery {
   searchTerm?: string;
   categoryId?: Guid;
   status?: ProductStatus;

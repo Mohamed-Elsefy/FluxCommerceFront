@@ -66,6 +66,7 @@ import {
   type ApiRequestOptions,
   type ApiResponseWithData,
   type PagedApiResponse,
+  type PagedResult,
   type PaginationRequest,
   type ResourceState,
   type ResourceStateStore,
@@ -81,6 +82,7 @@ import {
   type Product,
   type ProductList,
 } from '../models/catalog.models';
+import type { ProductResponse } from '@flux/models';
 
 /** Options for every `CatalogState` load: cancellation only, never mapping. */
 export interface CatalogLoadOptions {
@@ -144,6 +146,41 @@ export class CatalogState {
       .searchCatalog(query, toApiOptions(options))
       .pipe(
         map((envelope) => requirePagedData(envelope, emptyProductList(query.pageSize ?? 20))),
+        tap((page) => this.storeTransferred(key, page)),
+      );
+    return loadResourceState(this.productsStore, request, {
+      signal: options.signal,
+      isEmpty: (page) => page.items.length === 0,
+    });
+  }
+
+  /**
+   * Loads the paged product list for `query` from `GET /catalog/products`
+   * (full `ProductResponse` items with `primaryImage`). Same lifecycle,
+   * hydration, and empty/error semantics as `loadProducts`, which stays
+   * on `GET /catalog` for the discovery listing — each listing surface
+   * owns its source explicitly.
+   */
+  loadListedProducts(query: CatalogQuery = {}, options: CatalogLoadOptions = {}): Subscription {
+    const key = makeStateKey<ProductList>(`catalog.listed-products.${queryHash(query)}`);
+    const transferred = this.consumeTransferred(key);
+    if (transferred !== null) {
+      if (transferred.items.length === 0) {
+        this.productsStore.setEmpty(transferred);
+      } else {
+        this.productsStore.setSuccess(transferred);
+      }
+      return Subscription.EMPTY;
+    }
+    const request: Observable<ProductList> = this.catalogApi
+      .listProducts(query, toApiOptions(options))
+      .pipe(
+        map((envelope) =>
+          requirePagedData(
+            envelope,
+            emptyProductList(query.pageSize ?? 20) as PagedResult<ProductResponse>,
+          ),
+        ),
         tap((page) => this.storeTransferred(key, page)),
       );
     return loadResourceState(this.productsStore, request, {

@@ -11,6 +11,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
+import { ProductStatus } from '@flux/models';
 import type { ProductListItem } from '../../models/catalog.models';
 import { ProductCard } from './product-card';
 
@@ -29,13 +30,20 @@ const PRODUCT: ProductListItem = {
   },
 };
 
-function setup(product: ProductListItem): {
+function setup(
+  product: ProductListItem,
+  status?: { status: ProductStatus; statusLabel: string },
+): {
   fixture: ComponentFixture<ProductCard>;
   element: HTMLElement;
 } {
   TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(ProductCard);
   fixture.componentRef.setInput('product', product);
+  if (status !== undefined) {
+    fixture.componentRef.setInput('status', status.status);
+    fixture.componentRef.setInput('statusLabel', status.statusLabel);
+  }
   fixture.detectChanges();
   return { fixture, element: fixture.nativeElement as HTMLElement };
 }
@@ -94,5 +102,20 @@ describe('ProductCard', () => {
     for (const word of ['price', '$', '€', 'stock', 'variant', 'quantity', 'cart', 'sku']) {
       expect(text).not.toContain(word);
     }
+  });
+
+  it('renders the backend status sticker for non-active products', () => {
+    const { element } = setup(PRODUCT, { status: ProductStatus.Draft, statusLabel: 'Draft' });
+
+    expect(element.querySelector('.sticker flux-badge')?.textContent?.trim()).toBe('Draft');
+  });
+
+  it('hides the status sticker for active or unknown status', () => {
+    const active = setup(PRODUCT, { status: ProductStatus.Active, statusLabel: 'Active' });
+    expect(active.element.querySelector('.sticker flux-badge')?.textContent?.trim()).toBe('New');
+
+    TestBed.resetTestingModule();
+    const unknown = setup(PRODUCT);
+    expect(unknown.element.querySelector('.sticker flux-badge')?.textContent?.trim()).toBe('New');
   });
 });

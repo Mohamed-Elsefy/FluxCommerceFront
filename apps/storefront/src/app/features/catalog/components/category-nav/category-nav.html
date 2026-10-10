@@ -3,7 +3,7 @@
     @for (category of categories; track category.id) {
       <li>
         <a
-          [routerLink]="['/catalog']"
+          [routerLink]="[basePath]"
           [queryParams]="{ categoryId: category.id }"
           [attr.aria-current]="category.id === activeCategoryId ? 'page' : null"
           >{{ category.name }}</a

@@ -35,6 +35,7 @@
 
 import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ProductStatus } from '@flux/models';
 import { Badge } from '@flux/ui';
 import type { ProductListItem } from '../../models/catalog.models';
 
@@ -48,6 +49,23 @@ import type { ProductListItem } from '../../models/catalog.models';
 export class ProductCard {
   /** Storefront search hit to render (backend `CatalogProductListItem`). */
   @Input({ required: true }) product!: ProductListItem;
+
+  /**
+   * Backend product status for the sticker (`ProductResponse.status`).
+   * `null` (unknown — e.g. lightweight search hits) and `Active` render
+   * no sticker; any other status renders the provided `statusLabel`.
+   */
+  @Input() status: ProductStatus | null = null;
+
+  /** Localized status label shown alongside the sticker (page-localized). */
+  @Input() statusLabel: string | null = null;
+
+  /** Whether the sticker renders (non-active known status with a label). */
+  protected showStatus(): boolean {
+    return (
+      this.status !== null && this.status !== ProductStatus.Active && this.statusLabel !== null
+    );
+  }
 
   /** Whether the primary image proved broken (fallback rendering). */
   protected readonly imageFailed = signal(false);

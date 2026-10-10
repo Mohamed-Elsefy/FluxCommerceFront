@@ -59,6 +59,36 @@ describe('CatalogApiService routes', () => {
     expect(calls.options).toEqual([{ params: { pageNumber: 2, pageSize: 10 } }]);
   });
 
+  it('lists products with filters and sorting funneled through query params', () => {
+    const { service, calls } = setup();
+    service
+      .listProducts({
+        searchTerm: 'tee',
+        categoryId: '22222222-2222-2222-2222-222222222222',
+        status: 1,
+        sortBy: 1,
+        sortDirection: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      })
+      .subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.listProducts.path]);
+    expect(calls.options).toEqual([
+      {
+        params: {
+          searchTerm: 'tee',
+          categoryId: '22222222-2222-2222-2222-222222222222',
+          status: 1,
+          sortBy: 1,
+          sortDirection: 1,
+          pageNumber: 1,
+          pageSize: 20,
+        },
+      },
+    ]);
+  });
+
   it('searches the storefront catalog with filters funneled through query params', () => {
     const { service, calls } = setup();
     service.searchCatalog({ searchTerm: 'tee', pageNumber: 1, pageSize: 20 }).subscribe();

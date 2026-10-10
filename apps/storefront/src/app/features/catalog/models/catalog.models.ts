@@ -34,6 +34,7 @@ import type {
   CatalogSearchQuery,
   CategoryResponse,
   ProductResponse,
+  ProductStatus,
 } from '@flux/models';
 
 /** Single product read model (`GET /catalog/products/{id}`). */
@@ -45,8 +46,19 @@ export type Category = CategoryResponse;
 /** Storefront search list item (`GET /catalog`). */
 export type ProductListItem = CatalogProductListItem;
 
-/** Paged storefront search result (`GET /catalog`). */
-export type ProductList = PagedResult<CatalogProductListItem>;
+/**
+ * Card item: list shape plus an optional backend status for the sticker
+ * (`ProductResponse` items are structurally assignable — they carry every
+ * list field plus `status`).
+ */
+export type ProductCardItem = ProductListItem & { readonly status?: ProductStatus | null };
+
+/**
+ * Paged product result. `GET /catalog` yields `CatalogProductListItem`
+ * entries; `GET /catalog/products` yields the richer `ProductResponse`
+ * entries (same list fields plus `status`/`visibility`/`primaryImage`).
+ */
+export type ProductList = PagedResult<CatalogProductListItem | ProductResponse>;
 
 /** Paged category result (`GET /catalog/categories`). */
 export type CategoryList = PagedResult<CategoryResponse>;
@@ -101,7 +113,7 @@ export function toCatalogQueryParams(query: CatalogQuery): QueryParams {
  * HTTP and throws nothing; dataless envelopes are handled by data-access.
  */
 export function toProductList(
-  data: PagedResult<CatalogProductListItem> | null | undefined,
+  data: PagedResult<CatalogProductListItem | ProductResponse> | null | undefined,
   pageSize: number = DEFAULT_CATALOG_PAGE_SIZE,
 ): ProductList {
   return data ?? emptyProductList(pageSize);

@@ -37,7 +37,12 @@
 
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
-import type { CatalogProductListItem, CategoryResponse, ProductResponse } from '@flux/models';
+import type {
+  CatalogProductListItem,
+  CategoryResponse,
+  ProductListQuery,
+  ProductResponse,
+} from '@flux/models';
 import {
   ApiClient,
   CATALOG_ENDPOINTS,
@@ -74,13 +79,16 @@ export class CatalogApiService {
   }
 
   /**
-   * `GET /catalog/products` — anonymous. Paged admin-shaped product list
-   * (`ProductResponse` items, non-deleted only, no sorting/filtering).
+   * `GET /catalog/products` — anonymous. Paged product list
+   * (`ProductResponse` items with `primaryImage`, non-deleted only).
+   * Supports `searchTerm/categoryId/status/visibility` filters,
+   * `sortBy/sortDirection` sorting, and paging; omitted values mean
+   * "no filter/sort" (server default: `Name` ascending).
    * Success: `200 ApiResponse<PagedResult<ProductResponse>>`.
    * Failures: `400` validation (`pageNumber >= 1`, `1 <= pageSize <= 100`).
    */
   listProducts(
-    query: PaginationRequest = {},
+    query: ProductListQuery = {},
     options: ApiRequestOptions = {},
   ): Observable<PagedApiResponse<ProductResponse>> {
     return this.api.get<PagedApiResponse<ProductResponse>>(CATALOG_ENDPOINTS.listProducts.path, {

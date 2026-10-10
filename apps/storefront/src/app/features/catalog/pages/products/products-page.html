@@ -1,16 +1,33 @@
 <section class="products-page" aria-labelledby="products-title">
   <div class="section-head">
-    <p class="section-index">02 // Shelf</p>
     <h1 id="products-title" class="section-title">{{ copy().title }}</h1>
     <p class="section-subtitle">{{ copy().subtitle }}</p>
   </div>
 
-  <catalog-search-input
-    [value]="queryState().search"
-    [label]="searchCopy().label"
-    [placeholder]="searchCopy().placeholder"
-    (valueChange)="onSearchChange($event)"
-  ></catalog-search-input>
+  @if (categoryList().isLoading) {
+    <flux-loading-indicator [label]="categoriesCopy().loading"></flux-loading-indicator>
+  } @else if (categoryList().isError) {
+    <flux-error-state
+      [title]="categoriesCopy().errorTitle"
+      [message]="categoriesErrorMessage()"
+      [retryLabel]="categoriesCopy().retry"
+      (retry)="reloadCategories()"
+    ></flux-error-state>
+  } @else if (categoryList().isSuccess) {
+    <div class="strip" role="group" [attr.aria-label]="categoriesCopy().title">
+      <flux-chip [selected]="activeCategoryId() === null" (click)="selectCategory(null)">
+        {{ allCategoriesLabel() }}
+      </flux-chip>
+      @for (category of categoryList().data?.items ?? []; track category.id) {
+        <flux-chip
+          [selected]="activeCategoryId() === category.id"
+          (click)="selectCategory(category.id)"
+        >
+          {{ category.name }}
+        </flux-chip>
+      }
+    </div>
+  }
 
   <div class="catalog-filters">
     <catalog-filter-select
@@ -36,6 +53,13 @@
         {{ filtersCopy().clearAll }}
       </button>
     }
+    <catalog-filter-select
+      class="page-size"
+      [label]="pageSizeLabel()"
+      [options]="pageSizeOptions()"
+      [value]="pageSizeValue()"
+      (valueChange)="onPageSizeChange($event)"
+    ></catalog-filter-select>
   </div>
 
   @if (activeCategoryId() !== null) {
@@ -62,7 +86,10 @@
     }
     @if (productList().isSuccess) {
       <p>{{ resultCount() }}</p>
-      <catalog-product-grid [products]="productList().data?.items ?? []"></catalog-product-grid>
+      <catalog-product-grid
+        [products]="productList().data?.items ?? []"
+        [statusLabels]="statusLabels()"
+      ></catalog-product-grid>
     }
     <catalog-product-pagination
       [page]="productList().data?.pageNumber ?? 1"

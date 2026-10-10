@@ -139,6 +139,66 @@ describe('catalog feature integration (state → api → contract)', () => {
     expect(snapshot.error).toBeNull();
   });
 
+  it('lists full product records with images and sorting into Success', () => {
+    state.loadListedProducts({
+      searchTerm: 'tee',
+      categoryId: APPAREL_ID,
+      status: ProductStatus.Active,
+      sortBy: CatalogProductSortBy.CreatedAtUtc,
+      sortDirection: CatalogProductSortDirection.Descending,
+      pageNumber: 1,
+      pageSize: 20,
+    });
+
+    const pending = http.expectOne(
+      '/api/catalog/products' +
+        '?searchTerm=tee' +
+        `&categoryId=${APPAREL_ID}` +
+        '&status=1&sortBy=1&sortDirection=1' +
+        '&pageNumber=1&pageSize=20',
+    );
+    expect(pending.request.method).toBe('GET');
+    expect(pending.request.headers.has('Authorization')).toBe(false);
+
+    pending.flush({
+      isSuccess: true,
+      message: 'Operation completed successfully.',
+      data: {
+        items: [
+          {
+            id: '11111111-1111-1111-1111-111111111111',
+            name: 'Tee',
+            slug: 'tee',
+            description: null,
+            seo: null,
+            status: 1,
+            visibility: 0,
+            categoryId: APPAREL_ID,
+            isDeleted: false,
+            createdAtUtc: '2026-09-04T10:00:00Z',
+            deletedAtUtc: null,
+            primaryImage: {
+              id: 'img-1',
+              imageUrl: '/cdn/tee.jpg',
+              altText: 'Tee',
+              displayOrder: 0,
+              isPrimary: true,
+            },
+          },
+        ],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      },
+    });
+
+    const snapshot = state.products();
+    expect(snapshot.isSuccess).toBe(true);
+    expect(snapshot.data?.items.map((item) => item.name)).toEqual(['Tee']);
+    expect(snapshot.data?.items[0]?.primaryImage?.imageUrl).toBe('/cdn/tee.jpg');
+    expect(snapshot.error).toBeNull();
+  });
+
   it('routes an out-of-range page to Empty with retained paging', () => {
     state.loadProducts({ categoryId: APPAREL_ID, pageNumber: 99, pageSize: 20 });
 

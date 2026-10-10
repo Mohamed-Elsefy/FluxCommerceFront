@@ -66,6 +66,9 @@
   line-height: 1.75rem;
   font-weight: 600;
   font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .footer-deck {
