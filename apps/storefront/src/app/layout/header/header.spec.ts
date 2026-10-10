@@ -198,6 +198,35 @@ describe('StorefrontHeader', () => {
 
     expect(navigate).toHaveBeenCalledWith(['/products'], {
       queryParams: { searchTerm: 'linen' },
+      replaceUrl: true,
     });
+  });
+
+  it('commits debounced keystrokes live to the products shelf', () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture } = setup();
+      const router = TestBed.inject(Router);
+      const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      (
+        fixture.componentInstance as unknown as { searchText: { set: (v: string) => void } }
+      ).searchText.set('li');
+      fixture.detectChanges();
+      vi.advanceTimersByTime(100);
+      (
+        fixture.componentInstance as unknown as { searchText: { set: (v: string) => void } }
+      ).searchText.set('linen');
+      fixture.detectChanges();
+      vi.advanceTimersByTime(300);
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith(['/products'], {
+        queryParams: { searchTerm: 'linen' },
+        replaceUrl: true,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

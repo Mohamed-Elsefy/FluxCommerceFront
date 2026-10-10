@@ -2,17 +2,19 @@
  * Storefront header — Kinetic glass bar (DESIGN §6.4).
  *
  * Composition only: brand wordmark, segmented main nav (Home / Products /
- * Cart / Orders), pill search (navigates to the `/products` shelf), a
- * language-cycle pill (steps to the next supported culture), the theme
- * toggle, and the account entry — anonymous sees a single Primary login
- * pill (registration lives on the login page), authenticated sees an
- * avatar circle linking straight to the profile (account actions live
- * there, including logout).
+ * Cart / Orders), live pill search (debounced keystrokes commit to the
+ * `/products` shelf like the former in-page search box; Enter submits
+ * immediately), a language-cycle pill (steps to the next supported
+ * culture), the theme toggle, and the account entry — anonymous sees a
+ * single Primary login pill (registration lives on the login page),
+ * authenticated sees an avatar circle linking straight to the profile
+ * (account actions live there, including logout).
  *
  * Auth state reads central `AuthService` signals (never replicated);
- * culture writes go through `CultureService`. SSR/hydration safe: local
- * toggle signals only, no browser APIs. RTL safe: logical properties and
- * direction-aware flex flow only.
+ * culture writes go through `CultureService`. SSR/hydration safe: live
+ * search wiring runs browser-only (no navigation during SSR), every other
+ * browser-only access is platform-guarded. RTL safe: logical properties
+ * and direction-aware flex flow only.
  */
 
 import {
@@ -22,11 +24,15 @@ import {
   ElementRef,
   HostListener,
   inject,
+  PLATFORM_ID,
   signal,
   viewChild,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { AuthService } from '@flux/auth';
 import { CultureService, SUPPORTED_CULTURE_METADATA } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
@@ -37,6 +43,9 @@ import {
   LAYOUT_TRANSLATION_KEYS,
   translateLayoutKey,
 } from '../layout-translations/layout-translations';
+
+/** Quiet period before raw keystrokes become a shelf query. */
+export const HEADER_SEARCH_DEBOUNCE_MS = 300;
 
 @Component({
   selector: 'storefront-header',
@@ -96,8 +105,9 @@ export class StorefrontHeader {
   protected readonly auth = inject(AuthService);
 
   private readonly router = inject(Router);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  /** Header search text (local UI state; committed to `/products` on submit). */
+  /** Header search text (local UI state; committed live to `/products`). */
   protected readonly searchText = signal('');
 
   /** Mobile menu visibility (local UI state; closed on server and client). */
@@ -113,13 +123,49 @@ export class StorefrontHeader {
 
   private readonly menuToggle = viewChild<ElementRef<HTMLButtonElement>>('menuToggle');
 
-  /** Submits the header search to the products shelf. */
-  submitSearch(): void {
-    const searchTerm = this.searchText().trim();
-    this.closeMenu();
+  constructor() {
+    // Browser only: live search commits debounced keystrokes to the shelf
+    // (same funnel as the former in-page box — debounce, dedupe, teardown
+    // with the shell) and the box echoes the committed `searchTerm` back
+    // on navigation, so back-navigation and cleared searches always show
+    // the active query. `replaceUrl` keeps typing bursts out of history.
+    // The server renders the empty box and never navigates (SSR-safe).
+    if (this.isBrowser) {
+      toObservable(this.searchText)
+        .pipe(debounceTime(HEADER_SEARCH_DEBOUNCE_MS), distinctUntilChanged(), takeUntilDestroyed())
+        .subscribe((search) => this.commitSearch(search));
+      this.router.events
+        .pipe(
+          filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+          takeUntilDestroyed(),
+        )
+        .subscribe(() => this.syncSearchBox());
+      this.syncSearchBox();
+    }
+  }
+
+  /** Commits settled search text to the shelf (page reset by construction). */
+  private commitSearch(search: string): void {
+    const searchTerm = search.trim();
     void this.router.navigate(['/products'], {
       queryParams: searchTerm !== '' ? { searchTerm } : {},
+      replaceUrl: true,
     });
+  }
+
+  /** Echoes the committed URL `searchTerm` back into the box (no-op when equal). */
+  private syncSearchBox(): void {
+    const parsed = this.router.parseUrl(this.router.url).queryParams['searchTerm'];
+    const committed = typeof parsed === 'string' ? parsed : '';
+    if (committed !== this.searchText()) {
+      this.searchText.set(committed);
+    }
+  }
+
+  /** Submits the header search to the products shelf immediately. */
+  submitSearch(): void {
+    this.closeMenu();
+    this.commitSearch(this.searchText());
   }
 
   /** Steps to the next supported culture (wraps around). */
