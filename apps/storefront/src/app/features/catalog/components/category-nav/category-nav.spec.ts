@@ -9,6 +9,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, TemplateRef, viewChild } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import type { Category } from '../../models/catalog.models';
@@ -108,6 +109,37 @@ describe('CategoryNav', () => {
     expect(element.querySelector('nav.category-nav')?.getAttribute('aria-label')).toBe(
       'Categories',
     );
+  });
+
+  it('projects listing content under the active card only', () => {
+    @Component({
+      imports: [CategoryNav],
+      template: `
+        <catalog-category-nav
+          [categories]="categories"
+          [activeCategoryId]="active"
+          label="Categories"
+          [activeContent]="panel"
+        />
+        <ng-template #panel let-id>
+          <p class="projected">Listing for {{ id }}</p>
+        </ng-template>
+      `,
+    })
+    class Host {
+      readonly categories = CATEGORIES;
+      readonly active = CATEGORIES[0]?.id ?? null;
+      readonly panel = viewChild<TemplateRef<{ $implicit: string }>>('panel');
+    }
+
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(Host);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const items = [...element.querySelectorAll('nav.category-nav li')];
+
+    expect(items[0]?.querySelector('.projected')?.textContent).toContain(CATEGORIES[0]?.id);
+    expect(items[1]?.querySelector('.projected')).toBeNull();
   });
 
   it('targets a custom listing base path when provided', () => {

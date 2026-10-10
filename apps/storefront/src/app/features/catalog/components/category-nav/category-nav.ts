@@ -19,13 +19,14 @@
  * RTL safe: logical properties only, no direction branching.
  */
 
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, TemplateRef } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import type { Category } from '../../models/catalog.models';
 
 @Component({
   selector: 'catalog-category-nav',
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   templateUrl: './category-nav.html',
   styleUrl: './category-nav.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,4 +51,12 @@ export class CategoryNav {
    * base differs, so deep links keep working on both surfaces.
    */
   @Input() basePath = '/catalog';
+
+  /**
+   * Optional listing panel projected under the active category card
+   * (the owning page's listing section as a template). Receives the
+   * active category id as its implicit context. `null` renders cards
+   * only — the page then owns the listing placement itself.
+   */
+  @Input() activeContent: TemplateRef<{ $implicit: string }> | null = null;
 }

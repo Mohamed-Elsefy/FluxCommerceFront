@@ -1,7 +1,7 @@
 <nav class="category-nav" [attr.aria-label]="label">
   <ul>
     @for (category of categories; track category.id) {
-      <li>
+      <li [attr.data-active]="category.id === activeCategoryId ? '' : null">
         <a
           [routerLink]="[basePath]"
           [queryParams]="{ categoryId: category.id }"
@@ -10,6 +10,11 @@
         >
         @if (category.description) {
           <p>{{ category.description }}</p>
+        }
+        @if (category.id === activeCategoryId && activeContent) {
+          <div class="category-active-panel">
+            <ng-container *ngTemplateOutlet="activeContent; context: { $implicit: category.id }" />
+          </div>
         }
       </li>
     }

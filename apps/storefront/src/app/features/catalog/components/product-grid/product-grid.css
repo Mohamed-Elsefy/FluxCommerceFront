@@ -10,3 +10,28 @@
 .product-grid > li {
   min-inline-size: 0;
 }
+
+/* Rail — single-row horizontal scroll shelf with snap-adjacent cards. */
+.product-grid[data-layout='rail'] {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-2xs);
+  margin-inline: calc(-1 * var(--s-2xs));
+}
+
+.product-grid[data-layout='rail'] > li {
+  flex: 0 0 clamp(12rem, 72vw, 16rem);
+  scroll-snap-align: start;
+}
+
+.product-grid[data-layout='rail'] {
+  scroll-snap-type: inline mandatory;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-grid[data-layout='rail'] {
+    scroll-behavior: auto;
+  }
+}

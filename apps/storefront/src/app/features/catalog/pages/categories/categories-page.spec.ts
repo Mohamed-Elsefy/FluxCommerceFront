@@ -324,6 +324,31 @@ describe('CategoriesPage product listing', () => {
     expect(cards.map((card) => card.querySelector('h3')?.textContent)).toEqual(['Tee', 'Hoodie']);
   });
 
+  it('renders the listing inside the active category card', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      categoryId,
+    });
+    const activeCard = element.querySelector('li[data-active]');
+
+    expect(activeCard?.querySelector('section[aria-labelledby="products-title"]')).not.toBeNull();
+    expect(activeCard?.querySelectorAll('catalog-product-card')).toHaveLength(2);
+  });
+
+  it('renders the listing standalone for search-only queries', () => {
+    const { element } = setup({
+      snapshot: successResource(categoryList()),
+      productsSnapshot: successResource(productList()),
+      routeQuery: { searchTerm: 'tee' },
+    });
+
+    expect(element.querySelector('li[data-active]')).toBeNull();
+    expect(
+      element.querySelector('.categories-page > section[aria-labelledby="products-title"]'),
+    ).not.toBeNull();
+  });
+
   it('renders the localized listing loading state', () => {
     const { element } = setup({
       snapshot: successResource(categoryList()),

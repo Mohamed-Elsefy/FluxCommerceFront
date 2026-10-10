@@ -86,7 +86,7 @@ import {
   PLATFORM_ID,
   untracked,
 } from '@angular/core';
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
@@ -155,6 +155,7 @@ export const SEARCH_DEBOUNCE_MS = 300;
   selector: 'app-categories-page',
   imports: [
     RouterLink,
+    NgTemplateOutlet,
     CategoryNav,
     ProductGrid,
     ProductPagination,
@@ -200,6 +201,16 @@ export class CategoriesPage implements OnInit {
 
   /** Whether the query selects a listing (category and/or search text). */
   protected readonly showListing = computed(() => hasListingQuery(this.queryState()));
+
+  /**
+   * Whether the listing renders inside the active category card: only
+   * when a category is selected AND its card actually rendered (settled
+   * categories). Otherwise the standalone section below owns it, so
+   * loading/failed/empty discovery never swallows the listing.
+   */
+  protected readonly inlineListing = computed(
+    () => this.activeCategoryId() !== null && this.categories().isSuccess,
+  );
 
   constructor() {
     // Browser only: drives the listing from the query state (initial value

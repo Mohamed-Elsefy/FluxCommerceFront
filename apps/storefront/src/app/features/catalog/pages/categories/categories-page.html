@@ -35,34 +35,7 @@
     }
   </div>
 
-  @if (categories().isLoading) {
-    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
-  } @else if (categories().isError) {
-    <flux-error-state
-      [title]="copy().errorTitle"
-      [message]="errorMessage()"
-      [retryLabel]="copy().retry"
-      (retry)="reload()"
-    ></flux-error-state>
-  } @else if (categories().isEmpty) {
-    <flux-empty-state
-      [title]="copy().emptyTitle"
-      [message]="copy().emptyMessage"
-    ></flux-empty-state>
-  } @else if (categories().isSuccess) {
-    <catalog-category-nav
-      [categories]="categories().data?.items ?? []"
-      [activeCategoryId]="activeCategoryId()"
-      [label]="copy().title"
-    ></catalog-category-nav>
-    @if (activeCategoryId() !== null) {
-      <p>
-        <a routerLink="/catalog">{{ copy().clearSelection }}</a>
-      </p>
-    }
-  }
-
-  @if (showListing()) {
+  <ng-template #listingPanel>
     <section aria-labelledby="products-title">
       <h2 id="products-title">{{ listingCopy().title }}</h2>
       @if (productList().isLoading) {
@@ -83,7 +56,10 @@
         }
         @if (productList().isSuccess) {
           <p>{{ resultCount() }}</p>
-          <catalog-product-grid [products]="productList().data?.items ?? []"></catalog-product-grid>
+          <catalog-product-grid
+            [products]="productList().data?.items ?? []"
+            layout="rail"
+          ></catalog-product-grid>
         }
         <catalog-product-pagination
           [page]="productList().data?.pageNumber ?? 1"
@@ -94,5 +70,37 @@
         ></catalog-product-pagination>
       }
     </section>
+  </ng-template>
+
+  @if (categories().isLoading) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (categories().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="reload()"
+    ></flux-error-state>
+  } @else if (categories().isEmpty) {
+    <flux-empty-state
+      [title]="copy().emptyTitle"
+      [message]="copy().emptyMessage"
+    ></flux-empty-state>
+  } @else if (categories().isSuccess) {
+    <catalog-category-nav
+      [categories]="categories().data?.items ?? []"
+      [activeCategoryId]="activeCategoryId()"
+      [label]="copy().title"
+      [activeContent]="inlineListing() ? listingPanel : null"
+    ></catalog-category-nav>
+    @if (activeCategoryId() !== null) {
+      <p>
+        <a routerLink="/catalog">{{ copy().clearSelection }}</a>
+      </p>
+    }
+  }
+
+  @if (showListing() && !inlineListing()) {
+    <ng-container *ngTemplateOutlet="listingPanel" />
   }
 </section>

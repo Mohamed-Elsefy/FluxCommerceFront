@@ -77,6 +77,21 @@ describe('ProductGrid', () => {
     expect(element.querySelector('catalog-product-card')).toBeNull();
   });
 
+  it('renders as a horizontal rail on demand without changing order', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(ProductGrid);
+    fixture.componentRef.setInput('products', PRODUCTS);
+    fixture.componentRef.setInput('layout', 'rail');
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const rail = element.querySelector('ul.product-grid');
+
+    expect(rail?.getAttribute('data-layout')).toBe('rail');
+    expect(
+      [...element.querySelectorAll('catalog-product-card h3')].map((card) => card.textContent),
+    ).toEqual(['Tee', 'Hoodie']);
+  });
+
   it('forwards backend status stickers with page-localized labels', () => {
     const items: readonly ProductCardItem[] = [
       {

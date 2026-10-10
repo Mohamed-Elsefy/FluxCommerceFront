@@ -33,6 +33,12 @@ export class ProductGrid {
   @Input({ required: true }) products: readonly ProductCardItem[] = [];
 
   /**
+   * Presentation shape: `grid` (responsive multi-row matrix) or `rail`
+   * (single-row horizontal scroll shelf). Pages pick per surface.
+   */
+  @Input() layout: 'grid' | 'rail' = 'grid';
+
+  /**
    * Localized status labels by backend status (page-localized).
    * Missing entries render no sticker — same as unknown status.
    */

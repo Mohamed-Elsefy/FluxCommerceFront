@@ -1,4 +1,4 @@
-<ul class="product-grid">
+<ul class="product-grid" [attr.data-layout]="layout">
   @for (product of products; track product.id) {
     <li>
       <catalog-product-card
