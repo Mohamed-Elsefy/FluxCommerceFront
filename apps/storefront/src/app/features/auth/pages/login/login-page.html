@@ -1,9 +1,26 @@
-<section aria-labelledby="login-title">
-  <h1 id="login-title">{{ copy().title }}</h1>
-  <p>{{ copy().subtitle }}</p>
+<section class="auth-shell" aria-labelledby="login-title">
+  <div class="auth-brand">
+    <img
+      class="auth-brand-logo"
+      src="/assets/fluxCommerce-logo.png"
+      alt="FluxCommerce"
+      width="160"
+      height="40"
+      loading="lazy"
+    />
+  </div>
+  <h1 id="login-title" class="auth-title">{{ copy().title }}</h1>
+  <p class="auth-subtitle">{{ copy().subtitle }}</p>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <div>
+  <nav class="auth-tabs" aria-label="Authentication">
+    <a routerLink="/login" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{
+      copy().tabLogin
+    }}</a>
+    <a routerLink="/register" routerLinkActive="active">{{ copy().tabRegister }}</a>
+  </nav>
+
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="auth-field">
       <label for="login-email">{{ copy().emailLabel }}</label>
       <input
         id="login-email"
@@ -19,16 +36,61 @@
       ></auth-field-errors>
     </div>
 
-    <div>
+    <div class="auth-field">
       <label for="login-password">{{ copy().passwordLabel }}</label>
-      <input
-        id="login-password"
-        type="password"
-        formControlName="password"
-        autocomplete="current-password"
-        [attr.aria-invalid]="form.controls.password.invalid"
-        [attr.aria-describedby]="'login-password-errors'"
-      />
+      <div class="auth-password">
+        <input
+          id="login-password"
+          [type]="showPassword() ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="current-password"
+          [attr.aria-invalid]="form.controls.password.invalid"
+          [attr.aria-describedby]="'login-password-errors'"
+        />
+        <button
+          type="button"
+          class="auth-password-toggle"
+          (click)="showPassword.update((visible) => !visible)"
+          [attr.aria-pressed]="showPassword()"
+          [attr.aria-label]="showPassword() ? copy().passwordHide : copy().passwordShow"
+        >
+          @if (showPassword()) {
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17.94 17.94A10.5 10.5 0 0 1 12 19C6.5 19 2 12 2 12a21.6 21.6 0 0 1 5.06-5.94"
+              />
+              <path d="M9.9 4.24A10.5 10.5 0 0 1 12 5c5.5 0 10 7 10 7a21.7 21.7 0 0 1-2.16 3.19" />
+              <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+              <path d="m2 2 20 20" />
+            </svg>
+          } @else {
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          }
+        </button>
+      </div>
       <auth-field-errors
         id="login-password-errors"
         [control]="form.controls.password"
@@ -47,13 +109,15 @@
       <flux-loading-indicator [label]="copy().submitting" size="sm"></flux-loading-indicator>
     }
 
-    <button type="submit" [disabled]="isSubmitting()">{{ copy().submit }}</button>
+    <button type="submit" class="auth-submit" [disabled]="isSubmitting()">
+      {{ copy().submit }}
+    </button>
   </form>
 
-  <p>
+  <p class="auth-foot">
     <a routerLink="/forgot-password">{{ copy().forgot }}</a>
   </p>
-  <p>
+  <p class="auth-foot">
     {{ copy().newHere }}
     <a routerLink="/register">{{ copy().registerLink }}</a>
   </p>

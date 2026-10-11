@@ -10,7 +10,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { AuthService } from '@flux/auth';
 import { isApiError } from '@flux/api';
@@ -26,7 +26,14 @@ import { AUTH_TRANSLATION_KEYS, translateAuthKey } from '../../i18n/auth-transla
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink, FieldErrors, LoadingIndicator, ErrorState],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    RouterLinkActive,
+    FieldErrors,
+    LoadingIndicator,
+    ErrorState,
+  ],
   templateUrl: './login-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -43,6 +50,10 @@ export class LoginPage {
     return {
       title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginTitle),
       subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubtitle),
+      tabLogin: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.tabsLogin),
+      tabRegister: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.tabsRegister),
+      passwordShow: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.passwordShow),
+      passwordHide: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.passwordHide),
       emailLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginEmailLabel),
       passwordLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginPasswordLabel),
       submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.loginSubmit),
@@ -67,6 +78,9 @@ export class LoginPage {
 
   /** Request in flight: form disabled, spinner shown, double-submit blocked. */
   readonly isSubmitting = signal(false);
+
+  /** Reveals the password text while true (local UI state, never persisted). */
+  protected readonly showPassword = signal(false);
   /**
    * Form-level failure, localized through `resolveApiErrorMessage` (stable
    * codes/statuses — never backend text, 11.10). Null when clear.

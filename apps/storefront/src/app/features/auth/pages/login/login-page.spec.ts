@@ -88,6 +88,36 @@ describe('LoginPage', () => {
     TestBed.resetTestingModule();
   });
 
+  it('renders the login/register segmented tabs with login active', async () => {
+    const { fixture } = await navigate('/login');
+    const tabs = [...fixture.nativeElement.querySelectorAll('.auth-tabs a')];
+
+    expect(tabs.map((tab) => (tab as HTMLAnchorElement).getAttribute('href'))).toEqual([
+      '/login',
+      '/register',
+    ]);
+    expect(tabs[0]?.classList.contains('active')).toBe(true);
+    expect(tabs[1]?.classList.contains('active')).toBe(false);
+  });
+
+  it('toggles password visibility without submitting', async () => {
+    const { fixture } = await navigate('/login');
+    const input = fixture.nativeElement.querySelector('#login-password') as HTMLInputElement | null;
+    const toggle = fixture.nativeElement.querySelector(
+      '.auth-password-toggle',
+    ) as HTMLButtonElement | null;
+
+    expect(input?.getAttribute('type')).toBe('password');
+    expect(toggle?.getAttribute('aria-label')).toBe('Show password');
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(input?.getAttribute('type')).toBe('text');
+    expect(toggle?.getAttribute('aria-label')).toBe('Hide password');
+    expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('blocks the flow on invalid input', async () => {
     const { page } = await navigate('/login');
     page.form.controls.email.setValue('not-an-email');

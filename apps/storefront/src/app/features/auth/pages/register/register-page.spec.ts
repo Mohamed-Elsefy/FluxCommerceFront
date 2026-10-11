@@ -57,6 +57,36 @@ describe('RegisterPage', () => {
     TestBed.resetTestingModule();
   });
 
+  it('renders the login/register segmented tabs', () => {
+    const fixture = TestBed.createComponent(RegisterPage);
+    fixture.detectChanges();
+    const tabs = [...fixture.nativeElement.querySelectorAll('.auth-tabs a')];
+
+    expect(tabs.map((tab) => (tab as HTMLAnchorElement).getAttribute('href'))).toEqual([
+      '/login',
+      '/register',
+    ]);
+  });
+
+  it('toggles password visibility without submitting', () => {
+    const fixture = TestBed.createComponent(RegisterPage);
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector(
+      '#register-password',
+    ) as HTMLInputElement | null;
+    const toggle = fixture.nativeElement.querySelector(
+      '.auth-password-toggle',
+    ) as HTMLButtonElement | null;
+
+    expect(input?.getAttribute('type')).toBe('password');
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(input?.getAttribute('type')).toBe('text');
+    expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('blocks the flow on invalid input', () => {
     const fixture = TestBed.createComponent(RegisterPage);
     const page = fixture.componentInstance;

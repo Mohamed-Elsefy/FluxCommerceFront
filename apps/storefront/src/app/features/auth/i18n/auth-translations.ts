@@ -24,6 +24,10 @@ import {
 
 /** Auth translation key paths owned by this feature (`auth.*`). */
 export const AUTH_TRANSLATION_KEYS = {
+  tabsLogin: 'auth.tabs.login',
+  tabsRegister: 'auth.tabs.register',
+  passwordShow: 'auth.password.show',
+  passwordHide: 'auth.password.hide',
   loginTitle: 'auth.login.title',
   loginSubtitle: 'auth.login.subtitle',
   loginEmailLabel: 'auth.login.emailLabel',
@@ -102,6 +106,14 @@ export const AUTH_TRANSLATION_KEYS = {
 /** English (`en`) auth vocabulary. Also the deterministic fallback source. */
 const EN_AUTH: TranslationDictionary = {
   auth: {
+    tabs: {
+      login: 'Sign in',
+      register: 'Register',
+    },
+    password: {
+      show: 'Show password',
+      hide: 'Hide password',
+    },
     login: {
       title: 'Sign in',
       subtitle: 'Access your FluxCommerce account.',
@@ -198,6 +210,14 @@ const EN_AUTH: TranslationDictionary = {
 /** French (`fr`) auth vocabulary. */
 const FR_AUTH: TranslationDictionary = {
   auth: {
+    tabs: {
+      login: 'Se connecter',
+      register: 'S’inscrire',
+    },
+    password: {
+      show: 'Afficher le mot de passe',
+      hide: 'Masquer le mot de passe',
+    },
     login: {
       title: 'Se connecter',
       subtitle: 'Accédez à votre compte FluxCommerce.',
@@ -294,6 +314,14 @@ const FR_AUTH: TranslationDictionary = {
 /** German (`de`) auth vocabulary. */
 const DE_AUTH: TranslationDictionary = {
   auth: {
+    tabs: {
+      login: 'Anmelden',
+      register: 'Registrieren',
+    },
+    password: {
+      show: 'Passwort anzeigen',
+      hide: 'Passwort verbergen',
+    },
     login: {
       title: 'Anmelden',
       subtitle: 'Greifen Sie auf Ihr FluxCommerce-Konto zu.',
@@ -390,6 +418,14 @@ const DE_AUTH: TranslationDictionary = {
 /** Spanish (`es`) auth vocabulary. */
 const ES_AUTH: TranslationDictionary = {
   auth: {
+    tabs: {
+      login: 'Iniciar sesión',
+      register: 'Registrarse',
+    },
+    password: {
+      show: 'Mostrar contraseña',
+      hide: 'Ocultar contraseña',
+    },
     login: {
       title: 'Iniciar sesión',
       subtitle: 'Acceda a su cuenta de FluxCommerce.',
@@ -486,6 +522,14 @@ const ES_AUTH: TranslationDictionary = {
 /** Arabic (`ar`) auth vocabulary. */
 const AR_AUTH: TranslationDictionary = {
   auth: {
+    tabs: {
+      login: 'تسجيل الدخول',
+      register: 'إنشاء حساب',
+    },
+    password: {
+      show: 'إظهار كلمة المرور',
+      hide: 'إخفاء كلمة المرور',
+    },
     login: {
       title: 'تسجيل الدخول',
       subtitle: 'ادخل إلى حسابك في FluxCommerce.',

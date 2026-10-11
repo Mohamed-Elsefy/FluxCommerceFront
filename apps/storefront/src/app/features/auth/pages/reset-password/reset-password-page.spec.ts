@@ -79,6 +79,23 @@ describe('ResetPasswordPage', () => {
     expect(heading).toContain('Reset link incomplete');
   });
 
+  it('toggles both password fields together without submitting', async () => {
+    const { fixture } = await navigate('/reset-password?token=reset-token-1');
+    const inputs = [
+      ...fixture.nativeElement.querySelectorAll('#reset-new-password, #reset-confirm-password'),
+    ] as HTMLInputElement[];
+    const toggle = fixture.nativeElement.querySelector(
+      '.auth-password-toggle',
+    ) as HTMLButtonElement | null;
+
+    expect(inputs.map((input) => input.getAttribute('type'))).toEqual(['password', 'password']);
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(inputs.map((input) => input.getAttribute('type'))).toEqual(['text', 'text']);
+  });
+
   it('renders localized copy without key leakage', async () => {
     const { fixture } = await navigate('/reset-password?token=reset-token-1');
     const cultures = TestBed.inject(CultureService);

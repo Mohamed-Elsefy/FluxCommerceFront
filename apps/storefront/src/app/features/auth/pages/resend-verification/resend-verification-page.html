@@ -1,22 +1,45 @@
 @if (receipt() !== null) {
-  <section aria-labelledby="resend-done-title" aria-live="polite">
-    <h1 id="resend-done-title">{{ copy().doneTitle }}</h1>
-    @if (receipt()?.emailSent === true) {
-      <p>{{ sentMessage() }}</p>
-    } @else {
-      <p>{{ copy().verifiedMessage }}</p>
-      <p>
-        <a routerLink="/login">{{ copy().backToLogin }}</a>
-      </p>
-    }
+  <section class="auth-shell" aria-labelledby="resend-done-title" aria-live="polite">
+    <div class="auth-brand">
+      <img
+        class="auth-brand-logo"
+        src="/assets/fluxCommerce-logo.png"
+        alt="FluxCommerce"
+        width="160"
+        height="40"
+        loading="lazy"
+      />
+    </div>
+    <div class="auth-done">
+      <span class="auth-done-mark" aria-hidden="true">✓</span>
+      <h1 id="resend-done-title" class="auth-title">{{ copy().doneTitle }}</h1>
+      @if (receipt()?.emailSent === true) {
+        <p class="auth-subtitle">{{ sentMessage() }}</p>
+      } @else {
+        <p class="auth-subtitle">{{ copy().verifiedMessage }}</p>
+        <p class="auth-foot">
+          <a routerLink="/login">{{ copy().backToLogin }}</a>
+        </p>
+      }
+    </div>
   </section>
 } @else {
-  <section aria-labelledby="resend-title">
-    <h1 id="resend-title">{{ copy().title }}</h1>
-    <p>{{ copy().subtitle }}</p>
+  <section class="auth-shell" aria-labelledby="resend-title">
+    <div class="auth-brand">
+      <img
+        class="auth-brand-logo"
+        src="/assets/fluxCommerce-logo.png"
+        alt="FluxCommerce"
+        width="160"
+        height="40"
+        loading="lazy"
+      />
+    </div>
+    <h1 id="resend-title" class="auth-title">{{ copy().title }}</h1>
+    <p class="auth-subtitle">{{ copy().subtitle }}</p>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <div>
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="auth-field">
         <label for="resend-email">{{ copy().emailLabel }}</label>
         <input
           id="resend-email"
@@ -44,10 +67,12 @@
         <flux-loading-indicator [label]="copy().submitting" size="sm"></flux-loading-indicator>
       }
 
-      <button type="submit" [disabled]="isSubmitting()">{{ copy().submit }}</button>
+      <button type="submit" class="auth-submit" [disabled]="isSubmitting()">
+        {{ copy().submit }}
+      </button>
     </form>
 
-    <p>
+    <p class="auth-foot">
       {{ copy().verifiedPrompt }}
       <a routerLink="/login">{{ copy().signInLink }}</a>
     </p>

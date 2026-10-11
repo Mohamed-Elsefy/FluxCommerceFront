@@ -10,7 +10,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ErrorState, LoadingIndicator } from '@flux/ui';
 import { isApiError } from '@flux/api';
 import { CultureService, resolveApiErrorMessage } from '@flux/i18n';
@@ -29,7 +29,14 @@ import { FieldErrors } from '../../components/field-errors/field-errors';
 
 @Component({
   selector: 'app-register-page',
-  imports: [ReactiveFormsModule, RouterLink, FieldErrors, LoadingIndicator, ErrorState],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    RouterLinkActive,
+    FieldErrors,
+    LoadingIndicator,
+    ErrorState,
+  ],
   templateUrl: './register-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -58,6 +65,9 @@ export class RegisterPage {
 
   /** Request in flight: form disabled, spinner shown, double-submit blocked. */
   readonly isSubmitting = signal(false);
+
+  /** Reveals the password text while true (local UI state, never persisted). */
+  protected readonly showPassword = signal(false);
   /** Form-level failure, localized through `resolveApiErrorMessage` (11.10). Null when clear. */
   readonly formError = signal<string | null>(null);
 
@@ -67,6 +77,10 @@ export class RegisterPage {
     return {
       title: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerTitle),
       subtitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerSubtitle),
+      tabLogin: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.tabsLogin),
+      tabRegister: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.tabsRegister),
+      passwordShow: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.passwordShow),
+      passwordHide: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.passwordHide),
       emailLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerEmailLabel),
       passwordLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerPasswordLabel),
       firstNameLabel: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.registerFirstNameLabel),

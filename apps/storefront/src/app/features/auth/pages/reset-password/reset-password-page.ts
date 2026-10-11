@@ -58,6 +58,9 @@ export class ResetPasswordPage {
   readonly formError = signal<string | null>(null);
   readonly done = signal(false);
 
+  /** Reveals both password fields while true (local UI state, never persisted). */
+  protected readonly showPasswords = signal(false);
+
   /** Localized page copy for the active culture. */
   protected readonly copy = computed(() => {
     const culture = this.cultures.culture();
@@ -78,6 +81,8 @@ export class ResetPasswordPage {
       submit: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetSubmit),
       submitting: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetSubmitting),
       errorTitle: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.resetErrorTitle),
+      passwordShow: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.passwordShow),
+      passwordHide: translateAuthKey(culture, AUTH_TRANSLATION_KEYS.passwordHide),
     };
   });
 
