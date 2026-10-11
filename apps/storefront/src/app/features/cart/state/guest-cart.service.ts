@@ -85,6 +85,22 @@ export function isInvalidGuestIdentityError(error: ApiError | null | undefined):
 }
 
 /**
+ * Whether a normalized failure is a codeless `404` (the real wire shape
+ * for missing resources — business errors carry no `extensions.code`,
+ * only `detail`). Used alongside `isInvalidGuestIdentityError` on paths
+ * where the endpoint makes `404` unambiguous (unknown guest cart,
+ * unknown merge source, no active auth cart): a present code keeps its
+ * documented meaning (so e.g. a coded item-level `404` still does not
+ * recover), while a missing code falls back to `status` — exactly the
+ * "branch on `code` when present and on `status` otherwise" rule the
+ * error normalizer documents. Branches on `status`, never on message
+ * text. Pure — throws nothing.
+ */
+export function isMissingResourceError(error: ApiError | null | undefined): boolean {
+  return error?.status === 404 && error?.code === undefined;
+}
+
+/**
  * Feature-scoped guest cart lifecycle. Provide at the cart route level
  * next to `CartState` — never at root. The owning page drives
  * `initialize()` on first render and on error retry; mutations stay on
@@ -153,7 +169,8 @@ export class GuestCartService {
     if (identity?.kind !== 'guest' || identity.cartId !== attemptedCartId) {
       return;
     }
-    if (!isInvalidGuestIdentityError(this.state.error())) {
+    const error = this.state.error();
+    if (!isInvalidGuestIdentityError(error) && !isMissingResourceError(error)) {
       return;
     }
     if (!this.isBrowser || this.state.activeOperation() !== null) {

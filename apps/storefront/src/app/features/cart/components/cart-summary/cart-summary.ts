@@ -10,16 +10,19 @@
  * price math — presentational components never call backend APIs
  * (`ARCHITECTURE.md` §8).
  *
- * Contract fidelity (§7.4 rules — strictly backend-driven, never
- * calculated, never fabricated):
+ * Contract fidelity (§7.4 rules — backend-driven, with one explicit,
+ * documented product-requested exception):
  * - Money rows render ONLY from non-null page-formatted backend money
  *   (`subtotalText`/`totalText`); the cart contract currently carries no
  *   totals object, so both stay `null` and their rows stay hidden until
  *   a backend totals source provides them (structure ready, no component
  *   change needed then).
+ * - The `estimatedTotals` row is the sanctioned exception: a display-only
+ *   client estimate (see `estimateCartTotals`), rendered beside the
+ *   pending-totals note — never submitted, never fed into checkout.
  * - While money is absent the `totalsNote` (page-localized, e.g. totals
- *   finalized at checkout) renders instead — the summary never shows a
- *   locally summed amount.
+ *   finalized at checkout) renders instead — backend rows are never
+ *   locally summed.
  * - The checkout anchor is a navigation boundary only
  *   (`routerLink="/checkout"`): no checkout, shipping, tax, order, or
  *   payment logic lives here or anywhere in Phase 7 (Phase 8 owns it).
@@ -66,6 +69,16 @@ export class CartSummary {
 
   /** Pending-totals note, or `null` once backend money renders. */
   @Input({ required: true }) totalsNote!: string | null;
+
+  /** Display-only estimate row label (page-localized). */
+  @Input() estimatedLabel: string | null = null;
+
+  /**
+   * Display-only per-currency estimate texts, preformatted for the active
+   * culture. Rendered beside the pending-totals note — never submitted,
+   * never fed into checkout (see `estimateCartTotals`).
+   */
+  @Input() estimatedTotals: readonly string[] = [];
 
   /** Clear-cart action label (page-localized, required). */
   @Input({ required: true }) clearLabel!: string;

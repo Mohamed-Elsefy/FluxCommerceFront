@@ -86,7 +86,11 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '@flux/auth';
 import { CartState, type CartActionOptions } from './cart-state';
 import { GUEST_CART_STORAGE } from './guest-cart-storage.service';
-import { GuestCartService, isInvalidGuestIdentityError } from './guest-cart.service';
+import {
+  GuestCartService,
+  isInvalidGuestIdentityError,
+  isMissingResourceError,
+} from './guest-cart.service';
 
 /**
  * Feature-scoped authenticated cart lifecycle. Provide at the cart route
@@ -197,7 +201,9 @@ export class AuthenticatedCartService {
       }
       return;
     }
-    if (!isInvalidGuestIdentityError(error)) {
+    // Dead merge source: the contract 404 (guest cart must exist) arrives
+    // codeless on the real wire, so a bare 404 on this endpoint counts too.
+    if (!isInvalidGuestIdentityError(error) && !isMissingResourceError(error)) {
       return;
     }
     if (!this.isBrowser || this.state.activeOperation() !== null) {
@@ -210,13 +216,15 @@ export class AuthenticatedCartService {
   /**
    * Falls back to get-or-create — only when the slot still holds the
    * authenticated identity, the settled failure is the no-active-cart
-   * verdict, and no operation is in flight.
+   * verdict (coded or codeless `404` — `GET /cart` 404s exactly then),
+   * and no operation is in flight.
    */
   private recoverIfNoAuthCart(options: CartActionOptions): void {
     if (this.state.identity()?.kind !== 'authenticated') {
       return;
     }
-    if (this.state.error()?.code !== 'Cart.CartNotFound') {
+    const error = this.state.error();
+    if (error?.code !== 'Cart.CartNotFound' && !isMissingResourceError(error)) {
       return;
     }
     if (!this.isBrowser || this.state.activeOperation() !== null) {

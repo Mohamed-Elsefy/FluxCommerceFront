@@ -1,47 +1,80 @@
-/* Cart page (Sub-Phase 7.4). Centered single-column shell; items and
-  summary stack on narrow viewports and settle side by side from the
-  canonical medium breakpoint. Logical properties only (RTL-safe);
-  visual values come from theming tokens. */
+/* Cart page — Kinetic Pod voice. Single intrinsically responsive component:
+   empty panel, then items + summary dock (stacked narrow, side by side
+   from the canonical medium breakpoint). Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
 
 .cart-page {
   max-inline-size: var(--container-max-width);
   margin-inline: auto;
   padding-inline: var(--container-padding-inline);
-  padding-block: var(--spacing-lg);
+  padding-block: var(--s-lg);
+  display: grid;
+  gap: var(--s-lg);
 }
 
 .cart-page-content {
   display: grid;
-  gap: var(--spacing-2xl);
+  gap: var(--s-lg);
+  align-items: start;
 }
 
 @media (min-width: 48rem) {
   .cart-page-content {
-    grid-template-columns: 2fr 1fr;
-    align-items: start;
+    grid-template-columns: 1.6fr 1fr;
   }
 }
 
+.cart-page-empty {
+  border-radius: var(--r-xl);
+  padding: var(--s-2xl) var(--s-xl);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  display: grid;
+  gap: var(--s-md);
+  justify-items: center;
+  text-align: center;
+}
+
 .cart-page-browse {
-  margin-block: var(--spacing-lg);
+  margin: 0;
+}
+
+.cart-page-browse a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-4px);
+}
+
+.cart-page-browse a:active {
+  transform: translateY(2px);
 }
 
 .cart-page-browse a:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
 }
 
 .cart-page-standby {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.75rem;
 }
 
-/* Polite success announcements (Sub-Phase 7.8): visually hidden but
-  announced by screen readers. The region renders permanently (empty
-  until a mutation settles) so assistive technology observes every
-  announcement; clearing at operation start makes repeats re-announce.
-  Direction-neutral declarations only (RTL-safe). */
+/* Polite success announcements: visually hidden but announced by screen
+   readers. The region renders permanently (empty until a mutation
+   settles) so assistive technology observes every announcement; clearing
+   at operation start makes repeats re-announce. Direction-neutral
+   declarations only (RTL-safe). */
 
 .cart-page-announcement {
   position: absolute;

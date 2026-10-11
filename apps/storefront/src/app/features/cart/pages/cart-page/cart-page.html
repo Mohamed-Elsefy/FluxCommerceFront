@@ -25,13 +25,15 @@
       ></flux-error-state>
     }
     @if (cart().isEmpty) {
-      <flux-empty-state
-        [title]="copy().emptyTitle"
-        [message]="copy().emptyMessage"
-      ></flux-empty-state>
-      <p class="cart-page-browse">
-        <a routerLink="/catalog">{{ copy().browseCatalog }}</a>
-      </p>
+      <div class="cart-page-empty">
+        <flux-empty-state
+          [title]="copy().emptyTitle"
+          [message]="copy().emptyMessage"
+        ></flux-empty-state>
+        <p class="cart-page-browse">
+          <a routerLink="/products">{{ copy().browseProducts }}</a>
+        </p>
+      </div>
     } @else {
       <div class="cart-page-content">
         <cart-items
@@ -50,6 +52,8 @@
           [subtotalText]="subtotalText()"
           [totalLabel]="copy().summaryTotal"
           [totalText]="totalText()"
+          [estimatedLabel]="copy().summaryEstimatedTotal"
+          [estimatedTotals]="estimatedTotals()"
           [totalsNote]="totalsNote()"
           [clearLabel]="copy().summaryClear"
           [checkoutLabel]="copy().summaryCheckout"

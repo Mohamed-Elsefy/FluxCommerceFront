@@ -8,9 +8,10 @@
  * re-declared — so these tests assert the aliasing compiles and the
  * helpers behave, not backend shapes.
  *
- * Backend-authoritative totals pin: no helper under test multiplies
- * prices or sums amounts — money slots stay `null` until a backend
- * totals source provides them.
+ * Backend-authoritative totals pin: money slots stay `null` until a
+ * backend totals source provides them; the display-only
+ * `estimateCartTotals` is the single sanctioned exception (covered
+ * separately, never fills the money slots).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -19,6 +20,7 @@ import {
   MIN_CART_QUANTITY,
   createGuestCartIdentity,
   emptyCartTotals,
+  estimateCartTotals,
   getCartDistinctItemCount,
   getCartItemCount,
   getCartOwner,
@@ -110,6 +112,33 @@ describe('CartTotals backend-authoritative shape', () => {
     expect(totals.subtotal).toBeNull();
     expect(totals.total).toBeNull();
     expect(cart().items[0].unitPriceAmount).toBe(29.99);
+  });
+});
+
+describe('estimateCartTotals (sanctioned display-only exception)', () => {
+  it('sums extended prices per currency rounded to cents', () => {
+    expect(
+      estimateCartTotals([
+        line({ unitPriceAmount: 29.99, quantity: 2, currency: 'USD' }),
+        line({ unitPriceAmount: 10, quantity: 1, currency: 'USD' }),
+        line({ unitPriceAmount: 5.5, quantity: 3, currency: 'EUR' }),
+      ]),
+    ).toEqual([
+      { currency: 'USD', amount: 69.98 },
+      { currency: 'EUR', amount: 16.5 },
+    ]);
+  });
+
+  it('yields no rows for empty input and skips malformed lines', () => {
+    expect(estimateCartTotals([])).toEqual([]);
+    expect(
+      estimateCartTotals([
+        line({ unitPriceAmount: Number.NaN, currency: 'USD' }),
+        line({ quantity: 0, currency: 'USD' }),
+        line({ currency: '   ' }),
+        line({ unitPriceAmount: 4.25, quantity: 2, currency: 'USD' }),
+      ]),
+    ).toEqual([{ currency: 'USD', amount: 8.5 }]);
   });
 });
 

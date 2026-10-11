@@ -15,11 +15,11 @@
  *
  * Backend-authoritative totals rule (this sub-phase's core constraint):
  * `CartTotals` below carries counts plus money slots that are populated
- * ONLY from backend-issued values. This module provides NO price or total
- * computation — no `unitPrice * quantity`, no subtotal/total summation,
- * no float-math money helpers. Money slots stay `null` until a backend
- * totals source provides them (mapped in Sub-Phase 7.2+, never derived
- * here).
+ * ONLY from backend-issued values. The single sanctioned exception is
+ * the display-only `estimateCartTotals` (explicit product request, never
+ * submitted anywhere): all other helpers perform no price math.
+ * `CartTotals.subtotal/total` stay `null` until a backend totals source
+ * provides them (mapped in Sub-Phase 7.2+, never derived here).
  *
  * Ownership (`ARCHITECTURE.md` §5 — feature-based architecture):
  * - Contract mirrors live in `@flux/models` and stay the single
@@ -112,9 +112,8 @@ export interface CartMoney {
  *   lives here).
  * - `subtotal` / `total` are backend-authoritative money slots. The cart
  *   contract exposes NO totals object, so both stay `null` until a
- *   backend totals source provides them (Sub-Phase 7.2+ mapping). There
- *   is deliberately NO helper in this module that fills them from
- *   `unitPriceAmount * quantity`.
+ *   backend totals source provides them (Sub-Phase 7.2+ mapping). The
+ *   display-only `estimateCartTotals` never fills these slots.
  */
 export interface CartTotals {
   readonly itemCount: number;
@@ -140,6 +139,46 @@ export function emptyCartTotals(): CartTotals {
  */
 export function hasBackendTotals(totals: CartTotals | null | undefined): boolean {
   return totals?.subtotal !== null && totals?.subtotal !== undefined;
+}
+
+/**
+ * Display-only cart estimate per currency (EXPLICIT, documented
+ * deviation from the backend-authoritative totals rule above, made at
+ * product request): sums backend-issued `unitPriceAmount × quantity`
+ * per currency, rounded to cents. Rendered in the summary as an
+ * "estimated total" beside the pending-totals note — never submitted,
+ * never fed into checkout (which reprices authoritatively server-side
+ * per `API_CONTRACT.md` Appendix B.3). Pure — throws nothing, performs
+ * no HTTP.
+ */
+export interface CartEstimate {
+  readonly currency: string;
+  readonly amount: number;
+}
+
+/**
+ * Groups backend-issued lines by currency and sums their extended
+ * prices (`unitPriceAmount × quantity`), rounded to cents. Malformed
+ * lines (non-finite price/quantity, blank currency) are skipped so one
+ * bad line cannot poison the estimate. Empty input yields no rows.
+ * Display-only — see `CartEstimate`.
+ */
+export function estimateCartTotals(items: readonly CartItem[]): CartEstimate[] {
+  const sums = new Map<string, number>();
+  for (const item of items) {
+    if (
+      !Number.isFinite(item.unitPriceAmount) ||
+      !Number.isInteger(item.quantity) ||
+      item.currency.trim() === ''
+    ) {
+      continue;
+    }
+    sums.set(item.currency, (sums.get(item.currency) ?? 0) + item.unitPriceAmount * item.quantity);
+  }
+  return [...sums.entries()].map(([currency, amount]) => ({
+    currency,
+    amount: Math.round(amount * 100) / 100,
+  }));
 }
 
 /**

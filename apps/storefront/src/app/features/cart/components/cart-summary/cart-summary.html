@@ -17,6 +17,14 @@
         <dd>{{ totalText }}</dd>
       </div>
     }
+    @if (estimatedLabel !== null && estimatedTotals.length > 0) {
+      @for (estimate of estimatedTotals; track estimate) {
+        <div class="cart-summary-row cart-summary-estimate">
+          <dt>{{ estimatedLabel }}</dt>
+          <dd>{{ estimate }}</dd>
+        </div>
+      }
+    }
   </dl>
   @if (totalsNote !== null) {
     <p class="cart-summary-note">{{ totalsNote }}</p>

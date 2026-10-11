@@ -61,10 +61,12 @@ describe('AddToCart states', () => {
     expect(element.querySelector('flux-spinner')).not.toBeNull();
   });
 
-  it('renders the confirmation instead of the button once added', () => {
+  it('keeps the button mounted with the confirmation once added', () => {
     const { element } = setup({ status: 'added' });
+    const button = element.querySelector('.add-to-cart-button');
 
-    expect(element.querySelector('.add-to-cart-button')).toBeNull();
+    expect(button).not.toBeNull();
+    expect(button?.textContent).toContain('Add to cart');
     const confirmation = element.querySelector('.add-to-cart-confirmation');
     expect(confirmation?.textContent).toBe('Added to cart.');
     expect(confirmation?.getAttribute('role')).toBe('status');

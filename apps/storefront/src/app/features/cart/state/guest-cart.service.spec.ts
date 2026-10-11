@@ -26,7 +26,11 @@ import type { AddCartItemRequest } from '@flux/models';
 import type { Cart } from '../models/cart.models';
 import { CartState } from './cart-state';
 import { GUEST_CART_STORAGE, type GuestCartStorage } from './guest-cart-storage.service';
-import { GuestCartService, isInvalidGuestIdentityError } from './guest-cart.service';
+import {
+  GuestCartService,
+  isInvalidGuestIdentityError,
+  isMissingResourceError,
+} from './guest-cart.service';
 
 const GUEST_ID = '11111111-1111-4111-8111-111111111111';
 const FRESH_ID = '22222222-2222-4222-8222-222222222222';
@@ -166,6 +170,21 @@ describe('isInvalidGuestIdentityError', () => {
   });
 });
 
+describe('isMissingResourceError', () => {
+  it('flags only codeless 404s (the real wire shape for missing resources)', () => {
+    expect(isMissingResourceError(new ApiError({ status: 404, message: 'Not found.' }))).toBe(true);
+  });
+
+  it('ignores coded failures (codes keep their documented meaning)', () => {
+    expect(isMissingResourceError(identityError('Cart.CartNotFound', 404))).toBe(false);
+    expect(isMissingResourceError(identityError('Cart.CartItemNotFound', 404))).toBe(false);
+    expect(isMissingResourceError(new ApiError({ status: 400, message: 'Bad.' }))).toBe(false);
+    expect(isMissingResourceError(new ApiError({ status: 500, message: 'Down.' }))).toBe(false);
+    expect(isMissingResourceError(null)).toBe(false);
+    expect(isMissingResourceError(undefined)).toBe(false);
+  });
+});
+
 describe('GuestCartService first visit (no stored identity)', () => {
   it('creates the guest cart without any GET and persists the issued id', () => {
     const { service, state, calls, savedIds, stored } = setup();
@@ -281,6 +300,24 @@ describe('GuestCartService return visit (stored identity)', () => {
     expect(clearCount()).toBe(1);
     expect(state.identity()).toEqual({ kind: 'guest', cartId: FRESH_ID });
     expect(state.isEmpty()).toBe(true);
+    expect(savedIds).toEqual([FRESH_ID]);
+    expect(stored()).toBe(FRESH_ID);
+  });
+
+  it('recovers with a fresh guest cart on a codeless 404 (real wire shape)', () => {
+    const { service, state, calls, savedIds, stored, clearCount } = setup(
+      {
+        getGuestCart: () => throwError(() => new ApiError({ status: 404, message: 'Not found.' })),
+        createGuestCart: () => of(cartEnvelope(guestCart({ cartId: FRESH_ID, items: [] }))),
+      },
+      GUEST_ID,
+    );
+
+    service.initialize();
+
+    expect(methodsOf(calls)).toEqual(['getGuestCart', 'createGuestCart']);
+    expect(clearCount()).toBe(1);
+    expect(state.identity()).toEqual({ kind: 'guest', cartId: FRESH_ID });
     expect(savedIds).toEqual([FRESH_ID]);
     expect(stored()).toBe(FRESH_ID);
   });

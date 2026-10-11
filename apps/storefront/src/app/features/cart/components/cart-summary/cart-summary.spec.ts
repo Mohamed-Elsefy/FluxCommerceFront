@@ -20,6 +20,8 @@ function setup(
     totalText?: string | null;
     totalsNote?: string | null;
     clearing?: boolean;
+    estimatedLabel?: string | null;
+    estimatedTotals?: readonly string[];
   } = {},
 ): {
   fixture: ComponentFixture<CartSummary>;
@@ -36,6 +38,8 @@ function setup(
   fixture.componentRef.setInput('subtotalText', options.subtotalText ?? null);
   fixture.componentRef.setInput('totalLabel', 'Total');
   fixture.componentRef.setInput('totalText', options.totalText ?? null);
+  fixture.componentRef.setInput('estimatedLabel', options.estimatedLabel ?? null);
+  fixture.componentRef.setInput('estimatedTotals', options.estimatedTotals ?? []);
   // Explicit `undefined` check (not `??`): tests must be able to pass
   // `null` through to hide the note.
   fixture.componentRef.setInput(
@@ -82,6 +86,19 @@ describe('CartSummary rendering', () => {
     expect(text).toContain('Total');
     expect(text).toContain('$59.98');
     expect(element.querySelector('.cart-summary-note')).toBeNull();
+  });
+
+  it('renders display-only estimate rows beside the pending note', () => {
+    const { element } = setup({
+      estimatedLabel: 'Estimated total',
+      estimatedTotals: ['$103.48'],
+    });
+    const text = element.textContent ?? '';
+
+    expect(text).toContain('Estimated total');
+    expect(text).toContain('$103.48');
+    expect(element.querySelector('.cart-summary-estimate')).not.toBeNull();
+    expect(element.querySelector('.cart-summary-note')).not.toBeNull();
   });
 });
 

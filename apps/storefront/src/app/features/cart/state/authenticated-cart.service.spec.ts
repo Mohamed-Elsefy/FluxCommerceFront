@@ -265,6 +265,22 @@ describe('AuthenticatedCartService authenticated session', () => {
     expect(state.isEmpty()).toBe(true);
   });
 
+  it('falls back to get-or-create on a codeless 404 (real wire shape)', () => {
+    const codeless = new ApiError({ status: 404, message: 'Not found.' });
+    const { state, calls } = setup(
+      {
+        getCart: () => throwError(() => codeless),
+        getOrCreateCart: () => of(cartEnvelope(authCart({ items: [] }))),
+      },
+      { authStatus: 'authenticated' },
+    );
+    TestBed.flushEffects();
+
+    expect(methodsOf(calls)).toEqual(['getCart', 'getOrCreateCart']);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+    expect(state.isEmpty()).toBe(true);
+  });
+
   it('surfaces non-404 establish failures without get-or-create', () => {
     const rejection = new ApiError({ status: 401, message: 'Anonymous.' });
     const { state, calls } = setup(
@@ -425,6 +441,23 @@ describe('AuthenticatedCartService merge (Sub-Phase 7.7)', () => {
     const { state, calls, stored } = setup(
       {
         mergeGuestCart: () => throwError(() => expired),
+        getCart: () => of(cartEnvelope(authCart({ items: [] }))),
+      },
+      { authStatus: 'authenticated', storedGuestId: GUEST_ID },
+    );
+    TestBed.flushEffects();
+
+    expect(methodsOf(calls)).toEqual(['mergeGuestCart', 'getCart']);
+    expect(state.isEmpty()).toBe(true);
+    expect(state.identity()).toEqual({ kind: 'authenticated' });
+    expect(stored()).toBeNull();
+  });
+
+  it('falls back to establishment on a codeless merge 404 (real wire shape)', () => {
+    const codeless = new ApiError({ status: 404, message: 'Not found.' });
+    const { state, calls, stored } = setup(
+      {
+        mergeGuestCart: () => throwError(() => codeless),
         getCart: () => of(cartEnvelope(authCart({ items: [] }))),
       },
       { authStatus: 'authenticated', storedGuestId: GUEST_ID },

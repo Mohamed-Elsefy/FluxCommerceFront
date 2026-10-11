@@ -1,62 +1,100 @@
-/* Add-to-Cart button (Sub-Phase 6.7). Single intrinsically responsive
-  component — no device duplicates, no viewport media queries. Logical
-  properties only (RTL-safe); visual values come from theming tokens. */
+/* Add-to-Cart button — Kinetic primary pill with an inline confirmation.
+   Single intrinsically responsive component — no device duplicates, no
+   viewport media queries. Logical properties only (RTL-safe); visual
+   values come from theming tokens. */
 
 .add-to-cart {
   display: grid;
-  gap: var(--spacing-sm);
-  margin-block-start: var(--spacing-sm);
+  gap: var(--s-xs);
+  margin-block-start: var(--s-sm);
 }
 
 .add-to-cart-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  min-block-size: 2.75rem;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-lg);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  color: var(--color-primary-contrast);
-  background-color: var(--color-primary);
-  border: var(--border-width-thin) solid var(--color-primary);
-  border-radius: var(--radius-md);
+  gap: var(--s-xs);
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  color: var(--text-on-accent);
+  background-color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-pill);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transform: translateY(-4px);
   cursor: pointer;
+  transition:
+    transform 0.2s var(--spring),
+    box-shadow 0.2s;
+}
+
+.add-to-cart-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.add-to-cart-button:active {
+  transform: translateY(2px);
 }
 
 .add-to-cart-button:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
 }
 
 .add-to-cart-button:focus-visible,
 .add-to-cart-retry:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
 }
 
 .add-to-cart-confirmation {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  margin-block: var(--spacing-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  margin: 0;
+  padding-block: var(--s-2xs);
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+  font-size: 0.875rem;
+  font-weight: 700;
+  justify-self: start;
 }
 
 .add-to-cart-error {
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-base);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
   margin-block: 0;
-  color: var(--color-danger);
+  color: var(--error);
 }
 
 .add-to-cart-retry {
   justify-self: start;
-  padding-block: var(--spacing-sm);
-  padding-inline: 0;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
-  background: none;
-  border: none;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
   cursor: pointer;
+}
+
+.add-to-cart-retry:hover {
+  border-color: var(--border-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-to-cart-button {
+    transition: none;
+    transform: none;
+  }
 }

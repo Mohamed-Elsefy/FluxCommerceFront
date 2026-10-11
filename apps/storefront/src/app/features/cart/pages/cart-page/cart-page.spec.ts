@@ -517,6 +517,19 @@ describe('CartPage loading and success', () => {
     expect(text).not.toContain(forbiddenFirst);
     expect(text).not.toContain(forbiddenSecond);
   });
+
+  it('renders the display-only estimated total beside the pending note', () => {
+    const { element, state, fixture } = setup();
+    loadGuestCart(state, fixture);
+    const text = element.textContent ?? '';
+
+    // 29.99 × 2 + 14.50 × 3 from the backend snapshots (estimate only —
+    // checkout reprices authoritatively; backend rows stay hidden).
+    expect(text).toContain('Estimated total');
+    expect(text).toContain(formatCurrency(103.48, 'USD', 'en'));
+    expect(text).toContain('Totals are finalized at checkout.');
+    expect(text).not.toContain('Subtotal');
+  });
 });
 
 describe('CartPage empty and error', () => {
@@ -524,7 +537,7 @@ describe('CartPage empty and error', () => {
     TestBed.resetTestingModule();
   });
 
-  it('renders the empty state with a catalog link for zero-line carts', () => {
+  it('renders the empty state with a products link for zero-line carts', () => {
     const { element, state, fixture } = setup({
       getGuestCart: () => of(cartEnvelope(guestCart({ items: [] }))),
     });
@@ -533,8 +546,8 @@ describe('CartPage empty and error', () => {
     expect(element.textContent).toContain('Your cart is empty');
     expect(element.textContent).toContain('Browse the catalog and add something you like.');
     const browse = element.querySelector('.cart-page-browse a');
-    expect(browse?.getAttribute('href')).toBe('/catalog');
-    expect(browse?.textContent).toBe('Browse the catalog');
+    expect(browse?.getAttribute('href')).toBe('/products');
+    expect(browse?.textContent).toBe('Browse products');
   });
 
   it('renders the error state and retries the load on retry', () => {

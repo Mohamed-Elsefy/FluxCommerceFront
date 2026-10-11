@@ -115,6 +115,7 @@ import { CartState } from '../../state/cart-state';
 import { AuthenticatedCartService } from '../../state/authenticated-cart.service';
 import type { CartOperation } from '../../state/cart-state-structure';
 import {
+  estimateCartTotals,
   hasBackendTotals,
   isValidCartQuantity,
   type Cart,
@@ -172,7 +173,7 @@ export class CartPage implements OnInit {
       errorTitle: translateCartKey(culture, CART_TRANSLATION_KEYS.pageErrorTitle),
       emptyTitle: translateCartKey(culture, CART_TRANSLATION_KEYS.pageEmptyTitle),
       emptyMessage: translateCartKey(culture, CART_TRANSLATION_KEYS.pageEmptyMessage),
-      browseCatalog: translateCartKey(culture, CART_TRANSLATION_KEYS.pageBrowseCatalog),
+      browseProducts: translateCartKey(culture, CART_TRANSLATION_KEYS.pageBrowseProducts),
       itemsTitle: translateCartKey(culture, CART_TRANSLATION_KEYS.itemsTitle),
       itemLabels,
       summaryTitle: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryTitle),
@@ -181,6 +182,7 @@ export class CartPage implements OnInit {
       summaryTotal: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryTotal),
       summaryTotalsPending: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryTotalsPending),
       summaryClear: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryClear),
+      summaryEstimatedTotal: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryEstimatedTotal),
       summaryCheckout: translateCartKey(culture, CART_TRANSLATION_KEYS.summaryCheckout),
       statusQuantityUpdated: translateCartKey(culture, CART_TRANSLATION_KEYS.statusQuantityUpdated),
       statusItemRemoved: translateCartKey(culture, CART_TRANSLATION_KEYS.statusItemRemoved),
@@ -225,6 +227,23 @@ export class CartPage implements OnInit {
   protected readonly totalsNote = computed(() =>
     hasBackendTotals(this.state.totals()) ? null : this.copy().summaryTotalsPending,
   );
+
+  /**
+   * Display-only per-currency estimate rows, formatted for the active
+   * culture. Rendered beside the pending-totals note — never submitted,
+   * never fed into checkout (see `estimateCartTotals`).
+   */
+  protected readonly estimatedTotals = computed((): readonly string[] => {
+    const culture = this.cultures.culture();
+    const texts: string[] = [];
+    for (const estimate of estimateCartTotals(this.state.data()?.items ?? [])) {
+      const text = formatCurrency(estimate.amount, estimate.currency, culture);
+      if (text !== null) {
+        texts.push(text);
+      }
+    }
+    return texts;
+  });
 
   /** Freezes line and clear controls while a cart mutation is in flight. */
   protected readonly controlsDisabled = computed(() => this.state.activeOperation() !== null);
