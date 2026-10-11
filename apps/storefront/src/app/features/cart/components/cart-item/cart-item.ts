@@ -1,14 +1,15 @@
 /**
  * Cart line item component for Sub-Phase 7.4 — Cart Page & UI.
  *
- * Presentation only: renders HOW one cart line looks (decorative
- * thumbnail placeholder, product name, SKU and backend-provided unit
- * price rows, quantity control, remove action). The owning page decides
- * WHEN and WHAT — the line arrives as a preformatted view model
+ * Presentation only: renders HOW one cart line looks (product
+ * thumbnail resolved from the product read model with placeholder
+ * fallback, linked product name, SKU and backend-provided unit price
+ * rows, quantity control, remove action). The owning page decides WHEN
+ * and WHAT — the line arrives as a preformatted view model
  * (`CartItemView`: backend line plus page-localized, culture-formatted
- * strings), and user intent leaves through `quantityChange`/`remove`.
- * No API access, no HTTP, no i18n service, no price math —
- * presentational components never call backend APIs
+ * strings plus the resolved thumbnail), and user intent leaves through
+ * `quantityChange`/`remove`. No API access, no HTTP, no i18n service,
+ * no price math — presentational components never call backend APIs
  * (`ARCHITECTURE.md` §8).
  *
  * Contract fidelity (§7.4 rules — strictly backend-driven, never
@@ -20,9 +21,11 @@
  * - Line totals render nowhere: `CartItemResponse` carries no `lineTotal`
  *   and the UI performs no `unitPrice × quantity` multiplication (§7.4
  *   boundary — the backend remains authoritative for totals).
- * - Thumbnails render as a decorative placeholder: cart lines carry no
- *   image URL in any readable contract, so no product imagery is
- *   fabricated (`aria-hidden`, no `<img>` — pinned by spec).
+ * - Thumbnails render the backend-resolved primary image when known,
+ *   else the placeholder: cart lines carry no image URL in any readable
+ *   contract, so the owning page resolves `GET /catalog/products/{id}`
+ *   thumbnails through feature state and the component never fabricates
+ *   imagery.
  *
  * SSR/hydration safe: static markup from inputs only, no browser APIs.
  * RTL safe: logical properties only, no direction branching.
@@ -33,6 +36,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import type { CartItem } from '../../models/cart.models';
 import { QuantityControl } from '../quantity-control/quantity-control';
 
@@ -50,18 +54,22 @@ export interface CartItemLabels {
  * Preformatted cart line view model, projected by the owning page from
  * backend lines: `unitPriceText` formats the backend price snapshot for
  * the active culture (display only), `removeLabel` carries the
- * interpolated accessible remove label. The component renders these
- * strings verbatim — it resolves nothing.
+ * interpolated accessible remove label, and `imageUrl`/`imageAlt` carry
+ * the resolved product thumbnail (`null`/fallback when unresolvable —
+ * cart lines carry no image URL in any readable contract). The component
+ * renders these strings verbatim — it resolves nothing.
  */
 export interface CartItemView {
   readonly item: CartItem;
   readonly unitPriceText: string;
   readonly removeLabel: string;
+  readonly imageUrl: string | null;
+  readonly imageAlt: string;
 }
 
 @Component({
   selector: 'cart-item',
-  imports: [QuantityControl],
+  imports: [RouterLink, QuantityControl],
   templateUrl: './cart-item.html',
   styleUrl: './cart-item.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

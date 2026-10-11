@@ -194,18 +194,25 @@ export class CartPage implements OnInit {
   /**
    * Preformatted line view models in backend order: backend snapshot
    * formatted for the active culture (display only) plus the
-   * interpolated accessible remove label. The single projection site —
-   * templates render these strings verbatim.
+   * interpolated accessible remove label and the resolved thumbnail
+   * (fallback when the product image is unresolvable). The single
+   * projection site — templates render these strings verbatim.
    */
   protected readonly views = computed((): readonly CartItemView[] => {
     const culture = this.cultures.culture();
-    return (this.state.data()?.items ?? []).map((item) => ({
-      item,
-      unitPriceText: formatCurrency(item.unitPriceAmount, item.currency, culture),
-      removeLabel: translateCartKey(culture, CART_TRANSLATION_KEYS.itemRemove, {
-        product: item.productName,
-      }),
-    }));
+    const images = this.state.lineImages();
+    return (this.state.data()?.items ?? []).map((item) => {
+      const resolved = images.get(item.productId);
+      return {
+        item,
+        unitPriceText: formatCurrency(item.unitPriceAmount, item.currency, culture),
+        removeLabel: translateCartKey(culture, CART_TRANSLATION_KEYS.itemRemove, {
+          product: item.productName,
+        }),
+        imageUrl: resolved?.imageUrl ?? null,
+        imageAlt: resolved?.altText ?? item.productName,
+      };
+    });
   });
 
   /** Page-formatted item count for the active culture. */
@@ -269,6 +276,19 @@ export class CartPage implements OnInit {
     // client — `ngOnInit` covers the first SSR pass).
     effect(() => {
       this.title.setTitle(`${this.copy().title} | FluxCommerce`);
+    });
+
+    // Line thumbnails resolve alongside settled carts (browser-only —
+    // display enrichment, never cart state): reads the settled lines and
+    // resolves unknown product images `untracked`, so map updates can
+    // never reschedule the effect.
+    effect(() => {
+      const items = this.state.data()?.items ?? [];
+      untracked(() => {
+        if (this.isBrowser && items.length > 0) {
+          this.state.loadLineImages(items.map((item) => item.productId));
+        }
+      });
     });
 
     // Settle observer for success announcements and focus repair (runs on

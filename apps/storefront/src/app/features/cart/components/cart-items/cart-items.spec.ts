@@ -10,6 +10,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { CartItem } from '../../models/cart.models';
 import type { CartItemLabels, CartItemView } from '../cart-item/cart-item';
@@ -34,7 +35,13 @@ function viewFor(sku: string, variantId: string, quantity: number): CartItemView
     currency: 'USD',
     quantity,
   };
-  return { item, unitPriceText: '$29.99', removeLabel: `Remove Tee ${sku}` };
+  return {
+    item,
+    unitPriceText: '$29.99',
+    removeLabel: `Remove Tee ${sku}`,
+    imageUrl: null,
+    imageAlt: `Tee ${sku}`,
+  };
 }
 
 const VIEWS: readonly CartItemView[] = [
@@ -50,7 +57,7 @@ function setup(options: { views?: readonly CartItemView[]; disabled?: boolean } 
 } {
   const quantities: CartLineQuantityChange[] = [];
   const removes: string[] = [];
-  TestBed.configureTestingModule({});
+  TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(CartItems);
   fixture.componentRef.setInput('views', options.views ?? VIEWS);
   fixture.componentRef.setInput('title', 'Cart items');

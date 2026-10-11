@@ -67,7 +67,7 @@
  */
 
 import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
-import { finalize, map, Subscription, tap, type Observable } from 'rxjs';
+import { catchError, finalize, forkJoin, map, of, Subscription, tap, type Observable } from 'rxjs';
 import {
   ApiError,
   createResourceState,
@@ -95,6 +95,12 @@ import {
   type CartTotals,
 } from '../models/cart.models';
 import type { CartOperation, CartStateShape } from './cart-state-structure';
+
+/** Line thumbnail resolved from the product read model (display only). */
+export interface CartLineImage {
+  readonly imageUrl: string;
+  readonly altText: string | null;
+}
 
 /** Options for every `CartState` action: cancellation only, never mapping. */
 export interface CartActionOptions {
@@ -178,6 +184,19 @@ export class CartState {
   readonly owner: Signal<CartOwner | null> = computed(() => getCartOwner(this.cartStore.data()));
 
   /**
+   * Line thumbnails by product id, resolved from `GET
+   * /catalog/products/{id}` (`primaryImage`). Display-only enrichment —
+   * cart lines carry no image URL in any readable contract, so missing
+   * entries (unknown/failed products) render the placeholder. Never
+   * touches the cart slot or the one-at-a-time lock.
+   */
+  private readonly lineImagesStore = signal<ReadonlyMap<string, CartLineImage>>(new Map());
+
+  /** Resolved line thumbnails by product id (absent ids render the placeholder). */
+  readonly lineImages: Signal<ReadonlyMap<string, CartLineImage>> =
+    this.lineImagesStore.asReadonly();
+
+  /**
    * Loads the cart for the current identity: guest identity reads
    * `GET /cart/guest/{cartId}`, authenticated identity reads
    * `GET /cart`. A settled cart with zero lines resolves to `empty`;
@@ -199,6 +218,45 @@ export class CartState {
       return this.runOperation('load', () => this.cartApi.getCart(toApiOptions(options)), options);
     }
     return Subscription.EMPTY;
+  }
+
+  /**
+   * Resolves thumbnails for product ids missing from the map (`GET
+   * /catalog/products/{id}` → `primaryImage`). Runs outside the
+   * one-at-a-time lock (display enrichment, never a cart transition);
+   * per-product failures resolve to `null` and leave the placeholder —
+   * one unknown product never fails the batch. Blank ids are skipped
+   * without fetching. With nothing missing the call is ignored.
+   */
+  loadLineImages(productIds: readonly string[], options: CartActionOptions = {}): Subscription {
+    const missing = [...new Set(productIds)]
+      .map((id) => id.trim())
+      .filter((id) => id !== '' && !this.lineImagesStore().has(id));
+    if (missing.length === 0) {
+      return Subscription.EMPTY;
+    }
+    return forkJoin(
+      missing.map((id) =>
+        this.cartApi.getProduct(id, toApiOptions(options)).pipe(
+          map((envelope) => {
+            const image = envelope.data?.primaryImage ?? null;
+            const url = image?.imageUrl?.trim() ?? '';
+            return url === ''
+              ? null
+              : { id, image: { imageUrl: url, altText: image?.altText ?? null } as CartLineImage };
+          }),
+          catchError(() => of(null)),
+        ),
+      ),
+    ).subscribe((resolved) => {
+      const next = new Map(this.lineImagesStore());
+      for (const entry of resolved) {
+        if (entry !== null) {
+          next.set(entry.id, entry.image);
+        }
+      }
+      this.lineImagesStore.set(next);
+    });
   }
 
   /**

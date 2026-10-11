@@ -6,12 +6,13 @@
  * `CartState`, covered by `cart-state.spec.ts`): backend line rendering
  * (name, SKU, page-formatted unit price), the backend-authoritative
  * pricing pin (no locally computed line total is rendered), the
- * decorative thumbnail placeholder (no fabricated product imagery),
- * quantity bubbling, remove emission, and the in-flight `disabled`
+ * resolved product thumbnail (with placeholder fallback), the details
+ * link, quantity bubbling, remove emission, and the in-flight `disabled`
  * freeze.
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { afterEach, describe, expect, it } from 'vitest';
 import { formatCurrency } from '@flux/i18n';
 import type { CartItem } from '../../models/cart.models';
@@ -41,6 +42,8 @@ function viewFor(item: CartItem = LINE): CartItemView {
     item,
     unitPriceText: formatCurrency(item.unitPriceAmount, item.currency, 'en'),
     removeLabel: `Remove ${item.productName}`,
+    imageUrl: '/cdn/tee.jpg',
+    imageAlt: 'Tee front view',
   };
 }
 
@@ -52,7 +55,7 @@ function setup(options: { view?: CartItemView; disabled?: boolean } = {}): {
 } {
   const quantities: number[] = [];
   const removes: number[] = [];
-  TestBed.configureTestingModule({});
+  TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(CartItemComponent);
   fixture.componentRef.setInput('view', options.view ?? viewFor());
   fixture.componentRef.setInput('labels', LABELS);
@@ -95,13 +98,28 @@ describe('CartItemComponent rendering', () => {
     expect(text).not.toContain(forbiddenLineTotal);
   });
 
-  it('renders a decorative thumbnail placeholder with no product imagery', () => {
+  it('renders the resolved product image with the details link', () => {
     const { element } = setup();
-    const thumb = element.querySelector('.cart-item-thumb');
+    const image = element.querySelector('.cart-item-image') as HTMLImageElement | null;
+    const link = element.querySelector('.cart-item-name a');
 
-    expect(thumb).not.toBeNull();
-    expect(thumb?.getAttribute('aria-hidden')).toBe('true');
-    expect(thumb?.querySelector('img')).toBeNull();
+    expect(image?.getAttribute('src')).toBe('/cdn/tee.jpg');
+    expect(image?.getAttribute('alt')).toBe('Tee front view');
+    expect(link?.getAttribute('href')).toBe(
+      '/catalog/products/22222222-2222-4222-8222-222222222222',
+    );
+    expect(link?.textContent).toBe('Tee');
+  });
+
+  it('renders the fallback box when the product image is unresolvable', () => {
+    const { fixture } = setup();
+    fixture.componentRef.setInput('view', { ...viewFor(), imageUrl: null, imageAlt: 'Tee' });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.cart-item-image')).toBeNull();
+    expect(element.querySelector('.cart-item-thumb-fallback')).not.toBeNull();
+    expect(element.querySelector('.cart-item-name')?.textContent).toBe('Tee');
   });
 });
 
@@ -120,11 +138,12 @@ describe('CartItemComponent actions', () => {
     expect(quantities).toEqual([3]);
   });
 
-  it('emits remove with the accessible localized label', () => {
+  it('emits remove from the icon-only basket button with the accessible label', () => {
     const { element, fixture, removes } = setup();
     const remove = element.querySelector('.cart-item-remove') as HTMLButtonElement | null;
 
-    expect(remove?.textContent?.trim()).toBe('Remove Tee');
+    expect(remove?.getAttribute('aria-label')).toBe('Remove Tee');
+    expect(remove?.querySelector('svg')).not.toBeNull();
 
     remove?.dispatchEvent(new Event('click'));
     fixture.detectChanges();

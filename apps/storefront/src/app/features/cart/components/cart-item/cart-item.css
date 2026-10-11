@@ -1,22 +1,50 @@
-/* Cart line item (Sub-Phase 7.4). Single intrinsically responsive component
-  — wrapping flex, no device duplicates, no viewport media queries. Logical
-  properties only (RTL-safe); visual values come from theming tokens. */
+/* Cart line item — Kinetic Pod voice. Single intrinsically responsive
+   component — wrapping flex, no device duplicates, no viewport media
+   queries. Logical properties only (RTL-safe); visual values come from
+   theming tokens. */
 
 .cart-item {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--spacing-lg);
-  padding-block: var(--spacing-lg);
-  border-block-end: var(--border-width-thin) solid var(--color-border);
+  align-items: center;
+  gap: var(--s-md);
+  padding: var(--s-md);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.cart-item:hover {
+  border-color: var(--border-accent);
 }
 
 .cart-item-thumb {
   flex: 0 0 auto;
   inline-size: 5rem;
   block-size: 5rem;
-  background-color: var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+}
+
+.cart-item-image {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cart-item-thumb-fallback {
+  inline-size: 100%;
+  block-size: 100%;
+  background:
+    radial-gradient(circle at 50% 30%, var(--glow-secondary), transparent 65%), var(--surface-2);
 }
 
 .cart-item-info {
@@ -25,10 +53,29 @@
 }
 
 .cart-item-name {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  margin-block: 0 var(--spacing-sm);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 700;
+  margin-block: 0 var(--s-2xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-item-name a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.cart-item-name a:hover {
+  color: var(--primary-text);
+}
+
+.cart-item-name a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
 }
 
 .cart-item-meta {
@@ -37,42 +84,68 @@
 
 .cart-item-row {
   display: flex;
-  gap: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-base);
+  gap: var(--s-xs);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
 }
 
 .cart-item-row dt {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .cart-item-row dd {
   margin-inline-start: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .cart-item-actions {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--spacing-sm);
+  gap: var(--s-sm);
+  margin-inline-start: auto;
 }
 
 .cart-item-remove {
-  padding-block: var(--spacing-sm);
-  padding-inline: 0;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-base);
-  color: var(--color-danger);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  color: var(--error);
   background-color: transparent;
-  border: none;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
   cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    transform 0.2s var(--spring);
+}
+
+.cart-item-remove:hover {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  transform: translateY(-2px);
+}
+
+.cart-item-remove:active {
+  transform: translateY(0);
 }
 
 .cart-item-remove:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .cart-item-remove:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-item {
+    transition: none;
+    transform: none;
+  }
 }

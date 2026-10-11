@@ -174,6 +174,33 @@ function setup(
       return flows[method]?.() ?? of(cartEnvelope());
     };
   }
+  // Line thumbnails resolve outside the recorded cart transport (display
+  // enrichment, never a cart transition): a backend-issued primary image
+  // keeps every settled line illustrated in rendering tests.
+  apiStub['getProduct'] = () =>
+    of({
+      isSuccess: true,
+      data: {
+        id: PRODUCT_ID,
+        name: 'Tee',
+        slug: 'tee',
+        description: null,
+        seo: null,
+        status: 1,
+        visibility: 0,
+        categoryId: '22222222-2222-4222-8222-222222222222',
+        isDeleted: false,
+        createdAtUtc: '2026-09-04T10:00:00Z',
+        deletedAtUtc: null,
+        primaryImage: {
+          id: '44444444-4444-4444-4444-444444444444',
+          imageUrl: '/cdn/tee.jpg',
+          altText: 'Tee front view',
+          displayOrder: 0,
+          isPrimary: true,
+        },
+      },
+    } as unknown as ApiResponseWithData<Cart>);
 
   TestBed.configureTestingModule({
     providers: [
@@ -503,6 +530,22 @@ describe('CartPage loading and success', () => {
     expect(text).toContain('5');
     expect(text).toContain('Totals are finalized at checkout.');
     expect(element.querySelector('.cart-summary-checkout')?.getAttribute('href')).toBe('/checkout');
+  });
+
+  it('illustrates lines with resolved product images and details links', () => {
+    const { element, state, fixture } = setup();
+    loadGuestCart(state, fixture);
+
+    const images = [...element.querySelectorAll('.cart-item-image')];
+    expect(images).toHaveLength(2);
+    expect(images[0]?.getAttribute('src')).toBe('/cdn/tee.jpg');
+    expect(images[0]?.getAttribute('alt')).toBe('Tee front view');
+    expect(
+      [...element.querySelectorAll('.cart-item-name a')].map((link) => link.getAttribute('href')),
+    ).toEqual([
+      '/catalog/products/22222222-2222-4222-8222-222222222222',
+      '/catalog/products/22222222-2222-4222-8222-222222222222',
+    ]);
   });
 
   it('renders no locally computed line totals anywhere on the page', () => {

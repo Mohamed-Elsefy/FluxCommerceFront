@@ -14,7 +14,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { ApiClient, ApiError, CART_ENDPOINTS } from '@flux/api';
+import { ApiClient, ApiError, CART_ENDPOINTS, CATALOG_ENDPOINTS } from '@flux/api';
 import type {
   AddCartItemRequest,
   MergeCartRequest,
@@ -128,6 +128,14 @@ describe('CartApiService guest routes', () => {
     expect(calls.paths).toEqual([CART_ENDPOINTS.clearGuestCart.path]);
     expect(calls.bodies).toEqual([]);
     expect(calls.options).toEqual([{ pathParams: { cartId: GUEST_ID } }]);
+  });
+
+  it('reads products for line thumbnails through the canonical product route', () => {
+    const { service, calls } = setup();
+    service.getProduct('22222222-2222-4222-8222-222222222222').subscribe();
+
+    expect(calls.paths).toEqual([CATALOG_ENDPOINTS.getProduct.path]);
+    expect(calls.options).toEqual([{ pathParams: { id: '22222222-2222-4222-8222-222222222222' } }]);
   });
 });
 

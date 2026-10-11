@@ -117,6 +117,33 @@ function setup(flows: Partial<Record<StateMethod, Flow>> = {}): {
       return flows[method]?.() ?? of(cartEnvelope());
     };
   }
+  // Line thumbnails resolve outside the recorded cart transport (display
+  // enrichment, never a cart transition): unknown products echo an
+  // imageless record so the placeholder path stays covered.
+  apiStub['getProduct'] = (id: unknown) =>
+    of({
+      isSuccess: true,
+      data: {
+        id,
+        name: 'Tee',
+        slug: 'tee',
+        description: null,
+        seo: null,
+        status: 1,
+        visibility: 0,
+        categoryId: '22222222-2222-4222-8222-222222222222',
+        isDeleted: false,
+        createdAtUtc: '2026-09-04T10:00:00Z',
+        deletedAtUtc: null,
+        primaryImage: {
+          id: '44444444-4444-4444-4444-444444444444',
+          imageUrl: '/cdn/tee.jpg',
+          altText: 'Tee front view',
+          displayOrder: 0,
+          isPrimary: true,
+        },
+      },
+    } as unknown as ApiResponseWithData<Cart>);
 
   TestBed.configureTestingModule({
     providers: [{ provide: CartApiService, useValue: apiStub }, CartState],
@@ -581,6 +608,32 @@ describe('CartState mergeCart', () => {
     expect(state.cart().status).toBe('error');
     expect(state.cart().error).toBe(rejection);
     expect(state.activeOperation()).toBeNull();
+  });
+});
+
+describe('CartState line images', () => {
+  it('resolves thumbnails for unknown products without touching the cart slot', () => {
+    const { state, calls } = setup();
+
+    state.loadLineImages(['22222222-2222-4222-8222-222222222222']);
+
+    expect(calls).toHaveLength(0);
+    expect(state.cart().status).toBe('idle');
+    expect(state.activeOperation()).toBeNull();
+    expect(state.lineImages().get('22222222-2222-4222-8222-222222222222')).toEqual({
+      imageUrl: '/cdn/tee.jpg',
+      altText: 'Tee front view',
+    });
+  });
+
+  it('skips blank and already-resolved ids without fetching', () => {
+    const { state } = setup();
+    state.loadLineImages(['22222222-2222-4222-8222-222222222222']);
+    expect(state.lineImages().size).toBe(1);
+
+    state.loadLineImages(['22222222-2222-4222-8222-222222222222', '   ']);
+
+    expect(state.lineImages().size).toBe(1);
   });
 });
 

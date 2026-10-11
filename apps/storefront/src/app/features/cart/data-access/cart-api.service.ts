@@ -55,11 +55,13 @@ import type { Observable } from 'rxjs';
 import type {
   AddCartItemRequest,
   MergeCartRequest,
+  ProductResponse,
   UpdateCartItemQuantityRequest,
 } from '@flux/models';
 import {
   ApiClient,
   CART_ENDPOINTS,
+  CATALOG_ENDPOINTS,
   type ApiRequestOptions,
   type ApiResponseWithData,
 } from '@flux/api';
@@ -259,6 +261,22 @@ export class CartApiService {
    */
   clearCart(options: ApiRequestOptions = {}): Observable<ApiResponseWithData<Cart>> {
     return this.api.delete<ApiResponseWithData<Cart>>(CART_ENDPOINTS.clearCart.path, options);
+  }
+
+  /**
+   * `GET /catalog/products/{id}` — anonymous. Single product read model,
+   * used here only to resolve line thumbnails (`primaryImage`).
+   * Success: `200 ApiResponse<ProductResponse>`.
+   * Failures: `400` validation (malformed id), `404` unknown product.
+   */
+  getProduct(
+    id: string,
+    options: ApiRequestOptions = {},
+  ): Observable<ApiResponseWithData<ProductResponse>> {
+    return this.api.get<ApiResponseWithData<ProductResponse>>(CATALOG_ENDPOINTS.getProduct.path, {
+      ...options,
+      pathParams: { id, ...(options.pathParams ?? {}) },
+    });
   }
 
   /**
