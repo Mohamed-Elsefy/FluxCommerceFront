@@ -32,6 +32,16 @@ import { AccountState } from './state/account-state';
  * global store — `AccountState` has no `providedIn` and registers here
  * only).
  *
+ * Cohesion note (Refactoring Phase D): this directory deliberately
+ * houses TWO contexts — the account shell/profile (`account.*`,
+ * `profile-*`, `AccountState`) and the orders domain (`orders.*`,
+ * `order-*`, `OrdersListState`/`OrderDetailsState`). They stay
+ * co-located (not split into `features/account` + `features/orders`)
+ * because both directions are used: the shell mounts the orders
+ * routes, and account models project order-adjacent profile shapes.
+ * Splitting would convert clean intra-feature cohesion into
+ * cross-feature imports (`ARCHITECTURE.md` §7).
+ *
  * Architectural flow (`ARCHITECTURE.md` §10):
  *
  * ```text

@@ -73,6 +73,10 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        // Single-page entry: no child boundary, so its transport seam +
+        // state live here (not in a `dashboard.routes.ts` — that file
+        // would only re-wrap this one child). Every multi-page feature
+        // above owns its `*.routes.ts` instead.
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),

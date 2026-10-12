@@ -20,9 +20,12 @@ export const routes: Routes = [
           import('./features/home/pages/home-page/home-page').then((m) => m.HomePage),
       },
       {
+        // Dev-only review surface (Kinetic Bubble Neo checklist) — lives
+        // under `./dev/`, never under `./features/` (not a business
+        // feature, not linked from the shell nav).
         path: 'design-preview',
         loadComponent: () =>
-          import('./features/design-preview/design-preview-page').then((m) => m.DesignPreviewPage),
+          import('./dev/design-preview/design-preview-page').then((m) => m.DesignPreviewPage),
       },
       {
         path: '',
