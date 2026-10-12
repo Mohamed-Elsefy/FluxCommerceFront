@@ -91,19 +91,13 @@ import {
 import { PaymentsMineState } from '../../state/payments-mine-state';
 import { PaymentStatusComponent } from '../../components/payment-status/payment-status';
 import {
-  PaymentsMinePagination,
-  type PaymentsMinePaginationCopy,
-} from '../../components/payments-mine-pagination/payments-mine-pagination';
+  StorefrontPagination,
+  type StorefrontPaginationCopy,
+} from '../../../../shared/pagination/pagination';
 
 @Component({
   selector: 'payments-mine-page',
-  imports: [
-    LoadingIndicator,
-    ErrorState,
-    EmptyState,
-    PaymentStatusComponent,
-    PaymentsMinePagination,
-  ],
+  imports: [LoadingIndicator, ErrorState, EmptyState, PaymentStatusComponent, StorefrontPagination],
   templateUrl: './payments-mine-page.html',
   styleUrl: './payments-mine-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -162,7 +156,7 @@ export class PaymentsMinePage implements OnInit {
   /** Localized page copy for the active culture. */
   readonly copy = computed(() => {
     const culture = this.cultures.culture();
-    const pagerCopy: PaymentsMinePaginationCopy = {
+    const pagerCopy: StorefrontPaginationCopy = {
       label: translatePaymentsMineKey(culture, PAYMENTS_MINE_TRANSLATION_KEYS.pagerLabel),
       first: translatePaymentsMineKey(culture, PAYMENTS_MINE_TRANSLATION_KEYS.pagerFirst),
       previous: translatePaymentsMineKey(culture, PAYMENTS_MINE_TRANSLATION_KEYS.pagerPrevious),

@@ -91,13 +91,13 @@ import {
   type OrderRowLabels,
 } from '../../components/order-summary-row/order-summary-row';
 import {
-  OrdersPagination,
-  type OrdersPaginationCopy,
-} from '../../components/orders-pagination/orders-pagination';
+  StorefrontPagination,
+  type StorefrontPaginationCopy,
+} from '../../../../shared/pagination/pagination';
 
 @Component({
   selector: 'orders-list-page',
-  imports: [LoadingIndicator, ErrorState, EmptyState, OrderSummaryRow, OrdersPagination],
+  imports: [LoadingIndicator, ErrorState, EmptyState, OrderSummaryRow, StorefrontPagination],
   templateUrl: './orders-list-page.html',
   styleUrl: './orders-list-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -162,7 +162,7 @@ export class OrdersListPage implements OnInit {
       items: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listFieldItems),
       total: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listFieldTotal),
     };
-    const pagerCopy: OrdersPaginationCopy = {
+    const pagerCopy: StorefrontPaginationCopy = {
       label: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listPagerLabel),
       first: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listPagerFirst),
       previous: translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.listPagerPrevious),

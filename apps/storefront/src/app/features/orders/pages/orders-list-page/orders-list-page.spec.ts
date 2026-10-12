@@ -164,7 +164,7 @@ describe('OrdersListPage success', () => {
 
   it('hides the pager for single-page results', async () => {
     const { fixture } = await setup();
-    expect(fixture.nativeElement.querySelector('orders-pagination nav')).toBeNull();
+    expect(fixture.nativeElement.querySelector('storefront-pagination nav')).toBeNull();
   });
 
   it('sets the localized document title', async () => {
@@ -214,12 +214,13 @@ describe('OrdersListPage pagination', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(fixture.nativeElement.querySelector('orders-pagination nav')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('storefront-pagination nav')).not.toBeNull();
 
     vi.mocked(api.getOrders).mockReturnValue(of(envelope(pageTwo)));
-    const next = [...fixture.nativeElement.querySelectorAll('orders-pagination nav button')].find(
-      (button: HTMLButtonElement) => button.textContent?.trim() === 'Next',
-    ) as HTMLButtonElement | undefined;
+    const next = [
+      ...fixture.nativeElement.querySelectorAll('storefront-pagination nav button'),
+    ].find((button: HTMLButtonElement) => button.textContent?.trim() === 'Next') as
+      HTMLButtonElement | undefined;
     expect(next).toBeTruthy();
     next?.click();
     fixture.detectChanges();
@@ -245,7 +246,7 @@ describe('OrdersListPage empty', () => {
     expect(fixture.nativeElement.querySelector('flux-empty-state')).not.toBeNull();
     expect(textOf(fixture, 'flux-empty-state')).toContain('No orders yet');
     expect(fixture.nativeElement.querySelector('ol')).toBeNull();
-    expect(fixture.nativeElement.querySelector('orders-pagination nav')).toBeNull();
+    expect(fixture.nativeElement.querySelector('storefront-pagination nav')).toBeNull();
   });
 });
 

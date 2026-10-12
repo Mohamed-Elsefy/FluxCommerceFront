@@ -135,7 +135,7 @@ describe('PaymentsMinePage rows', () => {
 
     expect(textOf(fixture, 'flux-empty-state')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ol')).toBeNull();
-    expect(fixture.nativeElement.querySelector('payments-mine-pagination')).toBeNull();
+    expect(fixture.nativeElement.querySelector('storefront-pagination')).toBeNull();
   });
 
   it('renders the error state with retry recovery', async () => {
@@ -188,10 +188,10 @@ describe('PaymentsMinePage filter and pager', () => {
       of(envelope(page({ totalCount: 45, pageNumber: 1 }))),
     );
 
-    expect(fixture.nativeElement.querySelector('payments-mine-pagination nav')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('storefront-pagination nav')).not.toBeNull();
 
     const next = [
-      ...fixture.nativeElement.querySelectorAll('payments-mine-pagination nav button'),
+      ...fixture.nativeElement.querySelectorAll('storefront-pagination nav button'),
     ].find((button: HTMLButtonElement) => button.textContent?.trim() === 'Next') as
       HTMLButtonElement | undefined;
     expect(next).toBeTruthy();

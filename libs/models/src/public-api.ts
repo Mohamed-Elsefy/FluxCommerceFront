@@ -4,6 +4,7 @@ export * from './lib/common/money';
 export * from './lib/common/failure';
 export * from './lib/common/cart-identity';
 export * from './lib/common/image';
+export * from './lib/common/quantity';
 export * from './lib/domains/identity';
 export * from './lib/domains/catalog';
 export * from './lib/domains/cart';

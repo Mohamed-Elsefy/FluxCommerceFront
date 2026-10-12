@@ -1,5 +1,7 @@
 /**
- * Component tests for the Sub-Phase 10.3 `OrdersPagination`.
+ * Component tests for the Refactoring Phase B (step B2b) shared
+ * `StorefrontPagination` (unified `OrdersPagination` +
+ * `PaymentsMinePagination`).
  *
  * Covers the presentational contract only: single-page hiding,
  * boundary disabled states, in-flight locking, the sliding number
@@ -11,9 +13,9 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { OrdersPagination, type OrdersPaginationCopy } from './orders-pagination';
+import { StorefrontPagination, type StorefrontPaginationCopy } from './pagination';
 
-const COPY: OrdersPaginationCopy = {
+const COPY: StorefrontPaginationCopy = {
   label: 'Orders pages',
   first: 'First',
   previous: 'Previous',
@@ -27,11 +29,11 @@ function setup(input: {
   totalCount?: number;
   disabled?: boolean;
 }): {
-  fixture: ComponentFixture<OrdersPagination>;
+  fixture: ComponentFixture<StorefrontPagination>;
   element: HTMLElement;
 } {
   TestBed.configureTestingModule({});
-  const fixture = TestBed.createComponent(OrdersPagination);
+  const fixture = TestBed.createComponent(StorefrontPagination);
   fixture.componentRef.setInput('page', input.page ?? 1);
   fixture.componentRef.setInput('pageSize', input.pageSize ?? 20);
   fixture.componentRef.setInput('totalCount', input.totalCount ?? 0);
@@ -47,7 +49,7 @@ function buttons(element: HTMLElement): HTMLButtonElement[] {
   );
 }
 
-describe('OrdersPagination', () => {
+describe('StorefrontPagination', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
   });

@@ -2,11 +2,12 @@
  * Payment status badge component for Sub-Phase 10.5 — Order & Payment
  * Status Experience.
  *
- * Presentation only: renders HOW one backend payment status reads — a
- * tone-coded badge with a localized label. The owning view decides WHEN
- * and WHAT — the status arrives as a plain input (backend string,
- * verbatim). No API access, no HTTP, no state writes — presentational
- * components never call backend APIs (`ARCHITECTURE.md` §8).
+ * Thin feature adapter over the shared `StorefrontStatusBadge`
+ * (Refactoring Phase B): the payment tone map (`paymentStatusToneOf`)
+ * and label map stay the single mapping sites — the rendering logic
+ * lives in the shared component. The owning view decides WHEN and
+ * WHAT — the status arrives as a plain input (backend string,
+ * verbatim). No API access, no HTTP, no state writes.
  *
  * Backend-authoritative rules (§10.5 — the core constraint):
  * - The label localizes the KNOWN backend value (`Pending | Processing
@@ -23,27 +24,18 @@
  * Data-source note: no order payload carries payment fields (contract
  * gap documented since §10.3), so nothing in the orders area feeds this
  * badge yet — it ships fully tested for any caller that holds backend
- * payment truth (e.g. a future §10.6 synchronization read). It is
- * intentionally NOT wired into the payments feature: cross-feature
- * internal imports are forbidden by `ARCHITECTURE.md` §7.
+ * payment truth. It is intentionally NOT wired into the payments
+ * feature: cross-feature internal imports are forbidden by
+ * `ARCHITECTURE.md` §7.
  *
  * Accessibility: the status ALWAYS renders as text (never color-only),
- * inside a semantic `span`; tone is redundant decoration. Colors pair
- * audited theme tokens (text on surface, WCAG AA per the architecture
- * audit) with a matching border — no new tokens, no contrast risk.
- *
- * SSR/hydration safe: static markup from input + culture only, no
- * browser APIs. RTL safe: logical properties only, no direction
- * branching.
- *
- * Explicitly out of scope (later work, must not appear here):
- * - 10.6 — no history timeline or post-payment polling state.
+ * inside a semantic `span`; tone is redundant decoration.
  */
 
-import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
-import { CultureService } from '@flux/i18n';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { StorefrontStatusBadge } from '../../../../shared/status-badge/status-badge';
 import { isOrdersPaymentStatus } from '../../models/orders.models';
-import { paymentStatusToneOf, type StatusTone } from '../../models/status.models';
+import { paymentStatusToneOf } from '../../models/status.models';
 import { ORDERS_TRANSLATION_KEYS, translateOrdersKey } from '../../i18n/orders-translations';
 
 /** Localized labels for the known backend payment statuses. */
@@ -58,30 +50,24 @@ const PAYMENT_STATUS_LABEL_KEYS = {
 
 @Component({
   selector: 'orders-payment-status-badge',
+  imports: [StorefrontStatusBadge],
   templateUrl: './payment-status-badge.html',
-  styleUrl: './payment-status-badge.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaymentStatusBadge {
   /** Backend payment status string to present (verbatim source of truth). */
   @Input({ required: true }) status!: string;
 
-  private readonly cultures = inject(CultureService);
+  /** Single tone map for payment status. */
+  protected readonly toneOf = paymentStatusToneOf;
 
-  /** Presentation tone for the status (`neutral` for unknown values). */
-  protected tone(): StatusTone {
-    return paymentStatusToneOf(this.status ?? '');
-  }
+  /** Label key for known payment values, `null` outside the concept. */
+  protected readonly labelKeyOf = (status: string): string | null =>
+    isOrdersPaymentStatus(status) ? PAYMENT_STATUS_LABEL_KEYS[status] : null;
 
-  /** Localized label, or the raw backend value for unknown statuses. */
-  protected label(): string {
-    const culture = this.cultures.culture();
-    const status = this.status ?? '';
-    if (isOrdersPaymentStatus(status)) {
-      return translateOrdersKey(culture, PAYMENT_STATUS_LABEL_KEYS[status]);
-    }
-    return status.trim() !== ''
-      ? status
-      : translateOrdersKey(culture, ORDERS_TRANSLATION_KEYS.statusPaymentUnknown);
-  }
+  /** Unknown-entry key used when the status is blank. */
+  protected readonly unknownLabelKey = ORDERS_TRANSLATION_KEYS.statusPaymentUnknown;
+
+  /** Orders-bundle key resolver. */
+  protected readonly translateKey = translateOrdersKey;
 }
