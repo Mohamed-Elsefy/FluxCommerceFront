@@ -181,44 +181,19 @@ export function resolveVariantSelection(
 }
 
 /**
- * Minimum purchasable quantity. Mirrors the contract's cart quantity floor
- * (`[Range(1, int.MaxValue)]` on every cart item request —
- * `API_CONTRACT.md` §3): the storefront clamps nothing above this because
- * the contract defines no maximum (over-limit quantities are a backend
- * `QuantityLimitExceeded` rejection at cart/checkout time, owned by
- * Phases 6.7/7).
+ * Minimum purchasable quantity — the shared contract floor
+ * (`[Range(1, int.MaxValue)]` — `API_CONTRACT.md` §3), re-exported so
+ * this module stays the feature's single import point (Refactoring
+ * Phase E: single implementation in `@flux/models`). The storefront
+ * clamps nothing above this because the contract defines no maximum
+ * (over-limit quantities are a backend `QuantityLimitExceeded`
+ * rejection at cart/checkout time, owned by Phases 6.7/7).
  */
-export const MIN_QUANTITY = 1;
+import { MIN_QUANTITY, isValidQuantity, parseQuantityInput } from '@flux/models';
+export { MIN_QUANTITY, isValidQuantity, parseQuantityInput };
 
 /** Starting quantity: always a valid value (§6.6 acceptance). */
 export const INITIAL_QUANTITY = 1;
-
-/**
- * Whether `value` is a submittable quantity: an integer of at least
- * `MIN_QUANTITY`. Rejects negatives, zero, decimals, `NaN`, and
- * non-finite values. Pure — throws nothing.
- */
-export function isValidQuantity(value: number): boolean {
-  return Number.isInteger(value) && value >= MIN_QUANTITY;
-}
-
-/**
- * Parses raw textbox text into a quantity: digits-only (after trimming)
- * mapping to a valid quantity, otherwise `null`. Rejects empty text,
- * signs, decimals, and any non-digit characters — so invalid keystrokes
- * never reach feature state. Pure — throws nothing.
- */
-export function parseQuantityInput(text: string | null | undefined): number | null {
-  if (text === null || text === undefined) {
-    return null;
-  }
-  const candidate = text.trim();
-  if (!/^[0-9]+$/.test(candidate)) {
-    return null;
-  }
-  const parsed = Number.parseInt(candidate, 10);
-  return isValidQuantity(parsed) ? parsed : null;
-}
 
 /** Add-to-Cart request lifecycle (button-facing projection of the submission store). */
 export type AddToCartStatus = 'idle' | 'adding' | 'added' | 'error';

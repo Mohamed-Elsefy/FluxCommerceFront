@@ -63,6 +63,16 @@ import type {
   CheckoutResponse,
   OrderMoneyResponse,
 } from '@flux/models';
+import {
+  hasFieldErrors,
+  isAccessDeniedFailure,
+  isAuthFailure,
+  isConflictFailure,
+  isFormPreservingFailure,
+  isNotFoundFailure,
+  isValidationFailure,
+  type NormalizedFailure,
+} from '@flux/models';
 
 /**
  * Create Order request (`POST /orders/checkout` body). Re-exported — not
@@ -454,43 +464,37 @@ export function isCheckoutOrderErrorCode(value: unknown): value is CheckoutOrder
 }
 
 /**
- * Minimal normalized-failure view this module classifies: an HTTP
- * `status` plus the best-effort `code` and the 400 field map. Compatible
- * with the Phase 1 `ApiError` without importing it (keeps this module
- * free of class-valued imports — types only).
+ * Minimal normalized-failure view this module classifies — alias of the
+ * shared `NormalizedFailure` (Refactoring Phase E: single status-first
+ * shape across features; the domain-specific idempotency classifier and
+ * recovery map stay here).
  */
-export interface CheckoutFailure {
-  readonly status: number;
-  readonly code?: string;
-  readonly validationErrors?: Record<string, string[]>;
-}
+export type CheckoutFailure = NormalizedFailure;
 
 /**
  * Whether the failure is a `400` validation rejection (bad key, empty
- * cart, bad address, bad params). Pure — throws nothing.
+ * cart, bad address, bad params). Delegates to the shared classifier.
+ * Pure.
  */
 export function isCheckoutValidationFailure(failure: CheckoutFailure | null | undefined): boolean {
-  return failure?.status === 400;
+  return isValidationFailure(failure);
 }
 
 /**
  * Whether the failure carries field-level validation messages (the 400
- * validation shape). Pure — throws nothing.
+ * validation shape). Delegates to the shared classifier. Pure.
  */
 export function hasCheckoutFieldErrors(failure: CheckoutFailure | null | undefined): boolean {
-  return (
-    failure?.status === 400 &&
-    failure?.validationErrors !== undefined &&
-    Object.keys(failure.validationErrors).length > 0
-  );
+  return hasFieldErrors(failure);
 }
 
 /**
  * Whether the failure is a `409` conflict (idempotency reuse, unavailable
- * variant, duplicate line, currency mix). Pure — throws nothing.
+ * variant, duplicate line, currency mix). Delegates to the shared
+ * classifier. Pure.
  */
 export function isCheckoutConflictFailure(failure: CheckoutFailure | null | undefined): boolean {
-  return failure?.status === 409;
+  return isConflictFailure(failure);
 }
 
 /**
@@ -512,30 +516,31 @@ export function isIdempotencyConflictFailure(failure: CheckoutFailure | null | u
 /**
  * Whether the failure is an authentication failure (`401` — anonymous
  * checkout or expired session). Recovery is login/refresh, never retry.
- * Pure — throws nothing.
+ * Delegates to the shared classifier. Pure.
  */
 export function isCheckoutAuthFailure(failure: CheckoutFailure | null | undefined): boolean {
-  return failure?.status === 401;
+  return isAuthFailure(failure);
 }
 
 /**
  * Whether the failure is a cart-ownership rejection (`403
  * CartAccessDenied` — cart belongs to another user/guest). Recovery is
- * back-to-cart, never retry. Pure — throws nothing.
+ * back-to-cart, never retry. Delegates to the shared classifier. Pure.
  */
 export function isCheckoutAccessDeniedFailure(
   failure: CheckoutFailure | null | undefined,
 ): boolean {
-  return failure?.status === 403;
+  return isAccessDeniedFailure(failure);
 }
 
 /**
  * Whether the failure is a missing cart/order (`404` — unknown `cartId`
  * at checkout, or unknown/other-customer order on the follow-up read).
- * Recovery is back-to-cart / refetch. Pure — throws nothing.
+ * Recovery is back-to-cart / refetch. Delegates to the shared
+ * classifier. Pure.
  */
 export function isCheckoutNotFoundFailure(failure: CheckoutFailure | null | undefined): boolean {
-  return failure?.status === 404;
+  return isNotFoundFailure(failure);
 }
 
 /**
@@ -543,12 +548,12 @@ export function isCheckoutNotFoundFailure(failure: CheckoutFailure | null | unde
  * `4xx` checkout rejection — the backend changed nothing, so the form
  * must not be cleared). Transport failures (`status 0`) and `5xx` are
  * unknown-outcome and need explicit recovery, not silent preservation.
- * Pure — throws nothing.
+ * Delegates to the shared classifier. Pure.
  */
 export function isFormPreservingCheckoutFailure(
   failure: CheckoutFailure | null | undefined,
 ): boolean {
-  return failure !== null && failure !== undefined && failure.status >= 400 && failure.status < 500;
+  return isFormPreservingFailure(failure);
 }
 
 /**

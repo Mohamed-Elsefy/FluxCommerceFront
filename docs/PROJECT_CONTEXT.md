@@ -1449,3 +1449,34 @@ S3.5  403 discipline verification (verification-only, no code changes)
 S3.6  Updated E2E suites (users + dashboard, full re-verify)
 S3.7  Hardening, verification & documentation (this step)
 ```
+
+---
+
+# 44. Refactoring Pass A–E (Adopted)
+
+Status: **Complete** — see `docs/adr/037-frontend-refactoring.md`.
+
+A no-behavior-change structural pass over the whole frontend (no
+wire, contract, or UX change), executed after Supplement S3 with the
+core roadmap untouched (**Phase 15 — Final QA & Optimization**
+remains next):
+
+```text
+A  Shared foundation in libs (money/failure/cart-snapshot/image/
+   quantity canonicals, SocialImageCandidate alias, previousPageQuery)
+B  Duplicate unification (admin StatusBadge ×4, storefront pager +
+   status badges, evaluated-keeps recorded)
+C  Cart isolation (CART_CAPABILITIES seam, zero cart internals outside
+   cart, permanent audit rule — 107/107)
+D  Structural organization (dead core/ removed, design-preview → dev/,
+   documented co-locations, no cosmetic churn)
+E  Focused splits + canonical adoption (payment-lifecycle extraction,
+   failure/quantity delegation; cohesive classes/pages untouched)
+```
+
+Verification per phase: `tsc`, `eslint`, `prettier`,
+`verify-architecture` 107/107, targeted unit suites (all green, no
+pre-existing spec assertion changed), both production builds green.
+Pre-existing issues recorded in ADR-037 (E2E environmental red on
+clean HEAD, one pre-existing prettier drift) were proven unrelated
+and left untouched.

@@ -68,6 +68,15 @@ import type {
   UserResponse,
 } from '@flux/models';
 import type { OrderStatus, PaymentStatus } from '@flux/models';
+import {
+  hasFieldErrors,
+  isAccessDeniedFailure,
+  isAuthFailure,
+  isConflictFailure,
+  isNotFoundFailure,
+  isValidationFailure,
+  type NormalizedFailure,
+} from '@flux/models';
 
 export type { OrderStatus, PaymentStatus };
 
@@ -458,70 +467,65 @@ export function isOrdersErrorCode(value: unknown): value is OrdersErrorCode {
 }
 
 /**
- * Minimal normalized-failure view this module classifies: an HTTP
- * `status` plus the best-effort `code` and the 400 field map. Compatible
- * with the Phase 1 `ApiError` without importing it (keeps this module
- * free of class-valued imports — types only).
+ * Minimal normalized-failure view this module classifies — alias of the
+ * shared `NormalizedFailure` (Refactoring Phase E: single status-first
+ * shape across features; the domain-specific `isCancelConflictFailure`
+ * stays here).
  */
-export interface OrdersFailure {
-  readonly status: number;
-  readonly code?: string;
-  readonly validationErrors?: Record<string, string[]>;
-}
+export type OrdersFailure = NormalizedFailure;
 
 /**
  * Whether the failure is a `400` validation rejection (bad key, empty
- * cart, bad address, bad list params). Pure — throws nothing.
+ * cart, bad address, bad list params). Delegates to the shared
+ * classifier — Pure, throws nothing.
  */
 export function isOrdersValidationFailure(failure: OrdersFailure | null | undefined): boolean {
-  return failure?.status === 400;
+  return isValidationFailure(failure);
 }
 
 /**
  * Whether the failure carries field-level validation messages (the 400
- * validation shape). Pure — throws nothing.
+ * validation shape). Delegates to the shared classifier. Pure.
  */
 export function hasOrdersFieldErrors(failure: OrdersFailure | null | undefined): boolean {
-  return (
-    failure?.status === 400 &&
-    failure?.validationErrors !== undefined &&
-    Object.keys(failure.validationErrors).length > 0
-  );
+  return hasFieldErrors(failure);
 }
 
 /**
  * Whether the failure is an authentication failure (`401` — anonymous
  * call or expired session). Recovery is login/refresh, never retry.
- * Pure — throws nothing.
+ * Delegates to the shared classifier. Pure.
  */
 export function isOrdersAuthFailure(failure: OrdersFailure | null | undefined): boolean {
-  return failure?.status === 401;
+  return isAuthFailure(failure);
 }
 
 /**
  * Whether the failure is an ownership rejection (`403 CartAccessDenied`
- * — cart belongs to another user/guest). Pure — throws nothing.
+ * — cart belongs to another user/guest). Delegates to the shared
+ * classifier. Pure.
  */
 export function isOrdersAccessDeniedFailure(failure: OrdersFailure | null | undefined): boolean {
-  return failure?.status === 403;
+  return isAccessDeniedFailure(failure);
 }
 
 /**
  * Whether the failure is a missing order/cart (`404` — unknown id or
  * unknown/other-customer order on the read). Recovery is refetch or
- * back-to-list. Pure — throws nothing.
+ * back-to-list. Delegates to the shared classifier. Pure.
  */
 export function isOrdersNotFoundFailure(failure: OrdersFailure | null | undefined): boolean {
-  return failure?.status === 404;
+  return isNotFoundFailure(failure);
 }
 
 /**
  * Whether the failure is a `409` conflict (idempotency reuse,
  * unavailable variant, duplicate line, currency mix, late cancel).
- * Never retried with the same input. Pure — throws nothing.
+ * Never retried with the same input. Delegates to the shared
+ * classifier. Pure.
  */
 export function isOrdersConflictFailure(failure: OrdersFailure | null | undefined): boolean {
-  return failure?.status === 409;
+  return isConflictFailure(failure);
 }
 
 /**

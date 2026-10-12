@@ -24,9 +24,9 @@ import {
   canTransitionPaymentLifecycle,
   PAYMENT_DECLINED_CODE,
   PAYMENT_LIFECYCLE_TRANSITIONS,
-  PaymentState,
   type PaymentLifecycle,
-} from './payment-state';
+} from './payment-lifecycle';
+import { PaymentState } from './payment-state';
 
 const ORDER_ID = '11111111-1111-4111-8111-111111111111';
 const PAYMENT_ID = '22222222-2222-4222-8222-222222222222';

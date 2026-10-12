@@ -42,6 +42,7 @@
  */
 
 import type { CartItemResponse, CartResponse } from '@flux/models';
+import { MIN_QUANTITY, isValidQuantity, parseQuantityInput } from '@flux/models';
 
 /**
  * Cart read model (every cart endpoint returns
@@ -182,42 +183,28 @@ export function estimateCartTotals(items: readonly CartItem[]): CartEstimate[] {
 }
 
 /**
- * Minimum cart line quantity. Mirrors the contract's cart quantity floor
- * (`[Range(1, int.MaxValue)]` on every cart item request —
- * `API_CONTRACT.md` §3): the storefront accepts nothing below this, and
- * clamps nothing above it (over-limit quantities are a backend
- * `QuantityLimitExceeded` rejection at cart time).
+ * Minimum cart line quantity — alias of the shared `MIN_QUANTITY`
+ * (Refactoring Phase E: single implementation of the contract's cart
+ * quantity floor, `[Range(1, int.MaxValue)]` on every cart item
+ * request — `API_CONTRACT.md` §3). The storefront accepts nothing below
+ * this, and clamps nothing above it (over-limit quantities are a
+ * backend `QuantityLimitExceeded` rejection at cart time).
  */
-export const MIN_CART_QUANTITY = 1;
+export const MIN_CART_QUANTITY: number = MIN_QUANTITY;
 
 /**
- * Whether `value` is a submittable cart quantity: an integer of at least
- * `MIN_CART_QUANTITY`. Rejects negatives, zero, decimals, `NaN`, and
- * non-finite values. Structural pre-check only — not business logic.
- * Pure — throws nothing.
+ * Whether `value` is a submittable cart quantity — alias of the shared
+ * `isValidQuantity` (single implementation). Structural pre-check
+ * only — not business logic. Pure — throws nothing.
  */
-export function isValidCartQuantity(value: number): boolean {
-  return Number.isInteger(value) && value >= MIN_CART_QUANTITY;
-}
+export const isValidCartQuantity = isValidQuantity;
 
 /**
- * Parses raw quantity textbox text into a cart quantity: digits-only
- * (after trimming) mapping to a valid quantity, otherwise `null`.
- * Rejects empty text, signs, decimals, and any non-digit characters —
- * so invalid keystrokes never reach feature state. Consumed by the
+ * Parses raw quantity textbox text into a cart quantity — alias of the
+ * shared `parseQuantityInput` (single implementation). Consumed by the
  * §7.4 quantity control. Pure — throws nothing.
  */
-export function parseCartQuantityInput(text: string | null | undefined): number | null {
-  if (text === null || text === undefined) {
-    return null;
-  }
-  const candidate = text.trim();
-  if (!/^[0-9]+$/.test(candidate)) {
-    return null;
-  }
-  const parsed = Number.parseInt(candidate, 10);
-  return isValidCartQuantity(parsed) ? parsed : null;
-}
+export const parseCartQuantityInput = parseQuantityInput;
 
 /**
  * Whether a cart holds no lines. `null`/`undefined` carts count as

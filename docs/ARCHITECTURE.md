@@ -1511,3 +1511,27 @@ When a significant architectural decision changes:
 5. Keep the architecture and actual code synchronized.
 
 The goal is a maintainable Angular 22 enterprise frontend, not architectural complexity for its own sake.
+
+---
+
+## 30. Refactoring Pass A–E (as refactored)
+
+See `docs/adr/037-frontend-refactoring.md` for the full record. The
+pass changed no boundaries in this document — it enforced them:
+
+- Cross-feature needs travel through stable contracts: `checkout`
+  and `product-details` consume cart only through the
+  `CART_CAPABILITIES` seam (`features/cart/cart-capabilities.ts`);
+  no `cart/state|models|data-access` import exists outside `cart/`
+  (audit-enforced).
+- Reusable UI grows by extension in app-owned shared directories
+  (`apps/admin/shared/status-badge`, `apps/storefront/shared/`
+  `pagination` + `status-badge`) — never by fork, never into the
+  audit-pinned `libs/ui` set.
+- Canonical pure models live in `libs/models` (`money`, `failure`,
+  `cart-identity`, `image`, `quantity`); features alias or delegate
+  instead of mirroring implementations.
+- Dev-only surfaces live under `app/dev/`, never under `features/`.
+- Cohesive units (signal state classes, orchestration pages, pure
+  models) are not split for size alone; evaluated keeps are recorded
+  in ADR-037 rather than churned.
