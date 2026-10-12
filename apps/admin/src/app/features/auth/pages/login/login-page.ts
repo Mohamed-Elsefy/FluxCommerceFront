@@ -1,11 +1,12 @@
 /**
  * Admin login page for Sub-Phase 12.1 — Admin Route & Authorization
- * Integration.
+ * Integration (Kinetic Bubble Neo restyle).
  *
- * Scope: `docs/phases/PHASE_12_ADMIN_PORTAL_FOUNDATION.md` §12.1. The
- * portal's anonymous entry point: form → validation → login API → stored
- * session → current user → redirect (`?returnUrl=`, same-origin only,
- * default `/dashboard`).
+ * Scope: `docs/phases/PHASE_12_ADMIN_PORTAL_FOUNDATION.md` §12.1 plus
+ * `docs/DESIGN.md` §6 keyway language. The portal's anonymous entry
+ * point: form → validation → login API → stored session → current
+ * user → redirect (`?returnUrl=`, same-origin only, default
+ * `/dashboard`).
  *
  * Minimal by design: no registration/recovery links (the Admin portal
  * has no such routes), no role checks here — whether the session may
@@ -13,6 +14,7 @@
  * `Admin`/`SuperAdmin`) and backend authorization stays authoritative.
  * Already-authenticated visits bounce to the return URL immediately.
  * Copy resolves through the feature-owned auth bundle (§12.9).
+ * Password visibility is component-local UI state (never persisted).
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
@@ -54,6 +56,8 @@ export class AdminLoginPage {
   readonly isSubmitting = signal(false);
   /** Form-level failure, localized through `resolveApiErrorMessage`. Null when clear. */
   readonly formError = signal<string | null>(null);
+  /** Password visibility toggle: component-local UI state, never persisted. */
+  readonly showPassword = signal(false);
 
   /** Localized page copy for the active culture. */
   protected readonly copy = computed(() => {
@@ -61,6 +65,8 @@ export class AdminLoginPage {
     return {
       title: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginTitle),
       subtitle: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSubtitle),
+      kicker: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginKicker),
+      badge: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginBadge),
       emailLabel: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginEmailLabel),
       passwordLabel: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginPasswordLabel),
       emailError: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginEmailError),
@@ -68,6 +74,9 @@ export class AdminLoginPage {
       errorTitle: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginErrorTitle),
       submit: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSubmit),
       submitting: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSubmitting),
+      passwordShow: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginPasswordShow),
+      passwordHide: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginPasswordHide),
+      securityNote: translateAdminAuthKey(culture, ADMIN_AUTH_TRANSLATION_KEYS.loginSecurityNote),
     };
   });
 

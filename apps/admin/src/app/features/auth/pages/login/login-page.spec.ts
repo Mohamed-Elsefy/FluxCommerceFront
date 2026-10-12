@@ -96,8 +96,30 @@ describe('AdminLoginPage', () => {
       expect(element.querySelector('.admin-login-submit')?.textContent?.trim()).toBe(
         'Se connecter',
       );
+      expect(element.querySelector('.admin-login-kicker')?.textContent).toBe(
+        '01 // Accès sécurisé',
+      );
+      expect(element.querySelector('.admin-login-badge')?.textContent).toContain('Admin');
     } finally {
       cultures.setCulture('en');
     }
+  });
+
+  it('toggles password visibility as local UI state', () => {
+    const fixture = TestBed.createComponent(AdminLoginPage);
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    const element = fixture.nativeElement as HTMLElement;
+
+    const password = () =>
+      element.querySelector('#admin-login-password')?.getAttribute('type');
+    expect(page.showPassword()).toBe(false);
+    expect(password()).toBe('password');
+
+    (element.querySelector('.admin-login-password-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(page.showPassword()).toBe(true);
+    expect(password()).toBe('text');
   });
 });

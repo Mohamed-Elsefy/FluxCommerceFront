@@ -22,6 +22,8 @@ import {
 export const ADMIN_AUTH_TRANSLATION_KEYS = {
   loginTitle: 'auth.login.title',
   loginSubtitle: 'auth.login.subtitle',
+  loginKicker: 'auth.login.kicker',
+  loginBadge: 'auth.login.badge',
   loginEmailLabel: 'auth.login.emailLabel',
   loginPasswordLabel: 'auth.login.passwordLabel',
   loginEmailError: 'auth.login.emailError',
@@ -29,6 +31,9 @@ export const ADMIN_AUTH_TRANSLATION_KEYS = {
   loginErrorTitle: 'auth.login.errorTitle',
   loginSubmit: 'auth.login.submit',
   loginSubmitting: 'auth.login.submitting',
+  loginPasswordShow: 'auth.login.passwordShow',
+  loginPasswordHide: 'auth.login.passwordHide',
+  loginSecurityNote: 'auth.login.securityNote',
 } as const;
 
 /** English (`en`) auth vocabulary. Also the deterministic fallback source. */
@@ -37,6 +42,8 @@ const EN_AUTH: TranslationDictionary = {
     login: {
       title: 'Admin sign in',
       subtitle: 'Sign in with an administrator account to continue.',
+      kicker: '01 // Secure access',
+      badge: 'Admin',
       emailLabel: 'Email',
       passwordLabel: 'Password',
       emailError: 'Enter a valid email address.',
@@ -44,6 +51,9 @@ const EN_AUTH: TranslationDictionary = {
       errorTitle: 'Sign in failed',
       submit: 'Sign in',
       submitting: 'Signing in',
+      passwordShow: 'Show password',
+      passwordHide: 'Hide password',
+      securityNote: 'Restricted area. Sessions are verified on every request.',
     },
   },
 };
@@ -54,6 +64,8 @@ const FR_AUTH: TranslationDictionary = {
     login: {
       title: 'Connexion admin',
       subtitle: 'Connectez-vous avec un compte administrateur pour continuer.',
+      kicker: '01 // Accès sécurisé',
+      badge: 'Admin',
       emailLabel: 'E-mail',
       passwordLabel: 'Mot de passe',
       emailError: 'Saisissez une adresse e-mail valide.',
@@ -61,6 +73,9 @@ const FR_AUTH: TranslationDictionary = {
       errorTitle: 'Échec de la connexion',
       submit: 'Se connecter',
       submitting: 'Connexion…',
+      passwordShow: 'Afficher le mot de passe',
+      passwordHide: 'Masquer le mot de passe',
+      securityNote: 'Zone réservée. Les sessions sont vérifiées à chaque requête.',
     },
   },
 };
@@ -71,6 +86,8 @@ const DE_AUTH: TranslationDictionary = {
     login: {
       title: 'Admin-Anmeldung',
       subtitle: 'Melden Sie sich mit einem Administratorkonto an, um fortzufahren.',
+      kicker: '01 // Sicherer Zugriff',
+      badge: 'Admin',
       emailLabel: 'E-Mail',
       passwordLabel: 'Passwort',
       emailError: 'Geben Sie eine gültige E-Mail-Adresse ein.',
@@ -78,6 +95,9 @@ const DE_AUTH: TranslationDictionary = {
       errorTitle: 'Anmeldung fehlgeschlagen',
       submit: 'Anmelden',
       submitting: 'Anmelden…',
+      passwordShow: 'Passwort anzeigen',
+      passwordHide: 'Passwort ausblenden',
+      securityNote: 'Eingeschränkter Bereich. Sitzungen werden bei jeder Anfrage geprüft.',
     },
   },
 };
@@ -88,6 +108,8 @@ const ES_AUTH: TranslationDictionary = {
     login: {
       title: 'Acceso de administración',
       subtitle: 'Inicie sesión con una cuenta de administrador para continuar.',
+      kicker: '01 // Acceso seguro',
+      badge: 'Admin',
       emailLabel: 'Correo',
       passwordLabel: 'Contraseña',
       emailError: 'Introduzca un correo válido.',
@@ -95,6 +117,9 @@ const ES_AUTH: TranslationDictionary = {
       errorTitle: 'Error al iniciar sesión',
       submit: 'Iniciar sesión',
       submitting: 'Iniciando sesión…',
+      passwordShow: 'Mostrar contraseña',
+      passwordHide: 'Ocultar contraseña',
+      securityNote: 'Zona restringida. Las sesiones se verifican en cada solicitud.',
     },
   },
 };
@@ -105,6 +130,8 @@ const AR_AUTH: TranslationDictionary = {
     login: {
       title: 'تسجيل دخول الإدارة',
       subtitle: 'سجّل الدخول بحساب إداري للمتابعة.',
+      kicker: '01 // دخول آمن',
+      badge: 'إدارة',
       emailLabel: 'البريد',
       passwordLabel: 'كلمة المرور',
       emailError: 'أدخل بريدًا صالحًا.',
@@ -112,6 +139,9 @@ const AR_AUTH: TranslationDictionary = {
       errorTitle: 'فشل تسجيل الدخول',
       submit: 'تسجيل الدخول',
       submitting: 'جارٍ تسجيل الدخول…',
+      passwordShow: 'إظهار كلمة المرور',
+      passwordHide: 'إخفاء كلمة المرور',
+      securityNote: 'منطقة مقيدة. يتم التحقق من الجلسات مع كل طلب.',
     },
   },
 };
