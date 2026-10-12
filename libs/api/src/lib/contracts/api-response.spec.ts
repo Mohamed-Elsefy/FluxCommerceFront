@@ -3,6 +3,7 @@ import {
   hasNextPage,
   hasPreviousPage,
   nextPageQuery,
+  previousPageQuery,
   totalPagesOf,
   type PagedResult,
   type PagingQuery,
@@ -45,5 +46,20 @@ describe('nextPageQuery', () => {
   it('produces queries assignable to PagingQuery', () => {
     const next: PagingQuery | null = nextPageQuery(page());
     expect(next?.pageNumber).toBe(3);
+  });
+});
+
+describe('previousPageQuery', () => {
+  it('retreats while pages remain, preserving the page size', () => {
+    expect(previousPageQuery(page())).toEqual({ pageNumber: 1, pageSize: 20 });
+  });
+
+  it('returns null on the first page instead of an out-of-range query', () => {
+    expect(previousPageQuery(page({ pageNumber: 1 }))).toBeNull();
+  });
+
+  it('produces queries assignable to PagingQuery', () => {
+    const previous: PagingQuery | null = previousPageQuery(page());
+    expect(previous?.pageNumber).toBe(1);
   });
 });

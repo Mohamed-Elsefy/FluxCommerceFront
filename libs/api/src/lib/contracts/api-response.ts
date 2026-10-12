@@ -94,3 +94,15 @@ export function nextPageQuery(page: PagedResult<unknown>): PagingQuery | null {
   }
   return { pageNumber: page.pageNumber + 1, pageSize: page.pageSize };
 }
+
+/**
+ * Previous-page query, or `null` when the current page is the first one.
+ * Symmetric counterpart of `nextPageQuery` so pagers never hand-build
+ * page queries in either direction.
+ */
+export function previousPageQuery(page: PagedResult<unknown>): PagingQuery | null {
+  if (!hasPreviousPage(page)) {
+    return null;
+  }
+  return { pageNumber: page.pageNumber - 1, pageSize: page.pageSize };
+}

@@ -19,16 +19,23 @@
  * list for failed/unknown resources (e.g. a 404 product whose image slot
  * happens to hold data), so error pages never present product imagery as
  * their own (Phase 11 §11.4 "no misleading metadata").
+ *
+ * Refactoring Phase A (step A2): the structural input is canonicalized
+ * in `@flux/models` (`ImageCandidate`); this alias stays as the single
+ * compat entry point so existing `@flux/utils` consumers keep working.
  */
+
+import type { ImageCandidate } from '@flux/models';
 
 /** Bundled fallback social image (served from the storefront `public/` dir). */
 export const FALLBACK_SOCIAL_IMAGE = '/og-fallback.png';
 
-/** Structural image input — satisfied by any backend image shape. */
-export interface SocialImageCandidate {
-  readonly imageUrl: string;
-  readonly isPrimary: boolean;
-}
+/**
+ * Structural image input — alias of the canonical `ImageCandidate` in
+ * `@flux/models` (satisfied by any backend image shape). Kept for
+ * backward compatibility; new code should prefer `ImageCandidate`.
+ */
+export type SocialImageCandidate = ImageCandidate;
 
 /**
  * Resolves the `og:image` URL for `images`, falling back to
