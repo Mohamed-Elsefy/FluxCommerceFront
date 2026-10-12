@@ -86,11 +86,8 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '@flux/auth';
 import { CartState, type CartActionOptions } from './cart-state';
 import { GUEST_CART_STORAGE } from './guest-cart-storage.service';
-import {
-  GuestCartService,
-  isInvalidGuestIdentityError,
-  isMissingResourceError,
-} from './guest-cart.service';
+import { isInvalidGuestIdentityError } from '../cart-capabilities';
+import { GuestCartService, isMissingResourceError } from './guest-cart.service';
 
 /**
  * Feature-scoped authenticated cart lifecycle. Provide at the cart route

@@ -73,8 +73,8 @@
  *   submission + Sub-Phase 7.6 authenticated submission) mounts beside
  *   the quantity section: enabled for a selectable variant with valid
  *   pricing once a session identity is established — guest identity via
- *   the cart feature's `GuestCartService`, or an authenticated session
- *   (established via `AuthenticatedCartService`, browser-only); guest
+ *   the cart capabilities seam, or an authenticated session
+ *   (established through the same seam, browser-only); guest
  *   submission carries the selected backend-issued price snapshot into
  *   the guest cart with dead-identity healing for the next attempt, and
  *   authenticated submission posts the same snapshot to the session cart
@@ -115,10 +115,10 @@ import { SimilarProducts } from '../../components/similar-products/similar-produ
 import { VariantCommercial } from '../../components/variant-commercial/variant-commercial';
 import { VariantSelector } from '../../components/variant-selector/variant-selector';
 import {
-  GuestCartService,
+  CART_CAPABILITIES,
   isInvalidGuestIdentityError,
-} from '../../../cart/state/guest-cart.service';
-import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart.service';
+  type CartCapabilities,
+} from '../../../cart/cart-capabilities';
 import { ProductDetailsState } from '../../state/product-details-state';
 import {
   PRODUCT_DETAILS_ID_PARAM,
@@ -154,8 +154,7 @@ export const SIMILAR_PRODUCTS_LIMIT = 6;
 })
 export class ProductDetailsPage implements OnInit {
   private readonly state = inject(ProductDetailsState);
-  private readonly guestCart = inject(GuestCartService);
-  private readonly authCart = inject(AuthenticatedCartService);
+  private readonly carts: CartCapabilities = inject(CART_CAPABILITIES);
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly cultures = inject(CultureService);
@@ -377,14 +376,15 @@ export class ProductDetailsPage implements OnInit {
   /**
    * Submission guard for the button: selectable variant, valid pricing,
    * an established session identity (authenticated session, or guest
-   * identity via the guest lifecycle), and no in-flight submission. The
-   * state re-validates everything pre-HTTP (defense in depth).
+   * identity via the cart capabilities seam), and no in-flight
+   * submission. The state re-validates everything pre-HTTP (defense in
+   * depth).
    */
   protected readonly canSubmit = computed(
     () =>
       this.state.selectedVariantSelectable() &&
       this.selectedPricing() !== null &&
-      (this.auth.isAuthenticated() || this.guestCart.identity()?.kind === 'guest') &&
+      (this.auth.isAuthenticated() || this.carts.guestIdentity()?.kind === 'guest') &&
       this.state.addToCartStatus() !== 'adding',
   );
 
@@ -574,20 +574,20 @@ export class ProductDetailsPage implements OnInit {
       const submission = this.state.submitAddToCart(pricing);
       submission.add(() => {
         if (this.state.addToCartError()?.code === 'Cart.CartNotFound') {
-          this.authCart.establishAuthenticated();
+          this.carts.establishAuthenticated();
         }
       });
       return;
     }
-    const identity = this.guestCart.identity();
+    const identity = this.carts.guestIdentity();
     if (identity?.kind !== 'guest') {
-      this.guestCart.initialize();
+      this.carts.initializeGuest();
       return;
     }
     const submission = this.state.submitGuestAddToCart(identity.cartId, pricing);
     submission.add(() => {
       if (isInvalidGuestIdentityError(this.state.addToCartError())) {
-        this.guestCart.initialize();
+        this.carts.initializeGuest();
       }
     });
   }

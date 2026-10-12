@@ -4,17 +4,18 @@
  *
  * Smart page (route-level composition): drives the feature-scoped
  * `CheckoutState` (provided by the parent `checkoutRoutes` entry —
- * never a global store), reads the current cart through the Cart
- * feature's session lifecycle (provided alongside — the product-details
- * pattern, one-way, no cycle), and projects backend snapshots into
- * preformatted view models for the presentational tree.
+ * never a global store), reads the current cart through the cart
+ * capabilities seam (`CART_CAPABILITIES`, provided alongside —
+ * Refactoring Phase C: interface-based, one-way, no cycle), and
+ * projects backend snapshots into preformatted view models for the
+ * presentational tree.
  *
  * Data flow (`ARCHITECTURE.md` §10):
  *
  * ```text
  * CheckoutPage (this file — orchestration only)
  *     ↓ CheckoutState (state/ — submit guards, result, recovery)
- *     ↓ AuthenticatedCartService (cart session lifecycle — current cart)
+ *     ↓ CART_CAPABILITIES (cart seam — current cart + session lifecycle)
  *     ↓ CheckoutApiService (data-access — createOrder transport)
  *     ↓ ApiClient (@flux/api — the ONLY HttpClient user)
  *     ↓ Backend Orders API
@@ -104,8 +105,7 @@ import {
 } from '@flux/i18n';
 import { AuthService } from '@flux/auth';
 import { EmptyState, ErrorState, LoadingIndicator } from '@flux/ui';
-import { CartState } from '../../../cart/state/cart-state';
-import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart.service';
+import { CART_CAPABILITIES, type CartCapabilities } from '../../../cart/cart-capabilities';
 import type { OrderMoneyResponse } from '@flux/models';
 import { CheckoutState } from '../../state/checkout-state';
 import type { CheckoutFormData } from '../../state/checkout-state-boundaries';
@@ -144,8 +144,7 @@ import { CHECKOUT_TRANSLATION_KEYS, translateCheckoutKey } from '../../i18n/chec
 })
 export class CheckoutPage implements OnInit {
   private readonly checkout = inject(CheckoutState);
-  private readonly carts = inject(CartState);
-  private readonly authCart = inject(AuthenticatedCartService);
+  private readonly carts: CartCapabilities = inject(CART_CAPABILITIES);
   private readonly auth = inject(AuthService);
   private readonly cultures = inject(CultureService);
   private readonly title = inject(Title);
@@ -353,7 +352,7 @@ export class CheckoutPage implements OnInit {
     // established) — no explicit cart call here, so init cannot
     // double-fire. Server pass stays standby (browser-only inside the
     // service).
-    this.authCart.synchronize();
+    this.carts.synchronize();
     this.title.setTitle(`${this.copy().title} | FluxCommerce`);
   }
 
@@ -369,7 +368,7 @@ export class CheckoutPage implements OnInit {
 
   /** Re-enters the cart session lifecycle (cart error retry). */
   protected onCartRetry(): void {
-    this.authCart.synchronize();
+    this.carts.synchronize();
   }
 
   /** Dismisses the submission failure back to `ready` (form preserved). */

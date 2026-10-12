@@ -3,27 +3,32 @@
  * ADR 018 guest-submission providers).
  *
  * Covers the lazy feature boundary: the parent provides the feature-scoped
- * `ProductDetailsState` (never a global store) plus the cart feature's
- * `CartState`/`GuestCartService` lifecycle seam for guest submission, and
- * the `:id` child lazy-loads the foundation page serving
- * `/catalog/products/:id`.
+ * `ProductDetailsState` (never a global store) plus the cart capabilities
+ * seam for guest submission, and the `:id` child lazy-loads the
+ * foundation page serving `/catalog/products/:id`.
  */
 
 import { describe, expect, it } from 'vitest';
-import { AuthenticatedCartService } from '../cart/state/authenticated-cart.service';
-import { CartState } from '../cart/state/cart-state';
-import { GuestCartService } from '../cart/state/guest-cart.service';
+import { CART_CAPABILITIES, CartCapabilitiesService } from '../cart/cart-capabilities.service';
 import { ProductDetailsPage } from './pages/product-details/product-details-page';
 import { ProductDetailsState } from './state/product-details-state';
 import { productDetailsRoutes } from './product-details.routes';
 
 describe('productDetailsRoutes', () => {
   it('provides the feature-scoped state and guest lifecycle on the parent entry', () => {
+    const providers = productDetailsRoutes[0]?.providers ?? [];
     expect(productDetailsRoutes).toHaveLength(1);
-    expect(productDetailsRoutes[0]?.providers).toContain(ProductDetailsState);
-    expect(productDetailsRoutes[0]?.providers).toContain(CartState);
-    expect(productDetailsRoutes[0]?.providers).toContain(GuestCartService);
-    expect(productDetailsRoutes[0]?.providers).toContain(AuthenticatedCartService);
+    expect(providers).toContain(ProductDetailsState);
+    expect(providers).toContain(CartCapabilitiesService);
+    expect(
+      providers.some(
+        (entry) =>
+          typeof entry === 'object' &&
+          entry !== null &&
+          'provide' in entry &&
+          (entry as { provide: unknown }).provide === CART_CAPABILITIES,
+      ),
+    ).toBe(true);
   });
 
   it('lazy-loads the details page on the :id child', async () => {

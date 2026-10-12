@@ -1370,6 +1370,37 @@ check(
   !/AdminApiClient|AdminAuthService/.test(adminProdCode),
 );
 
+// ------------------------------------------------- Refactoring Phase C: cart isolation
+// Cart internals (`cart/state`, `cart/models`, `cart/data-access`) are
+// owned by the cart feature. Cross-feature consumers depend only on the
+// seam (`features/cart/cart-capabilities` for the token + contract,
+// `features/cart/cart-capabilities.service` for route composition via
+// `provideCartCapabilities()`); specs may additionally stub the
+// transport (`cart/data-access`) behind the real capability stack.
+// Anything else reaching into cart/ from another feature reintroduces
+// the R1 state-singleton coupling Phase C removed.
+console.log('Phase C');
+const cartSeamTargets = new Set(['cart/cart-capabilities', 'cart/cart-capabilities.service']);
+const outsideCartSources = storefrontSources.filter((path) => !path.includes('/features/cart/'));
+const phaseCViolations = [];
+for (const { path, spec } of specifiersOf(outsideCartSources)) {
+  const match = spec.match(/(^|[/.])cart\/(state|models|data-access)\b/);
+  if (match === null) {
+    continue;
+  }
+  const target = spec.slice(spec.indexOf('cart/'));
+  const isSeam = cartSeamTargets.has(target);
+  const isSpecTransportStub = path.endsWith('.spec.ts') && target.startsWith('cart/data-access/');
+  if (!isSeam && !isSpecTransportStub) {
+    phaseCViolations.push(`${path}: ${spec}`);
+  }
+}
+check(
+  'Phase C: cart internals stay inside the cart feature (seam only)',
+  phaseCViolations.length === 0,
+  phaseCViolations.length === 0 ? '0 violation(s)' : phaseCViolations.join('; '),
+);
+
 // ----------------------------------------------------------------- Summary
 console.log(`\n${count - failures.length}/${count} checks passed.`);
 if (failures.length > 0) {

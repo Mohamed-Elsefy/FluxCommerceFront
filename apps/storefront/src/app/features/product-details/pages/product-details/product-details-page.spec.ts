@@ -4,8 +4,8 @@
  * Quantity Selection + Add to Cart Integration + SSR & SEO).
  *
  * `ProductDetailsState` is stubbed at its typed seam (its orchestration is
- * covered by `product-details-state.spec.ts`) and `GuestCartService` is
- * stubbed at its seam (its lifecycle is covered by
+ * covered by `product-details-state.spec.ts`) and the cart capabilities
+ * seam is stubbed at its token (lifecycle covered by
  * `guest-cart.service.spec.ts`), so these tests own the page logic:
  * product + specifications + images + variants loads driven by the
  * `:id` route parameter on both platforms (server fetch feeds SSR +
@@ -43,9 +43,11 @@ import { CultureService, formatCurrency } from '@flux/i18n';
 import { CANONICAL_LINK_SELECTOR, FALLBACK_SOCIAL_IMAGE } from '@flux/utils';
 import { AuthService } from '@flux/auth';
 import { VariantStatus, type ProductResponse } from '@flux/models';
-import { GuestCartService } from '../../../cart/state/guest-cart.service';
-import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart.service';
-import type { CartIdentity } from '../../../cart/models/cart.models';
+import {
+  CART_CAPABILITIES,
+  type CartCapabilities,
+  type CartIdentity,
+} from '../../../cart/cart-capabilities';
 import { ProductDetailsState } from '../../state/product-details-state';
 import { isSelectableVariant } from '../../models/product-details.models';
 import type {
@@ -242,23 +244,18 @@ function setup(options: {
       provideRouter([]),
       { provide: ProductDetailsState, useValue: stateStub },
       {
-        provide: GuestCartService,
+        provide: CART_CAPABILITIES,
         useValue: {
-          initialize: (() => {
+          initializeGuest: (() => {
             guestInitializeCalls += 1;
             return Subscription.EMPTY;
-          }) as GuestCartService['initialize'],
-          identity: signal<CartIdentity | null>(options.guestIdentity ?? null),
-        } as unknown as GuestCartService,
-      },
-      {
-        provide: AuthenticatedCartService,
-        useValue: {
+          }) as CartCapabilities['initializeGuest'],
           establishAuthenticated: (() => {
             establishCalls += 1;
             return Subscription.EMPTY;
-          }) as AuthenticatedCartService['establishAuthenticated'],
-        } as unknown as AuthenticatedCartService,
+          }) as CartCapabilities['establishAuthenticated'],
+          guestIdentity: signal<CartIdentity | null>(options.guestIdentity ?? null),
+        } as unknown as CartCapabilities,
       },
       {
         provide: AuthService,

@@ -56,33 +56,10 @@ import { Injectable, PLATFORM_ID, inject, type Signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Subscription } from 'rxjs';
 import type { ApiError } from '@flux/api';
+import { isInvalidGuestIdentityError } from '../cart-capabilities';
 import { CartState, type CartActionOptions } from './cart-state';
 import { GUEST_CART_STORAGE } from './guest-cart-storage.service';
 import type { CartIdentity } from '../models/cart.models';
-
-/**
- * Backend codes proving a guest identity is dead (the stored `cartId`
- * names no usable cart). `Cart.CartNotFound` covers unknown or expired
- * carts; `Cart.CartAccessDenied` is the IDOR-masked denial for guessed
- * or foreign ids; `Cart.InvalidCartId` covers garbage ids.
- */
-export const INVALID_GUEST_IDENTITY_CODES: readonly string[] = [
-  'Cart.CartNotFound',
-  'Cart.CartAccessDenied',
-  'Cart.InvalidCartId',
-];
-
-/**
- * Whether a normalized failure proves the guest identity dead (→ drop
- * the stored id and recreate). Branches on the stable `code`, never on
- * message text (`ARCHITECTURE.md` §12). Pure — throws nothing.
- */
-export function isInvalidGuestIdentityError(error: ApiError | null | undefined): boolean {
-  if (error?.code === undefined) {
-    return false;
-  }
-  return (INVALID_GUEST_IDENTITY_CODES as readonly string[]).includes(error.code);
-}
 
 /**
  * Whether a normalized failure is a codeless `404` (the real wire shape

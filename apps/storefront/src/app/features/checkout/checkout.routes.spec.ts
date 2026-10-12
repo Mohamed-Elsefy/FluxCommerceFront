@@ -5,19 +5,17 @@
  *
  * Covers the lazy feature boundary: a single pathless parent carrying
  * the feature-scoped `CheckoutState` (never a global store), the cart
- * session lifecycle (read-only consumer — the product-details pattern),
- * and the shared Phase 2 `authGuard` (`POST /orders/checkout` is
- * `[Authorize]` — anonymous entry redirects to `/login?returnUrl=`),
- * with the default child lazy-loading the checkout page, inheriting
- * the guard and the providers. No payment wiring is asserted here —
- * that arrives in Phase 9.
+ * capabilities seam (read-only consumer — interface-based, never cart
+ * internals), and the shared Phase 2 `authGuard` (`POST
+ * /orders/checkout` is `[Authorize]` — anonymous entry redirects to
+ * `/login?returnUrl=`), with the default child lazy-loading the
+ * checkout page, inheriting the guard and the providers. No payment
+ * wiring is asserted here — that arrives in Phase 9.
  */
 
 import { describe, expect, it } from 'vitest';
 import { authGuard } from '@flux/auth';
-import { AuthenticatedCartService } from '../cart/state/authenticated-cart.service';
-import { CartState } from '../cart/state/cart-state';
-import { GuestCartService } from '../cart/state/guest-cart.service';
+import { CART_CAPABILITIES, CartCapabilitiesService } from '../cart/cart-capabilities.service';
 import { checkoutRoutes } from './checkout.routes';
 import { CheckoutPage } from './pages/checkout-page/checkout-page';
 import { CheckoutState } from './state/checkout-state';
@@ -33,10 +31,18 @@ describe('checkoutRoutes', () => {
     expect(checkoutRoutes[0]?.providers).toContain(CheckoutState);
   });
 
-  it('provides the cart session lifecycle for read-only cart consumption', () => {
-    expect(checkoutRoutes[0]?.providers).toContain(CartState);
-    expect(checkoutRoutes[0]?.providers).toContain(GuestCartService);
-    expect(checkoutRoutes[0]?.providers).toContain(AuthenticatedCartService);
+  it('provides the cart capabilities seam for read-only cart consumption', () => {
+    const providers = checkoutRoutes[0]?.providers ?? [];
+    expect(providers).toContain(CartCapabilitiesService);
+    expect(
+      providers.some(
+        (entry) =>
+          typeof entry === 'object' &&
+          entry !== null &&
+          'provide' in entry &&
+          (entry as { provide: unknown }).provide === CART_CAPABILITIES,
+      ),
+    ).toBe(true);
   });
 
   it('lazy-loads the checkout page on the default child', async () => {

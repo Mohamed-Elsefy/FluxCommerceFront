@@ -13,11 +13,13 @@
  * dismissal recovery, and the created-order handoff for Phase 9 — all
  * with localized copy and the document title.
  *
- * The real `CartState`, `GuestCartService`,
- * `AuthenticatedCartService`, `CheckoutState`, `AuthService`, and
- * `CultureService` are wired to stubbed `CartApiService` /
- * `CheckoutApiService` transports, so these tests pin the full page →
- * state → data-access delegation path without HTTP. Failure recovery
+ * The real cart capability stack (`provideCartCapabilities` over the
+ * real `CartState`/`GuestCartService`/`AuthenticatedCartService`),
+ * `CheckoutState`, `AuthService`, and `CultureService` are wired to
+ * stubbed `CartApiService` / `CheckoutApiService` transports, so these
+ * tests pin the full page → state → data-access delegation path without
+ * HTTP. The page itself injects the `CART_CAPABILITIES` seam only — cart
+ * internals never cross the feature boundary. Failure recovery
  * orchestration beyond dismissal belongs to Sub-Phase 8.7; payment
  * belongs to Phase 9.
  */
@@ -32,11 +34,13 @@ import { Observable, of, throwError } from 'rxjs';
 import { provideApi, provideAppEnvironment, ApiError, type ApiResponseWithData } from '@flux/api';
 import { AuthService, type CurrentUser } from '@flux/auth';
 import { CultureService, type Culture } from '@flux/i18n';
+import type { CartItemResponse, CartResponse } from '@flux/models';
 import { CartApiService } from '../../../cart/data-access/cart-api.service';
-import { GuestCartService } from '../../../cart/state/guest-cart.service';
-import { AuthenticatedCartService } from '../../../cart/state/authenticated-cart.service';
-import { CartState } from '../../../cart/state/cart-state';
-import type { Cart, CartItem } from '../../../cart/models/cart.models';
+import {
+  CART_CAPABILITIES,
+  provideCartCapabilities,
+  type CartCapabilities,
+} from '../../../cart/cart-capabilities.service';
 import { CheckoutApiService } from '../../data-access/checkout-api.service';
 import { CheckoutState } from '../../state/checkout-state';
 import type { CreateOrderResponse } from '../../models/checkout.models';
@@ -59,7 +63,7 @@ const USER: CurrentUser = {
   avatarUrl: null,
 };
 
-function line(overrides: Partial<CartItem> = {}): CartItem {
+function line(overrides: Partial<CartItemResponse> = {}): CartItemResponse {
   return {
     productId: PRODUCT_ID,
     variantId: VARIANT_A,
@@ -72,7 +76,7 @@ function line(overrides: Partial<CartItem> = {}): CartItem {
   };
 }
 
-function authCart(overrides: Partial<Cart> = {}): Cart {
+function authCart(overrides: Partial<CartResponse> = {}): CartResponse {
   return {
     cartId: CART_ID,
     userId: USER_ID,
@@ -86,7 +90,7 @@ function authCart(overrides: Partial<Cart> = {}): Cart {
   };
 }
 
-function cartEnvelope(cart: Cart = authCart()): ApiResponseWithData<Cart> {
+function cartEnvelope(cart: CartResponse = authCart()): ApiResponseWithData<CartResponse> {
   return { isSuccess: true, data: cart };
 }
 
@@ -105,7 +109,7 @@ function orderEnvelope(
   };
 }
 
-type CartFlow = () => Observable<ApiResponseWithData<Cart>>;
+type CartFlow = () => Observable<ApiResponseWithData<CartResponse>>;
 type OrderFlow = () => Observable<ApiResponseWithData<CreateOrderResponse>>;
 
 interface RecordedOrderCall {
@@ -122,7 +126,7 @@ function setup(
   fixture: ComponentFixture<CheckoutPage>;
   element: HTMLElement;
   checkout: CheckoutState;
-  carts: CartState;
+  carts: CartCapabilities;
   orderCalls: RecordedOrderCall[];
   cartApi: {
     getCart: ReturnType<typeof vi.fn>;
@@ -159,10 +163,8 @@ function setup(
       { provide: CartApiService, useValue: cartApi },
       { provide: CheckoutApiService, useValue: orderApiStub },
       { provide: PLATFORM_ID, useValue: options.platform ?? 'browser' },
-      CartState,
-      GuestCartService,
-      AuthenticatedCartService,
       CheckoutState,
+      ...provideCartCapabilities(),
     ],
   });
   window.localStorage.clear();
@@ -175,7 +177,7 @@ function setup(
     fixture,
     element: fixture.nativeElement as HTMLElement,
     checkout: TestBed.inject(CheckoutState),
-    carts: TestBed.inject(CartState),
+    carts: TestBed.inject(CART_CAPABILITIES),
     orderCalls,
     cartApi,
   };
