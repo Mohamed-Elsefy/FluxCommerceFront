@@ -35,6 +35,7 @@ function adminUser(roles: readonly string[], permissions: readonly string[] = []
     roles,
     permissions,
     isEmailVerified: true,
+    avatarUrl: null,
   };
 }
 

@@ -78,7 +78,14 @@ describe('toProfileView (read-only projection)', () => {
       preferredLanguage: 'en',
       timeZone: 'UTC',
       registeredAtUtc: '2026-09-04T10:00:00Z',
+      avatarUrl: null,
     });
+  });
+
+  it('carries the avatar URL through when the backend provides one', () => {
+    expect(toProfileView(profile({ avatarUrl: '/avatars/ada.png' })).avatarUrl).toBe(
+      '/avatars/ada.png',
+    );
   });
 
   it('carries the phone through when the backend provides one', () => {

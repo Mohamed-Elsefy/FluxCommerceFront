@@ -269,6 +269,7 @@ describe('mapLoginResponseToProvisionalUser', () => {
       roles: ['Customer'],
       permissions: [],
       isEmailVerified: true,
+      avatarUrl: null,
     });
   });
 });

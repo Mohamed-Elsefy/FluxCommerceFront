@@ -24,6 +24,7 @@ const USER: CurrentUser = {
   roles: ['Customer'],
   permissions: [],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 const AUTHENTICATED_AT = '2026-09-06T12:00:00.000Z';

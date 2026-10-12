@@ -41,6 +41,7 @@ const USER: CurrentUser = {
   roles: ['Customer'],
   permissions: [],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 function userResponse(): UserResponse {

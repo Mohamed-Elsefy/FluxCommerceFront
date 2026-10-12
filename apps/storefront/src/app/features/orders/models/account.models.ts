@@ -60,6 +60,8 @@ export interface ProfileView {
   readonly timeZone: string;
   /** Registration timestamp (`registeredAtUtc`, ISO-8601). */
   readonly registeredAtUtc: string;
+  /** Avatar image URL (`avatarUrl`), or `null` when the backend sent none. */
+  readonly avatarUrl: string | null;
 }
 
 /**
@@ -95,5 +97,6 @@ export function toProfileView(profile: CustomerProfile): ProfileView {
     preferredLanguage: profile.preferredLanguage,
     timeZone: profile.timeZone,
     registeredAtUtc: profile.registeredAtUtc,
+    avatarUrl: profile.avatarUrl ?? null,
   };
 }

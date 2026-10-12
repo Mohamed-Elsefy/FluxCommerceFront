@@ -28,7 +28,20 @@
         <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
         @if (auth.isAuthenticated()) {
           <a class="avatar" routerLink="/account/profile" [attr.aria-label]="copy().authAccount">
-            {{ avatarInitial() }}
+            @if (avatarUrl() !== null && !avatarFailed()) {
+              <img
+                class="avatar-image"
+                [src]="avatarUrl()"
+                alt=""
+                width="44"
+                height="44"
+                loading="lazy"
+                decoding="async"
+                (error)="avatarFailed.set(true)"
+              />
+            } @else {
+              {{ avatarInitial() }}
+            }
           </a>
         } @else {
           <a class="login-pill" routerLink="/login">{{ copy().authLogin }}</a>

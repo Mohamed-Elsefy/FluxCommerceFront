@@ -15,6 +15,7 @@ const USER: CurrentUser = {
   roles: ['Customer'],
   permissions: [],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 function setup(): { fixture: ComponentFixture<StorefrontHeader>; element: HTMLElement } {
@@ -166,7 +167,7 @@ describe('StorefrontHeader', () => {
     expect(element.querySelector('a.avatar')).toBeNull();
   });
 
-  it('reveals orders navigation and links the avatar straight to the profile', () => {
+  it('links the avatar straight to the profile once authenticated', () => {
     const { fixture, element } = setup();
     TestBed.inject(AuthService).setAuthenticated({ user: USER, accessToken: 'test-token' });
     fixture.detectChanges();
@@ -174,13 +175,26 @@ describe('StorefrontHeader', () => {
     const desktopLinks = [...element.querySelectorAll('.desktop-nav .nav a')].map((link) =>
       link.textContent?.trim(),
     );
-    expect(desktopLinks).toEqual(['Home', 'Products', 'Cart', 'Orders']);
+    expect(desktopLinks).toEqual(['Home', 'Products', 'Cart']);
     expect(element.querySelector('a.login-pill')).toBeNull();
 
     const avatar = element.querySelector('a.avatar') as HTMLAnchorElement;
     expect(avatar?.getAttribute('href')).toBe('/account/profile');
     expect(avatar?.textContent?.trim()).toBe('A');
+    expect(avatar?.querySelector('img')).toBeNull();
     expect(element.querySelector('.account-menu')).toBeNull();
+  });
+
+  it('renders the backend avatar image when the session carries one', () => {
+    const { fixture, element } = setup();
+    TestBed.inject(AuthService).setAuthenticated({
+      user: { ...USER, avatarUrl: '/avatars/ada.png' },
+      accessToken: 'test-token',
+    });
+    fixture.detectChanges();
+
+    const image = element.querySelector('a.avatar img.avatar-image') as HTMLImageElement | null;
+    expect(image?.getAttribute('src')).toBe('/avatars/ada.png');
   });
 
   it('submits header search to the products shelf', () => {

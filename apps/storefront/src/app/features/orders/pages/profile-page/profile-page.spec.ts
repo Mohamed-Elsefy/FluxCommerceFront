@@ -128,6 +128,33 @@ describe('ProfilePage loaded profile (read-only)', () => {
     expect((rows[7] ?? '').length).toBeGreaterThan('Member since: '.length);
   });
 
+  it('renders the identity hub with avatar, badges, and roles', async () => {
+    const { fixture } = await setup(() => of(envelope(user({ phoneNumber: '+49 170 000000' }))));
+
+    expect(fixture.nativeElement.querySelector('.profile-avatar')?.textContent?.trim()).toBe('A');
+    expect(fixture.nativeElement.querySelector('.profile-name')?.textContent?.trim()).toBe(
+      'Ada Lovelace',
+    );
+    expect(fixture.nativeElement.querySelector('.profile-email')?.textContent?.trim()).toBe(
+      'ada@flux.local',
+    );
+    const badges = [...fixture.nativeElement.querySelectorAll('.profile-badges flux-badge')].map(
+      (badge) => badge.textContent?.trim(),
+    );
+    expect(badges).toEqual(['Yes', 'Customer']);
+    expect(fixture.nativeElement.querySelector('.profile-avatar-image')).toBeNull();
+  });
+
+  it('renders the backend avatar image when the profile carries one', async () => {
+    const { fixture } = await setup(() => of(envelope(user({ avatarUrl: '/avatars/ada.png' }))));
+
+    const image = fixture.nativeElement.querySelector(
+      '.profile-avatar-image',
+    ) as HTMLImageElement | null;
+    expect(image?.getAttribute('src')).toBe('/avatars/ada.png');
+    expect(fixture.nativeElement.querySelector('.profile-avatar')).toBeNull();
+  });
+
   it('renders the not-provided note for absent optional data', async () => {
     const { fixture } = await setup();
     const rows = [...fixture.nativeElement.querySelectorAll('dl > div')].map((row: HTMLElement) =>

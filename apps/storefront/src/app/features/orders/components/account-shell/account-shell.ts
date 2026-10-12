@@ -69,6 +69,10 @@ export class AccountShell {
           label: translateAccountKey(culture, ACCOUNT_TRANSLATION_KEYS.navOrders),
           route: ordersPath(),
         },
+        {
+          label: translateAccountKey(culture, ACCOUNT_TRANSLATION_KEYS.navPayments),
+          route: '/payment/mine',
+        },
       ] as readonly AccountNavItem[],
     };
   });

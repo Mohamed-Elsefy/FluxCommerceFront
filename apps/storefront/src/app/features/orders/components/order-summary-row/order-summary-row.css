@@ -1,54 +1,72 @@
+/* Order summary row — Kinetic Pod card. Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
+
 .order-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-lg);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
+  display: grid;
+  gap: var(--s-sm);
+  padding: var(--s-lg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background-color: var(--surface-1);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.order-row:hover {
+  border-color: var(--border-accent);
 }
 
 .order-row-link {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
+  color: var(--primary-text);
+  font-family: var(--font-mono);
+  font-weight: 700;
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
 .order-row-link:hover {
   text-decoration: underline;
+  text-underline-offset: 0.25rem;
 }
 
 .order-row-link:focus-visible {
-  outline: var(--border-width-thin) solid var(--color-primary);
-  outline-offset: var(--spacing-sm);
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
 }
 
 .order-row-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--s-sm);
   margin: 0;
 }
 
 .order-row-facts > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  display: grid;
+  gap: var(--s-2xs);
+  min-inline-size: 0;
 }
 
 .order-row-facts dt {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .order-row-facts dd {
   margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-@media (min-width: 48rem) {
-  .order-row-facts {
-    flex-direction: row;
-    flex-wrap: wrap;
-    column-gap: var(--spacing-lg);
+@media (prefers-reduced-motion: reduce) {
+  .order-row {
+    transition: none;
+    transform: none;
   }
 }

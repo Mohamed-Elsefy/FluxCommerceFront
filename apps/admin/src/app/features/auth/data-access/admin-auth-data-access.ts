@@ -63,6 +63,7 @@ export function mapLoginResponseToProvisionalUser(response: LoginResponse): Curr
     roles: [...response.roles],
     permissions: [],
     isEmailVerified: true,
+    avatarUrl: null,
   };
 }
 

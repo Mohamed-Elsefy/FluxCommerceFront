@@ -14,6 +14,46 @@
       ></flux-error-state>
     </div>
   } @else if (view() !== null) {
+    <div class="profile-hub">
+      @if (avatarUrl() !== null && !avatarFailed()) {
+        <img
+          class="profile-avatar-image"
+          [src]="avatarUrl()"
+          alt=""
+          width="72"
+          height="72"
+          loading="lazy"
+          decoding="async"
+          (error)="avatarFailed.set(true)"
+        />
+      } @else {
+        <span class="profile-avatar" aria-hidden="true">{{ avatarInitial() }}</span>
+      }
+      <div class="profile-identity">
+        <p class="profile-name">{{ view()?.displayName }}</p>
+        <p class="profile-email">{{ view()?.email }}</p>
+        <div class="profile-badges">
+          @if (view()?.emailVerified === true) {
+            <flux-badge variant="success">{{ copy().verifiedYes }}</flux-badge>
+          } @else {
+            <flux-badge variant="warning">{{ copy().verifiedNo }}</flux-badge>
+          }
+          @for (role of view()?.roles ?? []; track role) {
+            <flux-badge variant="verified">{{ role }}</flux-badge>
+          }
+        </div>
+      </div>
+      @if (!editing()) {
+        <button
+          id="profile-edit-button"
+          class="profile-edit-button"
+          type="button"
+          (click)="onEdit()"
+        >
+          {{ copy().editTitle }}
+        </button>
+      }
+    </div>
     <dl class="profile-page-details">
       <div>
         <dt>{{ copy().fieldName }}</dt>
@@ -53,11 +93,7 @@
       <p class="profile-save-notice" role="status">{{ copy().saveSuccess }}</p>
     }
 
-    @if (!editing()) {
-      <button id="profile-edit-button" class="profile-edit-button" type="button" (click)="onEdit()">
-        {{ copy().editTitle }}
-      </button>
-    } @else {
+    @if (editing()) {
       <section class="profile-edit-section" aria-labelledby="profile-edit-title">
         <h3 id="profile-edit-title" tabindex="-1">{{ copy().editTitle }}</h3>
         <profile-form

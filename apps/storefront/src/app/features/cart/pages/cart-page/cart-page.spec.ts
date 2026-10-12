@@ -58,6 +58,7 @@ const USER: CurrentUser = {
   roles: ['Customer'],
   permissions: [],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 function line(overrides: Partial<CartItem> = {}): CartItem {

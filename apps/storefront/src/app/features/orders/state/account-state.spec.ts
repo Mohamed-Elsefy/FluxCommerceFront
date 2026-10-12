@@ -106,6 +106,7 @@ describe('AccountState loadProfile', () => {
       roles: ['Customer'],
       permissions: [],
       isEmailVerified: true,
+      avatarUrl: null,
     });
   });
 

@@ -14,6 +14,7 @@ const ADMIN_USER: CurrentUser = {
   roles: ['Admin'],
   permissions: ['catalog.manage', 'inventory.read', 'inventory.manage', 'orders.read'],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 function setup(): { fixture: ComponentFixture<AppLayout>; element: HTMLElement } {

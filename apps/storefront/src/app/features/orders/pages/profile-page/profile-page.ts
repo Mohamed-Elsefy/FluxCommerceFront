@@ -81,7 +81,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { Title } from '@angular/platform-browser';
 import { CultureService, formatDate, resolveApiErrorMessage, translateKey } from '@flux/i18n';
-import { ErrorState, LoadingIndicator } from '@flux/ui';
+import { Badge, ErrorState, LoadingIndicator } from '@flux/ui';
 import {
   profileDraftOf,
   toUpdateProfileRequest,
@@ -97,7 +97,7 @@ type ProfileFocusTarget = 'heading' | 'first-field' | 'save-error' | 'edit-butto
 
 @Component({
   selector: 'profile-page',
-  imports: [LoadingIndicator, ErrorState, ProfileForm],
+  imports: [LoadingIndicator, ErrorState, ProfileForm, Badge],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -143,6 +143,12 @@ export class ProfilePage implements OnInit {
     });
     effect(() => {
       this.title.setTitle(this.copy().title);
+    });
+    // A new avatar URL re-arms the image (a previous broken URL must not
+    // pin the fallback for the next one).
+    effect(() => {
+      this.avatarUrl();
+      untracked(() => this.avatarFailed.set(false));
     });
     // Load-failure focus management (§10.8 — the checkout §8.8
     // pattern): once per failure, move focus to the error banner so
@@ -258,6 +264,22 @@ export class ProfilePage implements OnInit {
     const profile = this.state.profile();
     return profile === null ? null : toProfileView(profile);
   });
+
+  /** Avatar initial from the display name or email (hub header). */
+  protected readonly avatarInitial = computed(() => {
+    const name = this.view()?.displayName ?? this.view()?.email ?? '';
+    const first = name.trim().charAt(0);
+    return first !== '' ? first.toUpperCase() : '•';
+  });
+
+  /** Backend avatar URL (`null` when absent or blank — initial fallback). */
+  protected readonly avatarUrl = computed(() => {
+    const raw = this.view()?.avatarUrl ?? null;
+    return raw !== null && raw.trim() !== '' ? raw : null;
+  });
+
+  /** Whether the avatar image proved broken (initial-circle fallback). */
+  protected readonly avatarFailed = signal(false);
 
   /** Loading shell covers both untouched (`idle`) and in-flight states. */
   readonly showLoading = computed(() => {

@@ -30,6 +30,7 @@ const ADMIN: CurrentUser = {
   roles: ['Admin'],
   permissions: [],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 const SUPER_ADMIN: CurrentUser = {

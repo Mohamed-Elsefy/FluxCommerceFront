@@ -109,6 +109,7 @@ function setup(scenario: {
       roles: [...(scenario.viewerRoles ?? ['SuperAdmin'])],
       permissions: [...(scenario.viewerPermissions ?? [])],
       isEmailVerified: true,
+      avatarUrl: null,
     },
     accessToken: 'test-access-token',
   });

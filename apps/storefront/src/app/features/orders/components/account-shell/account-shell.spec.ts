@@ -24,6 +24,7 @@ const USER: CurrentUser = {
   roles: ['Customer'],
   permissions: [],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 async function setup(
@@ -64,10 +65,12 @@ describe('AccountShell', () => {
     expect(links.map((link: HTMLAnchorElement) => link.textContent?.trim())).toEqual([
       'Profile',
       'Orders',
+      'Payments',
     ]);
     expect(links.map((link: HTMLAnchorElement) => link.getAttribute('href'))).toEqual([
       '/account/profile',
       '/account/orders',
+      '/payment/mine',
     ]);
   });
 

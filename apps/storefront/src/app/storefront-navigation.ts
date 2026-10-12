@@ -21,12 +21,11 @@ export interface NavDestination {
   readonly authenticatedOnly?: boolean;
 }
 
-/** Primary header/mobile destinations (cart lives alongside the links). */
+/** Primary header/mobile destinations (orders live in the account area). */
 export const MAIN_NAV_ITEMS: readonly NavDestination[] = [
   { labelKey: 'layout.nav.home', route: '/' },
   { labelKey: 'layout.nav.products', route: '/products' },
   { labelKey: 'layout.nav.cart', route: '/cart' },
-  { labelKey: 'layout.nav.orders', route: '/account/orders', authenticatedOnly: true },
 ];
 
 /** Footer Explore destinations (discovery path — no overlap with Shop). */

@@ -67,6 +67,11 @@ export interface CurrentUser {
   readonly permissions: readonly string[];
   /** Email-verification flag from `UserResponse.isEmailVerified`. */
   readonly isEmailVerified: boolean;
+  /**
+   * Avatar image URL from `UserResponse.avatarUrl` (`null` when the
+   * backend sent none — the UI falls back to the initial circle).
+   */
+  readonly avatarUrl: string | null;
 }
 
 /**
@@ -101,5 +106,6 @@ export function mapUserResponseToCurrentUser(response: UserResponse): CurrentUse
     roles: [...response.roles],
     permissions: [...(response.permissions ?? [])],
     isEmailVerified: response.isEmailVerified,
+    avatarUrl: response.avatarUrl ?? null,
   };
 }

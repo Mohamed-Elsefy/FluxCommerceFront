@@ -32,6 +32,7 @@ export const ACCOUNT_TRANSLATION_KEYS = {
   shellLoggingOut: 'account.shell.loggingOut',
   navProfile: 'account.nav.profile',
   navOrders: 'account.nav.orders',
+  navPayments: 'account.nav.payments',
   profileTitle: 'account.profile.title',
   profileLoading: 'account.profile.loading',
   profileLoadErrorTitle: 'account.profile.loadErrorTitle',
@@ -70,6 +71,7 @@ const EN_ACCOUNT: TranslationDictionary = {
     nav: {
       profile: 'Profile',
       orders: 'Orders',
+      payments: 'Payments',
     },
     profile: {
       title: 'Profile',
@@ -116,6 +118,7 @@ const FR_ACCOUNT: TranslationDictionary = {
     nav: {
       profile: 'Profil',
       orders: 'Commandes',
+      payments: 'Paiements',
     },
     profile: {
       title: 'Profil',
@@ -163,6 +166,7 @@ const DE_ACCOUNT: TranslationDictionary = {
     nav: {
       profile: 'Profil',
       orders: 'Bestellungen',
+      payments: 'Zahlungen',
     },
     profile: {
       title: 'Profil',
@@ -209,6 +213,7 @@ const ES_ACCOUNT: TranslationDictionary = {
     nav: {
       profile: 'Perfil',
       orders: 'Pedidos',
+      payments: 'Pagos',
     },
     profile: {
       title: 'Perfil',
@@ -255,6 +260,7 @@ const AR_ACCOUNT: TranslationDictionary = {
     nav: {
       profile: 'الملف الشخصي',
       orders: 'الطلبات',
+      payments: 'المدفوعات',
     },
     profile: {
       title: 'الملف الشخصي',

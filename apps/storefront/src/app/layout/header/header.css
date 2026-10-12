@@ -132,7 +132,6 @@
 }
 
 @media (max-width: 47.99rem) {
-  /* Narrow bar keeps the pill actions; the panel carries nav + search. */
   .desktop-search {
     display: none;
   }
@@ -218,10 +217,6 @@
   transform: translateY(-4px);
 }
 
-.login-pill:active {
-  transform: translateY(2px);
-}
-
 /* Avatar — account circle linking straight to the profile. */
 .avatar {
   display: inline-flex;
@@ -236,20 +231,21 @@
   font-weight: 800;
   font-size: 1.125rem;
   text-decoration: none;
-  cursor: pointer;
   flex: none;
+  overflow: hidden;
   transform: translateY(-4px);
-  transition:
-    transform 0.2s var(--spring),
-    box-shadow 0.2s;
+  transition: box-shadow 0.2s;
 }
 
 .avatar:hover {
   box-shadow: 0 0 24px var(--glow-secondary);
 }
 
-.avatar:active {
-  transform: translateY(0);
+.avatar-image {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 @media (min-width: 64rem) {

@@ -1,33 +1,46 @@
+/* Account section nav — segmented pill group (active = lime fill).
+   Logical properties only (RTL-safe); visual values come from theming
+   tokens. */
+
 .account-nav ul {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--s-2xs);
   margin: 0;
-  padding: 0;
+  padding: var(--s-2xs);
   list-style: none;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  inline-size: fit-content;
+  max-inline-size: 100%;
 }
 
 .account-nav a {
   display: inline-block;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-lg);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text);
+  padding-block: 0.625rem;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
   text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .account-nav a:hover {
-  border-color: var(--color-primary);
+  color: var(--text);
 }
 
 .account-nav a.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 8px var(--glow-primary);
 }
 
 .account-nav a:focus-visible {
-  outline: var(--border-width-thin) solid var(--color-primary);
-  outline-offset: var(--spacing-sm);
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
 }

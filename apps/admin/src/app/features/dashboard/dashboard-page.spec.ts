@@ -118,6 +118,7 @@ function setup(scenario: {
       roles: [...(scenario.roles ?? ['Admin'])],
       permissions: [...(scenario.permissions ?? [])],
       isEmailVerified: true,
+      avatarUrl: null,
     },
     accessToken: 'test-access-token',
   });

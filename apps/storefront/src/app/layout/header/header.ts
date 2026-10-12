@@ -2,7 +2,7 @@
  * Storefront header — Kinetic glass bar (DESIGN §6.4).
  *
  * Composition only: brand wordmark, segmented main nav (Home / Products /
- * Cart / Orders), live pill search (debounced keystrokes commit to the
+ * Cart), live pill search (debounced keystrokes commit to the `/products`
  * `/products` shelf like the former in-page search box; Enter submits
  * immediately), a language-cycle pill (steps to the next supported
  * culture), the theme toggle, and the account entry — anonymous sees a
@@ -21,11 +21,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   HostListener,
   inject,
   PLATFORM_ID,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -57,18 +59,14 @@ export const HEADER_SEARCH_DEBOUNCE_MS = 300;
 export class StorefrontHeader {
   /**
    * Main destinations with localized labels for the active culture.
-   * Authenticated-only entries stay hidden from anonymous visitors
-   * (they reach those areas through the login pill + guard return).
+   * Orders live in the account area — never in the header.
    */
-  protected readonly mainNav = computed(() => {
-    const authenticated = this.auth.isAuthenticated();
-    return MAIN_NAV_ITEMS.filter((item) => !item.authenticatedOnly || authenticated).map(
-      (item): StorefrontNavItem => ({
-        label: translateLayoutKey(this.cultures.culture(), item.labelKey),
-        route: item.route,
-      }),
-    );
-  });
+  protected readonly mainNav = computed(() =>
+    MAIN_NAV_ITEMS.map((item): StorefrontNavItem => ({
+      label: translateLayoutKey(this.cultures.culture(), item.labelKey),
+      route: item.route,
+    })),
+  );
 
   /** Localized shell chrome for the active culture. */
   protected readonly copy = computed(() => {
@@ -121,9 +119,27 @@ export class StorefrontHeader {
     return first !== '' ? first.toUpperCase() : '•';
   });
 
+  /**
+   * Backend avatar URL for the account entry (`null` when absent or
+   * blank — the entry falls back to the initial circle).
+   */
+  protected readonly avatarUrl = computed(() => {
+    const raw = this.auth.currentUser()?.avatarUrl ?? null;
+    return raw !== null && raw.trim() !== '' ? raw : null;
+  });
+
+  /** Whether the avatar image proved broken (initial-circle fallback). */
+  protected readonly avatarFailed = signal(false);
+
   private readonly menuToggle = viewChild<ElementRef<HTMLButtonElement>>('menuToggle');
 
   constructor() {
+    // A new avatar URL re-arms the image (a previous broken URL must not
+    // pin the fallback for the next one).
+    effect(() => {
+      this.avatarUrl();
+      untracked(() => this.avatarFailed.set(false));
+    });
     // Browser only: live search commits debounced keystrokes to the shelf
     // (same funnel as the former in-page box — debounce, dedupe, teardown
     // with the shell) and the box echoes the committed `searchTerm` back

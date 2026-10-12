@@ -32,6 +32,7 @@ const ADMIN: CurrentUser = {
   roles: ['Admin'],
   permissions: ['orders.read', 'dashboard.read'],
   isEmailVerified: true,
+  avatarUrl: null,
 };
 
 const SUPER_ADMIN: CurrentUser = {
