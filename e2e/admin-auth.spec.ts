@@ -316,7 +316,13 @@ test.describe('admin integrated journeys (12.10)', () => {
     await page.goto('/dashboard');
     await expect.poll(() => page.evaluate(() => document.documentElement.dir)).toBe('ltr');
 
-    await page.locator('admin-culture-switch select').selectOption('ar');
+    const langButton = page.locator('admin-header .lang-button');
+    for (let i = 0; i < 5; i += 1) {
+      await langButton.click();
+      if ((await page.evaluate(() => document.documentElement.dir)) === 'rtl') {
+        break;
+      }
+    }
 
     await expect.poll(() => page.evaluate(() => document.documentElement.dir)).toBe('rtl');
     await expect(page.getByRole('link', { name: 'لوحة التحكم' })).toBeVisible();

@@ -1,3 +1,7 @@
+/* Admin shell grid — Kinetic surfaces (docs/DESIGN.md §2–§5): app
+   background, sidebar rim, glass header row, lime skip link, overlay
+   scrim. Canonical tokens only, logical properties only (RTL-safe).
+   Grid areas and breakpoints are unchanged. */
 :host {
   display: grid;
   grid-template-areas:
@@ -6,11 +10,13 @@
   grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr;
   min-block-size: 100dvh;
+  background: var(--bg);
+  color: var(--text);
 }
 
 admin-sidebar {
   grid-area: sidebar;
-  border-inline-end: var(--border-width-thin) solid var(--color-border);
+  border-inline-end: 1.5px solid var(--border);
 }
 
 admin-header {
@@ -23,25 +29,29 @@ admin-header {
 main {
   grid-area: main;
   display: block;
-  padding-block: var(--spacing-lg);
-  padding-inline: var(--spacing-md);
+  min-inline-size: 0;
+  padding-block: var(--s-lg);
+  padding-inline: var(--s-md);
 }
 
 .skip-link {
   position: absolute;
-  inset-inline-start: var(--spacing-md);
-  top: calc(-1 * var(--spacing-3xl));
+  inset-inline-start: var(--s-md);
+  top: calc(-1 * var(--s-2xl));
   z-index: var(--z-index-toast);
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-md);
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-  border-radius: var(--radius-md);
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-md);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  border-radius: var(--r-pill);
+  font-weight: 700;
   text-decoration: none;
 }
 
 .skip-link:focus-visible {
-  top: var(--spacing-sm);
+  top: var(--s-sm);
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
 }
 
 .overlay {
@@ -70,8 +80,9 @@ main {
     inset-inline-start: 0;
     z-index: var(--z-index-modal);
     inline-size: min(20rem, 85vw);
-    background: var(--color-surface);
-    border-inline-end: var(--border-width-thin) solid var(--color-border);
+    background: var(--surface-1);
+    border-inline-end: 1.5px solid var(--border);
+    box-shadow: var(--shadow-ambient);
   }
 
   .overlay {
@@ -81,7 +92,7 @@ main {
     z-index: var(--z-index-dropdown);
     border: 0;
     padding: 0;
-    background: var(--color-scrim);
+    background: var(--overlay);
     cursor: pointer;
   }
 }

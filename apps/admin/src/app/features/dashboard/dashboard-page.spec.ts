@@ -466,6 +466,27 @@ describe('DashboardPage', () => {
     expect(element.textContent).toContain('ORD-ABC123');
   });
 
+  it('renders the series strip as labeled day columns', () => {
+    setup({
+      snapshot: successResource(
+        snapshot({
+          dailySeries: [
+            { date: '2026-10-04', orders: 0, revenue: [] },
+            {
+              date: '2026-10-05',
+              orders: 2,
+              revenue: [{ currency: 'USD', amount: 140 }],
+            },
+          ],
+        }),
+      ),
+    });
+    const element = render();
+
+    expect(element.querySelectorAll('.series-chart-day')).toHaveLength(2);
+    expect(element.textContent).toContain('Revenue · USD');
+  });
+
   it('renders the daily-series newest-first', () => {
     setup({
       snapshot: successResource(

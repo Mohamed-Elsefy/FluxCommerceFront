@@ -1,5 +1,16 @@
 <nav class="sidebar" [attr.aria-label]="label">
-  <p class="brand">{{ brand }}</p>
+  <p class="brand">
+    <img
+      class="brand-logo"
+      src="/assets/fluxCommerce-logo.png"
+      alt=""
+      width="160"
+      height="40"
+      loading="lazy"
+      decoding="async"
+    />
+    <span class="brand-text">{{ brand }}</span>
+  </p>
   <ul>
     <ng-container *ngTemplateOutlet="entries; context: { $implicit: items }"></ng-container>
   </ul>

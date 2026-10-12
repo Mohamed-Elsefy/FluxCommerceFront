@@ -1,21 +1,35 @@
 <svg
   class="series-chart-bars"
-  viewBox="0 0 100 40"
+  viewBox="0 0 100 100"
   preserveAspectRatio="none"
   aria-hidden="true"
   focusable="false"
 >
   @for (bar of bars(); track bar.date) {
-    <rect [attr.x]="bar.x" y="0" [attr.width]="bar.width" [attr.height]="bar.height" />
+    <rect
+      [attr.x]="bar.x"
+      [attr.y]="100 - bar.height"
+      [attr.width]="bar.width"
+      [attr.height]="bar.height"
+      rx="1.5"
+    />
   }
 </svg>
 <ol class="series-chart-points">
   @for (point of points; track point.date) {
-    <li>
+    <li class="series-chart-day">
       <span class="series-chart-date">{{ point.date }}</span>
-      <span class="series-chart-orders">{{ ordersText(point.orders) }}</span>
+      <span class="series-chart-orders">
+        <span class="series-chart-value">{{ ordersText(point.orders) }}</span>
+        <span class="series-chart-caption">{{ seriesOrdersLabel() }}</span>
+      </span>
       @for (slice of point.revenue; track slice.currency) {
-        <span class="series-chart-revenue">{{ revenueText(slice.currency, slice.amount) }}</span>
+        <span class="series-chart-revenue">
+          <span class="series-chart-value">{{ revenueText(slice.currency, slice.amount) }}</span>
+          <span class="series-chart-caption"
+            >{{ seriesRevenueLabel() }} · {{ slice.currency }}</span
+          >
+        </span>
       }
     </li>
   }

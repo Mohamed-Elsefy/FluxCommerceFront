@@ -111,8 +111,7 @@ describe('AdminLoginPage', () => {
     const page = fixture.componentInstance;
     const element = fixture.nativeElement as HTMLElement;
 
-    const password = () =>
-      element.querySelector('#admin-login-password')?.getAttribute('type');
+    const password = () => element.querySelector('#admin-login-password')?.getAttribute('type');
     expect(page.showPassword()).toBe(false);
     expect(password()).toBe('password');
 

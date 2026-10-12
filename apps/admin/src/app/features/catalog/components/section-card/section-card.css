@@ -1,22 +1,25 @@
+/* Section card — Kinetic tile content (docs/DESIGN.md §6.8): bold
+   title, muted description, tabular fact. Canonical tokens only. */
 .section-card {
   display: grid;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .section-card-title {
   margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .section-card-description {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
 }
 
 .section-card-fact {
   margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }

@@ -1,31 +1,48 @@
+/* Product details — Kinetic (docs/DESIGN.md §6): display header,
+   lime primary pills, ghost action pills. Canonical tokens only,
+   logical properties only (RTL-safe). */
 .product-details {
   display: grid;
-  gap: var(--spacing-lg);
+  gap: var(--s-md);
   max-inline-size: 75rem;
   margin-inline: auto;
 }
 
 .product-details-back {
   justify-self: start;
-  color: var(--color-primary);
+  color: var(--primary-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.product-details-back:hover {
+  text-decoration: underline;
+}
+
+.product-details-back:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
 }
 
 .product-details-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--s-sm);
 }
 
 .product-details-header h1 {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
 }
 
 .product-details-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .product-details-edit {
@@ -35,31 +52,32 @@
 
 .product-details-facts {
   display: grid;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
   margin: 0;
 }
 
 .product-details-facts > div {
   display: grid;
   grid-template-columns: minmax(8rem, auto) 1fr;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .product-details-facts dt {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
 }
 
 .product-details-facts dd {
   margin: 0;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
 .product-details h2 {
   margin: 0;
-  margin-block-end: var(--spacing-md);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  margin-block-end: var(--s-sm);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .product-details-section-heading {
@@ -67,8 +85,8 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--spacing-sm);
-  margin-block-end: var(--spacing-md);
+  gap: var(--s-xs);
+  margin-block-end: var(--s-sm);
 }
 
 .product-details-section-heading h2 {
@@ -76,59 +94,99 @@
 }
 
 .product-details-manage {
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
+  color: var(--primary-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.product-details-manage:hover {
+  text-decoration: underline;
 }
 
 .product-details-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .product-details-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .product-details-edit,
 .product-details-add,
 .product-details-dialog-confirm {
-  padding-inline: var(--spacing-lg);
-  padding-block: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-primary);
-  color: var(--color-primary-contrast);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
 }
 
 .product-details-add {
-  padding-inline: var(--spacing-md);
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
+}
+
+.product-details-edit:hover:not(:disabled),
+.product-details-add:hover:not(:disabled),
+.product-details-dialog-confirm:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.product-details-edit:active:not(:disabled),
+.product-details-add:active:not(:disabled),
+.product-details-dialog-confirm:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.product-details-edit:disabled,
+.product-details-add:disabled,
+.product-details-dialog-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .product-details-action,
 .product-details-row-action,
 .product-details-dialog-cancel {
-  padding-inline: var(--spacing-md);
-  padding-block: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 40px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.product-details-row-action {
-  padding-inline: var(--spacing-sm);
-  padding-block: var(--spacing-xs);
-  font-weight: var(--font-weight-regular);
+.product-details-action:hover:not(:disabled),
+.product-details-row-action:hover:not(:disabled),
+.product-details-dialog-cancel:hover:not(:disabled) {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
 }
 
 .product-details-edit:disabled,
@@ -136,8 +194,8 @@
 .product-details-action:disabled,
 .product-details-row-action:disabled,
 .product-details-dialog-confirm:disabled {
-  cursor: progress;
-  opacity: 0.7;
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .product-details-back:focus-visible,
@@ -148,6 +206,15 @@
 .product-details-row-action:focus-visible,
 .product-details-dialog-confirm:focus-visible,
 .product-details-dialog-cancel:focus-visible {
-  outline: 0.125rem solid var(--color-primary);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-details-edit,
+  .product-details-add,
+  .product-details-dialog-confirm {
+    transition: none;
+    transform: none;
+  }
 }

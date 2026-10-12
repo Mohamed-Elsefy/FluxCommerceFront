@@ -15,7 +15,9 @@ describe('translateAdminLayoutKey', () => {
     expect(translateAdminLayoutKey('es', ADMIN_LAYOUT_TRANSLATION_KEYS.navUsersList)).toBe(
       'Lista de usuarios',
     );
-    expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.switchLabel)).toBe('اللغة');
+    expect(translateAdminLayoutKey('ar', ADMIN_LAYOUT_TRANSLATION_KEYS.brandLabel)).toBe(
+      'إدارة FluxCommerce',
+    );
     expect(translateAdminLayoutKey('en', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe('Orders');
     expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.navOrders)).toBe(
       'Commandes',
@@ -25,7 +27,7 @@ describe('translateAdminLayoutKey', () => {
     );
   });
 
-  it('resolves header, skip-link, and account copy without key leakage', () => {
+  it('resolves menu, skip-link, and operator copy without key leakage', () => {
     expect(translateAdminLayoutKey('fr', ADMIN_LAYOUT_TRANSLATION_KEYS.headerMenuLabel)).toBe(
       'Basculer la navigation',
     );

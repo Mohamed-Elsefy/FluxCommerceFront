@@ -1,26 +1,37 @@
+/* Textarea — Kinetic multiline field (docs/DESIGN.md §6.5): squircle,
+   lime halo on focus. Canonical tokens only, logical props (RTL-safe). */
 .textarea {
   inline-size: 100%;
   min-block-size: 6rem;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-md);
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
   resize: block;
 }
 
+:root[data-theme='light'] .textarea {
+  background: var(--surface-1);
+}
+
+.textarea::placeholder {
+  color: var(--text-faint);
+}
+
 .textarea:disabled {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .textarea:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 0;
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
 }
 
 .textarea[aria-invalid='true'] {
-  border-color: var(--color-danger);
+  border-color: var(--error);
 }

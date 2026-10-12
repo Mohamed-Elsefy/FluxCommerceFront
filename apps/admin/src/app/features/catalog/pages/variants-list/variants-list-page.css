@@ -1,18 +1,26 @@
+/* Variants list — Kinetic (docs/DESIGN.md §6): display header, lime
+   create pill. Canonical tokens only, logical props (RTL-safe). */
 .variants-list {
   display: grid;
-  gap: var(--spacing-lg);
+  gap: var(--s-md);
   max-inline-size: 75rem;
   margin-inline: auto;
 }
 
 .variants-list-back {
   justify-self: start;
-  color: var(--color-primary);
+  color: var(--primary-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.variants-list-back:hover {
+  text-decoration: underline;
 }
 
 .variants-list-back:focus-visible {
-  outline: 0.125rem solid var(--color-primary);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
 }
 
 .variants-list-header {
@@ -20,32 +28,66 @@
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: var(--spacing-md);
+  gap: var(--s-sm);
 }
 
 .variants-list-header h1 {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
 }
 
 .variants-list-subtitle {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .variants-list-new {
-  padding-inline: var(--spacing-lg);
-  padding-block: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-primary);
-  color: var(--color-primary-contrast);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 1rem;
+  font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
+}
+
+.variants-list-new:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.variants-list-new:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.variants-list-new:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .variants-list-new:focus-visible {
-  outline: 0.125rem solid var(--color-primary);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .variants-list-new {
+    transition: none;
+    transform: none;
+  }
 }

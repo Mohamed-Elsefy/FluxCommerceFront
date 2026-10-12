@@ -46,6 +46,17 @@ describe('SeriesChart', () => {
     expect(element.textContent).toContain('$140.00');
   });
 
+  it('labels day cells with localized orders and revenue captions', () => {
+    const { element } = setup(points());
+
+    const captions = [...element.querySelectorAll('.series-chart-caption')].map((node) =>
+      node.textContent?.trim(),
+    );
+    expect(captions).toContain('Orders');
+    expect(captions).toContain('Revenue · USD');
+    expect(element.querySelectorAll('.series-chart-day')).toHaveLength(2);
+  });
+
   it('renders nothing without points', () => {
     const { element } = setup([]);
 

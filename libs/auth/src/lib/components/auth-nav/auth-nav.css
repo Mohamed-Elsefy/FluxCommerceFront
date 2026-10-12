@@ -1,17 +1,86 @@
+/* AuthNav — Kinetic operator chip + primary logout pill
+   (docs/DESIGN.md §6.1/§6.7): muted identity chip, lime logout action.
+   Canonical tokens only, logical properties only (RTL-safe). Shared by
+   shells — no app-specific values. */
 .auth-nav {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--s-xs);
+  min-inline-size: 0;
 }
 
-.auth-nav-status,
+.auth-nav-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
 .auth-nav-user {
   margin: 0;
+  max-inline-size: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-block: var(--s-2xs);
+  padding-inline: var(--s-sm);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.auth-nav-link {
+  color: var(--primary-text);
+  font-weight: 700;
+}
+
+.auth-nav-logout {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
+}
+
+.auth-nav-logout:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.auth-nav-logout:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.auth-nav-logout:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .auth-nav a:focus-visible,
 .auth-nav button:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+  border-radius: var(--r-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-nav-logout {
+    transition: none;
+    transform: none;
+  }
 }

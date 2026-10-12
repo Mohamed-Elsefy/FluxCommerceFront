@@ -1,14 +1,14 @@
 .product-form {
   display: grid;
-  gap: var(--spacing-md);
+  gap: var(--s-sm);
   max-inline-size: 44rem;
 }
 
 .product-form-seo {
   display: grid;
-  gap: var(--spacing-md);
+  gap: var(--s-sm);
   margin: 0;
-  padding: var(--spacing-md);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: var(--s-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
 }

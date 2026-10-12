@@ -1,10 +1,10 @@
 .field-errors {
   display: grid;
-  gap: var(--spacing-xs);
+  gap: var(--s-2xs);
 }
 
 .field-errors-message {
   margin: 0;
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
+  color: var(--error);
+  font-size: 0.875rem;
 }

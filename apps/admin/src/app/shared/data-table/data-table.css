@@ -1,40 +1,74 @@
+/* Data table — Kinetic dense table (docs/DESIGN.md §6.10): squircle
+   wrapper, mono header labels, row hover, lime focus. Canonical
+   tokens only, logical properties only (RTL-safe). */
 .data-table-scroll {
   overflow-inline: auto;
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background-color: var(--surface-1);
+  box-shadow: var(--shadow-ambient);
 }
 
 .data-table {
   inline-size: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
 }
 
 .data-table caption {
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-md);
-  color: var(--color-text-muted);
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-sm);
+  color: var(--text-muted);
   text-align: start;
 }
 
 .data-table th,
 .data-table td {
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-md);
-  border-block-end: var(--border-width-thin) solid var(--color-border);
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-sm);
+  border-block-end: 1px solid var(--border);
   text-align: start;
   white-space: nowrap;
 }
 
 .data-table thead th {
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.data-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-2);
 }
 
 .data-table tbody tr:last-child th,
 .data-table tbody tr:last-child td {
   border-block-end: 0;
+}
+
+.data-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table a {
+  color: var(--primary-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.data-table a:hover {
+  text-decoration: underline;
+}
+
+.data-table a:focus-visible,
+.data-table button:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
 }
 
 .data-table-state td {
@@ -44,5 +78,11 @@
 .data-table-actions-group {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-table tbody tr {
+    transition: none;
+  }
 }

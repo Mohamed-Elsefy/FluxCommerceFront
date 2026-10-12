@@ -6,8 +6,7 @@
   padding-block: var(--s-xl);
   padding-inline: var(--container-padding-inline);
   background:
-    radial-gradient(42rem 22rem at 50% -6rem, var(--glow-secondary), transparent 70%),
-    var(--bg);
+    radial-gradient(42rem 22rem at 50% -6rem, var(--glow-secondary), transparent 70%), var(--bg);
 }
 
 .admin-login-card {
@@ -30,12 +29,12 @@
   gap: var(--s-sm);
 }
 
-.admin-login-wordmark {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
-  color: var(--text);
+.admin-login-logo {
+  display: block;
+  inline-size: 8rem;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
 }
 
 .admin-login-badge {

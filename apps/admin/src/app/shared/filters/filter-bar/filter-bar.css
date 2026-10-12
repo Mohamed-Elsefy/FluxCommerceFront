@@ -1,15 +1,17 @@
+/* Filter bar — Kinetic filter row (docs/DESIGN.md §6.4b): flexible
+   controls, ghost clear pill. Canonical tokens, logical props. */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: var(--spacing-md);
+  gap: var(--s-sm);
 }
 
 .filter-bar-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: var(--spacing-md);
+  gap: var(--s-sm);
   flex: 1;
   min-inline-size: 0;
 }
@@ -20,18 +22,27 @@
 }
 
 .filter-bar-clear {
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-md);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
   background-color: transparent;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
 
+.filter-bar-clear:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
 .filter-bar-clear:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }

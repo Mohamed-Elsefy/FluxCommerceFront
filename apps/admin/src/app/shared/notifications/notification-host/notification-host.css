@@ -1,58 +1,62 @@
+/* Notification host — Kinetic glass toasts (docs/DESIGN.md §6.10):
+   frosted squircle, status edge, ghost dismiss. Canonical tokens only,
+   logical properties only (RTL-safe). */
 .notification-host {
   position: fixed;
-  inset-block-end: var(--spacing-lg);
-  inset-inline-end: var(--spacing-lg);
+  inset-block-end: var(--s-md);
+  inset-inline-end: var(--s-md);
   z-index: var(--z-index-toast);
   display: grid;
-  gap: var(--spacing-sm);
-  inline-size: min(24rem, calc(100vw - 2 * var(--spacing-lg)));
+  gap: var(--s-xs);
+  inline-size: min(24rem, calc(100vw - 2 * var(--s-md)));
 }
 
 .notification {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-sm);
-  padding-block: var(--spacing-md);
-  padding-inline: var(--spacing-md);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-md);
-  border-inline-start-width: var(--border-width-medium);
+  gap: var(--s-xs);
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  color: var(--text);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  border-inline-start-width: 2px;
 }
 
 .notification[data-type='success'] {
-  border-inline-start-color: var(--color-success);
+  border-inline-start-color: var(--success);
 }
 
 .notification[data-type='info'] {
-  border-inline-start-color: var(--color-info);
+  border-inline-start-color: var(--info);
 }
 
 .notification[data-type='warning'] {
-  border-inline-start-color: var(--color-warning);
+  border-inline-start-color: var(--warning);
 }
 
 .notification[data-type='error'] {
-  border-inline-start-color: var(--color-danger);
+  border-inline-start-color: var(--error);
 }
 
 .notification-copy {
   display: grid;
-  gap: var(--spacing-xs);
+  gap: var(--s-2xs);
   flex: 1;
   min-inline-size: 0;
 }
 
 .notification-title {
   margin: 0;
-  font-weight: var(--font-weight-semibold);
+  font-weight: 700;
 }
 
 .notification-message {
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
@@ -60,19 +64,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 1.75rem;
-  block-size: 1.75rem;
-  border: 0;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  flex: none;
+  border: 1.5px solid transparent;
   padding: 0;
   background-color: transparent;
   color: inherit;
-  font-size: var(--font-size-md);
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  border-radius: var(--radius-full);
+  border-radius: var(--r-pill);
+}
+
+.notification-dismiss:hover {
+  border-color: var(--border);
 }
 
 .notification-dismiss:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }

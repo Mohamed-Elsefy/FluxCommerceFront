@@ -1,24 +1,36 @@
+/* Text input — Kinetic pill field (docs/DESIGN.md §6.5): 48px pill,
+   lime halo on focus. Canonical tokens only, logical props (RTL-safe). */
 .text-input {
   inline-size: 100%;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-md);
+  min-block-size: 48px;
+  padding-block: 0;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+:root[data-theme='light'] .text-input {
+  background: var(--surface-1);
+}
+
+.text-input::placeholder {
+  color: var(--text-faint);
 }
 
 .text-input:disabled {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .text-input:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 0;
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
 }
 
 .text-input[aria-invalid='true'] {
-  border-color: var(--color-danger);
+  border-color: var(--error);
 }

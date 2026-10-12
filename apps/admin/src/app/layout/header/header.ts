@@ -1,21 +1,22 @@
 /**
- * Admin header for Sub-Phases 3.7 + 12.3 — Admin Application Shell.
+ * Admin header — Kinetic glass bar mirroring the storefront arrangement.
  *
  * Composition only: mobile menu toggle (emitted to the parent shell, which
- * owns drawer state), application context title, language picker, and the
- * Phase 2 `AuthNav` for the authenticated admin user area (login/
- * registration links hidden — this portal has no such routes; the account
- * entry points at the dashboard). No auth logic lives here — `AuthService`
+ * owns drawer state), a mobile-only brand mark (the sidebar carries the
+ * brand on desktop), and an actions group — language-cycle pill, theme
+ * toggle, and the Phase 2 `AuthNav` (login/registration/account links
+ * hidden: this portal has no such routes; authenticated operators see
+ * their identity plus logout). No auth logic lives here — `AuthService`
  * signals stay inside `AuthNav`.
  *
  * Theme switching is composed here (Sub-Phase 3.10): the shared dumb
  * `ThemeToggle` reflects `ThemeService` state and forwards activations to
- * it — this shell owns no theme logic. Culture switching is composed the
- * same way: the shell-owned dumb `AdminCultureSwitch` reflects
- * `CultureService` state and forwards selections to it. All chrome copy
- * resolves through the admin layout bundle for the active culture.
+ * it — this shell owns no theme logic. Culture switching mirrors the
+ * storefront cycle pill: each press steps to the next supported culture.
+ * All chrome copy resolves through the admin layout bundle for the
+ * active culture.
  *
- * SSR/hydration safe: static markup plus an output emission, no browser
+ * SSR/hydration safe: static markup plus output emissions, no browser
  * APIs. RTL safe: logical properties and direction-aware flex flow only.
  */
 
@@ -31,10 +32,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { AuthNav } from '@flux/auth';
-import { CultureService, SUPPORTED_CULTURE_METADATA, type Culture } from '@flux/i18n';
+import { CultureService, SUPPORTED_CULTURE_METADATA } from '@flux/i18n';
 import { ThemeService } from '@flux/theming';
 import { ThemeToggle } from '@flux/ui';
-import { AdminCultureSwitch } from '../culture-switch/culture-switch';
 import {
   ADMIN_LAYOUT_TRANSLATION_KEYS,
   translateAdminLayoutKey,
@@ -42,7 +42,7 @@ import {
 
 @Component({
   selector: 'admin-header',
-  imports: [AuthNav, ThemeToggle, AdminCultureSwitch],
+  imports: [AuthNav, ThemeToggle],
   templateUrl: './header.html',
   styleUrl: './header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,24 +51,27 @@ export class AdminHeader {
   /** Central theme state (read-only here; toggled through the shared control). */
   protected readonly themes = inject(ThemeService);
 
-  /** Central culture state (read-only here; switched through the picker). */
+  /** Central culture state (read-only here; stepped through the pill). */
   protected readonly cultures = inject(CultureService);
 
-  /** Supported cultures offered by the language picker (single source of truth). */
+  /** Supported cultures in cycle order (single source of truth). */
   protected readonly languages = SUPPORTED_CULTURE_METADATA;
+
+  /** Current culture display name shown on the cycle pill. */
+  protected readonly currentLanguage = computed(() => {
+    const culture = this.cultures.culture();
+    return this.languages.find((item) => item.code === culture)?.displayName ?? culture;
+  });
 
   /** Localized shell chrome for the active culture. */
   protected readonly copy = computed(() => {
     const culture = this.cultures.culture();
     return {
-      context: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.headerContext),
       menuLabel: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.headerMenuLabel),
-      switchLabel: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.switchLabel),
       authChecking: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.authChecking),
       authNavLabel: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.authNavLabel),
       authLogin: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.authLogin),
       authRegister: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.authRegister),
-      authAccount: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.authAccount),
       authLogout: translateAdminLayoutKey(culture, ADMIN_LAYOUT_TRANSLATION_KEYS.authLogout),
       authLoggingOut: translateAdminLayoutKey(
         culture,
@@ -85,9 +88,11 @@ export class AdminHeader {
 
   private readonly toggle = viewChild<ElementRef<HTMLButtonElement>>('toggle');
 
-  /** Applies a validated language-picker selection to the central culture state. */
-  protected onCultureChange(culture: Culture): void {
-    this.cultures.setCulture(culture);
+  /** Steps to the next supported culture (wraps around). */
+  cycleCulture(): void {
+    const codes = this.languages.map((item) => item.code);
+    const next = codes[(codes.indexOf(this.cultures.culture()) + 1) % codes.length];
+    this.cultures.setCulture(next);
   }
 
   /** Returns keyboard focus to the drawer toggle (Escape path). */

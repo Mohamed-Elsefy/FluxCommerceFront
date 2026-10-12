@@ -1,30 +1,49 @@
+/* Pagination — Kinetic pager (docs/DESIGN.md §6.4b): pill buttons,
+   lime current pill. Canonical tokens only, logical props (RTL-safe). */
 .admin-pagination {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .admin-pagination button {
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-lg);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background-color: var(--surface-glass);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-pagination button:hover:not(:disabled) {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
 }
 
 .admin-pagination button:focus-visible {
-  outline: var(--border-width-thin) solid var(--color-primary);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }
 
 .admin-pagination button[aria-current='page'] {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 8px var(--glow-primary);
 }
 
 .admin-pagination button:disabled {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.45;
 }

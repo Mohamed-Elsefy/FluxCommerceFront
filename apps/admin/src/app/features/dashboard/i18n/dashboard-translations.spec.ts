@@ -61,6 +61,15 @@ describe('translateDashboardKey', () => {
       'Keine Aktivität in diesem Zeitraum.',
     );
     expect(translateDashboardKey('es', DASHBOARD_TRANSLATION_KEYS.paymentsNet)).toBe('Neto');
+    expect(translateDashboardKey('en', DASHBOARD_TRANSLATION_KEYS.seriesOrdersLabel)).toBe(
+      'Orders',
+    );
+    expect(translateDashboardKey('fr', DASHBOARD_TRANSLATION_KEYS.seriesRevenueLabel)).toBe(
+      'Revenus',
+    );
+    expect(translateDashboardKey('ar', DASHBOARD_TRANSLATION_KEYS.seriesOrdersLabel)).toBe(
+      'الطلبات',
+    );
   });
 
   it('resolves the catalog card and empty-state copy per culture', () => {

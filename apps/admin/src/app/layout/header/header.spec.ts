@@ -40,11 +40,18 @@ function setup(): { fixture: ComponentFixture<AdminHeader>; element: HTMLElement
 }
 
 describe('AdminHeader', () => {
-  it('renders the application context and the admin user area', () => {
+  it('renders the language pill and the admin user area without a context title', () => {
     const { element } = setup();
 
-    expect(element.querySelector('.context')?.textContent).toBe('FluxCommerce Admin');
+    expect(element.querySelector('.context')).toBeNull();
+    expect(element.querySelector('.lang-button')?.textContent).toContain('English');
     expect(element.querySelector('auth-nav')).not.toBeNull();
+  });
+
+  it('renders no account entry in the operator area', () => {
+    const { element } = setup();
+
+    expect(element.querySelector('auth-nav a')).toBeNull();
   });
 
   it('routes post-logout navigation to the admin login', () => {
@@ -107,23 +114,29 @@ describe('AdminHeader', () => {
     ).toBe('Switch to dark theme');
   });
 
-  it('offers language selection through the culture switch', () => {
+  it('steps to the next culture on each pill press, wrapping around', () => {
     const { fixture, element } = setup();
     const cultures = TestBed.inject(CultureService);
+    const pill = element.querySelector('.lang-button') as HTMLButtonElement;
 
-    const picker = element.querySelector('admin-culture-switch select') as HTMLSelectElement;
-    expect(picker).not.toBeNull();
-    expect([...picker.querySelectorAll('option')]).toHaveLength(5);
-
-    picker.value = 'ar';
-    picker.dispatchEvent(new Event('change'));
+    pill.click();
     fixture.detectChanges();
+    expect(cultures.culture()).toBe('fr');
+    expect(pill.textContent).toContain('Français');
 
+    pill.click();
+    pill.click();
+    pill.click();
+    fixture.detectChanges();
     expect(cultures.culture()).toBe('ar');
-    cultures.setCulture('en');
+    expect(pill.textContent).toContain('العربية');
+
+    pill.click();
+    fixture.detectChanges();
+    expect(cultures.culture()).toBe('en');
   });
 
-  it('localizes header chrome and the account area for the active culture', () => {
+  it('localizes header chrome for the active culture', () => {
     const { fixture, element } = setup();
     const cultures = TestBed.inject(CultureService);
     cultures.setCulture('fr');
@@ -133,9 +146,7 @@ describe('AdminHeader', () => {
       expect(element.querySelector('button.menu-toggle')?.getAttribute('aria-label')).toBe(
         'Basculer la navigation',
       );
-      expect(element.querySelector('admin-culture-switch .culture-switch-label')?.textContent).toBe(
-        'Langue',
-      );
+      expect(element.querySelector('.lang-button')?.textContent).toContain('Français');
     } finally {
       cultures.setCulture('en');
     }

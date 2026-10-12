@@ -66,7 +66,10 @@ describe('AdminSidebar', () => {
 
     expect(linkLabels(element)).toEqual(['Home', 'Dashboard', 'Reports']);
     expect(element.querySelector('.sidebar')?.getAttribute('aria-label')).toBe('Admin');
-    expect(element.querySelector('.sidebar .brand')?.textContent).toBe('FluxCommerce Admin');
+    expect(element.querySelector('.sidebar .brand-text')?.textContent).toBe('FluxCommerce Admin');
+    expect(element.querySelector('.sidebar .brand-logo')?.getAttribute('src')).toBe(
+      '/assets/fluxCommerce-logo.png',
+    );
     expect(element.querySelector('admin-sidebar')?.getAttribute('data-drawer')).toBe('closed');
   });
 
@@ -93,7 +96,7 @@ describe('AdminSidebar', () => {
     });
 
     expect(element.querySelector('.sidebar')?.getAttribute('aria-label')).toBe('الإدارة');
-    expect(element.querySelector('.sidebar .brand')?.textContent).toBe('إدارة FluxCommerce');
+    expect(element.querySelector('.sidebar .brand-text')?.textContent).toBe('إدارة FluxCommerce');
   });
 
   it('reflects the drawer state through inputs only', () => {

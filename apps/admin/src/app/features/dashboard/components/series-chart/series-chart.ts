@@ -2,12 +2,14 @@
  * Daily-series chart for the admin dashboard analytics evolution.
  *
  * Feature-owned presentational component: renders HOW trailing-day
- * points read — SVG order bars (progressive enhancement,
- * `aria-hidden`) over an always-rendered day list (the accessible,
- * RTL-safe content: invariant UTC date verbatim, culture-formatted
- * order counts and per-currency revenue). Dumb by design — the owning
- * page decides WHEN and WHAT (points arrive as a plain input,
- * backend values verbatim). No API access, no HTTP, no state writes.
+ * points read — bottom-anchored SVG order bars (progressive
+ * enhancement, `aria-hidden`) over an always-rendered,
+ * horizontally-scrolling day strip (the accessible, RTL-safe content:
+ * invariant UTC date verbatim, labeled culture-formatted order counts
+ * and per-currency revenue — one mini column per day, newest first).
+ * Dumb by design — the owning page decides WHEN and WHAT (points
+ * arrive as a plain input, backend values verbatim). No API access,
+ * no HTTP, no state writes.
  *
  * Backend-authoritative rules: point dates echo verbatim (never
  * localized, never parsed into `Date`); amounts echo verbatim except
@@ -16,13 +18,17 @@
  *
  * SSR/hydration safe: static markup from inputs + culture only, no
  * browser APIs. RTL safe: logical properties only, no direction
- * branching (bar order follows document flow neutrally — the list
+ * branching (bar order follows document flow neutrally — the strip
  * below carries meaning in reading order).
  */
 
 import { ChangeDetectionStrategy, Component, inject, Input } from '@angular/core';
 import { CultureService, formatCurrency, formatNumber } from '@flux/i18n';
 import type { DailySeriesPointResponse } from '@flux/models';
+import {
+  DASHBOARD_TRANSLATION_KEYS,
+  translateDashboardKey,
+} from '../../i18n/dashboard-translations';
 
 export interface SeriesChartBar {
   readonly x: number;
@@ -67,5 +73,21 @@ export class SeriesChart {
   /** Culture-formatted per-currency revenue for one point (display only). */
   protected revenueText(currency: string, amount: number): string {
     return formatCurrency(amount, currency, this.cultures.culture());
+  }
+
+  /** Localized day-cell orders caption (`dashboard.series.ordersLabel`). */
+  protected seriesOrdersLabel(): string {
+    return translateDashboardKey(
+      this.cultures.culture(),
+      DASHBOARD_TRANSLATION_KEYS.seriesOrdersLabel,
+    );
+  }
+
+  /** Localized day-cell revenue caption (`dashboard.series.revenueLabel`). */
+  protected seriesRevenueLabel(): string {
+    return translateDashboardKey(
+      this.cultures.culture(),
+      DASHBOARD_TRANSLATION_KEYS.seriesRevenueLabel,
+    );
   }
 }

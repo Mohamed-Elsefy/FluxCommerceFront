@@ -2,9 +2,9 @@
  * Admin layout translations — shell chrome copy (`layout.*`) in all five
  * supported cultures (`en`/`fr`/`de`/`es`/`ar`).
  *
- * Covers the sidebar (landmark name, destinations), the header (context
- * title, drawer toggle, language picker), the skip link, the account
- * area (`AuthNav` labels), and the standalone denial/not-found pages.
+ * Covers the sidebar (landmark name, destinations), the header (drawer
+ * toggle), the skip link, the operator area (`AuthNav` labels), and the
+ * standalone denial/not-found pages.
  * Only destinations that exist have keys; entries arrive with the
  * phases that create their routes. Lookup runs through the Phase 4
  * `translate` engine (deterministic target → `en` → key-path fallback).
@@ -38,16 +38,13 @@ export const ADMIN_LAYOUT_TRANSLATION_KEYS = {
   navUsers: 'layout.nav.users',
   navUsersList: 'layout.nav.usersList',
   navSidebarLabel: 'layout.nav.sidebarLabel',
-  headerContext: 'layout.header.context',
   headerMenuLabel: 'layout.header.menuLabel',
-  switchLabel: 'layout.switch.label',
   skipLink: 'layout.skip.link',
   brandLabel: 'layout.brand.label',
   authChecking: 'layout.auth.checking',
   authNavLabel: 'layout.auth.navLabel',
   authLogin: 'layout.auth.login',
   authRegister: 'layout.auth.register',
-  authAccount: 'layout.auth.account',
   authLogout: 'layout.auth.logout',
   authLoggingOut: 'layout.auth.loggingOut',
   forbiddenTitle: 'layout.forbidden.title',
@@ -83,11 +80,7 @@ const EN_LAYOUT: TranslationDictionary = {
       sidebarLabel: 'Admin',
     },
     header: {
-      context: 'FluxCommerce Admin',
       menuLabel: 'Toggle navigation',
-    },
-    switch: {
-      label: 'Language',
     },
     skip: {
       link: 'Skip to main content',
@@ -100,7 +93,6 @@ const EN_LAYOUT: TranslationDictionary = {
       navLabel: 'Account',
       login: 'Login',
       register: 'Register',
-      account: 'Account',
       logout: 'Logout',
       loggingOut: 'Signing out…',
     },
@@ -146,11 +138,7 @@ const FR_LAYOUT: TranslationDictionary = {
       sidebarLabel: 'Admin',
     },
     header: {
-      context: 'FluxCommerce Admin',
       menuLabel: 'Basculer la navigation',
-    },
-    switch: {
-      label: 'Langue',
     },
     skip: {
       link: 'Aller au contenu principal',
@@ -163,7 +151,6 @@ const FR_LAYOUT: TranslationDictionary = {
       navLabel: 'Compte',
       login: 'Se connecter',
       register: "S'inscrire",
-      account: 'Compte',
       logout: 'Se déconnecter',
       loggingOut: 'Déconnexion…',
     },
@@ -209,11 +196,7 @@ const DE_LAYOUT: TranslationDictionary = {
       sidebarLabel: 'Admin',
     },
     header: {
-      context: 'FluxCommerce Admin',
       menuLabel: 'Navigation umschalten',
-    },
-    switch: {
-      label: 'Sprache',
     },
     skip: {
       link: 'Zum Hauptinhalt springen',
@@ -226,7 +209,6 @@ const DE_LAYOUT: TranslationDictionary = {
       navLabel: 'Konto',
       login: 'Anmelden',
       register: 'Registrieren',
-      account: 'Konto',
       logout: 'Abmelden',
       loggingOut: 'Abmelden…',
     },
@@ -272,11 +254,7 @@ const ES_LAYOUT: TranslationDictionary = {
       sidebarLabel: 'Admin',
     },
     header: {
-      context: 'FluxCommerce Admin',
       menuLabel: 'Alternar navegación',
-    },
-    switch: {
-      label: 'Idioma',
     },
     skip: {
       link: 'Saltar al contenido principal',
@@ -289,7 +267,6 @@ const ES_LAYOUT: TranslationDictionary = {
       navLabel: 'Cuenta',
       login: 'Iniciar sesión',
       register: 'Registrarse',
-      account: 'Cuenta',
       logout: 'Cerrar sesión',
       loggingOut: 'Cerrando sesión…',
     },
@@ -335,11 +312,7 @@ const AR_LAYOUT: TranslationDictionary = {
       sidebarLabel: 'الإدارة',
     },
     header: {
-      context: 'إدارة FluxCommerce',
       menuLabel: 'تبديل التنقل',
-    },
-    switch: {
-      label: 'اللغة',
     },
     skip: {
       link: 'تخطَّ إلى المحتوى الرئيسي',
@@ -352,7 +325,6 @@ const AR_LAYOUT: TranslationDictionary = {
       navLabel: 'الحساب',
       login: 'تسجيل الدخول',
       register: 'إنشاء حساب',
-      account: 'الحساب',
       logout: 'تسجيل الخروج',
       loggingOut: 'جارٍ تسجيل الخروج…',
     },

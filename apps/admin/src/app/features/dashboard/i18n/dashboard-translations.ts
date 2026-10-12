@@ -74,6 +74,8 @@ export const DASHBOARD_TRANSLATION_KEYS = {
   recentUsersLink: 'dashboard.recent.usersLink',
   seriesTitle: 'dashboard.series.title',
   seriesEmpty: 'dashboard.series.empty',
+  seriesOrdersLabel: 'dashboard.series.ordersLabel',
+  seriesRevenueLabel: 'dashboard.series.revenueLabel',
   paymentsNet: 'dashboard.sections.paymentsNet',
 } as const;
 
@@ -144,6 +146,8 @@ const EN_DASHBOARD: TranslationDictionary = {
     series: {
       title: 'Orders & revenue (last 30 days)',
       empty: 'No activity in this period.',
+      ordersLabel: 'Orders',
+      revenueLabel: 'Revenue',
     },
   },
 };
@@ -215,6 +219,8 @@ const FR_DASHBOARD: TranslationDictionary = {
     series: {
       title: 'Commandes et revenus (30 derniers jours)',
       empty: 'Aucune activité sur cette période.',
+      ordersLabel: 'Commandes',
+      revenueLabel: 'Revenus',
     },
   },
 };
@@ -286,6 +292,8 @@ const DE_DASHBOARD: TranslationDictionary = {
     series: {
       title: 'Bestellungen und Umsatz (letzte 30 Tage)',
       empty: 'Keine Aktivität in diesem Zeitraum.',
+      ordersLabel: 'Bestellungen',
+      revenueLabel: 'Umsatz',
     },
   },
 };
@@ -357,6 +365,8 @@ const ES_DASHBOARD: TranslationDictionary = {
     series: {
       title: 'Pedidos e ingresos (últimos 30 días)',
       empty: 'Sin actividad en este período.',
+      ordersLabel: 'Pedidos',
+      revenueLabel: 'Ingresos',
     },
   },
 };
@@ -428,6 +438,8 @@ const AR_DASHBOARD: TranslationDictionary = {
     series: {
       title: 'الطلبات والإيرادات (آخر 30 يومًا)',
       empty: 'لا يوجد نشاط في هذه الفترة.',
+      ordersLabel: 'الطلبات',
+      revenueLabel: 'الإيرادات',
     },
   },
 };

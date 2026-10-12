@@ -1,55 +1,80 @@
+/* Search input — Kinetic pill field (docs/DESIGN.md §6.5): mono
+   label, 48px pill, lime halo on focus. Canonical tokens only,
+   logical properties only (RTL-safe). */
 .search-input {
   display: grid;
-  gap: var(--spacing-xs);
+  gap: var(--s-2xs);
   min-inline-size: 0;
 }
 
 .search-input-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .search-input-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--s-xs);
 }
 
 .search-input-field {
   flex: 1;
   min-inline-size: 0;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-sm);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-md);
+  min-block-size: 48px;
+  padding-block: 0;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+:root[data-theme='light'] .search-input-field {
+  background: var(--surface-1);
+}
+
+.search-input-field::placeholder {
+  color: var(--text-faint);
 }
 
 .search-input-field:disabled {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .search-input-field:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: 0;
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
 }
 
 .search-input-clear {
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-md);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
   background-color: transparent;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
 
+.search-input-clear:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
 .search-input-clear:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }
