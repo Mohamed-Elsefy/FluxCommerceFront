@@ -1,11 +1,12 @@
-/* Checkout address section (Sub-Phase 8.4). Single intrinsically
-  responsive component — no device duplicates, no viewport media queries.
-  Logical properties only (RTL-safe); visual values come from theming
-  tokens. */
+/* Checkout address section — Node details inside the dispatch card
+   (DESIGN.md §6.5). Pill inputs 48px, floating-style uppercase labels
+   (Latin only — [lang=ar] reset in tokens disables transform), lime
+   focus halo. No layout/field changes — labels stay associated.
+   Logical properties only; canonical tokens only. */
 
 .checkout-address {
   display: grid;
-  gap: var(--spacing-sm);
+  gap: var(--s-sm);
   margin: 0;
   padding: 0;
   border: 0;
@@ -13,48 +14,67 @@
 
 .checkout-address-title {
   padding: 0;
-  margin-block-end: var(--spacing-sm);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
+  margin-block-end: var(--s-xs);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+  color: var(--text);
 }
 
 .checkout-field {
   display: grid;
-  gap: var(--spacing-sm);
+  gap: var(--s-2xs);
 }
 
 .checkout-field label {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .checkout-optional {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--text-faint);
 }
 
 .checkout-field input {
   inline-size: 100%;
-  block-size: 2.75rem;
+  block-size: 3rem;
   padding-block: 0;
-  padding-inline: var(--spacing-sm);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
-  background-color: var(--color-surface);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding-inline: var(--s-md);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: var(--text);
+  background-color: var(--bg);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.checkout-field input::placeholder {
+  color: var(--text-faint);
 }
 
 .checkout-field input:disabled {
   cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.checkout-field input:focus {
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
+  outline: none;
 }
 
 .checkout-field input:focus-visible {
-  outline: var(--border-width-thin) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.checkout-field input[aria-invalid='true'] {
+  border-color: var(--error);
 }

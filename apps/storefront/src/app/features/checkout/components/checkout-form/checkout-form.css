@@ -1,45 +1,98 @@
-/* Composed checkout form (Sub-Phase 8.4). Single intrinsically
-  responsive component — no device duplicates, no viewport media queries.
-  Logical properties only (RTL-safe); visual values come from theming
-  tokens. */
+/* Composed checkout form — Dispatch Node card (DESIGN.md §§6.1/6.5/6.6).
+   Reference style only: squircle card, pill inputs (48px), violet
+   checked checkbox, lime primary CTA. No new fields — DOM order and
+   focusable sequence unchanged (direction spec pins it). Logical
+   properties only; canonical tokens only. */
 
 .checkout-form {
   display: grid;
-  gap: var(--spacing-lg);
+  gap: var(--s-lg);
   margin: 0;
-  padding: 0;
+  padding: var(--s-lg);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition: transform 0.25s var(--spring), border-color 0.2s;
+}
+
+.checkout-form:hover,
+.checkout-form:focus-within {
+  border-color: var(--border-accent);
 }
 
 .checkout-same label {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
+  gap: var(--s-sm);
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
 }
 
 .checkout-same input {
   inline-size: 1.25rem;
   block-size: 1.25rem;
+  accent-color: var(--secondary);
+  flex: none;
 }
 
 .checkout-submit {
-  justify-self: start;
-  padding-block: var(--spacing-sm);
-  padding-inline: var(--spacing-lg);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  color: var(--color-primary-contrast);
-  background-color: var(--color-primary);
-  border: var(--border-width-thin) solid var(--color-primary);
-  border-radius: var(--radius-md);
+  justify-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-xs);
+  min-block-size: 3rem;
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-xl);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.25rem;
+  letter-spacing: 0.02em;
+  color: var(--text-on-accent);
+  background-color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-pill);
+  box-shadow: var(--highlight-top), 0 8px 24px -4px var(--glow-primary);
+  transform: translateY(-4px);
+  transition: transform 0.2s var(--spring), box-shadow 0.2s, background 0.2s;
   cursor: pointer;
+}
+
+.checkout-submit:hover {
+  background-color: var(--primary-hover);
+}
+
+.checkout-submit:active {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-inset-press);
+}
+
+.checkout-submit:disabled {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .checkout-submit:focus-visible,
 .checkout-same input:focus-visible {
-  outline: var(--border-width-thin) solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-form,
+  .checkout-submit {
+    transform: none;
+    transition: none;
+  }
 }

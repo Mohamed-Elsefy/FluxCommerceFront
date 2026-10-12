@@ -1,61 +1,142 @@
-/* Checkout page (Sub-Phase 8.6). Single responsive component — no
-  device duplicates. One canonical breakpoint (`--breakpoint-md` value,
-  repeated literally since `var()` is invalid in `@media`). Logical
-  properties only (RTL-safe); visual values come from theming tokens. */
+/* Checkout page — Kinetic Bubble Neo dispatch matrix (DESIGN.md §§4–6).
+   Reference image used for style only: squircle vault cards, mono
+   section indices, pill count + pill CTA deck. No invented data:
+   shipping method / coupon / VAT / escrow-fee rows must never appear
+   here (contract carries cartId + two addresses only; totals stay
+   backend-issued or pending). Single responsive component — one
+   canonical breakpoint (48rem literal; var() invalid in @media).
+   Logical properties only (RTL-safe); canonical tokens only. */
 
 .checkout-page {
   display: grid;
-  gap: var(--spacing-lg);
+  gap: var(--s-lg);
   margin: 0;
-  padding: 0;
+  padding-block: 0;
+  padding-inline: 0;
 }
 
 .checkout-page h1 {
   margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.4rem + 2vw, 2.5rem);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* Mono section index above the title — mirrors the reference
+   "01 // SECTION" header without adding focusable content. */
+.checkout-page h1::before {
+  content: '01 // CHECKOUT';
+  display: block;
+  margin-block-end: var(--s-xs);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .checkout-page-content {
   display: grid;
-  gap: var(--spacing-lg);
+  gap: var(--s-lg);
+  align-items: start;
 }
 
 @media (min-width: 48rem) {
   .checkout-page-content {
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    align-items: start;
   }
 }
 
 .checkout-page-back {
   margin: 0;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.checkout-page-back a {
+  color: var(--primary-text);
+  font-weight: 700;
+}
+
+.checkout-page-back a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+  border-radius: var(--r-pill);
 }
 
 .checkout-page-success {
   display: grid;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-lg);
-  background-color: var(--color-surface);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-md);
+  gap: var(--s-sm);
+  padding: var(--s-xl);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
 }
 
 .checkout-page-success h2 {
   margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .checkout-page-success p {
   margin: 0;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-page-continue {
+  margin-block-start: var(--s-sm);
+}
+
+.checkout-page-continue a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-xs);
+  min-block-size: 3rem;
+  padding-inline: var(--s-xl);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transform: translateY(-4px);
+  box-shadow: var(--highlight-top), 0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring), box-shadow 0.2s, background 0.2s;
+}
+
+.checkout-page-continue a:hover {
+  background: var(--primary-hover);
+}
+
+.checkout-page-continue a:active {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-inset-press);
+}
+
+.checkout-page-continue a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-page-success,
+  .checkout-page-continue a {
+    transform: none;
+    transition: none;
+  }
 }

@@ -1,20 +1,92 @@
+/* Payment page — Settlement Matrix (DESIGN.md §§4–6). Reference style
+   only: two-card matrix (vault summary + settlement card), squircle
+   surfaces, mono indices, pill CTA. Real data only: orderId label,
+   backend order snapshot, provider mount, lifecycle status, localized
+   error/retry. No card PAN / expiry / CVV / coupon / VAT / escrow-fee
+   inputs — contract provides none and secrets never persist. Logical
+   properties only; canonical tokens only. */
+
 .payment-page {
   display: grid;
-  gap: var(--spacing-lg);
-  padding-inline: var(--container-padding-inline);
+  gap: var(--s-lg);
+  margin: 0;
+  padding-block: 0;
+  padding-inline: 0;
 }
 
-.payment-page-title,
-.payment-page-order,
-.payment-page-missing {
+.payment-page-title {
   margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.4rem + 2vw, 2.5rem);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.payment-page-title::before {
+  content: '03 // SETTLEMENT';
+  display: block;
+  margin-block-end: var(--s-xs);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .payment-page-order {
-  color: var(--color-text-muted);
+  margin: 0;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 1.75rem;
+  padding-block: 0.125rem;
+  padding-inline: var(--s-sm);
+  border-radius: var(--r-pill);
+  background: var(--secondary-soft);
+  color: var(--secondary-soft-text);
+  border: 1.5px solid var(--secondary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-page-missing {
+  margin: 0;
+  padding: var(--s-lg);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .payment-page-mount {
   display: block;
   min-inline-size: 0;
+}
+
+.payment-page-mount:empty {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .payment-page {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+
+  .payment-page-title,
+  .payment-page-order {
+    grid-column: 1 / -1;
+  }
 }
