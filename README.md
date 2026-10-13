@@ -1,184 +1,221 @@
-# FluxCommerce
+# FluxCommerceFront
 
-> Enterprise Commerce & Order Management Platform — a production-oriented showcase of reliable, event-driven backend engineering with a Modular Monolith architecture.
+> Production-oriented Angular 22 storefront + admin portal for the FluxCommerce enterprise commerce platform — contract-driven, localized (5 cultures, RTL-first), themed, tested, and production-built.
 
-[![.NET](https://img.shields.io/badge/.NET-10-512BD4)](#)
-[![Architecture](https://img.shields.io/badge/architecture-modular--monolith-blue)](#)
-[![Status](https://img.shields.io/badge/backend-phase%2012%20complete-success)](#)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)
+[![Angular](https://img.shields.io/badge/Angular-22-DD0031)](#tech-stack)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)](#tech-stack)
+[![Storefront](https://img.shields.io/badge/storefront-SSR%20%2B%20SEO-1976D2)](#storefront)
+[![Admin](https://img.shields.io/badge/admin-CSR-388E33)](#admin-portal)
+[![i18n](https://img.shields.io/badge/i18n-en%20fr%20de%20es%20ar%20%2B%20RTL-6A1B9A)](#platform-capabilities)
+[![Architecture](https://img.shields.io/badge/architecture%20audit-107%2F107-success)](#quality-gates)
 
 ---
 
-## What is FluxCommerce?
+## What is this?
 
-FluxCommerce is **not** a simple CRUD online store. It's an engineering-focused simulation of a real-world enterprise commerce platform, built to demonstrate how to design and implement reliable, distributed-style business workflows without prematurely reaching for microservices.
-
-The system models the full e-commerce lifecycle — browsing, cart, checkout, payment, and fulfillment — while explicitly handling the hard parts: partial failures, message duplication, consumer crashes, payment gateway timeouts, and eventual consistency across modules.
+This repository holds the **frontend** of FluxCommerce: two Angular applications in one workspace that consume the FluxCommerce ASP.NET Core API through explicit, typed contracts — and never reproduce backend business orchestration (ordering, inventory reservation, payment verification, sagas, and compensation all stay server-side).
 
 ```text
-Customer → Browse → Cart → Checkout → Order → Reserve Inventory
-   → Initiate Payment → Pay → Webhook → Confirm Order → Fulfillment
+Customer → Browse → Product → Cart → Checkout → Order → Pay (Stripe) → Result → Account
+Admin    → Dashboard → Catalog → Inventory → Orders → Payments → Users
 ```
 
-Failure paths are treated as first-class scenarios, not edge cases — inventory release on payment failure, retries and DLQ on confirmation failure, idempotent handling of duplicate messages, and full Saga-based compensation.
+It is built as a portfolio-grade demonstration of how to ship a **clean, performant, localized, accessible, production-oriented client** for a distributed-style backend: feature-owned vertical slices, signals-only state, strict dependency boundaries enforced by lint + script audit, and contract-honest UI (backend gaps are pinned and tested, never fabricated).
 
-## Why this project exists
+---
 
-FluxCommerce is built as a portfolio-grade demonstration of:
+## Storefront
 
-- Domain-Driven Design & Clean Architecture
-- Modular Monolith design (with a real path to service extraction)
-- Event-Driven Architecture (Outbox pattern, at-least-once delivery, idempotent consumers)
-- Saga Orchestration & Compensating Transactions
-- Inventory reservation under concurrency
-- Distributed tracing & observability
-- Production-grade concerns: security, validation, retries, localization
+Customer-facing application — **SSR-enabled, SEO-sensitive** — served at `http://localhost:4200`.
 
-If it can't answer "what happens if Payment succeeds but Order confirmation fails?" with actual code and tests — it isn't done.
+| Area            | Route                                                                    | Highlights                                                                                   |
+| --------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Home            | `/`                                                                      | Localized entry, SEO metadata                                                                |
+| Catalog         | `/catalog`, `/products`, `/catalog/categories`                           | Search, filters, sort, pagination, product cards                                             |
+| Product details | `/catalog/products/:id`                                                  | Gallery, variants, live SKU + backend-issued price, quantity, add to cart                    |
+| Cart            | `/cart`                                                                  | Guest + authenticated carts, atomic guest → login merge (mandatory tested journey)           |
+| Checkout        | `/checkout` (auth)                                                       | Typed address forms, backend-facts-only summary, `Idempotency-Key` order creation            |
+| Payment         | `/payment/:orderId`, `/payment/:orderId/result` (auth)                   | Stripe Elements via isolated provider boundary, secret memory-only, backend verification hub |
+| Account         | `/account/profile`, `/account/orders`, `/account/orders/:orderId` (auth) | Read-only profile (+ editing), paged orders, details with bounded post-payment sync          |
+| Auth            | `/login`, `/register`, `/verify-email`, …                                | JWT + refresh lifecycle, guards, return-URL redirects                                        |
+
+---
+
+## Admin Portal
+
+Internal administration application — **CSR, authenticated, role/permission-gated** — served at `http://localhost:4201`.
+
+| Area      | Highlights                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------ |
+| Dashboard | Adaptive per-entitlement sections (orders, payments, inventory, catalog, users) + revenue chart + drill-down |
+| Catalog   | Products, variants (incl. price/status), categories, URL-only images, specifications                         |
+| Inventory | Paged stock/reservation lists, counts, single lookups, additive adjustments                                  |
+| Orders    | Platform-wide list with filters, counts, details, force-cancel, refund                                       |
+| Payments  | Platform-wide list with filters, stats (incl. refunded rollups), details — read-only                         |
+| Users     | Delegated reads for `users.read` holders; writes and admin creation are `SuperAdmin`-only                    |
+
+Authorization model: `Customer` / `Admin` / `SuperAdmin` roles plus a 9-value action-permission catalog (`orders.read|cancel|refund`, `payments.read|stats`, `inventory.read|manage`, `catalog.manage`, `users.read`). Guards are UX-only; the backend is authoritative.
+
+---
+
+## Platform capabilities
+
+- **Localization first-class** — `en`, `fr`, `de`, `es`, `ar`; language switching with persistence; backend culture sync (`Accept-Language`); `Intl` date/number/currency formatting; localized validation and API errors.
+- **RTL from day one** — logical CSS properties exclusively (audit-enforced), `CultureService` as single writer of document `dir`, mirrored directional icons, Arabic-Indic digits.
+- **Theming** — design-token CSS variables, centralized `ThemeService` (`data-theme="light|dark"`), WCAG AA contrast enforced; visual language in [`docs/DESIGN.md`](./docs/DESIGN.md) (Kinetic Bubble Neo — must-read before touching UI).
+- **Auth platform** — tri-state session, memory-only access tokens, single-flight refresh, 401 recovery with at-most-once retry, auth/role/permission guards, SSR-safe shells.
+- **API infrastructure** — typed `ApiClient` (sole `HttpClient` user), functional interceptor pipeline, normalized `ApiError` (status-first, never message text), correlation IDs, cancellation, pagination abstractions, signal resource states (`idle → loading → success | empty | error`).
+
+---
 
 ## Architecture
 
-FluxCommerce starts as a **Modular Monolith** and is designed to evolve toward independently deployable services only when justified — not by default.
-
 ```text
-                    Angular Applications
-                 /                       \
-       Customer Storefront            Admin Portal
-                  \                    /
-                   ▼                  ▼
-              ASP.NET Core API Host
-                       │
-              Modular Monolith
-        ┌──────────────┼───────────────┐
-        ▼              ▼               ▼
-      Catalog        Orders         Inventory
-                       │
-                    Payments
-                       │
-                 SQL Server ── Redis
-                       │
-                    Outbox
-                       │
-                   RabbitMQ
-                       │
-              Background Workers
-                       │
-                    Stripe
+FluxCommerceFront (Angular 22 workspace)
+│
+├── apps/storefront/        # SSR customer app (lazy feature slices)
+├── apps/admin/             # CSR admin app (guarded shell + lazy features)
+│
+├── libs/api/               # transport, interceptors, errors, pagination, contracts
+├── libs/auth/              # session, tokens, guards, AuthNav
+├── libs/ui/                # closed-set design primitives (business-free)
+├── libs/i18n/              # culture, translations, formatting, error resolvers
+├── libs/theming/           # tokens, reset, ThemeService
+├── libs/models/            # shared contracts + canonical pure models
+└── libs/utils/             # generic helpers (guards, SEO)
 ```
 
-**Business modules:** Catalog · Cart · Orders · Inventory · Payments
-**Platform capabilities:** Identity · Observability · Cross-Cutting Infrastructure
+Rules that stay green by construction (`npm run verify:architecture`, 107/107):
 
-Each module owns its domain, application logic, persistence, and public contracts. Cross-module communication happens only through explicit contracts and integration events — never direct database access.
+- `Apps → Features → Shared Libraries`, never the reverse; no cross-app imports.
+- Features own their slices; cross-feature needs go through stable contracts (e.g. the cart `CART_CAPABILITIES` seam) — never feature internals.
+- Global state holds only auth, user, culture, theme, and config.
+- Backend contracts are the source of truth; backend authorization is authoritative.
 
 📄 Full specification: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md)
 
+---
+
 ## Tech stack
 
-| Layer | Technology |
-|---|---|
-| Backend | ASP.NET Core (.NET), C# |
-| Persistence | SQL Server, EF Core |
-| Caching | Redis |
-| Messaging | RabbitMQ (Outbox + Idempotent Consumers) |
-| Payments | Stripe |
-| Observability | OpenTelemetry (tracing, metrics, structured logging) |
-| Localization | `en`, `fr`, `de`, `es`, `ar` |
-| Frontend | Angular (Storefront — SSR, Admin Portal — CSR) |
+| Layer                  | Technology                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| Framework              | Angular 22 (standalone components + routing, Signals, SSR)                    |
+| Language               | TypeScript (strict)                                                           |
+| State                  | Component signals + route-provided feature state (no store library)           |
+| HTTP                   | Angular `HttpClient` behind typed `ApiClient` + functional interceptors       |
+| Forms                  | Typed Reactive Forms                                                          |
+| Unit / component tests | Vitest                                                                        |
+| E2E tests              | Playwright (mocked transports)                                                |
+| Styling                | CSS custom properties + design tokens, logical properties                     |
+| Backend consumed       | ASP.NET Core API (`https://localhost:7119`), Stripe.js (publishable key only) |
 
-## Key patterns demonstrated
-
-- **Modular Monolith** with enforced module boundaries (architecture tests)
-- **Transactional Outbox** for reliable event publication
-- **Idempotent Consumers** for safe at-least-once message processing
-- **Saga Orchestration** for the Order → Inventory → Payment workflow
-- **Compensating Transactions** for failure recovery (release inventory, cancel order, refund)
-- **Result/Error pattern** for expected business failures vs. exceptions for unexpected technical failures
-- **Correlation & Causation IDs** for tracing one business operation across async boundaries
+---
 
 ## Project structure
 
 ```text
-src/
-├── ApiHost/                  # ASP.NET Core entry point
-├── Modules/
-│   ├── Catalog/
-│   ├── Cart/
-│   ├── Orders/
-│   ├── Inventory/
-│   └── Payments/
-│       └── {Domain, Application, Infrastructure, Contracts}
-├── Platform/
-│   └── Identity/
-└── BuildingBlocks/
-    ├── Domain / Application / Infrastructure
-    ├── Messaging / Outbox / Idempotency
-    ├── Persistence / Observability
-    └── Localization / Web
+apps/
+├── storefront/src/app/
+│   ├── core/              # removed (was empty scaffolding)
+│   ├── layout/            # shell, header, nav, footer, culture switch
+│   ├── features/          # auth, home, catalog, product-details, cart,
+│   │                      # checkout, payments, orders (account+orders)
+│   ├── shared/            # storefront-owned shared UI (pager, status badge)
+│   ├── dev/               # dev-only surfaces (design preview)
+│   └── app.routes.ts
+│
+└── admin/src/app/
+    ├── layout/            # shell, sidebar, header, forbidden/not-found
+    ├── features/          # auth, dashboard, catalog, inventory,
+    │                      # orders, payments, users
+    ├── shared/            # admin-owned shared UI (table, pager, filters,
+    │                      # forms, dialog, notifications, status badge)
+    └── app.routes.ts
 
+libs/                     # api, auth, ui, i18n, theming, models, utils
+e2e/                      # Playwright journeys (storefront + admin)
 docs/
-├── PROJECT_CONTEXT.md        # master specification
-├── ARCHITECTURE.md           # architecture specification
-├── adr/                      # architecture decision records
-├── phases/                   # phase implementation plans
-└── completed/                # phase completion reports
+├── PROJECT_CONTEXT.md     # master state & direction
+├── ARCHITECTURE.md        # architectural reference
+├── IMPLEMENTATION_PLAN.md # consolidated phases + sub-phases + status
+├── DESIGN.md              # visual design system
+├── frontend-contract/     # backend API source of truth
+└── adr/                   # 37 architecture decision records
 ```
+
+---
 
 ## Getting started
 
 ### Prerequisites
 
-- .NET SDK (see `global.json`)
-- Docker (SQL Server, Redis, RabbitMQ)
-- Stripe test API keys
+- Node.js 24 + npm 11 (`packageManager: npm@11.16.0`)
+- The FluxCommerce backend API reachable at `https://localhost:7119` (see `apps/*/src/environments/environment.ts`; dev-only Swagger at `/swagger`)
+- A Stripe **publishable** test key for the payment flow (never a secret key — see `apps/storefront/src/environments/stripe-environment.ts`)
+
+> The API currently serves no CORS headers, so browser use needs a proxy/gateway or local CORS configuration on the API side (see `docs/frontend-contract/API_CONTRACT.md`, Appendix A).
 
 ### Setup
 
 ```bash
 # clone
-git clone https://github.com/<your-org>/fluxcommerce.git
-cd fluxcommerce
+git clone https://github.com/<your-org>/fluxcommerce-front.git
+cd fluxcommerce-front
 
-# start infrastructure
-docker compose up -d
+# install
+npm install
 
-# apply migrations
-dotnet ef database update --project src/ApiHost
-
-# run
-dotnet run --project src/ApiHost
+# run the storefront (SSR) and the admin portal (CSR)
+npm run start:storefront   # http://localhost:4200
+npm run start:admin         # http://localhost:4201
 ```
 
-> See [`docs/current/LOCAL_DEVELOPMENT.md`](./docs/current/LOCAL_DEVELOPMENT.md) for full local setup and [`docs/current/EF_CORE_COMMANDS.md`](./docs/current/EF_CORE_COMMANDS.md) for migration workflows.
+### Scripts
 
-Swagger/OpenAPI is available at `/swagger` once the API is running, including `Accept-Language` support for all localized culture.
+| Command                                                           | What it does                                                              |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `npm run start:storefront` / `start:admin`                        | Dev servers (:4200 / :4201)                                               |
+| `npm run build` / `build:storefront` / `build:admin`              | Production builds (SSR prerender + CSR)                                   |
+| `npm run typecheck` (+ `:storefront`, `:admin`, `:libs`, `:spec`) | `tsc --noEmit`, zero errors expected                                      |
+| `npm run lint`                                                    | Prettier check + ESLint boundaries                                        |
+| `npm run verify:architecture`                                     | 107 structural checks (boundaries, SSR/CSR, routing, security, cart seam) |
+| `npm run test:unit`                                               | Full Vitest suites (apps + libs)                                          |
+| `npm run test:e2e`                                                | Full Playwright suite (mocked transports)                                 |
+
+---
+
+## Quality gates
+
+Every change is expected to keep all of these green:
+
+- **Typecheck** — `tsc --noEmit` across apps, libs, and specs: 0 errors.
+- **Lint** — Prettier + ESLint (incl. import-direction and `HttpClient` ownership rules): 0 errors.
+- **Architecture audit** — `npm run verify:architecture`: **107/107** (standalone, SSR/CSR posture, routing, no cycles, UI/theming decoupling, secret hygiene, cart-seam isolation).
+- **Unit/component tests** — **2,290 across both apps (1,494 storefront · 796 admin)** plus shared-library suites, all passing with no assertion weakened by refactoring.
+- **Production builds** — Storefront SSR (17 prerendered routes) + Admin CSR, zero errors, no budget warnings.
+- **E2E** — Playwright journeys green on a live-capable environment (documented pre-existing environment caveats in `docs/adr/037-frontend-refactoring.md`).
+
+---
 
 ## Roadmap status
 
-| Phase | Scope | Status |
-|---|---|---|
-| 0 – 11 | Architecture foundation → Reservation Expiry Orchestration | ✅ Complete |
-| 12 | Identity roles, authorization & seeding hardening | ✅ Complete |
-| Angular Storefront & Admin | Frontend implementation (15-phase plan) | 🚧 In progress |
+| Scope                                                                                    | Status      |
+| ---------------------------------------------------------------------------------------- | ----------- |
+| Phases 0–14 (foundation → storefront → admin portal)                                     | ✅ Complete |
+| Supplements S1–S3 (contract evolution, delegated admin, write re-centralization)         | ✅ Complete |
+| Refactoring pass A–E (shared foundation, unification, cart isolation, structure, splits) | ✅ Complete |
+| Phase 15 — Final QA & Optimization                                                       | ⏳ Open     |
 
-Full phase-by-phase history: [`docs/completed/INDEX.md`](./docs/completed/INDEX.md)
+Full phase-by-phase history (objectives, sub-phases, deliverables, metrics): [`docs/IMPLEMENTATION_PLAN.md`](./docs/IMPLEMENTATION_PLAN.md)
 
-## Testing
-
-```text
-Unit Tests          → Domain rules, Value Objects, Application logic
-Integration Tests   → EF Core, SQL Server, Redis, RabbitMQ, Stripe
-Architecture Tests  → Module isolation, dependency & layer rules
-End-to-End Tests    → Full order lifecycle, including failure paths
-```
+---
 
 ## Documentation
 
-- [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md) — master specification & AI implementation guide
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — architecture specification
-- [`docs/adr/`](./docs/adr) — architecture decision records
-- [`AGENTS.md`](./AGENTS.md) — AI agent execution protocol for this repo
-
-## License
-
-MIT — see [`LICENSE`](./LICENSE).
+- [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md) — master state, direction, constraints, roadmap
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — boundaries, state, API, auth, testing rules
+- [`docs/IMPLEMENTATION_PLAN.md`](./docs/IMPLEMENTATION_PLAN.md) — consolidated implementation history
+- [`docs/DESIGN.md`](./docs/DESIGN.md) — Kinetic Bubble Neo design system (read before touching UI)
+- [`docs/frontend-contract/`](./docs/frontend-contract) — backend API source of truth (endpoints, DTOs, enums, errors, auth flow)
+- [`docs/adr/`](./docs/adr) — 37 architecture decision records
