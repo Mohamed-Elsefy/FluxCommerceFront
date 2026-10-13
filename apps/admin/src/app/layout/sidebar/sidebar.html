@@ -1,0 +1,46 @@
+<nav class="sidebar" [attr.aria-label]="label">
+  <p class="brand">
+    <img
+      class="brand-logo"
+      src="/assets/fluxCommerce-logo.png"
+      alt=""
+      width="160"
+      height="40"
+      loading="lazy"
+      decoding="async"
+    />
+    <span class="brand-text">{{ brand }}</span>
+  </p>
+  <ul>
+    <ng-container *ngTemplateOutlet="entries; context: { $implicit: items }"></ng-container>
+  </ul>
+</nav>
+
+<ng-template #entries let-list>
+  @for (item of list; track item.route ?? item.label) {
+    <li>
+      @if (item.route !== undefined) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+          ariaCurrentWhenActive="page"
+          (click)="navigated.emit()"
+        >
+          @if (item.icon !== undefined) {
+            <flux-icon [glyph]="item.icon" size="sm" />
+          }
+          <span class="item-label">{{ item.label }}</span>
+        </a>
+      } @else {
+        <p class="group">{{ item.label }}</p>
+      }
+      @if (item.children !== undefined && item.children.length > 0) {
+        <ul class="nested">
+          <ng-container *ngTemplateOutlet="entries; context: { $implicit: item.children }">
+          </ng-container>
+        </ul>
+      }
+    </li>
+  }
+</ng-template>

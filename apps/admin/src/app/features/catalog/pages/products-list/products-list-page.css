@@ -1,0 +1,92 @@
+/* Products list — Kinetic (docs/DESIGN.md §6): display header, lime
+   create/filter pills. Canonical tokens only, logical props (RTL-safe). */
+.products-list {
+  display: grid;
+  gap: var(--s-md);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.products-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-sm);
+}
+
+.products-list-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+}
+
+.products-list-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.products-list-new,
+.products-list-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
+}
+
+.products-list-apply {
+  align-self: end;
+}
+
+.products-list-new:hover:not(:disabled),
+.products-list-apply:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.products-list-new:active:not(:disabled),
+.products-list-apply:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.products-list-new:disabled,
+.products-list-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.products-list-new:focus-visible,
+.products-list-apply:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.products-list-filters {
+  margin: 0;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .products-list-new,
+  .products-list-apply {
+    transition: none;
+    transform: none;
+  }
+}

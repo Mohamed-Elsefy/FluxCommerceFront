@@ -1,0 +1,70 @@
+/* Kinetic glass footer (DESIGN §6.11) — single panel, top radius. */
+.footer {
+  margin-block-start: var(--s-2xl);
+  margin-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  border-block-end: none;
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-ambient);
+}
+
+.inner {
+  display: grid;
+  gap: var(--s-lg);
+  padding-block: var(--s-xl);
+}
+
+.brand-logo {
+  display: block;
+  inline-size: 15rem;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
+}
+
+.tagline {
+  margin: var(--s-2xs) 0 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.description {
+  margin: var(--s-2xs) 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: var(--text-muted);
+  max-inline-size: 22rem;
+}
+
+.group h2 {
+  margin: 0;
+  margin-block-end: var(--s-xs);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.placeholder {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-faint);
+}
+
+.legal {
+  margin: 0;
+  padding-block: var(--s-md);
+  border-block-start: 1.5px solid var(--border);
+  font-size: 0.875rem;
+  color: var(--text-faint);
+}
+
+@media (min-width: 48rem) {
+  .inner {
+    grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+    align-items: start;
+  }
+}

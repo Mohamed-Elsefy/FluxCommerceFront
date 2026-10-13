@@ -1,0 +1,71 @@
+<section class="products-list" aria-labelledby="products-list-title">
+  <header class="products-list-header">
+    <div>
+      <h1 id="products-list-title">{{ copy().heading }}</h1>
+      <p class="products-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+    <a class="products-list-new" routerLink="new">{{ copy().new }}</a>
+  </header>
+
+  <form class="products-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <admin-filter-bar
+      [label]="copy().filterTitle"
+      [clearLabel]="copy().filterClear"
+      (clear)="clearFilters()"
+    >
+      <admin-search-input
+        [control]="filters.controls.search"
+        [label]="copy().filterSearch"
+        [placeholder]="copy().filterSearchPlaceholder"
+        fieldId="products-filter-search"
+      />
+      <admin-select
+        [control]="filters.controls.status"
+        [options]="statusOptions()"
+        [label]="copy().filterStatus"
+        fieldId="products-filter-status"
+      />
+      <admin-select
+        [control]="filters.controls.visibility"
+        [options]="visibilityOptions()"
+        [label]="copy().filterVisibility"
+        fieldId="products-filter-visibility"
+      />
+      <admin-select
+        [control]="filters.controls.categoryId"
+        [options]="categoryOptions()"
+        [label]="copy().filterCategory"
+        fieldId="products-filter-category"
+      />
+      <button class="products-list-apply" type="submit">{{ copy().filterApply }}</button>
+    </admin-filter-bar>
+  </form>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

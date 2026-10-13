@@ -1,0 +1,11 @@
+<admin-form-field [label]="label" [control]="control" [fieldId]="fieldId" [hint]="hint">
+  <input
+    class="text-input"
+    [attr.id]="fieldId"
+    [type]="type"
+    [formControl]="control"
+    [attr.placeholder]="placeholder"
+    [attr.autocomplete]="autocomplete"
+    [attr.aria-invalid]="control.invalid"
+  />
+</admin-form-field>

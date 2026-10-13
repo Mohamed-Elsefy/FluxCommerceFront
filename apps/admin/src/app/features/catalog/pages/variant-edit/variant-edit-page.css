@@ -1,0 +1,26 @@
+/* Variant edit — Kinetic page shell (docs/DESIGN.md §6): display
+   header, muted subtitle. Canonical tokens, logical props (RTL-safe). */
+.variant-edit {
+  display: grid;
+  gap: var(--s-md);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.variant-edit-header {
+  display: grid;
+  gap: var(--s-2xs);
+}
+
+.variant-edit-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+}
+
+.variant-edit-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}

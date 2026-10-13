@@ -1,0 +1,66 @@
+<section class="cart-page" aria-labelledby="cart-page-title">
+  <h1 id="cart-page-title" tabindex="-1">{{ copy().title }}</h1>
+  <p class="cart-page-announcement" role="status">{{ announcement() }}</p>
+
+  @if (cart().data === null) {
+    @if (cart().isLoading) {
+      <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+    } @else if (cart().isError) {
+      <flux-error-state
+        [title]="copy().errorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onRetry()"
+      ></flux-error-state>
+    } @else {
+      <p class="cart-page-standby">{{ copy().standby }}</p>
+    }
+  } @else {
+    @if (cart().isError) {
+      <flux-error-state
+        [title]="copy().errorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onRetry()"
+      ></flux-error-state>
+    }
+    @if (cart().isEmpty) {
+      <div class="cart-page-empty">
+        <flux-empty-state
+          [title]="copy().emptyTitle"
+          [message]="copy().emptyMessage"
+        ></flux-empty-state>
+        <p class="cart-page-browse">
+          <a routerLink="/products">{{ copy().browseProducts }}</a>
+        </p>
+      </div>
+    } @else {
+      <div class="cart-page-content">
+        <cart-items
+          [views]="views()"
+          [title]="copy().itemsTitle"
+          [itemLabels]="copy().itemLabels"
+          [disabled]="controlsDisabled()"
+          (quantityChange)="onQuantityChange($event)"
+          (remove)="onRemove($event)"
+        ></cart-items>
+        <cart-summary
+          [title]="copy().summaryTitle"
+          [itemsLabel]="copy().summaryItemsLabel"
+          [itemsValue]="summaryItemsValue()"
+          [subtotalLabel]="copy().summarySubtotal"
+          [subtotalText]="subtotalText()"
+          [totalLabel]="copy().summaryTotal"
+          [totalText]="totalText()"
+          [estimatedLabel]="copy().summaryEstimatedTotal"
+          [estimatedTotals]="estimatedTotals()"
+          [totalsNote]="totalsNote()"
+          [clearLabel]="copy().summaryClear"
+          [checkoutLabel]="copy().summaryCheckout"
+          [clearing]="controlsDisabled()"
+          (clear)="onClear()"
+        ></cart-summary>
+      </div>
+    }
+  }
+</section>

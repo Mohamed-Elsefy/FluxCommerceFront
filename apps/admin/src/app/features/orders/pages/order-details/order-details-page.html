@@ -1,0 +1,247 @@
+<section class="order-details" aria-labelledby="order-details-title">
+  <a class="order-details-back" routerLink="/orders/list">{{ copy().back }}</a>
+
+  @if (order().isLoading || order().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (order().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (order().data !== null) {
+    <header class="order-details-header">
+      <h1 id="order-details-title">{{ copy().orderNumber }}</h1>
+      <div class="order-details-badges">
+        <app-order-status-badge [status]="order().data!.status" />
+      </div>
+    </header>
+
+    @if (canCancel() || canRefund()) {
+      <section class="order-details-actions" aria-labelledby="order-details-actions-title">
+        <h2 id="order-details-actions-title">{{ actionCopy().actionsTitle }}</h2>
+        <div class="order-details-actions-row">
+          @if (canCancel()) {
+            <button type="button" [disabled]="submitting()" (click)="askCancel()">
+              {{ actionCopy().cancelAction }}
+            </button>
+          }
+          @if (canRefund()) {
+            <button type="button" [disabled]="submitting()" (click)="askRefund()">
+              {{ actionCopy().refundAction }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    <flux-card>
+      <dl class="order-details-facts">
+        <div>
+          <dt>{{ copy().factNumber }}</dt>
+          <dd>{{ copy().orderNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factItems }}</dt>
+          <dd>{{ copy().items }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factCreated }}</dt>
+          <dd>{{ copy().created }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factSubtotal }}</dt>
+          <dd>{{ copy().subtotal }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factShipping }}</dt>
+          <dd>{{ copy().shipping }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factDiscount }}</dt>
+          <dd>{{ copy().discount }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factTotal }}</dt>
+          <dd>{{ copy().total }}</dd>
+        </div>
+      </dl>
+    </flux-card>
+
+    <section aria-labelledby="order-details-items-title">
+      <h2 id="order-details-items-title">{{ copy().itemsTitle }}</h2>
+      <admin-data-table
+        [columns]="itemColumns()"
+        [rows]="order().data!.lineItems"
+        [caption]="copy().itemsTitle"
+        [emptyTitle]="copy().itemsEmpty"
+      />
+    </section>
+
+    <section aria-labelledby="order-details-customer-title">
+      <h2 id="order-details-customer-title">{{ copy().customerTitle }}</h2>
+      <div class="order-details-addresses">
+        <flux-card>
+          <article [attr.aria-label]="copy().shippingTitle">
+            <h3 class="order-details-address-title">{{ copy().shippingTitle }}</h3>
+            <dl class="order-details-facts">
+              <div>
+                <dt>{{ copy().addrRecipient }}</dt>
+                <dd>{{ order().data!.shippingAddress.recipientName }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrStreet }}</dt>
+                <dd>{{ shippingStreet() }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCity }}</dt>
+                <dd>{{ order().data!.shippingAddress.city }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrRegion }}</dt>
+                <dd>{{ order().data!.shippingAddress.region }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrPostal }}</dt>
+                <dd>{{ order().data!.shippingAddress.postalCode }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCountry }}</dt>
+                <dd>{{ order().data!.shippingAddress.countryCode }}</dd>
+              </div>
+            </dl>
+          </article>
+        </flux-card>
+        <flux-card>
+          <article [attr.aria-label]="copy().billingTitle">
+            <h3 class="order-details-address-title">{{ copy().billingTitle }}</h3>
+            <dl class="order-details-facts">
+              <div>
+                <dt>{{ copy().addrRecipient }}</dt>
+                <dd>{{ order().data!.billingAddress.recipientName }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrStreet }}</dt>
+                <dd>{{ billingStreet() }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCity }}</dt>
+                <dd>{{ order().data!.billingAddress.city }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrRegion }}</dt>
+                <dd>{{ order().data!.billingAddress.region }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrPostal }}</dt>
+                <dd>{{ order().data!.billingAddress.postalCode }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().addrCountry }}</dt>
+                <dd>{{ order().data!.billingAddress.countryCode }}</dd>
+              </div>
+            </dl>
+          </article>
+        </flux-card>
+      </div>
+    </section>
+
+    <section aria-labelledby="order-details-payment-title">
+      <h2 id="order-details-payment-title">{{ copy().paymentTitle }}</h2>
+      @if (paymentSlot().isLoading || paymentSlot().status === 'idle') {
+        <flux-loading-indicator [label]="copy().paymentLoading" size="sm" />
+      } @else if (paymentEmpty()) {
+        <flux-empty-state
+          [title]="copy().paymentEmptyTitle"
+          [message]="copy().paymentEmptyMessage"
+        />
+      } @else if (paymentSlot().isError) {
+        <flux-error-state
+          [title]="copy().paymentErrorTitle"
+          [message]="paymentErrorMessage()"
+          [retryLabel]="copy().retry"
+          (retry)="retryPayment()"
+        />
+      } @else if (paymentSlot().data !== null) {
+        <flux-card>
+          <dl class="order-details-facts">
+            <div>
+              <dt>{{ copy().paymentFactStatus }}</dt>
+              <dd><app-payment-status-badge [status]="paymentStatus()" /></dd>
+            </div>
+            @if (copy().paymentReference !== null) {
+              <div>
+                <dt>{{ copy().paymentFactReference }}</dt>
+                <dd>{{ copy().paymentReference }}</dd>
+              </div>
+            }
+            @if (copy().paymentProvider !== null) {
+              <div>
+                <dt>{{ copy().paymentFactProvider }}</dt>
+                <dd>{{ copy().paymentProvider }}</dd>
+              </div>
+            }
+            <div>
+              <dt>{{ copy().paymentFactAmount }}</dt>
+              <dd>{{ copy().paymentAmount }}</dd>
+            </div>
+          </dl>
+        </flux-card>
+      }
+    </section>
+  }
+
+  <admin-dialog
+    [open]="pendingAction() === 'cancel'"
+    [title]="actionCopy().cancelDialogTitle"
+    titleId="order-cancel-confirm-title"
+    [closeLabel]="actionCopy().dialogCancel"
+    [backdropLabel]="actionCopy().dialogCancel"
+    (closed)="cancelMutation()"
+  >
+    <p>{{ actionCopy().cancelDialogMessage }}</p>
+    <div data-dialog-actions class="order-details-dialog-actions">
+      <button type="button" class="order-details-dialog-cancel" (click)="cancelMutation()">
+        {{ actionCopy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="order-details-dialog-confirm"
+        [disabled]="submitting()"
+        (click)="confirmMutation()"
+      >
+        {{ actionCopy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+
+  <admin-dialog
+    [open]="pendingAction() === 'refund'"
+    [title]="actionCopy().refundDialogTitle"
+    titleId="order-refund-confirm-title"
+    [closeLabel]="actionCopy().dialogCancel"
+    [backdropLabel]="actionCopy().dialogCancel"
+    (closed)="cancelMutation()"
+  >
+    <p>{{ actionCopy().refundDialogMessage }}</p>
+    <admin-textarea
+      [control]="reasonControl"
+      [label]="actionCopy().refundReasonLabel"
+      fieldId="order-refund-reason"
+    />
+    <div data-dialog-actions class="order-details-dialog-actions">
+      <button type="button" class="order-details-dialog-cancel" (click)="cancelMutation()">
+        {{ actionCopy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="order-details-dialog-confirm"
+        [disabled]="submitting()"
+        (click)="confirmMutation()"
+      >
+        {{ actionCopy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+</section>

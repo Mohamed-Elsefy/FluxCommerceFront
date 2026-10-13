@@ -1,0 +1,43 @@
+<footer class="footer">
+  <flux-container>
+    <div class="inner">
+      <div class="brand-block">
+        <img
+          class="brand-logo"
+          src="/assets/fluxCommerce-logo.png"
+          alt="FluxCommerce"
+          width="160"
+          height="40"
+          loading="lazy"
+        />
+        <p class="tagline">{{ copy().tagline }}</p>
+        <p class="description">{{ copy().description }}</p>
+      </div>
+      <div class="group">
+        <h2>{{ copy().exploreHeading }}</h2>
+        <storefront-nav
+          [items]="exploreNav()"
+          [label]="copy().exploreLabel"
+          orientation="vertical"
+        />
+      </div>
+      <div class="group">
+        <h2>{{ copy().shopHeading }}</h2>
+        <storefront-nav [items]="shopNav()" [label]="copy().shopHeading" orientation="vertical" />
+      </div>
+      <div class="group">
+        <h2>{{ copy().accountHeading }}</h2>
+        <storefront-nav
+          [items]="accountNav()"
+          [label]="copy().accountHeading"
+          orientation="vertical"
+        />
+      </div>
+      <div class="group personal">
+        <h2>{{ copy().personalHeading }}</h2>
+        <p class="placeholder">{{ copy().personalPlaceholder }}</p>
+      </div>
+    </div>
+    <p class="legal">{{ copy().legal }}</p>
+  </flux-container>
+</footer>

@@ -1,0 +1,58 @@
+<section class="payment-details" aria-labelledby="payment-details-title">
+  <a class="payment-details-back" routerLink="/payments/list">{{ copy().back }}</a>
+
+  @if (payment().isLoading || payment().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (payment().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (payment().data !== null) {
+    <header class="payment-details-header">
+      <h1 id="payment-details-title">{{ copy().heading }}</h1>
+      <div class="payment-details-badges">
+        <app-admin-payment-status-badge [status]="paymentStatus()" />
+      </div>
+    </header>
+
+    <flux-card>
+      <dl class="payment-details-facts">
+        <div>
+          <dt>{{ copy().factReference }}</dt>
+          <dd>{{ copy().reference ?? copy().heading }}</dd>
+        </div>
+        @if (copy().provider !== null) {
+          <div>
+            <dt>{{ copy().factProvider }}</dt>
+            <dd>{{ copy().provider }}</dd>
+          </div>
+        }
+        <div>
+          <dt>{{ copy().factAmount }}</dt>
+          <dd>{{ copy().amount }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factOrder }}</dt>
+          <dd>{{ copy().orderId }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factCustomer }}</dt>
+          <dd>{{ copy().customerId }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factCreated }}</dt>
+          <dd>{{ copy().created }}</dd>
+        </div>
+        @if (copy().updated !== null) {
+          <div>
+            <dt>{{ copy().factUpdated }}</dt>
+            <dd>{{ copy().updated }}</dd>
+          </div>
+        }
+      </dl>
+    </flux-card>
+  }
+</section>

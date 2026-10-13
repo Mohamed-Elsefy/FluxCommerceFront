@@ -1,0 +1,135 @@
+.adjustments-page {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.adjustments-page-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.adjustments-page-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.adjustments-page-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.adjustments-page-form {
+  display: grid;
+  gap: var(--spacing-md);
+  max-inline-size: 44rem;
+}
+
+.adjustments-page-submit {
+  justify-self: start;
+  padding-inline: var(--spacing-lg);
+  padding-block: var(--spacing-sm);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.adjustments-page-submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.adjustments-page-submit:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.adjustments-page-create-link {
+  justify-self: start;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.adjustments-page-create-link:hover {
+  text-decoration: underline;
+}
+
+.adjustments-page-create-link:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.adjustments-page h2 {
+  margin: 0;
+  margin-block-end: var(--spacing-md);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.adjustments-page-facts {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.adjustments-page-facts > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) 1fr;
+  gap: var(--spacing-sm);
+}
+
+.adjustments-page-facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.adjustments-page-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.adjustments-page-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+.adjustments-page-dialog-confirm {
+  padding-inline: var(--spacing-lg);
+  padding-block: var(--spacing-sm);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.adjustments-page-dialog-confirm:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.adjustments-page-dialog-cancel {
+  padding-inline: var(--spacing-lg);
+  padding-block: var(--spacing-sm);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+
+.adjustments-page-dialog-confirm:focus-visible,
+.adjustments-page-dialog-cancel:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}

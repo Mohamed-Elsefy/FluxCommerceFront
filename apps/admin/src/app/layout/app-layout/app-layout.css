@@ -1,0 +1,98 @@
+/* Admin shell grid — Kinetic surfaces (docs/DESIGN.md §2–§5): app
+   background, sidebar rim, glass header row, lime skip link, overlay
+   scrim. Canonical tokens only, logical properties only (RTL-safe).
+   Grid areas and breakpoints are unchanged. */
+:host {
+  display: grid;
+  grid-template-areas:
+    'sidebar header'
+    'sidebar main';
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  min-block-size: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+admin-sidebar {
+  grid-area: sidebar;
+  border-inline-end: 1.5px solid var(--border);
+}
+
+admin-header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-index-sticky);
+}
+
+main {
+  grid-area: main;
+  display: block;
+  min-inline-size: 0;
+  padding-block: var(--s-lg);
+  padding-inline: var(--s-md);
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--s-md);
+  top: calc(-1 * var(--s-2xl));
+  z-index: var(--z-index-toast);
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-md);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  top: var(--s-sm);
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+.overlay {
+  display: none;
+}
+
+@media (max-width: 63.99rem) {
+  :host {
+    grid-template-areas:
+      'header'
+      'main';
+    grid-template-columns: 1fr;
+  }
+
+  admin-sidebar {
+    border-inline-end: 0;
+  }
+
+  admin-sidebar[data-drawer='closed'] {
+    display: none;
+  }
+
+  admin-sidebar[data-drawer='open'] {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: var(--z-index-modal);
+    inline-size: min(20rem, 85vw);
+    background: var(--surface-1);
+    border-inline-end: 1.5px solid var(--border);
+    box-shadow: var(--shadow-ambient);
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-index-dropdown);
+    border: 0;
+    padding: 0;
+    background: var(--overlay);
+    cursor: pointer;
+  }
+}

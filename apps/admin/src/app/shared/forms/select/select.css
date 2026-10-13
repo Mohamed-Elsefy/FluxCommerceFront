@@ -1,0 +1,33 @@
+/* Select — Kinetic pill field (docs/DESIGN.md §6.5): 48px pill, lime
+   halo on focus. Canonical tokens only, logical props (RTL-safe). */
+.select {
+  inline-size: 100%;
+  min-block-size: 48px;
+  padding-block: 0;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+:root[data-theme='light'] .select {
+  background: var(--surface-1);
+}
+
+.select:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.select:focus-visible {
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
+}
+
+.select[aria-invalid='true'] {
+  border-color: var(--error);
+}

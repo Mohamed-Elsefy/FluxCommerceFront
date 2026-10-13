@@ -1,0 +1,21 @@
+<article class="order-row">
+  <a class="order-row-link" [routerLink]="view.detailsRoute">{{ view.orderNumber }}</a>
+  <dl class="order-row-facts">
+    <div>
+      <dt>{{ labels.date }}</dt>
+      <dd>{{ view.dateText }}</dd>
+    </div>
+    <div>
+      <dt>{{ labels.status }}</dt>
+      <dd><orders-order-status-badge [status]="view.statusText" /></dd>
+    </div>
+    <div>
+      <dt>{{ labels.items }}</dt>
+      <dd>{{ view.itemCount }}</dd>
+    </div>
+    <div>
+      <dt>{{ labels.total }}</dt>
+      <dd>{{ view.totalText }}</dd>
+    </div>
+  </dl>
+</article>

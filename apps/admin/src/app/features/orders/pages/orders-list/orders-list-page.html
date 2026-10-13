@@ -1,0 +1,73 @@
+<section class="orders-list" aria-labelledby="orders-list-title">
+  <header class="orders-list-header">
+    <div>
+      <h1 id="orders-list-title">{{ copy().heading }}</h1>
+      <p class="orders-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+  </header>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <form class="orders-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+      <admin-filter-bar
+        [label]="copy().filterTitle"
+        [clearLabel]="copy().filterClear"
+        (clear)="clearFilters()"
+      >
+        <admin-select
+          [control]="filters.controls.status"
+          [options]="statusOptions()"
+          [label]="copy().filterStatus"
+          fieldId="orders-filter-status"
+        />
+        <admin-text-input
+          [control]="filters.controls.customerId"
+          [label]="copy().filterCustomer"
+          fieldId="orders-filter-customer"
+        />
+        <admin-search-input
+          [control]="filters.controls.search"
+          [label]="copy().filterSearch"
+          [placeholder]="copy().filterSearchPlaceholder"
+          fieldId="orders-filter-search"
+        />
+        <admin-date-range
+          [from]="filters.controls.from"
+          [to]="filters.controls.to"
+          [fromLabel]="copy().filterFrom"
+          [toLabel]="copy().filterTo"
+          fromId="orders-filter-from"
+          toId="orders-filter-to"
+        />
+        <button class="orders-list-apply" type="submit">{{ copy().filterApply }}</button>
+      </admin-filter-bar>
+    </form>
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    <ng-template #statusCell let-order>
+      <app-order-status-badge [status]="order.status" />
+    </ng-template>
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

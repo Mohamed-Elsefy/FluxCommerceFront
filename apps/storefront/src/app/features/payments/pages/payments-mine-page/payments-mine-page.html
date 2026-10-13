@@ -1,0 +1,68 @@
+<section class="payments-mine-page" aria-labelledby="payments-mine-page-title">
+  <h2 id="payments-mine-page-title" tabindex="-1">{{ copy().title }}</h2>
+
+  @if (showList() || showEmpty()) {
+    <div class="payments-mine-page-filter">
+      <label for="payments-status-filter">{{ copy().filterLabel }}</label>
+      <select id="payments-status-filter" (change)="onStatusFilter($event)">
+        <option value="">{{ copy().filterAll }}</option>
+        @for (option of copy().statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (showLoading()) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (showError()) {
+    <div data-error-focus tabindex="-1">
+      <flux-error-state
+        [title]="copy().loadErrorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onRetry()"
+      ></flux-error-state>
+    </div>
+  } @else if (showEmpty()) {
+    <flux-empty-state
+      [title]="copy().emptyTitle"
+      [message]="copy().emptyMessage"
+    ></flux-empty-state>
+  } @else if (showList()) {
+    <ol class="payments-mine-page-items">
+      @for (row of rows(); track row.id) {
+        <li>
+          <article class="payments-mine-row" [attr.aria-label]="row.orderId">
+            <dl class="payments-mine-facts">
+              <div>
+                <dt>{{ copy().fieldOrder }}</dt>
+                <dd>{{ row.orderId }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().fieldAmount }}</dt>
+                <dd>{{ row.amount }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().fieldStatus }}</dt>
+                <dd><payment-status [status]="row.status" /></dd>
+              </div>
+              <div>
+                <dt>{{ copy().fieldDate }}</dt>
+                <dd>{{ row.created }}</dd>
+              </div>
+            </dl>
+          </article>
+        </li>
+      }
+    </ol>
+    <storefront-pagination
+      [page]="pager().page"
+      [pageSize]="pager().pageSize"
+      [totalCount]="pager().totalCount"
+      [copy]="copy().pagerCopy"
+      [disabled]="pagerDisabled()"
+      (pageChange)="onPageChange($event)"
+    />
+  }
+</section>

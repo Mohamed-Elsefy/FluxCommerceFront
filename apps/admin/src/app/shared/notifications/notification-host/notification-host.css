@@ -1,0 +1,87 @@
+/* Notification host — Kinetic glass toasts (docs/DESIGN.md §6.10):
+   frosted squircle, status edge, ghost dismiss. Canonical tokens only,
+   logical properties only (RTL-safe). */
+.notification-host {
+  position: fixed;
+  inset-block-end: var(--s-md);
+  inset-inline-end: var(--s-md);
+  z-index: var(--z-index-toast);
+  display: grid;
+  gap: var(--s-xs);
+  inline-size: min(24rem, calc(100vw - 2 * var(--s-md)));
+}
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-xs);
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  color: var(--text);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  border-inline-start-width: 2px;
+}
+
+.notification[data-type='success'] {
+  border-inline-start-color: var(--success);
+}
+
+.notification[data-type='info'] {
+  border-inline-start-color: var(--info);
+}
+
+.notification[data-type='warning'] {
+  border-inline-start-color: var(--warning);
+}
+
+.notification[data-type='error'] {
+  border-inline-start-color: var(--error);
+}
+
+.notification-copy {
+  display: grid;
+  gap: var(--s-2xs);
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.notification-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.notification-message {
+  margin: 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.notification-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  flex: none;
+  border: 1.5px solid transparent;
+  padding: 0;
+  background-color: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--r-pill);
+}
+
+.notification-dismiss:hover {
+  border-color: var(--border);
+}
+
+.notification-dismiss:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}

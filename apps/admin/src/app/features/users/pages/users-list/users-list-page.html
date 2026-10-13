@@ -1,0 +1,70 @@
+<section class="users-list" aria-labelledby="users-list-title">
+  <header class="users-list-header">
+    <div>
+      <h1 id="users-list-title">{{ copy().heading }}</h1>
+      <p class="users-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+    @if (canCreateAdmin()) {
+      <a class="users-list-new" routerLink="/users/new">{{ copy().createAdmin }}</a>
+    }
+  </header>
+
+  <form class="users-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <admin-filter-bar
+      [label]="copy().filterTitle"
+      [clearLabel]="copy().filterClear"
+      (clear)="clearFilters()"
+    >
+      <admin-search-input
+        [control]="filters.controls.search"
+        [label]="copy().filterSearch"
+        [placeholder]="copy().filterSearchPlaceholder"
+        fieldId="users-filter-search"
+      />
+      <admin-select
+        [control]="filters.controls.status"
+        [options]="statusOptions()"
+        [label]="copy().filterStatus"
+        fieldId="users-filter-status"
+      />
+      <admin-select
+        [control]="filters.controls.role"
+        [options]="roleOptions()"
+        [label]="copy().filterRole"
+        fieldId="users-filter-role"
+      />
+      <button class="users-list-apply" type="submit">{{ copy().filterApply }}</button>
+    </admin-filter-bar>
+  </form>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    <ng-template #statusCell let-user>
+      <app-user-status-badge [status]="user.status" />
+    </ng-template>
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

@@ -1,0 +1,32 @@
+.grid {
+  display: grid;
+}
+
+/* Children may shrink below content size so narrow viewports never blow out. */
+.grid > * {
+  min-inline-size: 0;
+}
+
+.grid[data-gap='xs'] {
+  gap: var(--spacing-xs);
+}
+
+.grid[data-gap='sm'] {
+  gap: var(--spacing-sm);
+}
+
+.grid[data-gap='md'] {
+  gap: var(--spacing-md);
+}
+
+.grid[data-gap='lg'] {
+  gap: var(--spacing-lg);
+}
+
+.grid[data-gap='xl'] {
+  gap: var(--spacing-xl);
+}
+
+.grid[data-gap='2xl'] {
+  gap: var(--spacing-2xl);
+}

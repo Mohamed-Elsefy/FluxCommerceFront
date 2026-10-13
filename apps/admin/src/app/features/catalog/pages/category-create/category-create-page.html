@@ -1,0 +1,28 @@
+<section class="category-create" aria-labelledby="category-create-title">
+  <header class="category-create-header">
+    <h1 id="category-create-title">{{ copy().heading }}</h1>
+    <p class="category-create-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  @if (formError() !== null) {
+    <flux-error-state [title]="copy().errorTitle" [message]="formError()" [showRetry]="false" />
+  }
+
+  @if (lookupError() !== null) {
+    <flux-error-state
+      [title]="copy().lookupTitle"
+      [message]="lookupError()"
+      [retryLabel]="copy().retry"
+      (retry)="retryLookup()"
+    />
+  }
+
+  <app-category-form
+    [initial]="initial"
+    [parents]="parentOptions()"
+    [copy]="formCopy()"
+    [submitting]="submitting()"
+    (save)="onSave($event)"
+    (cancelled)="onCancel()"
+  />
+</section>

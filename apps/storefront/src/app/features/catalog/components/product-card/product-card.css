@@ -1,0 +1,106 @@
+/* Kinetic Pod card (DESIGN §6.2) — image well + sticker + footer deck. */
+.product-card {
+  border-radius: var(--r-xl);
+  padding: var(--s-md);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.product-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-8px);
+}
+
+.product-card a {
+  display: grid;
+  gap: var(--s-xs);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.media {
+  position: relative;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.product-image {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-image-fallback {
+  inline-size: 100%;
+  aspect-ratio: 1 / 1;
+  background:
+    radial-gradient(circle at 50% 30%, var(--glow-secondary), transparent 65%), var(--surface-2);
+}
+
+.sticker {
+  position: absolute;
+  inset-block-start: 0.75rem;
+  inset-inline-end: 0.75rem;
+  transform: rotate(3deg);
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.product-card h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer-deck {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-xs);
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+.price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-quick {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 32px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card {
+    transition: none;
+    transform: none;
+  }
+}

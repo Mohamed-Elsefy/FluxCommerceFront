@@ -1,0 +1,7 @@
+@if (shouldShow()) {
+  <ul class="checkout-field-errors" role="alert">
+    @for (message of messages(); track message) {
+      <li>{{ message }}</li>
+    }
+  </ul>
+}

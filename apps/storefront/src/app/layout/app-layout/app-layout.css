@@ -1,0 +1,36 @@
+:host {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-block-size: 100dvh;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--spacing-md);
+  top: calc(-1 * var(--spacing-3xl));
+  z-index: var(--z-index-toast);
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-md);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  top: var(--spacing-sm);
+}
+
+main {
+  display: block;
+  padding-block: var(--s-xl);
+}
+
+/* Consistent page gutter on every screen: centered column with the
+   shared container padding (DESIGN §4.3 margins). */
+.page {
+  inline-size: 100%;
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
+}

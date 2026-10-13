@@ -1,0 +1,11 @@
+<ul class="product-grid" [attr.data-layout]="layout">
+  @for (product of products; track product.id) {
+    <li>
+      <catalog-product-card
+        [product]="product"
+        [status]="product.status ?? null"
+        [statusLabel]="statusLabelFor(product.status)"
+      ></catalog-product-card>
+    </li>
+  }
+</ul>

@@ -1,0 +1,12 @@
+<form class="spec-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <admin-text-input [control]="nameControl()" [label]="copy.name" fieldId="spec-name" />
+  <admin-text-input [control]="valueControl()" [label]="copy.value" fieldId="spec-value" />
+  <admin-form-actions
+    [submitLabel]="copy.submit"
+    [cancelLabel]="copy.cancel"
+    [submittingLabel]="copy.saving"
+    [submitting]="submitting"
+    (submitted)="submit()"
+    (cancelled)="cancelled.emit()"
+  />
+</form>

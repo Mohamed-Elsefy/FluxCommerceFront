@@ -1,0 +1,109 @@
+<section class="order-details-page" aria-labelledby="order-details-page-title">
+  <!-- h2, not h1: the account shell owns the section h1 (11.8 — one h1 per view). -->
+  <h2 id="order-details-page-title" tabindex="-1">{{ heading() }}</h2>
+
+  @if (showLoading()) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (showNotFound()) {
+    <div class="order-details-page-notice">
+      <p>{{ copy().notFoundMessage }}</p>
+      <p>
+        <a routerLink="/account/orders">{{ copy().backToOrders }}</a>
+      </p>
+    </div>
+  } @else if (showForbidden()) {
+    <div class="order-details-page-notice">
+      <p>{{ copy().forbiddenMessage }}</p>
+      <p>
+        <a routerLink="/account/orders">{{ copy().backToOrders }}</a>
+      </p>
+    </div>
+  } @else if (showUnauthorized()) {
+    <div class="order-details-page-notice">
+      <p>{{ copy().unauthorizedMessage }}</p>
+      <p>
+        <a routerLink="/login">{{ copy().signIn }}</a>
+      </p>
+      <p>
+        <a routerLink="/account/orders">{{ copy().backToOrders }}</a>
+      </p>
+    </div>
+  } @else if (showError()) {
+    <div data-error-focus tabindex="-1">
+      <flux-error-state
+        [title]="copy().loadErrorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onRetry()"
+      ></flux-error-state>
+    </div>
+  } @else if (showDetails() && view(); as details) {
+    @if (showSyncing()) {
+      <p class="order-details-page-sync" role="status">{{ copy().syncPolling }}</p>
+    }
+    @if (showSyncExhausted()) {
+      <div class="order-details-page-sync">
+        <p role="status">{{ copy().syncExhausted }}</p>
+        <button type="button" (click)="onSyncRecheck()">{{ copy().syncRecheck }}</button>
+      </div>
+    }
+    <dl class="order-details-page-facts">
+      <div>
+        <dt>{{ copy().fieldOrderNumber }}</dt>
+        <dd>{{ details.orderNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldOrderId }}</dt>
+        <dd>{{ details.orderId }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldDate }}</dt>
+        <dd>{{ details.dateText }}</dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldStatus }}</dt>
+        <dd><orders-order-status-badge [status]="details.statusText" /></dd>
+      </div>
+      <div>
+        <dt>{{ copy().fieldCustomer }}</dt>
+        <dd>{{ details.customerName }}</dd>
+      </div>
+    </dl>
+
+    <section [attr.aria-label]="copy().sectionItems">
+      <h2>{{ copy().sectionItems }}</h2>
+      <orders-items-list
+        [items]="details.items"
+        [labels]="copy().itemLabels"
+        [emptyMessage]="copy().itemsEmpty"
+      />
+    </section>
+
+    <div class="order-details-page-addresses">
+      <orders-address-block [address]="details.shippingAddress" [title]="copy().sectionShipping" />
+      <orders-address-block [address]="details.billingAddress" [title]="copy().sectionBilling" />
+    </div>
+
+    <section [attr.aria-label]="copy().sectionTotals">
+      <h2>{{ copy().sectionTotals }}</h2>
+      <dl class="order-details-page-totals">
+        <div>
+          <dt>{{ copy().fieldSubtotal }}</dt>
+          <dd>{{ details.totals.subtotalText }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().fieldDiscount }}</dt>
+          <dd>{{ details.totals.discountText }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().fieldShipping }}</dt>
+          <dd>{{ details.totals.shippingCostText }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().fieldGrandTotal }}</dt>
+          <dd>{{ details.totals.grandTotalText }}</dd>
+        </div>
+      </dl>
+    </section>
+  }
+</section>

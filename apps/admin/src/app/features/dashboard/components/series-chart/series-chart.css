@@ -1,0 +1,82 @@
+/* Series chart — Kinetic bars over a horizontally-scrolling day strip
+   (docs/DESIGN.md §2/§4): lime bars on a grounded baseline, one mini
+   table-like column per day, newest first. Canonical tokens only,
+   logical properties only (RTL-safe). */
+:host {
+  display: grid;
+  gap: var(--s-md);
+}
+
+.series-chart-bars {
+  inline-size: 100%;
+  block-size: 7rem;
+  color: var(--primary);
+  border-block-end: 1.5px solid var(--border-strong);
+}
+
+.series-chart-bars rect {
+  fill: currentcolor;
+  opacity: 0.75;
+}
+
+/* Day strip: horizontal scroll keeps 30 days off the page length. */
+.series-chart-points {
+  display: flex;
+  gap: var(--s-xs);
+  margin: 0;
+  padding-block-end: var(--s-2xs);
+  padding-inline: 0;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+}
+
+.series-chart-day {
+  flex: 0 0 auto;
+  inline-size: 8.5rem;
+  display: grid;
+  gap: var(--s-2xs);
+  align-content: start;
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-sm);
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  scroll-snap-align: start;
+}
+
+.series-chart-day:first-child {
+  border-color: var(--border-accent);
+}
+
+.series-chart-date {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.series-chart-orders,
+.series-chart-revenue {
+  display: grid;
+  gap: 0;
+  overflow-wrap: anywhere;
+}
+
+.series-chart-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.series-chart-caption {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .series-chart-points {
+    scroll-snap-type: none;
+  }
+}

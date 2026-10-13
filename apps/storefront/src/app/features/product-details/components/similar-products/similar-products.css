@@ -1,0 +1,102 @@
+/* Similar-products rail — Pod mini-cards in the Kinetic voice. Logical
+   properties only (RTL-safe); visual values come from theming tokens. */
+
+.similar-products-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--s-md);
+}
+
+.similar-products-grid > li {
+  min-inline-size: 0;
+}
+
+.similar-products-card {
+  border-radius: var(--r-xl);
+  padding: var(--s-md);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+  block-size: 100%;
+}
+
+.similar-products-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-8px);
+}
+
+.similar-products-card a {
+  display: grid;
+  gap: var(--s-xs);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.similar-products-media {
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.similar-products-image {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.similar-products-fallback {
+  inline-size: 100%;
+  aspect-ratio: 1 / 1;
+  background:
+    radial-gradient(circle at 50% 30%, var(--glow-secondary), transparent 65%), var(--surface-2);
+}
+
+.similar-products-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.similar-products-more {
+  margin-block-start: var(--s-md);
+}
+
+.similar-products-more a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  background: var(--secondary-soft);
+  color: var(--secondary-soft-text);
+  border: 1.5px solid var(--secondary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.similar-products-more a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .similar-products-card {
+    transition: none;
+    transform: none;
+  }
+}

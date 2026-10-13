@@ -1,0 +1,52 @@
+<form class="product-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <admin-text-input [control]="nameControl()" [label]="copy.name" fieldId="product-name" />
+  <admin-text-input
+    [control]="slugControl()"
+    [label]="copy.slug"
+    fieldId="product-slug"
+    [hint]="copy.slugHint"
+  />
+  <admin-textarea
+    [control]="descriptionControl()"
+    [label]="copy.description"
+    fieldId="product-description"
+  />
+  <admin-select
+    [control]="categoryControl()"
+    [options]="categories"
+    [label]="copy.category"
+    fieldId="product-category"
+  />
+  <admin-select
+    [control]="visibilityControl()"
+    [options]="visibilityOptions"
+    [label]="copy.visibility"
+    fieldId="product-visibility"
+  />
+  <fieldset class="product-form-seo">
+    <admin-text-input
+      [control]="seoTitleControl()"
+      [label]="copy.seoTitle"
+      fieldId="product-seo-title"
+    />
+    <admin-textarea
+      [control]="seoDescriptionControl()"
+      [label]="copy.seoDescription"
+      fieldId="product-seo-description"
+    />
+    <admin-text-input
+      [control]="seoKeywordsControl()"
+      [label]="copy.seoKeywords"
+      fieldId="product-seo-keywords"
+      [hint]="copy.seoKeywordsHint"
+    />
+  </fieldset>
+  <admin-form-actions
+    [submitLabel]="copy.submit"
+    [cancelLabel]="copy.cancel"
+    [submittingLabel]="copy.saving"
+    [submitting]="submitting"
+    (submitted)="submit()"
+    (cancelled)="cancelled.emit()"
+  />
+</form>

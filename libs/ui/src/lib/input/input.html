@@ -1,0 +1,20 @@
+<label class="field">
+  @if (label !== null) {
+    <span class="label">{{ label }}</span>
+  }
+  <input
+    class="control"
+    [attr.type]="type"
+    [attr.placeholder]="placeholder"
+    [value]="value"
+    [disabled]="disabled"
+    [attr.required]="required ? true : null"
+    [attr.aria-invalid]="error !== null"
+    (input)="onInput($event)"
+  />
+  @if (error !== null) {
+    <span class="error" role="alert">{{ error }}</span>
+  } @else if (hint !== null) {
+    <span class="hint">{{ hint }}</span>
+  }
+</label>

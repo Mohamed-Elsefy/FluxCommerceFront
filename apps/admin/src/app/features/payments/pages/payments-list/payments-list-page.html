@@ -1,0 +1,72 @@
+<section class="payments-list" aria-labelledby="payments-list-title">
+  <header class="payments-list-header">
+    <div>
+      <h1 id="payments-list-title">{{ copy().heading }}</h1>
+      <p class="payments-list-subtitle">{{ copy().subheading }}</p>
+    </div>
+  </header>
+
+  @if (slot().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <form class="payments-list-filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+      <admin-filter-bar
+        [label]="copy().filterTitle"
+        [clearLabel]="copy().filterClear"
+        (clear)="clearFilters()"
+      >
+        <admin-select
+          [control]="filters.controls.status"
+          [options]="statusOptions()"
+          [label]="copy().filterStatus"
+          fieldId="payments-filter-status"
+        />
+        <admin-text-input
+          [control]="filters.controls.orderId"
+          [label]="copy().filterOrder"
+          fieldId="payments-filter-order"
+        />
+        <admin-text-input
+          [control]="filters.controls.customerId"
+          [label]="copy().filterCustomer"
+          fieldId="payments-filter-customer"
+        />
+        <admin-date-range
+          [from]="filters.controls.from"
+          [to]="filters.controls.to"
+          [fromLabel]="copy().filterFrom"
+          [toLabel]="copy().filterTo"
+          fromId="payments-filter-from"
+          toId="payments-filter-to"
+        />
+        <button class="payments-list-apply" type="submit">{{ copy().filterApply }}</button>
+      </admin-filter-bar>
+    </form>
+    <admin-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="tableLoading()"
+      [caption]="copy().caption"
+      [emptyTitle]="copy().emptyTitle"
+      [emptyMessage]="copy().emptyMessage"
+      [loadingLabel]="copy().loading"
+    />
+    <ng-template #statusCell let-payment>
+      <app-admin-payment-status-badge [status]="payment.status" />
+    </ng-template>
+    @if (showPager() && slot().data !== null) {
+      <admin-pagination
+        [page]="slot().data!.pageNumber"
+        [pageSize]="slot().data!.pageSize"
+        [totalCount]="slot().data!.totalCount"
+        [copy]="pagerCopy()"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  }
+</section>

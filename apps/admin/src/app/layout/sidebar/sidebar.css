@@ -1,0 +1,100 @@
+/* Admin sidebar — Kinetic Bubble Neo (docs/DESIGN.md §6.4): solid panel,
+   logo brand block, pill destinations with a lime active pill. Canonical
+   tokens only, logical properties only (RTL-safe). */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-md);
+  block-size: 100%;
+  padding-block: var(--s-md);
+  padding-inline: var(--s-sm);
+  background: var(--surface-1);
+}
+
+.brand {
+  display: grid;
+  gap: var(--s-xs);
+  margin: 0;
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-sm);
+}
+
+.brand-logo {
+  display: block;
+  inline-size: 9rem;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
+}
+
+.brand-text {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sidebar ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+  min-block-size: 44px;
+  padding-block: var(--s-2xs);
+  padding-inline: var(--s-sm);
+  border-radius: var(--r-pill);
+  border: 1.5px solid transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.sidebar a:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.sidebar a.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--text-on-accent);
+  font-weight: 700;
+  box-shadow: 0 0 8px var(--glow-primary);
+}
+
+.sidebar a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+.sidebar .group {
+  margin: 0;
+  padding-block: var(--s-sm) var(--s-2xs);
+  padding-inline: var(--s-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sidebar ul.nested {
+  padding-inline-start: var(--s-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar a {
+    transition: none;
+  }
+}

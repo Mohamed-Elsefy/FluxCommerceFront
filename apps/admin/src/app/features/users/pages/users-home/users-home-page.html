@@ -1,0 +1,34 @@
+<section class="users-home" aria-labelledby="users-title">
+  <header class="users-home-header">
+    <h1 id="users-title">{{ copy().heading }}</h1>
+    <p class="users-home-subtitle">{{ copy().subheading }}</p>
+  </header>
+
+  @if (slot().status === 'loading' || slot().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (slot().status === 'error') {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <div class="users-home-grid">
+      <flux-card>
+        <article class="users-home-card" [attr.aria-label]="copy().countsHeading">
+          <h2 class="users-home-card-title">{{ copy().countsHeading }}</h2>
+          <dl class="users-home-facts">
+            @for (fact of facts(); track fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+        </article>
+      </flux-card>
+    </div>
+    <a class="users-home-list-link" routerLink="/users/list">{{ copy().viewList }}</a>
+  }
+</section>

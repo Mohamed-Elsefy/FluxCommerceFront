@@ -1,0 +1,109 @@
+/* Payment form shell — Settlement Protocol card (DESIGN.md §§6.1/6.10).
+   The provider Elements mount lives here; this shell adds only the
+   vault-card surface, mono index, and lime pill CTA. No PAN / expiry /
+   CVV / cardholder inputs are added — the contract exposes no
+   client-secret endpoint and secrets stay memory-only. Logical
+   properties only; canonical tokens only. */
+
+.payment-form {
+  display: grid;
+  gap: var(--s-md);
+  margin: 0;
+  padding: var(--s-lg);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition: transform 0.25s var(--spring), border-color 0.2s;
+}
+
+.payment-form:hover,
+.payment-form:focus-within {
+  border-color: var(--border-accent);
+}
+
+.payment-form-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.payment-form-title::before {
+  content: '04 // PROTOCOL';
+  display: block;
+  margin-block-end: var(--s-2xs);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.payment-form-placeholder {
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-md);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  margin: 0;
+}
+
+.payment-form-submit {
+  justify-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-xs);
+  min-block-size: 3rem;
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-xl);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.25rem;
+  letter-spacing: 0.02em;
+  box-shadow: var(--highlight-top), 0 8px 24px -4px var(--glow-primary);
+  transform: translateY(-4px);
+  transition: transform 0.2s var(--spring), box-shadow 0.2s, background 0.2s;
+  cursor: pointer;
+}
+
+.payment-form-submit:hover {
+  background: var(--primary-hover);
+}
+
+.payment-form-submit:active {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-inset-press);
+}
+
+.payment-form-submit:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.payment-form-submit:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-form,
+  .payment-form-submit {
+    transform: none;
+    transition: none;
+  }
+}

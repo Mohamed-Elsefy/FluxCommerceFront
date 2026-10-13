@@ -1,0 +1,111 @@
+/* Payments-mine page — Kinetic Pod rows. Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
+
+.payments-mine-page {
+  display: grid;
+  gap: var(--s-lg);
+}
+
+.payments-mine-page h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.payments-mine-page-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-sm);
+}
+
+.payments-mine-page-filter label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+[lang='ar'] .payments-mine-page-filter label {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.payments-mine-page-filter select {
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface-glass);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.payments-mine-page-filter select:focus-visible {
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
+}
+
+.payments-mine-page-items {
+  display: grid;
+  gap: var(--s-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payments-mine-row {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-lg);
+  background-color: var(--surface-1);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.payments-mine-row:hover {
+  border-color: var(--border-accent);
+}
+
+.payments-mine-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--s-sm);
+  margin: 0;
+}
+
+.payments-mine-facts > div {
+  display: grid;
+  gap: var(--s-2xs);
+  min-inline-size: 0;
+}
+
+.payments-mine-facts dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.payments-mine-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payments-mine-row {
+    transition: none;
+    transform: none;
+  }
+}

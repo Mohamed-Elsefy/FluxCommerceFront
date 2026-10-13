@@ -1,0 +1,98 @@
+<header class="header">
+  <flux-container>
+    <div class="bar">
+      <a class="brand" routerLink="/" [attr.aria-label]="copy().brandLabel"
+        ><img class="brand-logo" src="/assets/fluxCommerce-logo.png" alt="" width="160" height="40"
+      /></a>
+      <storefront-nav class="desktop-nav" [items]="mainNav()" [label]="copy().navLabel" />
+      <form class="search desktop-search" role="search" (ngSubmit)="submitSearch()">
+        <label class="visually-hidden" for="storefront-search">{{ copy().searchLabel }}</label>
+        <input
+          id="storefront-search"
+          class="search-input"
+          type="search"
+          name="search"
+          autocomplete="off"
+          [placeholder]="copy().searchPlaceholder"
+          [attr.aria-label]="copy().searchLabel"
+          [ngModel]="searchText()"
+          (ngModelChange)="searchText.set($event)"
+        />
+        <button class="search-button" type="submit">{{ copy().searchButton }}</button>
+      </form>
+      <div class="actions">
+        <button type="button" class="lang-button" (click)="cycleCulture()">
+          <span aria-hidden="true">🌐</span>
+          {{ currentLanguage() }}
+        </button>
+        <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
+        @if (auth.isAuthenticated()) {
+          <a class="avatar" routerLink="/account/profile" [attr.aria-label]="copy().authAccount">
+            @if (avatarUrl() !== null && !avatarFailed()) {
+              <img
+                class="avatar-image"
+                [src]="avatarUrl()"
+                alt=""
+                width="44"
+                height="44"
+                loading="lazy"
+                decoding="async"
+                (error)="avatarFailed.set(true)"
+              />
+            } @else {
+              {{ avatarInitial() }}
+            }
+          </a>
+        } @else {
+          <a class="login-pill" routerLink="/login">{{ copy().authLogin }}</a>
+        }
+        <button
+          #menuToggle
+          type="button"
+          class="menu-toggle"
+          (click)="toggleMenu()"
+          [attr.aria-expanded]="menuOpen()"
+          aria-controls="storefront-mobile-nav"
+          [attr.aria-label]="copy().menuLabel"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </flux-container>
+  @if (menuOpen()) {
+    <flux-container class="mobile-panel">
+      <form class="search" role="search" (ngSubmit)="submitSearch()">
+        <label class="visually-hidden" for="storefront-search-mobile">{{
+          copy().searchLabel
+        }}</label>
+        <input
+          id="storefront-search-mobile"
+          class="search-input"
+          type="search"
+          name="search"
+          autocomplete="off"
+          [placeholder]="copy().searchPlaceholder"
+          [attr.aria-label]="copy().searchLabel"
+          [ngModel]="searchText()"
+          (ngModelChange)="searchText.set($event)"
+        />
+        <button class="search-button" type="submit">{{ copy().searchButton }}</button>
+      </form>
+      <storefront-nav
+        id="storefront-mobile-nav"
+        [items]="mainNav()"
+        [label]="copy().navLabel"
+        orientation="vertical"
+      />
+      <div class="mobile-panel-row">
+        <button type="button" class="lang-button" (click)="cycleCulture()">
+          <span aria-hidden="true">🌐</span>
+          {{ currentLanguage() }}
+        </button>
+      </div>
+    </flux-container>
+  }
+</header>

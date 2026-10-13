@@ -1,0 +1,82 @@
+/* Form actions — Kinetic submit/cancel pair (docs/DESIGN.md §6.1):
+   lime primary pill + ghost pill. Canonical tokens, logical props. */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-xs);
+}
+
+.form-actions-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 1rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
+}
+
+.form-actions-submit:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.form-actions-submit:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.form-actions-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.form-actions-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background-color: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.form-actions-cancel:hover:not(:disabled) {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.form-actions-cancel:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.form-actions-submit:focus-visible,
+.form-actions-cancel:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-actions-submit {
+    transition: none;
+    transform: none;
+  }
+}

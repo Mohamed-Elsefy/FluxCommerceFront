@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>Flux Commerce</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" type="image/png" href="assets/logo-icon.png" />
+    <script>
+      // Kinetic dark-first boot (DESIGN §1): stored v2 → legacy v1 → OS → dark.
+      // Inline to avoid FOUC before Angular hydrates.
+      try {
+        var t =
+          localStorage.getItem('fluxcommerce.theme.v2') ||
+          localStorage.getItem('fluxcommerce.theme.v1');
+        if (t !== 'light' && t !== 'dark') {
+          t =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    </script>
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>

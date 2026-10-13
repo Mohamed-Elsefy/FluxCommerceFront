@@ -1,0 +1,18 @@
+<div class="search-input">
+  <label class="search-input-label" [attr.for]="fieldId">{{ label }}</label>
+  <div class="search-input-row">
+    <input
+      type="search"
+      class="search-input-field"
+      [attr.id]="fieldId"
+      [formControl]="control"
+      [attr.placeholder]="placeholder"
+      autocomplete="off"
+    />
+    @if (clearLabel !== null && (control.value ?? '') !== '') {
+      <button type="button" class="search-input-clear" (click)="clear()">
+        {{ clearLabel }}
+      </button>
+    }
+  </div>
+</div>

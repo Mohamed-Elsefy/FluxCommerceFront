@@ -1,0 +1,10 @@
+<div class="date-range">
+  <div class="date-range-bound">
+    <label class="date-range-label" [attr.for]="fromId">{{ fromLabel }}</label>
+    <input type="date" class="date-range-field" [attr.id]="fromId" [formControl]="from" />
+  </div>
+  <div class="date-range-bound">
+    <label class="date-range-label" [attr.for]="toId">{{ toLabel }}</label>
+    <input type="date" class="date-range-field" [attr.id]="toId" [formControl]="to" />
+  </div>
+</div>

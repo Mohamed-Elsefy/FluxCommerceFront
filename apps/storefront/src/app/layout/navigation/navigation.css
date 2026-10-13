@@ -1,0 +1,50 @@
+/* Segmented pill group (DESIGN §6.4) — active = lime fill. */
+.nav ul {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--s-2xs);
+  margin: 0;
+  padding: var(--s-2xs);
+  list-style: none;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+}
+
+.nav[data-orientation='vertical'] ul {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-2xs);
+  border-radius: var(--r-lg);
+}
+
+.nav a {
+  display: block;
+  padding-block: 0.5rem;
+  padding-inline: 1rem;
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.nav a:hover {
+  color: var(--text);
+}
+
+.nav a.active {
+  background: var(--primary);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 8px var(--glow-primary);
+}
+
+.nav a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}

@@ -1,0 +1,78 @@
+/* Product image gallery (Sub-Phase 6.3). Single intrinsically responsive
+  component — no device duplicates, no viewport media queries. Logical
+  properties only (RTL-safe); visual values come from theming tokens. */
+
+.product-gallery {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.product-gallery-empty {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  margin-block: var(--spacing-sm);
+}
+
+.product-gallery-main-image {
+  inline-size: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.product-gallery-fallback {
+  display: grid;
+  place-items: center;
+  min-block-size: 12rem;
+  padding: var(--spacing-lg);
+  text-align: center;
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.product-gallery-thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.product-gallery-thumb {
+  display: grid;
+  place-items: center;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.product-gallery-thumb img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.product-gallery-thumb-fallback {
+  inline-size: 100%;
+  block-size: 100%;
+  background-color: var(--color-border);
+}
+
+.product-gallery-thumb[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  border-width: var(--border-width-medium);
+}
+
+.product-gallery-thumb:focus-visible {
+  outline: var(--border-width-medium) solid var(--color-primary);
+  outline-offset: 2px;
+}

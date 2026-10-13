@@ -1,0 +1,93 @@
+/* Variants list — Kinetic (docs/DESIGN.md §6): display header, lime
+   create pill. Canonical tokens only, logical props (RTL-safe). */
+.variants-list {
+  display: grid;
+  gap: var(--s-md);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.variants-list-back {
+  justify-self: start;
+  color: var(--primary-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.variants-list-back:hover {
+  text-decoration: underline;
+}
+
+.variants-list-back:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+.variants-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-sm);
+}
+
+.variants-list-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+}
+
+.variants-list-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.variants-list-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
+}
+
+.variants-list-new:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.variants-list-new:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.variants-list-new:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.variants-list-new:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .variants-list-new {
+    transition: none;
+    transform: none;
+  }
+}

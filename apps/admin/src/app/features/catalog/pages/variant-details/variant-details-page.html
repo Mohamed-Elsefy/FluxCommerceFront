@@ -1,0 +1,82 @@
+<section class="variant-details" aria-labelledby="variant-details-title">
+  @if (backLink() !== null) {
+    <a class="variant-details-back" [routerLink]="backLink()">{{ copy().back }}</a>
+  }
+
+  @if (variant().isLoading || variant().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (variant().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (variant().data !== null) {
+    <header class="variant-details-header">
+      <h1 id="variant-details-title">{{ variant().data!.sku }}</h1>
+      @if (statusBadge() !== null) {
+        <flux-badge [variant]="statusBadge()!.variant">{{ statusBadge()!.label }}</flux-badge>
+      }
+      @if (editLink() !== null) {
+        <a class="variant-details-edit" [routerLink]="editLink()">{{ copy().edit }}</a>
+      }
+    </header>
+
+    <flux-card>
+      <dl class="variant-details-facts">
+        <div>
+          <dt>{{ copy().sku }}</dt>
+          <dd>{{ variant().data!.sku }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().name }}</dt>
+          <dd>{{ variant().data!.name }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().price }}</dt>
+          <dd>{{ copy().priceText }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().created }}</dt>
+          <dd>{{ variant().data!.createdAtUtc }}</dd>
+        </div>
+      </dl>
+    </flux-card>
+
+    <div class="variant-details-actions">
+      <button
+        type="button"
+        class="variant-details-delete"
+        [disabled]="deleting()"
+        (click)="requestDelete()"
+      >
+        {{ copy().delete }}
+      </button>
+    </div>
+  }
+
+  <admin-dialog
+    [open]="confirmOpen()"
+    [title]="copy().confirmTitle"
+    titleId="variant-delete-title"
+    [closeLabel]="copy().cancel"
+    [backdropLabel]="copy().cancel"
+    (closed)="cancelDelete()"
+  >
+    <p>{{ copy().confirmMessage }}</p>
+    <div data-dialog-actions class="variant-details-dialog-actions">
+      <button type="button" class="variant-details-dialog-cancel" (click)="cancelDelete()">
+        {{ copy().cancel }}
+      </button>
+      <button
+        type="button"
+        class="variant-details-dialog-confirm"
+        [disabled]="deleting()"
+        (click)="confirmDelete()"
+      >
+        {{ copy().confirm }}
+      </button>
+    </div>
+  </admin-dialog>
+</section>

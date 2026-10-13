@@ -1,0 +1,72 @@
+/* Order summary row — Kinetic Pod card. Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
+
+.order-row {
+  display: grid;
+  gap: var(--s-sm);
+  padding: var(--s-lg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background-color: var(--surface-1);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.order-row:hover {
+  border-color: var(--border-accent);
+}
+
+.order-row-link {
+  color: var(--primary-text);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.order-row-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.order-row-link:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.order-row-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--s-sm);
+  margin: 0;
+}
+
+.order-row-facts > div {
+  display: grid;
+  gap: var(--s-2xs);
+  min-inline-size: 0;
+}
+
+.order-row-facts dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.order-row-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-row {
+    transition: none;
+    transform: none;
+  }
+}

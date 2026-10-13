@@ -1,0 +1,82 @@
+/* Category cards — Kinetic Pod voice. Logical properties only (RTL-safe);
+   visual values come from theming tokens. */
+
+.category-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-md);
+}
+
+.category-nav li {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-md);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  transform: translateY(-4px);
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.category-nav li:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-8px);
+}
+
+.category-nav li[data-active] {
+  border-color: var(--primary);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+}
+
+.category-nav a {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.category-nav a:hover {
+  color: var(--primary-text);
+}
+
+.category-nav a[aria-current='page'] {
+  color: var(--primary-text);
+}
+
+.category-nav a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+.category-nav p {
+  margin: var(--s-2xs) 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+
+.category-active-panel {
+  margin-block-start: var(--s-md);
+  padding-block-start: var(--s-md);
+  border-block-start: 1.5px solid var(--border);
+  min-inline-size: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-nav li {
+    transition: none;
+    transform: none;
+  }
+}

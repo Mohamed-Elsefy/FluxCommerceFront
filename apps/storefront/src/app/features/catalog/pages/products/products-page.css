@@ -1,0 +1,48 @@
+.products-page {
+  display: grid;
+  gap: var(--s-md);
+  padding-block: var(--s-lg);
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs);
+  align-items: end;
+}
+
+/* Category strip — horizontal scroll shelf, snap-adjacent chips. */
+.strip {
+  display: flex;
+  gap: var(--s-2xs);
+  overflow-x: auto;
+  padding-block: var(--s-2xs);
+  padding-inline: var(--s-2xs);
+  margin-inline: calc(-1 * var(--s-2xs));
+  scroll-behavior: smooth;
+}
+
+.filters-clear {
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.filters-clear:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+/* Per-page control docks at the row end. */
+.page-size {
+  margin-inline-start: auto;
+}

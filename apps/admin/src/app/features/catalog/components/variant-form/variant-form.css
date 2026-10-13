@@ -1,0 +1,12 @@
+.variant-form {
+  display: grid;
+  gap: var(--s-sm);
+  max-inline-size: 44rem;
+}
+
+.variant-form-paired-error {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--error);
+}

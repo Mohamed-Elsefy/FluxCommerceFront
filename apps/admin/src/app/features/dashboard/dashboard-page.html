@@ -1,0 +1,241 @@
+<section class="dashboard" aria-labelledby="dashboard-title">
+  <header class="dashboard-header">
+    <h1 id="dashboard-title">{{ copy().title }}</h1>
+    <p class="dashboard-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  @if (session() !== null) {
+    <flux-card>
+      <article class="dashboard-session" aria-labelledby="dashboard-session-heading">
+        <h2 id="dashboard-session-heading">{{ copy().sessionHeading }}</h2>
+        <dl class="dashboard-session-facts">
+          <div>
+            <dt>{{ copy().sessionName }}</dt>
+            <dd>{{ session()?.displayName }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().sessionEmail }}</dt>
+            <dd>{{ session()?.email }}</dd>
+          </div>
+          <div>
+            <dt>{{ copy().sessionRoles }}</dt>
+            <dd>{{ session()?.roles }}</dd>
+          </div>
+        </dl>
+      </article>
+    </flux-card>
+  }
+
+  @if (slot().status === 'loading' || slot().status === 'idle') {
+    <flux-loading-indicator [label]="copy().snapshotLoading" />
+  } @else if (slot().status === 'error') {
+    <flux-error-state
+      [title]="copy().snapshotErrorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (slot().data !== null && facts() !== null) {
+    @if (!hasSections()) {
+      <flux-card>
+        <article class="dashboard-empty" aria-labelledby="dashboard-empty-heading">
+          <h2 id="dashboard-empty-heading">{{ copy().emptyTitle }}</h2>
+          <flux-empty-state [title]="copy().emptyTitle" [message]="copy().emptyMessage" />
+        </article>
+      </flux-card>
+    } @else {
+      <div class="dashboard-grid">
+        @if (facts()!.orders; as orderFacts) {
+          <flux-card>
+            <article class="dashboard-card" [attr.aria-label]="copy().ordersTitle">
+              <h2 class="dashboard-card-title">{{ copy().ordersTitle }}</h2>
+              <p class="dashboard-card-fact">{{ copy().ordersTotal }}</p>
+              <dl class="dashboard-card-facts">
+                @for (fact of orderFacts; track fact.label) {
+                  <div>
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <a class="dashboard-card-link" routerLink="/orders/list">{{ copy().ordersLink }}</a>
+            </article>
+          </flux-card>
+        }
+        @if (facts()!.payments; as paymentFacts) {
+          <flux-card>
+            <article class="dashboard-card" [attr.aria-label]="copy().paymentsTitle">
+              <h2 class="dashboard-card-title">{{ copy().paymentsTitle }}</h2>
+              <p class="dashboard-card-fact">{{ copy().paymentsTotal }}</p>
+              <dl class="dashboard-card-facts">
+                @for (fact of paymentFacts; track fact.label) {
+                  <div>
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <a class="dashboard-card-link" routerLink="/payments/list">{{
+                copy().paymentsLink
+              }}</a>
+            </article>
+          </flux-card>
+        }
+        @if (facts()!.inventory; as inventoryFacts) {
+          <flux-card>
+            <article class="dashboard-card" [attr.aria-label]="copy().inventoryTitle">
+              <h2 class="dashboard-card-title">{{ copy().inventoryTitle }}</h2>
+              <p class="dashboard-card-fact">{{ copy().inventoryTotal }}</p>
+              <dl class="dashboard-card-facts">
+                @for (fact of inventoryFacts; track fact.label) {
+                  <div>
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <a class="dashboard-card-link" routerLink="/inventory/stock">{{
+                copy().inventoryLink
+              }}</a>
+            </article>
+          </flux-card>
+        }
+        @if (facts()!.catalog; as catalogFacts) {
+          <flux-card>
+            <article class="dashboard-card" [attr.aria-label]="copy().catalogTitle">
+              <h2 class="dashboard-card-title">{{ copy().catalogTitle }}</h2>
+              <p class="dashboard-card-fact">{{ copy().catalogTotal }}</p>
+              <dl class="dashboard-card-facts">
+                @for (fact of catalogFacts; track fact.label) {
+                  <div>
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <a class="dashboard-card-link" routerLink="/catalog/products">{{
+                copy().catalogLink
+              }}</a>
+            </article>
+          </flux-card>
+        }
+        @if (facts()!.users; as userFacts) {
+          <flux-card>
+            <article class="dashboard-card" [attr.aria-label]="copy().usersTitle">
+              <h2 class="dashboard-card-title">{{ copy().usersTitle }}</h2>
+              <p class="dashboard-card-fact">{{ copy().usersTotal }}</p>
+              <dl class="dashboard-card-facts">
+                @for (fact of userFacts; track fact.label) {
+                  <div>
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (canBrowseUsers()) {
+                <a class="dashboard-card-link" routerLink="/users/list">{{ copy().usersLink }}</a>
+              }
+            </article>
+          </flux-card>
+        }
+      </div>
+
+      @if (canViewOrdersList()) {
+        <flux-card>
+          <article class="dashboard-recent" aria-labelledby="dashboard-recent-heading">
+            <h2 id="dashboard-recent-heading">{{ copy().recentTitle }}</h2>
+            @if (recentOrders().length === 0) {
+              <flux-empty-state [title]="copy().recentTitle" [message]="copy().recentEmpty" />
+            } @else {
+              <ol class="dashboard-recent-items">
+                @for (order of recentOrders(); track order.orderId) {
+                  <li>
+                    <a
+                      class="dashboard-recent-link"
+                      [routerLink]="['/orders', order.orderId]"
+                      [attr.aria-label]="copy().recentLink + ' ' + order.orderNumber"
+                    >
+                      {{ order.orderNumber }}
+                    </a>
+                    <span class="dashboard-recent-meta"
+                      >{{ order.status }} · {{ order.total }}</span
+                    >
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        </flux-card>
+      }
+
+      @if (canViewPaymentsList()) {
+        <flux-card>
+          <article class="dashboard-recent" aria-labelledby="dashboard-recent-payments-heading">
+            <h2 id="dashboard-recent-payments-heading">{{ copy().recentPaymentsTitle }}</h2>
+            @if (recentPayments().length === 0) {
+              <flux-empty-state
+                [title]="copy().recentPaymentsTitle"
+                [message]="copy().recentPaymentsEmpty"
+              />
+            } @else {
+              <ol class="dashboard-recent-items">
+                @for (payment of recentPayments(); track payment.paymentId) {
+                  <li>
+                    <a
+                      class="dashboard-recent-link"
+                      [routerLink]="['/payments', payment.paymentId]"
+                      [attr.aria-label]="copy().recentPaymentsLink + ' ' + payment.orderId"
+                    >
+                      {{ payment.orderId }}
+                    </a>
+                    <span class="dashboard-recent-meta"
+                      >{{ payment.status }} · {{ payment.total }}</span
+                    >
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        </flux-card>
+      }
+
+      @if (canViewUsersList()) {
+        <flux-card>
+          <article class="dashboard-recent" aria-labelledby="dashboard-recent-users-heading">
+            <h2 id="dashboard-recent-users-heading">{{ copy().recentUsersTitle }}</h2>
+            @if (recentUsers().length === 0) {
+              <flux-empty-state
+                [title]="copy().recentUsersTitle"
+                [message]="copy().recentUsersEmpty"
+              />
+            } @else {
+              <ol class="dashboard-recent-items">
+                @for (user of recentUsers(); track user.userId) {
+                  <li>
+                    <a
+                      class="dashboard-recent-link"
+                      [routerLink]="['/users', user.userId]"
+                      [attr.aria-label]="copy().recentUsersLink + ' ' + user.email"
+                    >
+                      {{ user.displayName }}
+                    </a>
+                    <span class="dashboard-recent-meta">{{ user.email }}</span>
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        </flux-card>
+      }
+
+      @if (seriesPoints().length > 0) {
+        <flux-card>
+          <article class="dashboard-series" aria-labelledby="dashboard-series-heading">
+            <h2 id="dashboard-series-heading">{{ copy().seriesTitle }}</h2>
+            <app-series-chart [points]="seriesPoints()" />
+          </article>
+        </flux-card>
+      }
+    }
+  }
+</section>

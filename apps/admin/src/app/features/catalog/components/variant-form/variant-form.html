@@ -1,0 +1,30 @@
+<form class="variant-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <admin-text-input [control]="skuControl()" [label]="copy.sku" fieldId="variant-sku" />
+  <admin-text-input [control]="nameControl()" [label]="copy.name" fieldId="variant-name" />
+  <admin-text-input [control]="priceControl()" [label]="copy.price" fieldId="variant-price" />
+  <admin-text-input
+    [control]="currencyControl()"
+    [label]="copy.currency"
+    fieldId="variant-currency"
+    [hint]="copy.currencyHint"
+  />
+  @if (showPairedError()) {
+    <p class="variant-form-paired-error" role="alert">{{ copy.pairedError }}</p>
+  }
+  @if (showStatus()) {
+    <admin-select
+      [control]="statusControl()"
+      [options]="statusOptions"
+      [label]="copy.statusLabel"
+      fieldId="variant-status"
+    />
+  }
+  <admin-form-actions
+    [submitLabel]="copy.submit"
+    [cancelLabel]="copy.cancel"
+    [submittingLabel]="copy.saving"
+    [submitting]="submitting"
+    (submitted)="submit()"
+    (cancelled)="cancelled.emit()"
+  />
+</form>

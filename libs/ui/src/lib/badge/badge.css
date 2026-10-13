@@ -1,0 +1,106 @@
+/* Kinetic badges (DESIGN §6.7) — always pill, label-sm/mono. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-block: 0.25rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--r-pill);
+  font:
+    800 0.625rem/1rem var(--font-body),
+    system-ui;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+}
+
+.badge[data-variant='neutral'] {
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.badge[data-variant='primary'] {
+  color: var(--text-on-accent);
+  background: var(--primary);
+}
+
+.badge[data-variant='success'] {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+
+.badge[data-variant='warning'] {
+  color: var(--text-on-accent);
+  background: var(--tertiary);
+}
+
+.badge[data-variant='danger'] {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+}
+
+.badge[data-variant='info'] {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+}
+
+/* Drop / Live — tangerine with pulsing neon dot. */
+.badge[data-variant='drop'] {
+  color: var(--text-on-accent);
+  background: var(--tertiary);
+}
+
+/* Verified / Enterprise — violet soft. */
+.badge[data-variant='verified'] {
+  color: var(--secondary-soft-text);
+  background: var(--secondary-soft);
+  border-color: var(--secondary);
+}
+
+/* Rarity — tangerine with mono numerals. */
+.badge[data-variant='rarity'] {
+  color: var(--text-on-accent);
+  background: var(--tertiary);
+  font-family: var(--font-mono);
+}
+
+/* Count bubble — 18px lime circle. */
+.badge[data-variant='count'] {
+  min-inline-size: 18px;
+  block-size: 18px;
+  padding-inline: 0.25rem;
+  justify-content: center;
+  color: var(--text-on-accent);
+  background: var(--primary);
+}
+
+.badge-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.badge[data-variant='drop'] .badge-dot {
+  animation: badge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge[data-variant='drop'] .badge-dot {
+    animation: none;
+  }
+}

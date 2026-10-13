@@ -1,0 +1,138 @@
+import { defineConfig, devices } from '@playwright/test';
+
+const storefrontBaseURL = 'http://localhost:4200';
+const adminBaseURL = 'http://localhost:4201';
+
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  retries: process.env['CI'] ? 2 : 0,
+  reporter: process.env['CI'] ? 'github' : 'list',
+  use: { trace: 'on-first-retry' },
+  webServer: [
+    {
+      command: 'npx ng serve storefront --port 4200',
+      url: storefrontBaseURL,
+      reuseExistingServer: !process.env['CI'],
+      timeout: 180 * 1000,
+    },
+    {
+      command: 'npx ng serve admin --port 4201',
+      url: adminBaseURL,
+      reuseExistingServer: !process.env['CI'],
+      timeout: 180 * 1000,
+    },
+  ],
+  projects: [
+    {
+      name: 'storefront-chromium',
+      testMatch: /storefront\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'storefront-firefox',
+      testMatch: /storefront\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'storefront-webkit',
+      testMatch: /storefront\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'storefront-auth-chromium',
+      testMatch: /storefront-auth\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-chromium',
+      testMatch: /admin\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-firefox',
+      testMatch: /admin\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'admin-webkit',
+      testMatch: /admin\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'admin-auth-chromium',
+      testMatch: /admin-auth\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-catalog-chromium',
+      testMatch: /admin-catalog\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-orders-chromium',
+      testMatch: /admin-orders\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-payments-chromium',
+      testMatch: /admin-payments\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-dashboard-chromium',
+      testMatch: /admin-dashboard\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'payments-mine-chromium',
+      testMatch: /payments-mine\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-users-chromium',
+      testMatch: /admin-users\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'catalog-chromium',
+      testMatch: /(^|\/)catalog\.spec\.ts$/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'product-details-chromium',
+      testMatch: /product-details\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'cart-chromium',
+      testMatch: /cart\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'checkout-chromium',
+      testMatch: /checkout\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'payments-chromium',
+      testMatch: /(^|\/)payments\.spec\.ts$/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'orders-chromium',
+      testMatch: /(^|\/)orders\.spec\.ts$/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'culture-storefront-chromium',
+      testMatch: /culture\.spec\.ts/,
+      use: { baseURL: storefrontBaseURL, ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'culture-admin-chromium',
+      testMatch: /culture\.spec\.ts/,
+      use: { baseURL: adminBaseURL, ...devices['Desktop Chrome'] },
+    },
+  ],
+});

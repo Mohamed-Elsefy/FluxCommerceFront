@@ -1,0 +1,39 @@
+/* Checkbox — Kinetic check control (docs/DESIGN.md §6.6): violet
+   checked fill, lime focus ring. Canonical tokens, logical props. */
+.checkbox-field {
+  display: grid;
+  gap: var(--s-2xs);
+  min-inline-size: 0;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-xs);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.checkbox {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: 0;
+  flex: none;
+  accent-color: var(--secondary);
+  cursor: pointer;
+}
+
+.checkbox:disabled {
+  cursor: not-allowed;
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+.checkbox-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}

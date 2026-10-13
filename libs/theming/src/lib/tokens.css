@@ -1,0 +1,237 @@
+/**
+ * FluxCommerce design tokens — Kinetic Bubble Neo (docs/DESIGN.md §2–§5).
+ *
+ * Dark-first: `:root` + `:root[data-theme='dark']` carry the dark palette,
+ * `:root[data-theme='light']` carries the light parity palette.
+ * All components consume these CSS variables only — no hardcoded hex.
+ *
+ * Conventions:
+ * - New canonical names: `--bg`, `--surface-*`, `--border*`, `--text*`,
+ *   `--primary/*`, `--secondary/*`, `--tertiary/*`, `--lavender`,
+ *   `--success/warning/error/info`, `--glow-*`, `--shadow-*`,
+ *   `--r-*`, `--s-*`, `--font-*`, `--spring`.
+ * - Legacy `--color-* / --spacing-* / --radius-* / --font-size-*` aliases
+ *   are kept temporarily and mapped onto the new tokens so the current
+ *   UI keeps rendering while features migrate. New code must use the
+ *   canonical `--bg / --surface / --text / --primary` names.
+ * - Logical properties only in components (`margin-inline`, `padding-block`,
+ *   `inset-inline`, `text-align: start`).
+ * - Breakpoints canonical: 30/48/64/80rem — repeat literals in `@media`
+ *   (`var()` is invalid there).
+ */
+
+/* ------------------------------------------------------------------ */
+/* Dark theme — default (DESIGN §2.2)                                  */
+/* ------------------------------------------------------------------ */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0d1117;
+  --surface-1: #161b22;
+  --surface-2: #21262d;
+  --surface-glass: rgb(22 27 34 / 0.8);
+  --overlay: rgb(1 4 9 / 0.7);
+
+  /* Borders */
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: #30363d;
+  --border-accent: rgb(204 255 0 / 0.35);
+
+  /* Text */
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-faint: #7d8590;
+  --text-on-accent: #0d1117;
+  --text-on-violet: #ffffff;
+
+  /* Brand */
+  --primary: #ccff00;
+  --primary-hover: #d8ff3d;
+  --primary-text: #ccff00;
+  --secondary: #7928ca;
+  --secondary-soft: #2e1065;
+  --secondary-soft-text: #d8b4fe;
+  --tertiary: #ff5e00;
+  --tertiary-text: #ff8a4c;
+  --lavender: #d8b4fe;
+
+  /* Status */
+  --success: #3fb950;
+  --warning: #d29922;
+  --error: #ff7b72;
+  --info: #58a6ff;
+
+  /* Effects */
+  --glow-primary: rgb(204 255 0 / 0.12);
+  --glow-secondary: rgb(121 40 202 / 0.45);
+  --shadow-ambient: 0 16px 32px -8px rgb(0 0 0 / 0.65);
+  --shadow-bleed: 0 8px 24px -4px var(--glow-primary);
+  --shadow-inset-press: inset 0 2px 4px rgb(0 0 0 / 0.4);
+  --highlight-top: inset 0 1px 1px rgb(255 255 255 / 0.6);
+  --blur: blur(16px);
+
+  /* Shape — squircles + pills, no sharp corners (DESIGN §4.1) */
+  --r-sm: 0.5rem;
+  --r-md: 1rem;
+  --r-lg: 1.5rem;
+  --r-xl: 2rem;
+  --r-2xl: 2.25rem;
+  --r-pill: 9999px;
+
+  /* Spacing — 8pt grid (DESIGN §4.2) */
+  --s-2xs: 0.25rem;
+  --s-xs: 0.5rem;
+  --s-sm: 0.75rem;
+  --s-md: 1rem;
+  --s-lg: 1.5rem;
+  --s-xl: 2rem;
+  --s-2xl: 3rem;
+  --s-3xl: 4rem;
+
+  /* Typography families — local subsets, see fonts.css */
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+
+  /* Motion */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-linear: linear;
+
+  /* Sizing & container */
+  --container-max-width: 90rem;
+  --container-padding-inline: clamp(1.25rem, 0.667rem + 2vw, 3rem);
+
+  /* Breakpoints — canonical scale */
+  --breakpoint-sm: 30rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+
+  /* Z-index scale */
+  --z-index-sticky: 100;
+  --z-index-dropdown: 200;
+  --z-index-modal: 300;
+  --z-index-toast: 400;
+
+  /* ---- Legacy aliases (temporary migration bridge — do not use in new code) ---- */
+  --color-primary: var(--primary);
+  --color-primary-contrast: var(--text-on-accent);
+  --color-surface: var(--surface-1);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--error);
+  --color-info: var(--info);
+  --color-scrim: var(--overlay);
+  --font-family-sans: var(--font-body);
+  --font-family-mono: var(--font-mono);
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: clamp(1rem, 0.958rem + 0.013vw, 1.125rem);
+  --font-size-xl: clamp(1.125rem, 1.083rem + 0.013vw, 1.25rem);
+  --font-size-2xl: clamp(1.25rem, 1.167rem + 0.026vw, 1.5rem);
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.75;
+  --spacing-xs: var(--s-2xs);
+  --spacing-sm: var(--s-xs);
+  --spacing-md: var(--s-sm);
+  --spacing-lg: var(--s-md);
+  --spacing-xl: var(--s-lg);
+  --spacing-2xl: var(--s-xl);
+  --spacing-3xl: var(--s-2xl);
+  --border-width-thin: 1.5px;
+  --border-width-medium: 2px;
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-pill);
+  --shadow-sm: var(--shadow-ambient);
+  --shadow-md: var(--shadow-ambient), var(--shadow-bleed);
+  --shadow-lg: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+/* ------------------------------------------------------------------ */
+/* Light theme parity (DESIGN §2.3)                                    */
+/* ------------------------------------------------------------------ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f6f8fa;
+  --surface-1: #ffffff;
+  --surface-2: #eef1f5;
+  --surface-glass: rgb(255 255 255 / 0.72);
+  --overlay: rgb(13 17 23 / 0.45);
+
+  --border: rgb(13 17 23 / 0.1);
+  --border-strong: #d0d7de;
+  --border-accent: rgb(80 102 0 / 0.55);
+
+  --text: #0d1117;
+  --text-muted: #57606a;
+  --text-faint: #6e7781;
+  --text-on-accent: #0d1117;
+  --text-on-violet: #ffffff;
+
+  --primary: #ccff00;
+  --primary-hover: #b8e600;
+  /* Lime NEVER as text on light — olive instead (DESIGN §2.4). */
+  --primary-text: #506600;
+  --secondary: #7928ca;
+  --secondary-soft: #f1e6ff;
+  --secondary-soft-text: #5b1fa3;
+  --tertiary: #ff5e00;
+  --tertiary-text: #b03f00;
+  --lavender: #d8b4fe;
+
+  --success: #1a7f37;
+  --warning: #9a6700;
+  --error: #cf222e;
+  --info: #0969da;
+
+  --glow-primary: rgb(204 255 0 / 0.45);
+  --glow-secondary: rgb(121 40 202 / 0.22);
+  --shadow-ambient: 0 16px 32px -12px rgb(13 17 23 / 0.18);
+  --shadow-bleed: 0 8px 24px -8px rgb(121 40 202 / 0.16);
+  --shadow-inset-press: inset 0 2px 4px rgb(13 17 23 / 0.18);
+  --highlight-top: inset 0 1px 1px rgb(255 255 255 / 0.8);
+
+  /* Legacy alias refresh for light */
+  --color-primary: var(--primary);
+  --color-primary-contrast: var(--text-on-accent);
+  --color-surface: var(--surface-1);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--error);
+  --color-info: var(--info);
+  --color-scrim: var(--overlay);
+}
+
+/* Arabic (RTL): Cairo for display, IBM Plex Sans Arabic for body.
+   Syne is LTR-only — never use it for Arabic (DESIGN §3). */
+[lang='ar'] {
+  --font-display: 'Cairo', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Cairo', system-ui, sans-serif;
+}
+
+[lang='ar'] * {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}

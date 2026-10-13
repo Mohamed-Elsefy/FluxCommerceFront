@@ -1,0 +1,18 @@
+<section class="cart-items" aria-labelledby="cart-items-title">
+  <h2 id="cart-items-title" class="cart-items-title" tabindex="-1">{{ title }}</h2>
+  <ul class="cart-items-list">
+    @for (view of views; track view.item.variantId) {
+      <li class="cart-items-line">
+        <cart-item
+          [view]="view"
+          [labels]="itemLabels"
+          [disabled]="disabled"
+          (quantityChange)="
+            quantityChange.emit({ variantId: view.item.variantId, quantity: $event })
+          "
+          (remove)="remove.emit(view.item.variantId)"
+        ></cart-item>
+      </li>
+    }
+  </ul>
+</section>

@@ -1,0 +1,65 @@
+<div class="data-table-scroll">
+  <table class="data-table" [attr.aria-busy]="loading">
+    @if (caption !== null) {
+      <caption>
+        {{
+          caption
+        }}
+      </caption>
+    }
+    <thead>
+      <tr>
+        @for (column of columns; track column.key) {
+          <th scope="col">{{ column.header }}</th>
+        }
+        @if (actionsTemplate !== null) {
+          <th scope="col">{{ actionsHeader }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading) {
+        <tr class="data-table-state">
+          <td [attr.colspan]="columns.length + (actionsTemplate !== null ? 1 : 0) || 1">
+            <flux-loading-indicator [label]="loadingLabel" size="sm" />
+          </td>
+        </tr>
+      } @else if (rows.length === 0) {
+        <tr class="data-table-state">
+          <td [attr.colspan]="columns.length + (actionsTemplate !== null ? 1 : 0) || 1">
+            <flux-empty-state [title]="emptyTitle" [message]="emptyMessage" />
+          </td>
+        </tr>
+      } @else {
+        @for (row of rows; track $index; let rowIndex = $index) {
+          <tr>
+            @for (column of columns; track column.key) {
+              <td>
+                @if (column.template) {
+                  <ng-container
+                    [ngTemplateOutlet]="column.template"
+                    [ngTemplateOutletContext]="{ $implicit: row, index: rowIndex }"
+                  />
+                } @else if (link(column, row) !== null) {
+                  <a [routerLink]="link(column, row)">{{ cell(column, row) }}</a>
+                } @else {
+                  {{ cell(column, row) }}
+                }
+              </td>
+            }
+            @if (actionsTemplate !== null) {
+              <td class="data-table-actions">
+                <div class="data-table-actions-group">
+                  <ng-container
+                    [ngTemplateOutlet]="actionsTemplate"
+                    [ngTemplateOutletContext]="{ $implicit: row, index: $index }"
+                  />
+                </div>
+              </td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,46 @@
+<section class="inventory-home" aria-labelledby="inventory-title">
+  <header class="inventory-home-header">
+    <h1 id="inventory-title">{{ copy().title }}</h1>
+    <p class="inventory-home-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  <div class="inventory-home-grid">
+    @for (section of copy().sections; track section.title) {
+      <flux-card>
+        <article class="inventory-home-card" [attr.aria-label]="section.title">
+          <h2 class="inventory-home-card-title">
+            <a class="inventory-home-card-link" [routerLink]="section.route">
+              {{ section.title }}
+            </a>
+          </h2>
+          <p class="inventory-home-card-description">{{ section.description }}</p>
+        </article>
+      </flux-card>
+    }
+  </div>
+
+  <section class="inventory-home-counts" aria-labelledby="inventory-counts-title">
+    <h2 id="inventory-counts-title">{{ copy().countsHeading }}</h2>
+    @if (slot().status === 'loading' || slot().status === 'idle') {
+      <flux-loading-indicator [label]="copy().countsLoading" />
+    } @else if (slot().status === 'error') {
+      <flux-error-state
+        [title]="copy().countsErrorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="retry()"
+      />
+    } @else {
+      <flux-card>
+        <dl class="inventory-home-facts">
+          @for (fact of facts(); track fact.label) {
+            <div>
+              <dt>{{ fact.label }}</dt>
+              <dd>{{ fact.value }}</dd>
+            </div>
+          }
+        </dl>
+      </flux-card>
+    }
+  </section>
+</section>

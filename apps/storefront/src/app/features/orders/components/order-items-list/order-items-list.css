@@ -1,0 +1,27 @@
+.items-scroll {
+  overflow-x: auto;
+}
+
+.items-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.items-table th,
+.items-table td {
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  border-block-end: var(--border-width-thin) solid var(--color-border);
+  text-align: start;
+}
+
+.items-table th {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.items-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,131 @@
+/* Product Details page — Kinetic two-column hero (gallery + buy panel),
+   spec table, and similar rail. Single intrinsically responsive component —
+   the hero collapses to one column on narrow viewports. Logical properties
+   only (RTL-safe); visual values come from theming tokens. */
+
+.product-details-page {
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-inline);
+  padding-block: var(--s-lg);
+  display: grid;
+  gap: var(--s-lg);
+}
+
+.product-details-back {
+  margin: 0;
+}
+
+.product-details-back a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-glass);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.product-details-back a:hover {
+  border-color: var(--border-accent);
+}
+
+.product-details-back a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.product-details-hero {
+  display: grid;
+  gap: var(--s-xl);
+}
+
+.product-details-gallery-col {
+  min-inline-size: 0;
+}
+
+.product-details-buy {
+  display: grid;
+  gap: var(--s-lg);
+  align-content: start;
+  min-inline-size: 0;
+}
+
+.product-details-info {
+  margin: 0;
+}
+
+.product-details-description {
+  font-size: 1rem;
+  line-height: 1.75rem;
+  color: var(--text-muted);
+  margin-block: var(--s-sm) 0;
+}
+
+.product-details-purchase {
+  display: grid;
+  gap: var(--s-md);
+  padding: var(--s-lg);
+  border-radius: var(--r-xl);
+  border: 1.5px solid var(--border);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.product-details-specs {
+  margin: 0;
+}
+
+.product-details-specs-list {
+  display: grid;
+  gap: var(--s-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.product-details-spec {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--s-sm);
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-md);
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-1);
+}
+
+.product-details-spec dt {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.product-details-spec dd {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.product-details-similar {
+  margin: 0;
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  margin-block: var(--s-xs) 0;
+}
+
+@media (min-width: 64rem) {
+  .product-details-hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: start;
+  }
+
+  .product-details-purchase {
+    grid-template-columns: auto 1fr;
+    align-items: end;
+  }
+}

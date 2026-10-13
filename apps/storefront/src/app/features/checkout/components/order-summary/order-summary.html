@@ -1,0 +1,54 @@
+<section class="order-summary" aria-labelledby="checkout-summary-title">
+  <h2 id="checkout-summary-title" class="order-summary-title">{{ labels.title }}</h2>
+
+  @if (view === null) {
+    <div class="order-summary-empty">
+      <p class="order-summary-empty-title">{{ labels.emptyTitle }}</p>
+      <p>{{ labels.emptyMessage }}</p>
+    </div>
+  } @else {
+    <p class="order-summary-count">{{ labels.items }}: {{ view.itemCount }}</p>
+
+    <ul class="order-summary-lines">
+      @for (line of view.lines; track line.sku) {
+        <li class="order-summary-line">
+          <span class="order-summary-name">{{ line.productName }}</span>
+          <span class="order-summary-meta">{{ labels.sku }}: {{ line.sku }}</span>
+          <span class="order-summary-meta">{{ labels.quantity }}: {{ line.quantity }}</span>
+          <span class="order-summary-meta">{{ labels.unitPrice }}: {{ line.unitPriceText }}</span>
+        </li>
+      }
+    </ul>
+
+    @if (hasTotals()) {
+      <dl class="order-summary-totals">
+        @if (view.totals.subtotalText !== null) {
+          <div class="order-summary-row">
+            <dt>{{ labels.subtotal }}</dt>
+            <dd>{{ view.totals.subtotalText }}</dd>
+          </div>
+        }
+        @if (view.totals.shippingCostText !== null) {
+          <div class="order-summary-row">
+            <dt>{{ labels.shippingCost }}</dt>
+            <dd>{{ view.totals.shippingCostText }}</dd>
+          </div>
+        }
+        @if (view.totals.discountText !== null) {
+          <div class="order-summary-row">
+            <dt>{{ labels.discount }}</dt>
+            <dd>{{ view.totals.discountText }}</dd>
+          </div>
+        }
+        @if (view.totals.grandTotalText !== null) {
+          <div class="order-summary-row order-summary-grand">
+            <dt>{{ labels.grandTotal }}</dt>
+            <dd>{{ view.totals.grandTotalText }}</dd>
+          </div>
+        }
+      </dl>
+    } @else {
+      <p class="order-summary-pending">{{ labels.totalsPending }}</p>
+    }
+  }
+</section>

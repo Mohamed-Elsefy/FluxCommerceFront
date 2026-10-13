@@ -1,0 +1,53 @@
+# Phase 0.9 — Frontend baseline verification.
+#
+# Flow: Install -> Lint & Boundaries -> Typecheck -> Production Builds
+#       -> Unit/Component Tests -> Playwright E2E Smoke Tests.
+# Single sequential job: any step exiting non-zero fails the job and the
+# workflow (fail-fast; later steps are skipped). No deployment steps.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify frontend baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and boundary checks
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production builds (storefront + admin)
+        run: npm run build
+
+      - name: Unit and component tests
+        run: npm run test:unit
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: E2E smoke tests
+        run: npm run test:e2e

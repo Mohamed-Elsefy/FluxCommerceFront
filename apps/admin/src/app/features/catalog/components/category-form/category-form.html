@@ -1,0 +1,28 @@
+<form class="category-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <admin-text-input [control]="nameControl()" [label]="copy.name" fieldId="category-name" />
+  <admin-text-input
+    [control]="slugControl()"
+    [label]="copy.slug"
+    fieldId="category-slug"
+    [hint]="copy.slugHint"
+  />
+  <admin-textarea
+    [control]="descriptionControl()"
+    [label]="copy.description"
+    fieldId="category-description"
+  />
+  <admin-select
+    [control]="parentControl()"
+    [options]="parents"
+    [label]="copy.parent"
+    fieldId="category-parent"
+  />
+  <admin-form-actions
+    [submitLabel]="copy.submit"
+    [cancelLabel]="copy.cancel"
+    [submittingLabel]="copy.saving"
+    [submitting]="submitting"
+    (submitted)="submit()"
+    (cancelled)="cancelled.emit()"
+  />
+</form>

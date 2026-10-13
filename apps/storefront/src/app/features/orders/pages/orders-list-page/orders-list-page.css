@@ -1,0 +1,62 @@
+/* Orders list page — Kinetic Pod rows. Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
+
+.orders-list-page {
+  display: grid;
+  gap: var(--s-lg);
+}
+
+.orders-list-page h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.orders-list-page-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-sm);
+}
+
+.orders-list-page-filter label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+[lang='ar'] .orders-list-page-filter label {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.orders-list-page-filter select {
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface-glass);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.orders-list-page-filter select:focus-visible {
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
+}
+
+.orders-list-page-items {
+  display: grid;
+  gap: var(--s-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

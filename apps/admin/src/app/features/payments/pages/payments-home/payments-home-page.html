@@ -1,0 +1,47 @@
+<section class="payments-home" aria-labelledby="payments-title">
+  <header class="payments-home-header">
+    <h1 id="payments-title">{{ copy().title }}</h1>
+    <p class="payments-home-subtitle">{{ copy().subtitle }}</p>
+  </header>
+
+  @if (slot().status === 'loading' || slot().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (slot().status === 'error') {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else {
+    <div class="payments-home-grid">
+      <flux-card>
+        <article class="payments-home-card" [attr.aria-label]="copy().summaryHeading">
+          <h2 class="payments-home-card-title">{{ copy().summaryHeading }}</h2>
+          <p class="payments-home-card-fact">{{ copy().summaryTotal }}</p>
+          <dl class="payments-home-facts">
+            @for (fact of facts(); track fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+        </article>
+      </flux-card>
+      <flux-card>
+        <article class="payments-home-card" [attr.aria-label]="copy().byCurrencyTitle">
+          <h2 class="payments-home-card-title">{{ copy().byCurrencyTitle }}</h2>
+          <dl class="payments-home-facts">
+            @for (fact of currencyTotals(); track fact.kind + fact.label) {
+              <div>
+                <dt>{{ fact.label }}</dt>
+                <dd>{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+        </article>
+      </flux-card>
+    </div>
+  }
+</section>

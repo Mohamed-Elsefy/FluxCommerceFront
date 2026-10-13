@@ -1,0 +1,27 @@
+.preview {
+  display: grid;
+  gap: var(--s-md);
+  padding-block: var(--s-xl);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs);
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  gap: var(--s-md);
+}
+
+@media (min-width: 48rem) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

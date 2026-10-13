@@ -1,0 +1,142 @@
+:host {
+  display: inline-block;
+}
+
+/* Kinetic pill buttons (DESIGN §6.1) — always pill, lifted, springy. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-xs);
+  min-block-size: 48px;
+  padding-block: 0;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  font:
+    700 0.875rem/1.25rem var(--font-body),
+    system-ui;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transform: translateY(-4px);
+  transition:
+    transform 0.2s var(--spring),
+    box-shadow 0.2s,
+    background-color 0.2s,
+    border-color 0.2s;
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-inset-press);
+}
+
+.button[data-size='sm'] {
+  min-block-size: 40px;
+  padding-inline: var(--s-md);
+  font-size: 0.75rem;
+}
+
+.button[data-size='lg'] {
+  min-block-size: 52px;
+  padding-inline: 2rem;
+}
+
+/* Primary — lime fill, dark text, single main action per view. */
+.button[data-variant='primary'] {
+  background: var(--primary);
+  color: var(--text-on-accent);
+  border: 2px solid var(--primary);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+}
+
+.button[data-variant='primary']:hover {
+  background: var(--primary-hover);
+}
+
+.button[data-variant='primary']:active {
+  transform: translateY(2px);
+}
+
+/* Secondary — violet soft fill (DESIGN §6.1). */
+.button[data-variant='secondary'] {
+  background: var(--secondary-soft);
+  color: var(--secondary-soft-text);
+  border: 1.5px solid var(--secondary);
+}
+
+.button[data-variant='secondary']:hover {
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+/* Glass — frosted action. */
+.button[data-variant='glass'] {
+  background: var(--surface-glass);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  backdrop-filter: var(--blur);
+}
+
+.button[data-variant='glass']:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+/* Ghost — quiet action with illuminated icon circle. */
+.button[data-variant='ghost'] {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+
+.button[data-variant='ghost']:hover {
+  border-color: var(--border-accent);
+}
+
+/* Quick — compact in-card action (32px). */
+.button[data-variant='quick'] {
+  min-block-size: 32px;
+  padding-inline: var(--s-md);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  border: none;
+  font-size: 0.75rem;
+}
+
+/* FAB — 48px circle, icon only, aria-label required. */
+.button[data-variant='fab'] {
+  min-block-size: 48px;
+  inline-size: 48px;
+  padding-inline: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+
+.button[data-variant='fab'][data-size='sm'] {
+  min-block-size: 44px;
+  inline-size: 44px;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.button-spinner {
+  display: inline-flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+    transform: none;
+  }
+}

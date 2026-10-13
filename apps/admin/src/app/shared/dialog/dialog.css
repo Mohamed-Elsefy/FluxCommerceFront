@@ -1,0 +1,98 @@
+/* Dialog — Kinetic modal (docs/DESIGN.md §6.10): squircle panel,
+   scrim backdrop, ghost close circle. Canonical tokens only, logical
+   properties only (RTL-safe). */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-md);
+  background: var(--overlay);
+}
+
+.dialog-backdrop-dismiss {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialog-panel {
+  position: relative;
+  display: grid;
+  gap: var(--s-sm);
+  inline-size: min(32rem, 100%);
+  max-block-size: 90dvh;
+  overflow-block: auto;
+  padding: var(--s-lg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-2xl);
+  background-color: var(--surface-1);
+  color: var(--text);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.dialog-panel:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-xs);
+}
+
+.dialog-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  flex: none;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background-color: transparent;
+  color: inherit;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dialog-close:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.dialog-close:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+.dialog-content {
+  display: grid;
+  gap: var(--s-xs);
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-xs);
+}
+
+.dialog-actions:empty {
+  display: none;
+}

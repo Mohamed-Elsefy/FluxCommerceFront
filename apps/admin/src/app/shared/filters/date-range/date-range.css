@@ -1,0 +1,51 @@
+/* Date range — Kinetic pill fields (docs/DESIGN.md §6.5): mono
+   labels, 48px pills, lime halo on focus. Canonical tokens only,
+   logical properties only (RTL-safe). */
+.date-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs);
+}
+
+.date-range-bound {
+  display: grid;
+  gap: var(--s-2xs);
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.date-range-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.date-range-field {
+  inline-size: 100%;
+  min-block-size: 48px;
+  padding-block: 0;
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--text);
+  color-scheme: light dark;
+  font: inherit;
+}
+
+:root[data-theme='light'] .date-range-field {
+  background: var(--surface-1);
+}
+
+.date-range-field:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.date-range-field:focus-visible {
+  outline: none;
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
+}

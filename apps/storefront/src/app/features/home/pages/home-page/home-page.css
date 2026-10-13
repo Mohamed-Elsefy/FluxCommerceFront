@@ -1,0 +1,174 @@
+/* Home landing — Kinetic composition. Logical properties only. */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.hero {
+  display: grid;
+  gap: var(--s-xl);
+  padding: var(--s-xl);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-block: var(--s-sm) var(--s-md);
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: var(--text-muted);
+  max-inline-size: 34rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  margin-block-start: var(--s-lg);
+}
+
+/* Local button skins mirroring libs/ui so the landing needs no feature CSS drift. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  transform: translateY(-4px);
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: var(--text-on-accent);
+  border: 2px solid var(--primary);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+}
+
+.btn--glass {
+  background: var(--surface-glass);
+  color: var(--text);
+  border-color: var(--border);
+  backdrop-filter: var(--blur);
+}
+
+.hero-note {
+  font-size: 0.875rem;
+  color: var(--text-faint);
+}
+
+.hero-visual {
+  position: relative;
+  min-block-size: 16rem;
+}
+
+.hero-image {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 16rem;
+  max-block-size: 28rem;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--r-lg);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.cta {
+  margin-block-start: var(--s-2xl);
+}
+
+.cta-grid {
+  display: grid;
+  gap: var(--s-md);
+}
+
+.perks {
+  margin-block-start: var(--s-2xl);
+}
+
+.perks-grid {
+  display: grid;
+  gap: var(--s-md);
+}
+
+/* Stat tile (DESIGN §6.8) — icon circle, mono numeral, title, caption. */
+.perk {
+  display: grid;
+  gap: var(--s-2xs);
+}
+
+.perk-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--primary-text);
+  font-size: 1.25rem;
+  margin-block-end: var(--s-xs);
+}
+
+.perk-num {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.perk h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.perk p:last-child {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+@media (min-width: 48rem) {
+  .hero {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+  }
+
+  .perks-grid,
+  .cta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .perks-grid,
+  .cta-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .cta-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

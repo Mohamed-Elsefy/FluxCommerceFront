@@ -1,0 +1,124 @@
+/* Cart summary — Kinetic Pod dock. Single intrinsically responsive
+   component — stacked card, no device duplicates, no viewport media
+   queries. Logical properties only (RTL-safe); visual values come from
+   theming tokens. */
+
+.cart-summary {
+  padding: var(--s-lg);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.cart-summary-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  margin-block: 0 var(--s-sm);
+}
+
+.cart-summary-list {
+  margin-block: 0;
+}
+
+.cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-sm);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  padding-block: var(--s-xs);
+}
+
+.cart-summary-row dt {
+  color: var(--text-muted);
+}
+
+.cart-summary-row dd {
+  margin-inline-start: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-summary-total {
+  font-weight: 700;
+  border-block-start: 1.5px solid var(--border);
+  margin-block-start: var(--s-2xs);
+  padding-block-start: var(--s-sm);
+}
+
+.cart-summary-estimate {
+  border-block-start: 1px dashed var(--border-strong);
+  margin-block-start: var(--s-2xs);
+  padding-block-start: var(--s-sm);
+  font-weight: 700;
+}
+
+.cart-summary-estimate dd {
+  color: var(--primary-text);
+}
+
+.cart-summary-note {
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: var(--text-faint);
+  margin-block: var(--s-sm) 0;
+}
+
+.cart-summary-actions {
+  display: grid;
+  gap: var(--s-sm);
+  margin-block-start: var(--s-lg);
+}
+
+.cart-summary-clear {
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--error);
+  background-color: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.cart-summary-clear:hover {
+  border-color: var(--error);
+}
+
+.cart-summary-clear:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cart-summary-checkout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text-on-accent);
+  background-color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-pill);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transform: translateY(-4px);
+}
+
+.cart-summary-checkout:active {
+  transform: translateY(2px);
+}
+
+.cart-summary-clear:focus-visible,
+.cart-summary-checkout:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}

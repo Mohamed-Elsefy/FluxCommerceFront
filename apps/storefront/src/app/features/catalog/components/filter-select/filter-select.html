@@ -1,0 +1,8 @@
+<label class="filter-field">
+  <span class="filter-label">{{ label }}</span>
+  <select class="filter-input" (change)="onChange($event)">
+    @for (option of options; track option.value) {
+      <option [value]="option.value" [selected]="option.value === value">{{ option.label }}</option>
+    }
+  </select>
+</label>

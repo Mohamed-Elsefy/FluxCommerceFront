@@ -1,0 +1,170 @@
+/* Profile page — Kinetic identity hub. Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
+
+.profile-page {
+  display: grid;
+  gap: var(--s-lg);
+}
+
+.profile-hub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-lg);
+  padding: var(--s-xl);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--secondary);
+  background: var(--secondary-soft);
+  color: var(--secondary-soft-text);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  flex: none;
+  overflow: hidden;
+}
+
+.profile-avatar-image {
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+  border: 2px solid var(--secondary);
+  flex: none;
+}
+
+.profile-identity {
+  display: grid;
+  gap: var(--s-2xs);
+  min-inline-size: 0;
+  flex: 1 1 12rem;
+}
+
+.profile-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-email {
+  margin: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2xs);
+}
+
+.profile-page-details {
+  display: grid;
+  gap: var(--s-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.profile-page-details > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--s-sm);
+  align-items: baseline;
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+
+.profile-page-details dt {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.profile-page-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-save-notice {
+  margin: 0;
+  padding-block: var(--s-sm);
+  padding-inline: var(--s-md);
+  border-inline-start: 2px solid var(--success);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border-radius: var(--r-md);
+  color: var(--text);
+}
+
+.profile-edit-button {
+  min-block-size: 48px;
+  padding-inline: var(--s-lg);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-on-accent);
+  background-color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-pill);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transform: translateY(-4px);
+  cursor: pointer;
+}
+
+.profile-edit-button:active {
+  transform: translateY(2px);
+}
+
+.profile-edit-button:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.profile-edit-section {
+  display: grid;
+  gap: var(--s-md);
+  margin: 0;
+  padding: var(--s-lg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background-color: var(--surface-1);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.profile-edit-section h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.profile-edit-section h3:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-edit-button {
+    transition: none;
+    transform: none;
+  }
+}

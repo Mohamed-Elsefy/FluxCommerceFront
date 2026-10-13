@@ -1,0 +1,67 @@
+.stock-page {
+  display: grid;
+  gap: var(--spacing-lg);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.stock-page-header {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.stock-page-header h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.stock-page-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.stock-page-lookup {
+  display: grid;
+  gap: var(--spacing-md);
+  max-inline-size: 44rem;
+}
+
+.stock-page-submit {
+  justify-self: start;
+  padding-inline: var(--spacing-lg);
+  padding-block: var(--spacing-sm);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.stock-page-submit:focus-visible {
+  outline: 0.125rem solid var(--color-primary);
+  outline-offset: 0.125rem;
+}
+
+.stock-page-facts {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.stock-page-facts > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) 1fr;
+  gap: var(--spacing-sm);
+}
+
+.stock-page-facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.stock-page-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

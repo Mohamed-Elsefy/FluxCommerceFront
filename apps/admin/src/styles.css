@@ -1,0 +1,23 @@
+/* Admin globals — Kinetic tokens with dense-table discipline. */
+
+.surface {
+  background: var(--surface-1);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+  backdrop-filter: var(--blur);
+  transition:
+    transform 0.25s var(--spring),
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.surface:hover,
+.surface:focus-within {
+  border-color: var(--border-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface {
+    transition: none;
+  }
+}

@@ -1,0 +1,20 @@
+@if (center.notifications().length > 0) {
+  <section class="notification-host" [attr.aria-label]="label">
+    @for (item of center.notifications(); track item.id) {
+      <article class="notification" [attr.data-type]="item.type" [attr.role]="roleFor(item.type)">
+        <div class="notification-copy">
+          <p class="notification-title">{{ item.title }}</p>
+          <p class="notification-message">{{ item.message }}</p>
+        </div>
+        <button
+          type="button"
+          class="notification-dismiss"
+          (click)="center.dismiss(item.id)"
+          [attr.aria-label]="dismissLabel"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      </article>
+    }
+  </section>
+}

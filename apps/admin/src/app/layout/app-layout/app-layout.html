@@ -1,0 +1,22 @@
+<a class="skip-link" href="#admin-main">{{ skipLink() }}</a>
+<admin-sidebar
+  id="admin-drawer"
+  [items]="sidebarNav()"
+  [label]="sidebarLabel()"
+  [brand]="brandLabel()"
+  [drawerOpen]="drawerOpen()"
+  (navigated)="closeDrawer()"
+/>
+<admin-header (menuToggle)="toggleDrawer()" [drawerOpen]="drawerOpen()" />
+<main id="admin-main">
+  <router-outlet />
+</main>
+@if (drawerOpen()) {
+  <button
+    type="button"
+    class="overlay"
+    (click)="closeDrawer()"
+    [attr.aria-label]="overlayLabel()"
+  ></button>
+}
+<admin-notification-host [label]="notificationsLabel()" [dismissLabel]="notificationsDismiss()" />

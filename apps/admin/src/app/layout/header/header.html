@@ -1,0 +1,37 @@
+<header class="admin-header">
+  <button
+    #toggle
+    type="button"
+    class="menu-toggle"
+    (click)="menuToggle.emit()"
+    [attr.aria-expanded]="drawerOpen"
+    aria-controls="admin-drawer"
+    [attr.aria-label]="copy().menuLabel"
+  >
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+  </button>
+  <span class="mobile-brand" aria-hidden="true"
+    ><img src="/assets/logo-icon.png" alt="" width="32" height="32" loading="lazy" decoding="async"
+  /></span>
+  <div class="actions">
+    <button type="button" class="lang-button" (click)="cycleCulture()">
+      <span aria-hidden="true">🌐</span>
+      {{ currentLanguage() }}
+    </button>
+    <flux-theme-toggle [mode]="themes.theme()" (toggled)="themes.toggleTheme()" />
+    <auth-nav
+      [loginRoute]="null"
+      [registerRoute]="null"
+      [accountRoute]="null"
+      logoutRedirectTo="/login"
+      [checkingLabel]="copy().authChecking"
+      [navLabel]="copy().authNavLabel"
+      [loginLabel]="copy().authLogin"
+      [registerLabel]="copy().authRegister"
+      [logoutLabel]="copy().authLogout"
+      [loggingOutLabel]="copy().authLoggingOut"
+    />
+  </div>
+</header>

@@ -1,0 +1,86 @@
+import { describe, expect, it } from 'vitest';
+import {
+  INVENTORY_TRANSLATION_KEYS,
+  INVENTORY_TRANSLATION_RESOURCES,
+  translateInventoryKey,
+} from './inventory-translations';
+
+describe('translateInventoryKey', () => {
+  it('resolves the landing copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.title)).toBe('Inventory');
+    expect(translateInventoryKey('fr', INVENTORY_TRANSLATION_KEYS.title)).toBe('Inventaire');
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.stockTitle)).toBe('Bestand');
+    expect(translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.reservationsTitle)).toBe(
+      'Reservas',
+    );
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.adjustmentsTitle)).toBe(
+      'التعديلات',
+    );
+  });
+
+  it('resolves the stock slice copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.stockHeading)).toBe('Stock');
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.stockLookup)).toBe(
+      'Nachschlagen',
+    );
+    expect(translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.stockFactAvailable)).toBe(
+      'Disponible',
+    );
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.stockFactReserved)).toBe('محجوز');
+  });
+
+  it('resolves the item-creation copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.newItemTitle)).toBe(
+      'New inventory item',
+    );
+    expect(translateInventoryKey('fr', INVENTORY_TRANSLATION_KEYS.newItemSubmit)).toBe(
+      'Créer l’article',
+    );
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.newItemQuantityHint)).toBe(
+      'Ganze Einheiten, null zulässig.',
+    );
+    expect(
+      translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.adjustmentsMissingItem, {
+        sku: 'SSD-121',
+      }),
+    ).toBe('No existe ningún artículo de inventario para «SSD-121».');
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.adjustmentsCreateItemLink)).toBe(
+      'إنشاء صنف مخزون',
+    );
+  });
+
+  it('resolves the list and counts copy per culture', () => {
+    expect(translateInventoryKey('en', INVENTORY_TRANSLATION_KEYS.stockListHeading)).toBe(
+      'Stock list',
+    );
+    expect(translateInventoryKey('fr', INVENTORY_TRANSLATION_KEYS.reservationsListHeading)).toBe(
+      'Liste des réservations',
+    );
+    expect(translateInventoryKey('de', INVENTORY_TRANSLATION_KEYS.homeCountLowStock)).toBe(
+      'Niedriger Bestand',
+    );
+    expect(translateInventoryKey('es', INVENTORY_TRANSLATION_KEYS.stockListFilterApply)).toBe(
+      'Aplicar filtros',
+    );
+    expect(translateInventoryKey('ar', INVENTORY_TRANSLATION_KEYS.homeCountsHeading)).not.toBe(
+      'inventory.home.countsHeading',
+    );
+  });
+
+  it('falls back deterministically for unknown cultures and keys', () => {
+    expect(translateInventoryKey('xx' as never, INVENTORY_TRANSLATION_KEYS.title)).toBe(
+      'Inventory',
+    );
+    expect(translateInventoryKey('en', 'inventory.missing.key')).toBe('inventory.missing.key');
+  });
+
+  it('resolves every owned key in every culture (no key-path leakage)', () => {
+    for (const key of Object.values(INVENTORY_TRANSLATION_KEYS)) {
+      for (const culture of Object.keys(INVENTORY_TRANSLATION_RESOURCES) as Array<
+        keyof typeof INVENTORY_TRANSLATION_RESOURCES
+      >) {
+        expect(translateInventoryKey(culture, key), `${culture}:${key}`).not.toBe(key);
+      }
+    }
+  });
+});

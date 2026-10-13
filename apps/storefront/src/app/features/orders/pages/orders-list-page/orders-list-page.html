@@ -1,0 +1,50 @@
+<section class="orders-list-page" aria-labelledby="orders-list-page-title">
+  <!-- h2, not h1: the account shell owns the section h1 (11.8 — one h1 per view). -->
+  <h2 id="orders-list-page-title" tabindex="-1">{{ copy().title }}</h2>
+
+  @if (showList() || showEmpty()) {
+    <div class="orders-list-page-filter">
+      <label for="orders-status-filter">{{ copy().filterLabel }}</label>
+      <select id="orders-status-filter" (change)="onStatusFilter($event)">
+        <option value="">{{ copy().filterAll }}</option>
+        @for (option of copy().statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (showLoading()) {
+    <flux-loading-indicator [label]="copy().loading"></flux-loading-indicator>
+  } @else if (showError()) {
+    <div data-error-focus tabindex="-1">
+      <flux-error-state
+        [title]="copy().loadErrorTitle"
+        [message]="errorMessage()"
+        [retryLabel]="copy().retry"
+        (retry)="onRetry()"
+      ></flux-error-state>
+    </div>
+  } @else if (showEmpty()) {
+    <flux-empty-state
+      [title]="copy().emptyTitle"
+      [message]="copy().emptyMessage"
+    ></flux-empty-state>
+  } @else if (showList()) {
+    <ol class="orders-list-page-items">
+      @for (row of rows(); track row.orderId) {
+        <li>
+          <orders-order-summary-row [view]="row" [labels]="copy().rowLabels" />
+        </li>
+      }
+    </ol>
+    <storefront-pagination
+      [page]="pager().page"
+      [pageSize]="pager().pageSize"
+      [totalCount]="pager().totalCount"
+      [copy]="copy().pagerCopy"
+      [disabled]="pagerDisabled()"
+      (pageChange)="onPageChange($event)"
+    />
+  }
+</section>

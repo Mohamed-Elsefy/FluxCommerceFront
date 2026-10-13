@@ -1,0 +1,32 @@
+<section class="similar-products" [attr.aria-label]="label">
+  <ul class="similar-products-grid">
+    @for (product of products; track product.id) {
+      <li>
+        <article class="similar-products-card">
+          <a [routerLink]="['/catalog/products', product.id]">
+            <div class="similar-products-media">
+              @if (hasImage(product)) {
+                <img
+                  class="similar-products-image"
+                  [src]="product.primaryImage?.imageUrl"
+                  [attr.alt]="product.primaryImage?.altText ?? product.name"
+                  loading="lazy"
+                  decoding="async"
+                  width="400"
+                  height="400"
+                  (error)="onImageError(product.id)"
+                />
+              } @else {
+                <div class="similar-products-fallback" aria-hidden="true"></div>
+              }
+            </div>
+            <h3>{{ product.name }}</h3>
+          </a>
+        </article>
+      </li>
+    }
+  </ul>
+  <p class="similar-products-more">
+    <a [routerLink]="['/products']" [queryParams]="{ categoryId }">{{ linkLabel }}</a>
+  </p>
+</section>

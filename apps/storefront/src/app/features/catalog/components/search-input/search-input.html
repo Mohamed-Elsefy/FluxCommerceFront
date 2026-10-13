@@ -1,0 +1,11 @@
+<label class="search-field">
+  <span class="search-label">{{ label }}</span>
+  <input
+    class="search-input"
+    type="search"
+    [value]="value"
+    [attr.placeholder]="placeholder"
+    autocomplete="off"
+    (input)="onInput($event)"
+  />
+</label>

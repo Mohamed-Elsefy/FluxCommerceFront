@@ -1,0 +1,114 @@
+/* Admin header — Kinetic sticky glass bar (docs/DESIGN.md §6.4), arranged
+   like the storefront: drawer toggle + mobile brand on the inline-start
+   side, a trailing actions group (language-cycle pill, theme toggle,
+   operator area). Canonical tokens only, logical properties only
+   (RTL-safe). */
+.admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-sm);
+  padding-block: var(--s-xs);
+  padding-inline: var(--s-md);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  border-block-end: 1.5px solid var(--border);
+}
+
+.mobile-brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mobile-brand img {
+  display: block;
+  inline-size: 2rem;
+  block-size: 2rem;
+  object-fit: contain;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+  min-inline-size: 0;
+  margin-inline-start: auto;
+}
+
+/* Language cycle pill — current language, steps to the next on press. */
+.lang-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.lang-button:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.lang-button:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.menu-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding-inline: var(--s-xs);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
+.menu-toggle span {
+  display: block;
+  inline-size: 1.25rem;
+  block-size: 2px;
+  background: currentColor;
+  border-radius: var(--r-pill);
+}
+
+.menu-toggle:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.menu-toggle:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
+@media (min-width: 64rem) {
+  .menu-toggle,
+  .mobile-brand {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-button {
+    transition: none;
+  }
+}

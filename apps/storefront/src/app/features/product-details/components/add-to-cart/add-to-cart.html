@@ -1,0 +1,26 @@
+<div class="add-to-cart">
+  <button
+    type="button"
+    class="add-to-cart-button"
+    (click)="requestAdd()"
+    [disabled]="disabled || status === 'adding'"
+  >
+    @if (status === 'adding') {
+      <flux-spinner [label]="null" size="sm"></flux-spinner>
+      <span>{{ addingLabel }}</span>
+    } @else {
+      <span>{{ addLabel }}</span>
+    }
+  </button>
+  @if (status === 'added') {
+    <p class="add-to-cart-confirmation" role="status">{{ addedLabel }}</p>
+  }
+  @if (status === 'error') {
+    @if (errorMessage !== null) {
+      <p class="add-to-cart-error" role="alert">{{ errorMessage }}</p>
+    }
+    <button type="button" class="add-to-cart-retry" (click)="requestAdd()" [disabled]="disabled">
+      <span>{{ retryLabel }}</span>
+    </button>
+  }
+</div>

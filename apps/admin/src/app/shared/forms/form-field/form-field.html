@@ -1,0 +1,10 @@
+<div class="form-field">
+  <label class="form-field-label" [attr.for]="fieldId">
+    {{ label }}
+  </label>
+  <ng-content />
+  @if (hint !== null) {
+    <p class="form-field-hint">{{ hint }}</p>
+  }
+  <admin-field-errors [control]="control" />
+</div>

@@ -1,0 +1,75 @@
+/* Account shell — Kinetic hub header. Logical properties only
+   (RTL-safe); visual values come from theming tokens. */
+
+.account-shell {
+  display: grid;
+  gap: var(--s-lg);
+  max-inline-size: var(--container-max-width);
+  margin-inline: auto;
+  padding-block: var(--s-lg);
+  padding-inline: var(--container-padding-inline);
+}
+
+.account-shell-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-md);
+  padding: var(--s-lg);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.account-shell-heading {
+  display: grid;
+  gap: var(--s-2xs);
+  min-inline-size: 0;
+  flex: 1 1 12rem;
+}
+
+.account-shell-heading h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.account-shell-user {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-shell-logout {
+  min-block-size: 44px;
+  padding-inline: var(--s-lg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background-color: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-shell-logout:hover:not(:disabled) {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.account-shell-logout:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.account-shell-logout:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}

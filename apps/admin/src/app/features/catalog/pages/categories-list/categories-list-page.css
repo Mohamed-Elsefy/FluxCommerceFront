@@ -1,0 +1,92 @@
+/* Categories list — Kinetic (docs/DESIGN.md §6): display header, lime
+   create/filter pills. Canonical tokens only, logical props (RTL-safe). */
+.categories-list {
+  display: grid;
+  gap: var(--s-md);
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+
+.categories-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-sm);
+}
+
+.categories-list-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+}
+
+.categories-list-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.categories-list-new,
+.categories-list-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  box-shadow:
+    var(--highlight-top),
+    0 8px 24px -4px var(--glow-primary);
+  transition: transform 0.2s var(--spring);
+}
+
+.categories-list-apply {
+  align-self: end;
+}
+
+.categories-list-new:hover:not(:disabled),
+.categories-list-apply:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.categories-list-new:active:not(:disabled),
+.categories-list-apply:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.categories-list-new:disabled,
+.categories-list-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.categories-list-new:focus-visible,
+.categories-list-apply:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.categories-list-filters {
+  margin: 0;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .categories-list-new,
+  .categories-list-apply {
+    transition: none;
+    transform: none;
+  }
+}

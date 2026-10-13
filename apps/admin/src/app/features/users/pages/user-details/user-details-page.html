@@ -1,0 +1,145 @@
+<section class="user-details" aria-labelledby="user-details-title">
+  <a class="user-details-back" routerLink="/users/list">{{ copy().back }}</a>
+  <h1 id="user-details-title">{{ copy().factsTitle }}</h1>
+
+  @if (record().status === 'loading' || record().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (record().status === 'error') {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (record().data !== null) {
+    <flux-card>
+      <dl class="user-details-facts">
+        <div>
+          <dt>{{ copy().factEmail }}</dt>
+          <dd>{{ record().data!.email }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factFirstName }}</dt>
+          <dd>{{ record().data!.firstName }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factLastName }}</dt>
+          <dd>{{ record().data!.lastName }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factDisplayName }}</dt>
+          <dd>{{ record().data!.displayName }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factRoles }}</dt>
+          <dd>{{ record().data!.roles.join(', ') }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factStatus }}</dt>
+          <dd><app-user-status-badge [status]="record().data!.status" /></dd>
+        </div>
+        <div>
+          <dt>{{ copy().factVerified }}</dt>
+          <dd>
+            {{ record().data!.isEmailVerified ? copy().verifiedYes : copy().verifiedNo }}
+          </dd>
+        </div>
+        <div>
+          <dt>{{ copy().factPhone }}</dt>
+          <dd>{{ record().data!.phoneNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factRegistered }}</dt>
+          <dd>{{ record().data!.registeredAtUtc }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factFailedAttempts }}</dt>
+          <dd>{{ failedAttemptsText() }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factLockoutEnd }}</dt>
+          <dd>{{ lockoutEndText() }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().factLocked }}</dt>
+          <dd>
+            {{ record().data!.isLocked ? copy().verifiedYes : copy().verifiedNo }}
+          </dd>
+        </div>
+      </dl>
+    </flux-card>
+
+    <section class="user-permissions" aria-labelledby="user-permissions-title">
+      <h2 id="user-permissions-title">{{ copy().permissionsTitle }}</h2>
+
+      @if (granted().status === 'loading' || granted().status === 'idle') {
+        <flux-loading-indicator [label]="copy().loading" />
+      } @else if (granted().status === 'error') {
+        <flux-error-state
+          [title]="copy().permissionsErrorTitle"
+          [message]="permissionsErrorMessage()"
+          [retryLabel]="copy().retry"
+          (retry)="retry()"
+        />
+      } @else if ((granted().data ?? []).length === 0) {
+        <flux-empty-state [title]="copy().permissionsEmpty" />
+      } @else {
+        <ul class="user-permissions-list">
+          @for (permission of granted().data ?? []; track permission) {
+            <li>
+              <span class="user-permission-value">{{ permission }}</span>
+              @if (canManagePermissions()) {
+                <button
+                  type="button"
+                  class="user-permission-revoke"
+                  [disabled]="submitting()"
+                  (click)="askRevoke(permission)"
+                  [attr.aria-label]="revokeActionLabel(permission)"
+                >
+                  {{ revokeActionLabel(permission) }}
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (canManagePermissions()) {
+        <form class="user-grant-form" [formGroup]="grantForm" (ngSubmit)="grant()">
+          <h3>{{ copy().grantTitle }}</h3>
+          <admin-select
+            [control]="grantControl"
+            [options]="grantOptions()"
+            [label]="copy().grantLabel"
+            fieldId="user-grant-permission"
+          />
+          <button type="submit" [disabled]="submitting()">{{ copy().grantSubmit }}</button>
+        </form>
+      }
+    </section>
+  }
+
+  <admin-dialog
+    [open]="pendingRevoke() !== null"
+    [title]="copy().dialogTitle"
+    titleId="user-revoke-confirm-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="cancelRevoke()"
+  >
+    <p>{{ dialogMessage() }}</p>
+    <div data-dialog-actions class="user-details-dialog-actions">
+      <button type="button" class="user-details-dialog-cancel" (click)="cancelRevoke()">
+        {{ copy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="user-details-dialog-confirm"
+        [disabled]="submitting()"
+        (click)="confirmRevoke()"
+      >
+        {{ copy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+</section>

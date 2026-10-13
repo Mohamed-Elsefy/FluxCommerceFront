@@ -1,0 +1,48 @@
+/**
+ * FluxCommerce global reset (Sub-Phase 3.12 verification finding).
+ *
+ * Two rules the entire layout system assumes: border-box sizing (so
+ * `inline-size: 100%` plus token padding never exceeds its container) and a
+ * margin-free body (so full-bleed chrome reaches the viewport edges).
+ * Wired first in both application `styles` arrays, before `tokens.css`.
+ * Nothing else belongs here — component spacing stays in components.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Kinetic focus ring (DESIGN §5): visible on every interactive element. */
+:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+/* Prices and numerals stay tabular (DESIGN §3). */
+.price,
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

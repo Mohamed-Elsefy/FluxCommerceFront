@@ -1,0 +1,10 @@
+@if (message !== null) {
+  <flux-error-state
+    class="payment-error"
+    [title]="title"
+    [message]="message"
+    [retryLabel]="retryLabel"
+    [showRetry]="showRetry"
+    (retry)="retry.emit()"
+  />
+}

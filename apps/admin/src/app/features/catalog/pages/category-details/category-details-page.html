@@ -1,0 +1,97 @@
+<section class="category-details" aria-labelledby="category-details-title">
+  <a class="category-details-back" routerLink="/catalog/categories">{{ copy().back }}</a>
+
+  @if (category().isLoading || category().status === 'idle') {
+    <flux-loading-indicator [label]="copy().loading" />
+  } @else if (category().isError) {
+    <flux-error-state
+      [title]="copy().errorTitle"
+      [message]="errorMessage()"
+      [retryLabel]="copy().retry"
+      (retry)="retry()"
+    />
+  } @else if (category().data !== null) {
+    <header class="category-details-header">
+      <h1 id="category-details-title">{{ category().data!.name }}</h1>
+      @if (statusBadge() !== null) {
+        <flux-badge [variant]="statusBadge()!.variant">{{ statusBadge()!.label }}</flux-badge>
+      }
+      @if (editLink() !== null) {
+        <a class="category-details-edit" [routerLink]="editLink()">{{ copy().edit }}</a>
+      }
+    </header>
+
+    <flux-card>
+      <dl class="category-details-facts">
+        <div>
+          <dt>{{ copy().name }}</dt>
+          <dd>{{ category().data!.name }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().slug }}</dt>
+          <dd>{{ category().data!.slug }}</dd>
+        </div>
+        @if (category().data!.description !== null) {
+          <div>
+            <dt>{{ copy().description }}</dt>
+            <dd>{{ category().data!.description }}</dd>
+          </div>
+        }
+        <div>
+          <dt>{{ copy().parent }}</dt>
+          <dd>{{ parentName() }}</dd>
+        </div>
+        <div>
+          <dt>{{ copy().created }}</dt>
+          <dd>{{ category().data!.createdAtUtc }}</dd>
+        </div>
+        @if (category().data!.deletedAtUtc !== null) {
+          <div>
+            <dt>{{ copy().deleted }}</dt>
+            <dd>{{ category().data!.deletedAtUtc }}</dd>
+          </div>
+        }
+      </dl>
+    </flux-card>
+
+    <section aria-labelledby="category-details-actions-title">
+      <h2 id="category-details-actions-title">{{ copy().actionsTitle }}</h2>
+      <div class="category-details-actions">
+        @for (action of actions(); track action) {
+          <button
+            type="button"
+            class="category-details-action"
+            [disabled]="actionsLocked()"
+            (click)="requestAction(action)"
+          >
+            {{ actionLabels()[action] }}
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  <admin-dialog
+    [open]="pendingAction() !== null"
+    [title]="copy().dialogTitle"
+    titleId="category-lifecycle-title"
+    [closeLabel]="copy().dialogCancel"
+    [backdropLabel]="copy().dialogCancel"
+    (closed)="cancelAction()"
+  >
+    <p>{{ copy().dialogMessage }}</p>
+    <div data-dialog-actions class="category-details-dialog-actions">
+      <button type="button" class="category-details-dialog-cancel" (click)="cancelAction()">
+        {{ copy().dialogCancel }}
+      </button>
+      <button
+        type="button"
+        class="category-details-dialog-confirm"
+        [disabled]="actionsLocked()"
+        (click)="confirmAction()"
+      >
+        {{ copy().dialogConfirm }}
+      </button>
+    </div>
+  </admin-dialog>
+</section>

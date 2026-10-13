@@ -1,0 +1,255 @@
+/* Kinetic floating header (DESIGN §6.4) — detached glass pill, sticky. */
+.header {
+  position: sticky;
+  top: var(--s-sm);
+  z-index: var(--z-index-sticky);
+  margin-inline: var(--s-md);
+  margin-block-start: var(--s-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-ambient), var(--shadow-bleed);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-md);
+  padding-block: var(--s-xs);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 0;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: block;
+  inline-size: 15rem;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+.desktop-nav {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+  min-inline-size: 0;
+  margin-inline-start: auto;
+}
+
+/* Language cycle pill — current language, steps to the next on press. */
+.lang-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  min-block-size: 44px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.lang-button:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.lang-button:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.menu-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding-inline: var(--s-xs);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.menu-toggle span {
+  display: block;
+  inline-size: 1.25rem;
+  block-size: 2px;
+  background: currentColor;
+  border-radius: var(--r-pill);
+}
+
+.menu-toggle:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 3px;
+}
+
+.mobile-panel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-md);
+  padding-block: var(--s-sm);
+}
+
+@media (min-width: 48rem) {
+  .desktop-nav {
+    display: block;
+  }
+
+  .menu-toggle,
+  .mobile-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .desktop-search {
+    display: none;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Pill search field with an inner Primary query pill (DESIGN §6.5). */
+.search {
+  display: flex;
+  align-items: center;
+  min-block-size: 48px;
+  padding-inline-start: var(--s-lg);
+  padding-inline-end: 0.375rem;
+  padding-block: 0.375rem;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg);
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+}
+
+.search-input {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  block-size: 2.25rem;
+}
+
+.search-input::placeholder {
+  color: var(--text-faint);
+}
+
+.search-input:focus {
+  outline: none;
+}
+
+.search:focus-within {
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 4px var(--glow-primary);
+}
+
+.search-button {
+  flex: none;
+  min-block-size: 32px;
+  padding-inline: var(--s-md);
+  border-radius: var(--r-pill);
+  border: none;
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.desktop-search {
+  display: none;
+}
+
+/* Login — single Primary pill (registration lives on the login page). */
+.login-pill {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--s-lg);
+  border-radius: var(--r-pill);
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transform: translateY(-4px);
+}
+
+/* Avatar — account circle linking straight to the profile. */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--secondary);
+  background: var(--secondary-soft);
+  color: var(--secondary-soft-text);
+  font-weight: 800;
+  font-size: 1.125rem;
+  text-decoration: none;
+  flex: none;
+  overflow: hidden;
+  transform: translateY(-4px);
+  transition: box-shadow 0.2s;
+}
+
+.avatar:hover {
+  box-shadow: 0 0 24px var(--glow-secondary);
+}
+
+.avatar-image {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 64rem) {
+  .desktop-search {
+    display: flex;
+  }
+}

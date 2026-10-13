@@ -1,0 +1,4 @@
+.spec-form {
+  display: grid;
+  gap: var(--s-sm);
+}
